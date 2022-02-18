@@ -71,7 +71,7 @@ qe_x, qe_y = GI.qtyEvolution(sim_data, "clock_time", "mass", nothing, :stars, wa
         # @test GI.compare(gd_z, file["gd_z"])
         @test GI.compare(pm_x, file["pm_x"])
         @test GI.compare(pm_y, file["pm_y"])
-        @test GI.compare(pm_z, file["pm_z"])
+        @test pm_z .≈ file["pm_z"]
         @test GI.compare(qe_x, file["qe_x"])
         @test GI.compare(qe_y, file["qe_y"])
     end
