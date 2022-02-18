@@ -9,7 +9,7 @@
 
 <p align="center">
     <a href="https://codecov.io/github/Ezequiel92/GadgetInspector?branch=main"><img src="https://img.shields.io/codecov/c/github/Ezequiel92/GadgetInspector?style=flat&logo=Codecov&labelColor=2B2D2F"></a>
-    <a href="https://github.com/Ezequiel92/GadgetInspector/blob/main/LICENSE"><img src="https://img.shields.io/github/workflow/status/Ezequiel92/GadgetInspector/Continuous%20integration?style=flat&logo=GitHub&labelColor=2B2D2F"></a>
+    <a href="https://github.com/Ezequiel92/GadgetInspector/blob/main/LICENSE"><img src="https://img.shields.io/github/workflow/status/Ezequiel92/GadgetInspector/Run%20tests?style=flat&logo=GitHub&labelColor=2B2D2F"></a>
 </p>
 
 <p align="center">
