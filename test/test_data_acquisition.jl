@@ -14,7 +14,7 @@ cosmological_header = read_header(joinpath(
     SNAP_NAME * "_019",
 ))
 
-source_table = @test_nowarn GI.makeSourceTable([snapshots, snapshots], :,UnitfulAstro.Gyr)
+source_table = @test_nowarn GI.makeSourceTable([snapshots, snapshots], :, UnitfulAstro.Gyr)
 temperature_data = @test_nowarn GI.getTemperature(snapshot)
 raw_data = @test_nowarn GI.getRawData(snapshot, :gas, "POS")
 snap_data_01 = @test_nowarn GI.getSnapshotData(snapshot, :gas, "POS")

@@ -3,7 +3,8 @@
 ####################################################################################################
 
 push!(LOAD_PATH, joinpath(@__DIR__, "../../../src/"))
-using GadgetInspector; const GI = GadgetInspector;
+using GadgetInspector;
+const GI = GadgetInspector;
 using JLD2, Unitful, UnitfulAstro, GadgetIO, CairoMakie
 
 # Path to the directory where the reference results will be saved

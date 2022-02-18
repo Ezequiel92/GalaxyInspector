@@ -5,8 +5,8 @@
 hist_data, = GI.histogram(snap_data_01, :gas, "POS", func = GI.computeDistance)
 
 corr_x, corr_y = GI.correlation(
-    snap_data_04, 
-    (:gas, "POS"), 
+    snap_data_04,
+    (:gas, "POS"),
     (:gas, "MASS"),
     x_function = GI.computeDistance,
 )
@@ -16,7 +16,7 @@ prof_x, prof_y = GI.profile(snap_data_04, (:gas, "MASS"), 200.0UnitfulAstro.kpc,
 zprof_x, zprof_y = GI.zProfile(snap_data_04, :stars, 200.0UnitfulAstro.kpc, 100)
 
 cmdf_x, cmdf_y = GI.cmdf(
-    merge(Dict(:sim_data => sim_data, :snap_data => snap_data), snap_data_04), 
+    merge(Dict(:sim_data => sim_data, :snap_data => snap_data), snap_data_04),
     bins = 100,
 )
 
@@ -30,7 +30,7 @@ ks_x, ks_y = GI.kennicuttSchmidt(
     Inf * Unitful.K,
     200.0UnitfulAstro.Myr,
     200.0UnitfulAstro.kpc;
-    bins = 200,
+    bins = 200
 )
 
 # gd_data = GI.getSnapshotData(
@@ -58,14 +58,14 @@ qe_x, qe_y = GI.qtyEvolution(sim_data, "clock_time", "mass", nothing, :stars, wa
 ####################################################################################################
 
 jldsave(
-    joinpath(BASE_OUT_PATH, "data_analysis.jld2"); 
-    hist_data,  
+    joinpath(BASE_OUT_PATH, "data_analysis.jld2");
+    hist_data,
     corr_x, corr_y,
-    prof_x, prof_y, 
-    zprof_x, zprof_y, 
-    cmdf_x, cmdf_y, 
-    ks_x, ks_y, 
+    prof_x, prof_y,
+    zprof_x, zprof_y,
+    cmdf_x, cmdf_y,
+    ks_x, ks_y,
     # gd_x, gd_y, gd_z, 
     pm_x, pm_y, pm_z,
-    qe_x, qe_y,
+    qe_x, qe_y
 )

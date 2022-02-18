@@ -28,7 +28,7 @@
         y_name = "counts",
         y_scale = Makie.pseudolog10,
         animation = false,
-        output_format = ".png",
+        output_format = ".png"
     )
     @test_reference(
         joinpath(BASE_DATA_PATH, "snapshotPlot/histograms/plots/snapshot_150.png"),
@@ -65,10 +65,10 @@
         animation = false,
         output_format = ".png",
         resolution = (1000, 1000),
-        aspect = AxisAspect(1),
+        aspect = AxisAspect(1)
     )
     @test_reference(
-        joinpath(BASE_DATA_PATH, "snapshotPlot/scatter_plots/plots/snapshot_150.png"), 
+        joinpath(BASE_DATA_PATH, "snapshotPlot/scatter_plots/plots/snapshot_150.png"),
         load(first_image),
     )
     @test_reference(
@@ -98,10 +98,10 @@
         y_unit = UnitfulAstro.Msun,
         y_factor = 10,
         animation = false,
-        output_format = ".png",
+        output_format = ".png"
     )
     @test_reference(
-        joinpath(BASE_DATA_PATH, "snapshotPlot/scatterlines/plots/snapshot_150.png"), 
+        joinpath(BASE_DATA_PATH, "snapshotPlot/scatterlines/plots/snapshot_150.png"),
         load(first_image),
     )
     @test_reference(
@@ -138,14 +138,14 @@
         animation = false,
         output_format = ".png",
         resolution = (1000, 1000),
-        aspect = AxisAspect(1),
+        aspect = AxisAspect(1)
     )
     @test_reference(
-        joinpath(BASE_DATA_PATH, "snapshotPlot/heatmaps/plots/snapshot_150.png"), 
+        joinpath(BASE_DATA_PATH, "snapshotPlot/heatmaps/plots/snapshot_150.png"),
         load(first_image),
     )
     @test_reference(
-        joinpath(BASE_DATA_PATH, "snapshotPlot/heatmaps/plots/snapshot_160.png"), 
+        joinpath(BASE_DATA_PATH, "snapshotPlot/heatmaps/plots/snapshot_160.png"),
         load(second_image),
     )
 
@@ -174,7 +174,7 @@
         x_unit = UnitfulAstro.kpc,
         y_unit = UnitfulAstro.Msun * UnitfulAstro.pc^(-2),
         animation = false,
-        output_format = ".png",
+        output_format = ".png"
     )
     @test_reference(
         joinpath(BASE_DATA_PATH, "snapshotPlot/experiment/plots/snapshot_150.png"),
@@ -203,7 +203,7 @@
         x_unit = Unitful.Myr,
         y_unit = UnitfulAstro.Msun / UnitfulAstro.kyr,
         y_scale = log10,
-        file_name = "time_series_sfr.png",
+        file_name = "time_series_sfr.png"
     )
     @test_reference(
         joinpath(BASE_DATA_PATH, "timeSeriesPlot/time_series_sfr.png"),
@@ -224,9 +224,9 @@
         x_name = "t",
         y_name = "m",
         x_unit = Unitful.Myr,
-        y_unit = UnitfulAstro.Msun, 
+        y_unit = UnitfulAstro.Msun,
         y_scale = log10,
-        file_name = "time_series_gas_mass.png",
+        file_name = "time_series_gas_mass.png"
     )
     @test_reference(
         joinpath(BASE_DATA_PATH, "timeSeriesPlot/time_series_gas_mass.png"),
@@ -249,7 +249,7 @@
         x_unit = Unitful.Myr,
         y_unit = Unitful.NoUnits,
         y_scale = log10,
-        file_name = "time_series_star_number.png",
+        file_name = "time_series_star_number.png"
     )
     @test_reference(
         joinpath(BASE_DATA_PATH, "timeSeriesPlot/time_series_star_number.png"),

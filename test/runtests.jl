@@ -3,9 +3,10 @@
 ####################################################################################################
 
 push!(LOAD_PATH, joinpath(@__DIR__, "../src/"))
-using GadgetInspector; const GI = GadgetInspector;
-using JLD2, GadgetIO, CairoMakie, LaTeXStrings, DataFrames, DelimitedFiles, Unitful, UnitfulAstro, 
-Test, ReferenceTests
+using GadgetInspector;
+const GI = GadgetInspector;
+using JLD2, GadgetIO, CairoMakie, LaTeXStrings, DataFrames, DelimitedFiles, Unitful, UnitfulAstro,
+    Test, ReferenceTests
 
 # Path to the directory containing the reference results
 const BASE_DATA_PATH = joinpath(@__DIR__, "./reference_results")

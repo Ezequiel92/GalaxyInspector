@@ -14,104 +14,121 @@ total_star_mass = GI.computeTimeSeries(snapshots["snap_paths"], "mass", :stars, 
 @testset "GADGET utilities" begin
 
     @test GI.passAll(snapshot, :stars) == 1:2940
-    @test GI.energyIntegrand(cosmological_header, 0.53) == 16.22598392575642
-    @test GI.internalUnits("POS", isolated_header) == 1.000000135629411UnitfulAstro.kpc
+    @test GI.energyIntegrand(cosmological_header, 0.53) ≈ 16.22598392575642
+    @test GI.internalUnits("POS", isolated_header) ≈ 1.000000135629411UnitfulAstro.kpc
     @test GI.internalUnits("TEMP", isolated_header) == u"K"
     @test GI.internalUnits("ID", isolated_header) == Unitful.NoUnits
     @test GI.internalUnits("FMOL", isolated_header) == Unitful.NoUnits
-    @test GI.internalUnits("SFRTXT_COL5", isolated_header) == 1.0002967845365513e10UnitfulAstro.Msun
+    @test GI.internalUnits("SFRTXT_COL5", isolated_header) ≈ 1.0002967845365513e10UnitfulAstro.Msun
     @test_nowarn GI.checkDataShape(heatmap!, 3, 1)
     @test_nowarn GI.checkDataShape(hist!, 1, 23)
     @test_nowarn GI.checkDataShape(scatterlines!, 2, 23)
 
     jldopen(joinpath(BASE_DATA_PATH, "utilities.jld2"), "r") do file
 
-        @test GI.passCritRho(
-            snapshot,
-            type = :gas,
-            crit_ρ = GI.CRITICAL_DENSITY,
-            sim_cosmo = SIM_COSMO,
-        ) == file["pass_crit_rho"]
+        @test GI.compare(
+            GI.passCritRho(
+                snapshot,
+                type = :gas,
+                crit_ρ = GI.CRITICAL_DENSITY,
+                sim_cosmo = SIM_COSMO,
+            ), 
+            file["pass_crit_rho"],
+        )
         
-        @test GI.passPositiveQty(snapshot) == file["pass_positive_qty"]
-        @test GI.passMetallicity(snapshot, 1e-6, 1e-3) == file["pass_metallicity"]
+        @test GI.compare(GI.passPositiveQty(snapshot), file["pass_positive_qty"])
+        @test GI.compare(GI.passMetallicity(snapshot, 1e-6, 1e-3), file["pass_metallicity"])
         @test GI.compare(total_star_mass, file["total_star_mass"])
-        @test GI.metalMass(gas_z) == file["metal_mass"]
-        @test GI.computeMetallicity(gas_z, gas_mass, solar = true) == file["metallicity"]
-        @test GI.computeElementFraction(gas_z, "O") == file["element_fraction"]
-        @test GI.computeTime([0:0.01:1...], cosmological_header) == file["time"]
-        @test GI.computeRedshift([0:0.01:1...]) == file["redshift"]
-        @test GI.computeStellarAge(stellar_age, sim_data, snap_data) == file["stellar_age"]
+        @test GI.compare(GI.metalMass(gas_z), file["metal_mass"])
+        @test GI.compare(GI.computeMetallicity(gas_z, gas_mass, solar = true), file["metallicity"])
+        @test GI.compare(GI.computeElementFraction(gas_z, "O"), file["element_fraction"])
+        @test GI.compare(GI.computeTime([0:0.01:1...], cosmological_header), file["time"])
+        @test GI.compare(GI.computeRedshift([0:0.01:1...]), file["redshift"])
+        @test GI.compare(GI.computeStellarAge(stellar_age, sim_data, snap_data), file["stellar_age"])
         @test GI.compare(GI.computeSFR(total_star_mass, file["time"]), file["sfr"])
-        @test GI.computeDistance(gas_pos) == file["distance"]
-        @test GI.computeCenterOfMass(gas_pos, gas_mass) == file["center_of_mass"]
-        @test GI.computeTemperature(gas_z, gas_mass, gas_u, gas_ne) == file["temperature"]
+        @test GI.compare(GI.computeDistance(gas_pos), file["distance"])
+        @test GI.compare(GI.computeCenterOfMass(gas_pos, gas_mass), file["center_of_mass"])
+        @test GI.compare(GI.computeTemperature(gas_z, gas_mass, gas_u, gas_ne), file["temperature"])
 
-        @test GI.computeSurfaceDensity(
-            file["distance"],
-            gas_mass,
-            BOX_SIZE,
-            100,
-        ) == file["surface_density_disc"]
+        @test GI.compare(
+            GI.computeSurfaceDensity(file["distance"], gas_mass, BOX_SIZE, 100), 
+            file["surface_density_disc"],
+        )
 
-        @test GI.computeSurfaceDensity(
-            gas_pos,
-            gas_mass,
-            BOX_SIZE,
-            100,
-        ) == file["surface_density_square"]
+        @test GI.compare(
+            GI.computeSurfaceDensity(gas_pos, gas_mass, BOX_SIZE, 100), 
+            file["surface_density_square"],
+        )
 
-        @test GI.computeProfile(file["distance"], gas_mass, BOX_SIZE, 100) == file["basic_profile"]
+        @test GI.compare(GI.computeProfile(file["distance"], gas_mass, BOX_SIZE, 100), file["basic_profile"])
 
-        @test GI.computeProfile(
-            file["distance"],
-            gas_mass,
-            BOX_SIZE,
-            100,
-            flat = false,
-            cumulative = true,
-            density = true,
-        ) == file["full_profile"]
+        @test GI.compare(
+            GI.computeProfile(
+                file["distance"],
+                gas_mass,
+                BOX_SIZE,
+                100,
+                flat = false,
+                cumulative = true,
+                density = true,
+            ),
+            file["full_profile"],
+        )
 
-        @test GI.computeZProfile(file["distance"],
-            gas_z,
-            gas_mass,
-            BOX_SIZE,
-            100,
-        ) == file["basic_z_profile"]
+        @test GI.compare(
+            GI.computeZProfile(file["distance"],
+                gas_z,
+                gas_mass,
+                BOX_SIZE,
+                100,
+            ),
+            file["basic_z_profile"],
+        )
 
-        @test GI.computeZProfile(
-            file["distance"],
-            gas_z,
-            gas_mass,
-            BOX_SIZE,
-            100,
-            flat = false,
-            cumulative = true,
-            density = true,
-            solar = true,
-        ) == file["full_z_profile"]
+        @test GI.compare(
+            GI.computeZProfile(
+                file["distance"],
+                gas_z,
+                gas_mass,
+                BOX_SIZE,
+                100,
+                flat = false,
+                cumulative = true,
+                density = true,
+                solar = true,
+            ),
+            file["full_z_profile"],
+        )
 
-        @test GI.computeTimeSeries(
-            snapshots["snap_paths"],
-            "clock_time",
-            :stars,
-            false,
-        ) == file["time_series_clock_time"]
+        @test GI.compare(
+            GI.computeTimeSeries(
+                snapshots["snap_paths"],
+                "clock_time",
+                :stars,
+                false,
+            ),
+            file["time_series_clock_time"],
+        )
 
-        @test GI.computeTimeSeries(
-            snapshots["snap_paths"],
-            "number",
-            :stars,
-            false,
-        ) == file["time_series_number"]
+        @test GI.compare(
+            GI.computeTimeSeries(
+                snapshots["snap_paths"],
+                "number",
+                :stars,
+                false,
+            ),
+            file["time_series_number"],
+        )
 
-        @test GI.computeTimeSeries(
-            snapshots["snap_paths"],
-            "sfr",
-            :stars,
-            false,
-        ) == file["time_series_sfr"]
+        @test GI.compare(
+            GI.computeTimeSeries(
+                snapshots["snap_paths"],
+                "sfr",
+                :stars,
+                false,
+            ),
+            file["time_series_sfr"],
+        )
 
     end
 

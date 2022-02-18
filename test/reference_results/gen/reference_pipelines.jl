@@ -22,7 +22,7 @@ snapshotPlot(
     y_label = "counts",
     y_scale = Makie.pseudolog10,
     animation = false,
-    output_format = ".png",
+    output_format = ".png"
 )
 
 # Scatter plot
@@ -49,7 +49,7 @@ snapshotPlot(
     animation = false,
     output_format = ".png",
     resolution = (1000, 1000),
-    aspect = AxisAspect(1),
+    aspect = AxisAspect(1)
 )
 
 # Scatterlines plot
@@ -72,7 +72,7 @@ snapshotPlot(
     y_unit = UnitfulAstro.Msun,
     y_factor = 10,
     animation = false,
-    output_format = ".png",
+    output_format = ".png"
 )
 
 # Heatmap
@@ -102,7 +102,7 @@ snapshotPlot(
     animation = false,
     output_format = ".png",
     resolution = (1000, 1000),
-    aspect = AxisAspect(1),
+    aspect = AxisAspect(1)
 )
 
 # Comparison with experiments
@@ -128,7 +128,7 @@ snapshotPlot(
     x_unit = UnitfulAstro.kpc,
     y_unit = UnitfulAstro.Msun * UnitfulAstro.pc^(-2),
     animation = false,
-    output_format = ".png",
+    output_format = ".png"
 )
 
 # SFR time series
@@ -147,7 +147,7 @@ timeSeriesPlot(
     x_unit = Unitful.Myr,
     y_unit = UnitfulAstro.Msun / UnitfulAstro.kyr,
     y_scale = log10,
-    file_name = "time_series_sfr.png",
+    file_name = "time_series_sfr.png"
 )
 
 # Gas mass time series
@@ -164,9 +164,9 @@ timeSeriesPlot(
     x_label = "t",
     y_label = "m",
     x_unit = Unitful.Myr,
-    y_unit = UnitfulAstro.Msun, 
+    y_unit = UnitfulAstro.Msun,
     y_scale = log10,
-    file_name = "time_series_gas_mass.png",
+    file_name = "time_series_gas_mass.png"
 )
 
 # Star number time series
@@ -185,7 +185,7 @@ timeSeriesPlot(
     x_unit = Unitful.Myr,
     y_unit = Unitful.NoUnits,
     y_scale = log10,
-    file_name = "time_series_star_number.png",
+    file_name = "time_series_star_number.png"
 )
 
 # Snapshot table
