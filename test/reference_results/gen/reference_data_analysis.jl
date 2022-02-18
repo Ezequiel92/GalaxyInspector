@@ -44,12 +44,12 @@ ks_x, ks_y = GI.kennicuttSchmidt(
 #     200.0UnitfulAstro.kpc,
 # )
 
-pm_x, pm_y, pm_z = GI.particleMap(
-    merge(Dict(:sim_data => sim_data, :snap_data => snap_data), snap_data_02),
-    "XY",
-    :stars,
-    100.0UnitfulAstro.kpc,
-)
+# pm_x, pm_y, pm_z = GI.particleMap(
+#     merge(Dict(:sim_data => sim_data, :snap_data => snap_data), snap_data_02),
+#     "XY",
+#     :stars,
+#     100.0UnitfulAstro.kpc,
+# )
 
 qe_x, qe_y = GI.qtyEvolution(sim_data, "clock_time", "mass", nothing, :stars, warnings = false)
 
@@ -66,6 +66,6 @@ jldsave(
     cmdf_x, cmdf_y,
     ks_x, ks_y,
     # gd_x, gd_y, gd_z, 
-    pm_x, pm_y, pm_z,
+    # pm_x, pm_y, pm_z,
     qe_x, qe_y
 )
