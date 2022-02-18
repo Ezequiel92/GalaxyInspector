@@ -42,7 +42,7 @@ total_star_mass = GI.computeTimeSeries(snapshots["snap_paths"], "mass", :stars, 
         @test GI.computeTime([0:0.01:1...], cosmological_header) == file["time"]
         @test GI.computeRedshift([0:0.01:1...]) == file["redshift"]
         @test GI.computeStellarAge(stellar_age, sim_data, snap_data) == file["stellar_age"]
-        @test GI.computeSFR(total_star_mass, file["time"]) == file["sfr"]
+        @test GI.compare(GI.computeSFR(total_star_mass, file["time"]), file["sfr"])
         @test GI.computeDistance(gas_pos) == file["distance"]
         @test GI.computeCenterOfMass(gas_pos, gas_mass) == file["center_of_mass"]
         @test GI.computeTemperature(gas_z, gas_mass, gas_u, gas_ne) == file["temperature"]
