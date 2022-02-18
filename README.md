@@ -10,15 +10,12 @@
 <p align="center">
     <a href="https://codecov.io/github/Ezequiel92/GadgetInspector?branch=main"><img src="https://img.shields.io/codecov/c/github/Ezequiel92/GadgetInspector?style=flat&logo=Codecov&labelColor=2B2D2F"></a>
     <a href="https://github.com/Ezequiel92/GadgetInspector/blob/main/LICENSE"><img src="https://img.shields.io/github/workflow/status/Ezequiel92/GadgetInspector/Run%20tests?style=flat&logo=GitHub&labelColor=2B2D2F"></a>
-</p>
-
-<p align="center">
-    <a href="https://Ezequiel92.github.io/GadgetInspector/dev"><img src="https://img.shields.io/badge/docs-dev-blue.svg?style=flat&logo=GitBook&labelColor=2B2D2F"></a>
-    <a href="https://github.com/Ezequiel92/GadgetInspector/actions"><img src="https://img.shields.io/github/license/Ezequiel92/GadgetInspector?style=flat&logo=GNU&labelColor=2B2D2F"></a>
     <a href="https://www.codefactor.io/repository/github/ezequiel92/gadgetplotting"><img src="https://img.shields.io/codefactor/grade/github/ezequiel92/gadgetplotting?style=flat&logo=CodeFactor&labelColor=2B2D2F"></a>
 </p>
 
 <p align="center">
+    <a href="https://github.com/Ezequiel92/GadgetInspector/actions"><img src="https://img.shields.io/github/license/Ezequiel92/GadgetInspector?style=flat&logo=GNU&labelColor=2B2D2F"></a>
+    <a href="https://Ezequiel92.github.io/GadgetInspector/dev"><img src="https://img.shields.io/badge/docs-dev-blue.svg?style=flat&logo=GitBook&labelColor=2B2D2F"></a>
     <a href="https://open.vscode.dev/Ezequiel92/GadgetInspector"><img src="https://open.vscode.dev/badges/open-in-vscode.svg"></a>
 </p>
 
