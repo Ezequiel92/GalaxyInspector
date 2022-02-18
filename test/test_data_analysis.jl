@@ -55,24 +55,24 @@ qe_x, qe_y = GI.qtyEvolution(sim_data, "clock_time", "mass", nothing, :stars, wa
 
 @testset "Data analysis functions" begin
     jldopen(joinpath(BASE_DATA_PATH, "data_analysis.jld2"), "r") do file
-        @test hist_data == file["hist_data"]
-        @test corr_x == file["corr_x"]
-        @test corr_y == file["corr_y"]
-        @test prof_x == file["prof_x"]
-        @test prof_y == file["prof_y"]
-        @test zprof_x == file["zprof_x"]
-        @test zprof_y == file["zprof_y"]
-        @test cmdf_x == file["cmdf_x"]
-        @test cmdf_y == file["cmdf_y"]
-        @test ks_x == file["ks_x"]
-        @test ks_y == file["ks_y"]
-        # @test gd_x == file["gd_x"]
-        # @test gd_y == file["gd_y"]
-        # @test gd_z == file["gd_z"]
-        @test pm_x == file["pm_x"]
-        @test pm_y == file["pm_y"]
-        @test pm_z == file["pm_z"]
-        @test qe_x == file["qe_x"]
-        @test qe_y == file["qe_y"]
+        @test GI.compare(hist_data, file["hist_data"])
+        @test GI.compare(corr_x, file["corr_x"])
+        @test GI.compare(corr_y, file["corr_y"])
+        @test GI.compare(prof_x, file["prof_x"])
+        @test GI.compare(prof_y, file["prof_y"])
+        @test GI.compare(zprof_x, file["zprof_x"])
+        @test GI.compare(zprof_y, file["zprof_y"])
+        @test GI.compare(cmdf_x, file["cmdf_x"])
+        @test GI.compare(cmdf_y, file["cmdf_y"])
+        @test GI.compare(ks_x, file["ks_x"])
+        @test GI.compare(ks_y, file["ks_y"])
+        # @test GI.compare(gd_x, file["gd_x"])
+        # @test GI.compare(gd_y, file["gd_y"])
+        # @test GI.compare(gd_z, file["gd_z"])
+        @test GI.compare(pm_x, file["pm_x"])
+        @test GI.compare(pm_y, file["pm_y"])
+        @test GI.compare(pm_z, file["pm_z"])
+        @test GI.compare(qe_x, file["qe_x"])
+        @test GI.compare(qe_y, file["qe_y"])
     end
 end
