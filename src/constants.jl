@@ -150,6 +150,32 @@ const ParticleType = Dict(
     :boundary => 5,
 )
 
+"Database of the HDF5 names for the blocks."
+const HDF5Names = Dict(
+    "GADGET" => Dict(
+        "POS"  => "Coordinates",
+        "VEL"  => "Velocities",
+        "ID"   => "ParticleIDs",
+        "MASS" => "Masses",
+        "U"    => "InternalEnergy",
+        "RHO"  => "Density",
+        "HSML" => "SmoothingLength",
+        "TSTP" => "TimeStep",
+    ),
+    "AREPO" => Dict(
+        "POS"  => "Coordinates",
+        "VEL"  => "Velocities",
+        "ID"   => "ParticleIDs",
+        "MASS" => "Masses",
+        "U"    => "InternalEnergy",
+        "RHO"  => "Density",
+        "TSTP" => "TimeStep",
+        "NE"   => "ElectronAbundance",
+        "NH"   => "NeutralHydrogenAbundance",
+        "SFR"  => "StarFormationRate",
+    ),
+)
+
 "Database of dimensional properties for the quantities in the simulations."
 const QUANTITIES = Dict(
     "POS"         => Qty(Unitful.𝐋, :internal),
