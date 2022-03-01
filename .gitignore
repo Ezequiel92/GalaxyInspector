@@ -1,4 +1,4 @@
-Manifest.toml
+# Manifest.toml
 docs/build/
 docs/src/assets/themes/
 data_function_to_hdf5.jl
