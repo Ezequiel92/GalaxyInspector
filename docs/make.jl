@@ -47,6 +47,7 @@ if CI
     deploydocs(
         repo = "github.com/Ezequiel92/GadgetInspector.git",
         devbranch = "main",
-        versions = ["dev" => "dev"],
+        branch = "main",
+        #versions = ["dev" => "dev"],
     ) 
 end
