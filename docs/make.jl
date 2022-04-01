@@ -45,9 +45,8 @@ makedocs(
 # Deploy documentation to GitHub pages
 if CI
     deploydocs(
-        repo = "github.com/Ezequiel92/GadgetInspector.git",
+        repo =  "github.com/Ezequiel92/GadgetInspector.git",
         devbranch = "main",
-        branch = "main",
-        #versions = ["dev" => "dev"],
+        versions = ["dev" => "dev"],
     ) 
 end
