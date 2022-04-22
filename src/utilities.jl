@@ -560,7 +560,7 @@ end
 """
     passPositiveQty(file_path::String; <keyword arguments>)::Vector{Int64}
 
-Filters out particles with negative values for a given quantity.
+Filters out gas particles with negative values for a given quantity.
 
 One possible filter function needed for the [read\\_blocks\\_over\\_all\\_files](https://ludwigboess.github.io/GadgetIO.jl/stable/api/#GadgetIO.read_blocks_over_all_files-Tuple{String,%20Array{String,%20N}%20where%20N}) function.
 
