@@ -3,7 +3,7 @@
 ####################################################################################################
 
 """
-    function getSnapshotPaths(
+    getSnapshotPaths(
         base_name::String,
         source_path::String,
     )::Dict{String,Vector{String}}
@@ -37,13 +37,13 @@ function getSnapshotPaths(base_name::String, source_path::String)::Dict{String,V
 
     if num_files > 1
         # If there are multiple files per snapshot, delete the trailing '.n'
-        map!(x -> rsplit(x, "."; limit = 2)[1], path_list, path_list)
+        map!(x -> rsplit(x, "."; limit=2)[1], path_list, path_list)
         # And delete duplicates
         unique!(path_list)
     end
 
     # Get the numbers that characterize each snapshot
-    number_list = map(x -> rsplit(x, base_name * '_'; limit = 2)[2], path_list)
+    number_list = map(x -> rsplit(x, base_name * '_'; limit=2)[2], path_list)
 
     return Dict("snap_numbers" => number_list, "snap_paths" => normpath.(path_list))
 
@@ -83,19 +83,19 @@ function makeSourceTable(
     source::Vector{Dict{String,Vector{String}}},
     idx::IndexType,
     t_unit::Unitful.Units,
-    sim_cosmo::Bool = false,
+    sim_cosmo::Bool=false,
 )::DataFrame
 
     paths = [sim["snap_paths"] for sim in source]
     rows = [[1:length(p);] for p in paths]
     labels = ["sim_$i" for i = 1:length(paths)]
 
-    source_table = unstack(flatten(DataFrame(l = labels, p = paths, id = rows), [:p, :id]), :l, :p)
+    source_table = unstack(flatten(DataFrame(l=labels, p=paths, id=rows), [:p, :id]), :l, :p)
 
     # Get the time-stamps of every snapshot for the longest running simulation
     # Assumes that all the simulations have the snapshots taken at the same clock time
     time_stamps = uconvert.(
-        t_unit, 
+        t_unit,
         computeTimeSeries(longest(paths), "clock_time", nothing, sim_cosmo),
     )
     # Add the column with the time-stamps
@@ -138,9 +138,9 @@ Get the temperature of the gas particles in a given snapshot.
 """
 function getTemperature(
     file_path::String;
-    sim_cosmo::Bool = false,
-    filter_function::Union{Function,Nothing} = nothing,
-    warnings::Bool = true,
+    sim_cosmo::Bool=false,
+    filter_function::Union{Function,Nothing}=nothing,
+    warnings::Bool=true
 )::Vector{<:RealOrQty}
 
     blocks = ["Z", "MASS", "U", "NE"]
@@ -150,7 +150,7 @@ function getTemperature(
         if warnings
             # Get the indices of the missing blocks
             idx_missing = findall(
-                x -> !block_present(GadgetIO.select_file(file_path, 0), x), 
+                x -> !block_present(GadgetIO.select_file(file_path, 0), x),
                 blocks,
             )
             @warn(
@@ -171,8 +171,8 @@ function getTemperature(
         file_path,
         blocks;
         filter_function,
-        parttype = ParticleType[:gas],
-        verbose = false,
+        parttype=ParticleType[:gas],
+        verbose=false
     )
 
     header = read_header(file_path)
@@ -224,19 +224,19 @@ function getRawData(
     file_path::String,
     type::Symbol,
     block::String;
-    sim_cosmo::Bool = false,
-    filter_function::Union{Function,Nothing} = nothing,
-    warnings::Bool = true,
+    sim_cosmo::Bool=false,
+    filter_function::Union{Function,Nothing}=nothing,
+    warnings::Bool=true
 )::VecOrMat{<:RealOrQty}
 
     if block == "TEMP" && type == :gas
 
-        return getTemperature(file_path, sim_cosmo; filter_function, warnings)
+        return getTemperature(file_path; sim_cosmo, filter_function, warnings)
 
     elseif !block_present(GadgetIO.select_file(file_path, 0), block)
 
         # If the block is missing from the snapshot
-        !warnings ||  @warn(
+        !warnings || @warn(
             "There is no block '$block', for the particle type '$type', in the snapshot $file_path."
         )
 
@@ -253,8 +253,8 @@ function getRawData(
             file_path,
             [block];
             filter_function,
-            parttype = ParticleType[type],
-            verbose = false,
+            parttype=ParticleType[type],
+            verbose=false
         )[block] * internalUnits(block, read_header(file_path); sim_cosmo)
 
     end
@@ -300,9 +300,9 @@ function getSnapshotData(
     file_path::String,
     type::Symbol,
     block::String;
-    sim_cosmo::Bool = false,
-    filter_function::Union{Function,Nothing} = nothing,
-    warnings::Bool = true,
+    sim_cosmo::Bool=false,
+    filter_function::Union{Function,Nothing}=nothing,
+    warnings::Bool=true
 )::Dict{Symbol,Dict{String,VecOrMat{<:RealOrQty}}}
 
     return Dict(
@@ -353,9 +353,9 @@ function getSnapshotData(
     file_path::String,
     type::Symbol,
     blocks::Vector{String};
-    sim_cosmo::Bool = false,
-    filter_function::Union{Function,Nothing} = nothing,
-    warnings::Bool = true,
+    sim_cosmo::Bool=false,
+    filter_function::Union{Function,Nothing}=nothing,
+    warnings::Bool=true
 )::Dict{Symbol,Dict{String,VecOrMat{<:RealOrQty}}}
 
     return Dict(
@@ -406,9 +406,9 @@ necessarily the same from each one.
 function getSnapshotData(
     file_path::String,
     type_blocks::Dict{Symbol,<:Union{String,Vector{String}}};
-    sim_cosmo::Bool = false,
-    filter_function::Union{Function,Nothing} = nothing,
-    warnings::Bool = true,
+    sim_cosmo::Bool=false,
+    filter_function::Union{Function,Nothing}=nothing,
+    warnings::Bool=true
 )::Dict{Symbol,Dict{String,VecOrMat{<:RealOrQty}}}
 
     return merge(
@@ -460,9 +460,9 @@ function getSnapshotData(
     file_path::String,
     types::Vector{Symbol},
     blocks::Union{String,Vector{String}};
-    sim_cosmo::Bool = false,
-    filter_function::Union{Function,Nothing} = nothing,
-    warnings::Bool = true,
+    sim_cosmo::Bool=false,
+    filter_function::Union{Function,Nothing}=nothing,
+    warnings::Bool=true
 )::Dict{Symbol,Dict{String,VecOrMat{<:RealOrQty}}}
 
     return getSnapshotData(
@@ -470,7 +470,7 @@ function getSnapshotData(
         Dict(type => blocks for type in types);
         sim_cosmo,
         filter_function,
-        warnings,
+        warnings
     )
 
 end
@@ -505,7 +505,7 @@ Get the data from the `sfr.txt` file.
 function getSfrFile(
     source_path::String,
     header::SnapshotHeader;
-    sim_cosmo::Bool = false,
+    sim_cosmo::Bool=false
 )::Dict{Int32,VecOrMat{<:RealOrQty}}
 
     # Load the data from the `sfr.txt` file
@@ -558,8 +558,8 @@ total CPU time) is returned.
 function getCpuFile(
     source_path::String,
     targets::Vector{String};
-    step::Int64 = 1,
-    warnings::Bool = true,
+    step::Int64=1,
+    warnings::Bool=true
 )::Dict{String,Matrix{Float64}}
 
     # Load the data from the `cpu.txt` file
@@ -640,8 +640,8 @@ Get the CPU consumption of the `target` process, from the `cpu.txt` file.
 function getCpuFile(
     source_path::String,
     target::String;
-    step::Int64 = 1,
-    warnings::Bool = true,
+    step::Int64=1,
+    warnings::Bool=true
 )::Dict{String,Matrix{Float64}}
 
     return getCpuFile(source_path, [target]; step, warnings)
@@ -692,7 +692,7 @@ function getMollá2015(
     data = CSV.read(
         joinpath(source_path, "data.csv"),
         DataFrame;
-        header = [
+        header=[
             "R",
             "ΣHI",
             "ΣHI_error",
@@ -709,7 +709,7 @@ function getMollá2015(
             "O/H",
             "O/H_error",
         ],
-        types = fill(Float64, 15),
+        types=fill(Float64, 15)
     )
 
     # Quantity => (unit, unit inside a logarithm?)
