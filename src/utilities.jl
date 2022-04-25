@@ -4,12 +4,12 @@
 """
 Function that always returns nothing, for any type and number of arguments.
 """
-trivial(x...;y...) = nothing
+trivial(x...; y...) = nothing
 
 """
 Read the numeric data of a CSV file using DelimitedFiles. It skips the first line.
 """
-read_csv(path::String) = readdlm(path, ',', Float64, skipstart = 1)
+read_csv(path::String) = readdlm(path, ',', Float64, skipstart=1)
 
 """
 Extension of Base.isempty to check for empty LaTeXStrings.
@@ -185,7 +185,7 @@ Construct the unit part of an axis label.
 function getUnitLabel(
     factor::Int64,
     unit::Unitful.Units;
-    latex::Bool = true,
+    latex::Bool=true
 )::Union{String,LaTeXString}
 
     if latex
@@ -262,7 +262,7 @@ function getLabel(
     label::Union{String,LaTeXString},
     factor::Int64,
     unit::Unitful.Units;
-    latex::Bool = true,
+    latex::Bool=true
 )::Union{String,LaTeXString}
 
     if isempty(label)
@@ -322,8 +322,8 @@ function scaledBins(
     values::AbstractVector{<:RealOrQty},
     bins::Int64,
     scale::Function;
-    limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}} = (nothing, nothing),
-    warnings::Bool = true,
+    limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
+    warnings::Bool=true
 )::Vector{Float64}
 
     min_val = scale(ustrip(minimum(values)))
@@ -382,7 +382,7 @@ function smoothWindow(
     x_data::AbstractVector{<:RealOrQty},
     y_data::AbstractVector{<:RealOrQty},
     bins::Int64;
-    scale::Function = identity,
+    scale::Function=identity
 )::NTuple{2,Vector{<:RealOrQty}}
 
     # Check that the input vectors have the same length
@@ -474,13 +474,13 @@ function formatError(q_mean::RealOrQty, q_error::RealOrQty)::NTuple{2,<:RealOrQt
             first_digit == 1.0 ? extra = 1 : extra = 0
             digits = ceil(Int64, sigdigit_pos) + extra
             round_mean = round(mean; digits)
-            round_error = round(error, sigdigits = 1 + extra)
+            round_error = round(error, sigdigits=1 + extra)
         else
             first_digit = trunc(error / 10.0^(floor(sigdigit_pos)))
             first_digit == 1.0 ? extra = 2 : extra = 1
             sigdigits = ceil(Int64, log10(abs(mean))) - ceil(Int64, sigdigit_pos) + extra
             round_mean = round(mean; sigdigits)
-            round_error = round(error, sigdigits = extra)
+            round_error = round(error, sigdigits=extra)
         end
 
     end
@@ -541,9 +541,9 @@ Onme possible filter function needed for the [read\\_blocks\\_over\\_all\\_files
 """
 function passCritRho(
     file_path::String;
-    type::Symbol = :gas,
-    crit_ρ::Unitful.Quantity = CRITICAL_DENSITY,
-    sim_cosmo::Bool = false,
+    type::Symbol=:gas,
+    crit_ρ::Unitful.Quantity=CRITICAL_DENSITY,
+    sim_cosmo::Bool=false
 )::Vector{Int64}
 
     type ∈ keys(ParticleType) || throw(ArgumentError(
@@ -551,7 +551,12 @@ function passCritRho(
     ))
 
     internal_unit = internalUnits("RHO", read_header(file_path); sim_cosmo)
-    densities = read_snap(file_path, "RHO", ParticleType[type]) .* internal_unit
+    densities = read_snapshots(
+        file_path,
+        "RHO",
+        ParticleType[type],
+        x -> passAll(x, type),
+    )["RHO"] .* internal_unit
 
     return findall(densities .> crit_ρ)
 
@@ -572,7 +577,7 @@ One possible filter function needed for the [read\\_blocks\\_over\\_all\\_files]
 - A Vector with the indices of the allowed particles.
 
 """
-function passPositiveQty(file_path::String; qty::String = "FMOL")::Vector{Int64}
+function passPositiveQty(file_path::String; qty::String="FMOL")::Vector{Int64}
 
     qty ∈ keys(QUANTITIES) || throw(ArgumentError(
         "Quantity '$qty' not supported. The supported types are $(keys(QUANTITIES))"
@@ -582,7 +587,12 @@ function passPositiveQty(file_path::String; qty::String = "FMOL")::Vector{Int64}
         "I couldn't find the data block for quantity '$qty' in the snapshot $file_path"
     )
 
-    data = read_snap(file_path, qty, ParticleType[:gas])
+    data = read_snapshots(
+        file_path,
+        qty,
+        ParticleType[:gas],
+        x -> passAll(x, :gas),
+    )[qty]
 
     return findall(data .>= 0.0)
 
@@ -618,13 +628,13 @@ function passMetallicity(
     file_path::String,
     z_min::Real,
     z_max::Real;
-    sim_cosmo::Bool = false,
-    warnings::Bool = true,
+    sim_cosmo::Bool=false,
+    warnings::Bool=true
 )::Vector{Int64}
 
     data = getSnapshotData(file_path, :gas, ["Z", "MASS"]; sim_cosmo, warnings)[:gas]
 
-    z = computeMetallicity(data["Z"], data["MASS"], solar = true)
+    z = computeMetallicity(data["Z"], data["MASS"], solar=true)
 
     return findall(z_min .<= z .<= z_max)
 
@@ -708,7 +718,7 @@ Every pair of values is compared with the [`compare`](@ref) function.
 - Return `true` if every pair of elements within the dictionaries pass the equality tests.
 
 """
-function compare(x::Dict, y::Dict; atol::Float64 = 1e-5, rtol::Float64 = 1e-5)::Bool
+function compare(x::Dict, y::Dict; atol::Float64=1e-5, rtol::Float64=1e-5)::Bool
 
     # If the dictionaries have different keys avoid recursion and return false
     keys(x) == keys(y) || return false
@@ -734,7 +744,7 @@ Every pair of values is compared with the [`compare`](@ref) function.
 - Return `true` if every pair of elements within the dataframes pass the equality tests.
 
 """
-function compare(x::DataFrame, y::DataFrame; atol::Float64 = 1e-5, rtol::Float64 = 1e-5)::Bool
+function compare(x::DataFrame, y::DataFrame; atol::Float64=1e-5, rtol::Float64=1e-5)::Bool
 
     # If the dataframes have different column names avoid recursion and return false
     names(x) == names(y) || return false
@@ -767,8 +777,8 @@ Every pair of values is compared with the [`compare`](@ref) function.
 function compare(
     x::Union{AbstractVector,Tuple},
     y::Union{AbstractVector,Tuple};
-    atol::Float64 = 1e-5,
-    rtol::Float64 = 1e-5,
+    atol::Float64=1e-5,
+    rtol::Float64=1e-5
 )::Bool
 
     # If the list have different lengths avoid recursion and return false
@@ -798,12 +808,12 @@ with NaN, and using [isapprox](https://docs.julialang.org/en/v1/base/math/#Base.
 - Returns true when the values are approximately equal, and false otherwise.
 
 """
-function compare(x::RealOrQty, y::RealOrQty; atol::Float64 = 1e-5, rtol::Float64 = 1e-5)::Bool
+function compare(x::RealOrQty, y::RealOrQty; atol::Float64=1e-5, rtol::Float64=1e-5)::Bool
 
     if x === NaN || y === NaN
         return isequal(x, y)
     else
-        return Unitful.isapprox(x, y; atol = atol * unit(x), rtol)
+        return Unitful.isapprox(x, y; atol=atol * unit(x), rtol)
     end
 
 end
@@ -825,10 +835,10 @@ It's the default method, used when all other `compare` methods cannot be dispatc
 - Returns `isequal(x, y)`.
 
 """
-function compare(x, y; atol::Float64 = 1e-5, rtol::Float64 = 1e-5)::Bool
+function compare(x, y; atol::Float64=1e-5, rtol::Float64=1e-5)::Bool
 
-    atol;
-    rtol;
+    atol
+    rtol
 
     return isequal(x, y)
 
@@ -857,9 +867,9 @@ If every element in `data` falls within the range (`inferior`, `superior`).
 """
 function inRange(
     data::AbstractVector{<:RealOrQty},
-    inferior::RealOrQty = -Inf,
-    superior::RealOrQty = Inf;
-    strict::Bool = true,
+    inferior::RealOrQty=-Inf,
+    superior::RealOrQty=Inf;
+    strict::Bool=true
 )::Bool
 
     if strict
@@ -891,7 +901,7 @@ end
 """
     internalUnits(
         quantity::String, 
-        header::SnapshotHeader; 
+        header::GIO.SnapshotHeader; 
         <keyword arguments>
     )::Union{Unitful.Quantity,Unitful.Units}
 
@@ -901,7 +911,7 @@ used by GADGET.
 # Arguments
 - `quantity::String`: Key to the target quantity. The options are given by [`QUANTITIES`](@ref)
   in `src/constants.jl`.
-- `header::SnapshotHeader`: Header of the corresponding snapshot.
+- `header::GIO.SnapshotHeader`: Header of the corresponding snapshot.
 - `sim_cosmo::Bool = false`: If the simulation is cosmological, 
   - `false` ⟶ Newtonian simulation (`ComovingIntegrationOn` = 0).
   - `true` ⟶ Cosmological simulation (`ComovingIntegrationOn` = 1).
@@ -912,15 +922,15 @@ used by GADGET.
 """
 function internalUnits(
     quantity::String,
-    header::SnapshotHeader;
-    sim_cosmo::Bool = false,
+    header::GIO.SnapshotHeader;
+    sim_cosmo::Bool=false
 )::Union{Unitful.Quantity,Unitful.Units}
 
     dim = QUANTITIES[quantity].dimension
     unit = QUANTITIES[quantity].unit
 
     # Structure for unit conversion
-    GU = GadgetPhysicalUnits(a_scale = sim_cosmo ? header.time : 1.0, hpar = header.h0)
+    GU = GadgetPhysicalUnits(a_scale=sim_cosmo ? header.time : 1.0, hpar=header.h0)
 
     if unit == :internal
 
@@ -977,8 +987,8 @@ Delete every element in `data` that is outside of a given range.
 function rangeCut!(
     data::AbstractVector{<:RealOrQty},
     range::NTuple{2,<:Real};
-    keep_edges::Bool = true,
-    min_left::Int64 = 0,
+    keep_edges::Bool=true,
+    min_left::Int64=0
 )::Int32
 
     l_range = range[1] * unit(data[1])
@@ -1038,8 +1048,8 @@ function rangeCut!(
     m_data::AbstractVector{<:RealOrQty},
     s_data::AbstractVector,
     range::NTuple{2,<:Real};
-    keep_edges::Bool = true,
-    min_left::Int64 = 0,
+    keep_edges::Bool=true,
+    min_left::Int64=0
 )::Int32
 
     length(s_data) >= length(m_data) || throw(ArgumentError(
@@ -1097,8 +1107,8 @@ Delete every element in `data` that is negative.
 """
 function positiveCut!(
     data::AbstractVector{<:RealOrQty};
-    keep_edges::Bool = true,
-    min_left::Int64 = 0,
+    keep_edges::Bool=true,
+    min_left::Int64=0
 )::Int32
 
     return rangeCut!(data, (0.0, Inf); keep_edges, min_left)
@@ -1134,8 +1144,8 @@ Delete every element in `m_data` that is negative. Every corresponding element i
 function positiveCut!(
     m_data::AbstractVector{<:RealOrQty},
     s_data::AbstractVector;
-    keep_edges::Bool = true,
-    min_left::Int64 = 0,
+    keep_edges::Bool=true,
+    min_left::Int64=0
 )::Int32
 
     return rangeCut!(m_data, s_data, (0.0, Inf); keep_edges, min_left)
@@ -1184,11 +1194,11 @@ By default, no transformation is done.
 """
 function sanitizeData!(
     data::AbstractVector{<:RealOrQty};
-    func_domain::Function = identity,
-    range::NTuple{2,<:Real} = (-Inf, Inf),
-    keep_edges::Bool = true,
-    min_left::Int64 = 0,
-    exp_factor::Int64 = 0,
+    func_domain::Function=identity,
+    range::NTuple{2,<:Real}=(-Inf, Inf),
+    keep_edges::Bool=true,
+    min_left::Int64=0,
+    exp_factor::Int64=0
 )::NTuple{2,Int32}
 
     !(isa(data, AbstractVector{<:Integer}) && exp_factor != 0) || @warn(
@@ -1200,9 +1210,9 @@ function sanitizeData!(
         if func_domain == sqrt
             domain_flag = positiveCut!(data; min_left)
         elseif func_domain == Makie.logit
-            domain_flag = rangeCut!(data, (0, 1); keep_edges = false, min_left)
+            domain_flag = rangeCut!(data, (0, 1); keep_edges=false, min_left)
         elseif func_domain == log || func_domain == log2 || func_domain == log10
-            domain_flag = positiveCut!(data; keep_edges = false, min_left)
+            domain_flag = positiveCut!(data; keep_edges=false, min_left)
         else
             throw(ArgumentError(
                 "Function $func_domain is not supported. See list of suppoerted scaling functions \
@@ -1276,11 +1286,11 @@ By default, no transformation is done to any of the datasets.
 function sanitizeData!(
     x_data::AbstractVector{<:RealOrQty},
     y_data::AbstractVector{<:RealOrQty};
-    func_domain::NTuple{2,Function} = (identity, identity),
-    range::NTuple{2,NTuple{2,<:Real}} = ((-Inf, Inf), (-Inf, Inf)),
-    keep_edges::NTuple{2,Bool} = (true, true),
-    min_left::Int64 = 0,
-    exp_factor::NTuple{2,Int64} = (0, 0),
+    func_domain::NTuple{2,Function}=(identity, identity),
+    range::NTuple{2,NTuple{2,<:Real}}=((-Inf, Inf), (-Inf, Inf)),
+    keep_edges::NTuple{2,Bool}=(true, true),
+    min_left::Int64=0,
+    exp_factor::NTuple{2,Int64}=(0, 0)
 )::NTuple{4,Int32}
 
     length(x_data) == length(y_data) || throw(ArgumentError(
@@ -1294,15 +1304,15 @@ function sanitizeData!(
         "Elements of `y_data` are of type Integer, this may result in errors or unwanted \
         truncation when using `exp_factor[2]` != 0."
     )
-    
+
 
     if func_domain[1] != identity
         if func_domain[1] == sqrt
             x_domain_flag = positiveCut!(x_data, y_data; min_left)
         elseif func_domain[1] == Makie.logit
-            x_domain_flag = rangeCut!(x_data, y_data, (0, 1); keep_edges = false, min_left)
+            x_domain_flag = rangeCut!(x_data, y_data, (0, 1); keep_edges=false, min_left)
         elseif func_domain[1] == log || func_domain[1] == log2 || func_domain[1] == log10
-            x_domain_flag = positiveCut!(x_data, y_data; keep_edges = false, min_left)
+            x_domain_flag = positiveCut!(x_data, y_data; keep_edges=false, min_left)
         else
             throw(ArgumentError(
                 "Function $(func_domain[1]) is not supported. See list of suppoerted scaling \
@@ -1317,9 +1327,9 @@ function sanitizeData!(
         if func_domain[2] == sqrt
             y_domain_flag = positiveCut!(y_data, x_data; min_left)
         elseif func_domain[2] == Makie.logit
-            y_domain_flag = rangeCut!(y_data, x_data, (0, 1); keep_edges = false, min_left)
+            y_domain_flag = rangeCut!(y_data, x_data, (0, 1); keep_edges=false, min_left)
         elseif func_domain[2] == log || func_domain[2] == log2 || func_domain[2] == log10
-            y_domain_flag = positiveCut!(y_data, x_data; keep_edges = false, min_left)
+            y_domain_flag = positiveCut!(y_data, x_data; keep_edges=false, min_left)
         else
             throw(ArgumentError(
                 "Function $(func_domain[2]) is not supported. See list of suppoerted scaling \
@@ -1330,8 +1340,8 @@ function sanitizeData!(
         y_domain_flag = 0
     end
 
-    x_range_flag = rangeCut!(x_data, y_data, range[1]; keep_edges = keep_edges[1], min_left)
-    y_range_flag = rangeCut!(y_data, x_data, range[2]; keep_edges = keep_edges[2], min_left)
+    x_range_flag = rangeCut!(x_data, y_data, range[1]; keep_edges=keep_edges[1], min_left)
+    y_range_flag = rangeCut!(y_data, x_data, range[2]; keep_edges=keep_edges[2], min_left)
 
     x_data ./= 10^exp_factor[1]
     y_data ./= 10^exp_factor[2]
@@ -1381,7 +1391,7 @@ particle in a snapshot.
 function computeMetallicity(
     metals::Matrix{<:Unitful.Mass},
     mass::Vector{<:Unitful.Mass};
-    solar::Bool = false,
+    solar::Bool=false
 )::Vector{Float64}
 
     metallicity = uconvert.(Unitful.NoUnits, metalMass(metals) ./ mass)
@@ -1425,7 +1435,7 @@ every gas or stellar particle in a snapshot.
 function computeElementFraction(
     metals::Matrix{<:Unitful.Mass},
     element::String;
-    func::Function = identity,
+    func::Function=identity
 )::Vector{Float64}
 
     if element == "He" || element == "Helium"
@@ -1494,7 +1504,7 @@ where
 function computeTime(
     scale_factors::Vector{<:Real},
     header::GIO.SnapshotHeader;
-    a0::Real = scale_factors[1],
+    a0::Real=scale_factors[1]
 )::Vector{<:Unitful.Time}
 
     f = x -> energyIntegrand(header, x)
@@ -1576,7 +1586,7 @@ function computeStellarAge(
 )::Vector{<:Unitful.Time}
 
     # From scale factor to clock time
-    birth_times = computeTime(birth_a, sim_data.header, a0 = sim_data.a0)
+    birth_times = computeTime(birth_a, sim_data.header, a0=sim_data.a0)
 
     return snap_data.time_stamp .- birth_times
 
@@ -1635,7 +1645,7 @@ Compute the distance of several particles from a `center`.
 """
 function computeDistance(
     positions::Matrix{<:Unitful.Length};
-    center::Union{Vector{<:Unitful.Length},Nothing} = nothing,
+    center::Union{Vector{<:Unitful.Length},Nothing}=nothing
 )::Vector{<:Unitful.Length}
 
     if center === nothing
@@ -1887,9 +1897,9 @@ function computeProfile(
     quantity::Vector{<:RealOrQty},
     max_radius::Unitful.Length,
     bins::Int64;
-    flat::Bool = true,
-    cumulative::Bool = false,
-    density::Bool = false,
+    flat::Bool=true,
+    cumulative::Bool=false,
+    density::Bool=false
 )::NTuple{2,Vector}
 
     # Width of each ring or spherical shell
@@ -1967,10 +1977,10 @@ function computeZProfile(
     mass::Vector{<:Unitful.Mass},
     max_radius::Unitful.Length,
     bins::Int64;
-    flat::Bool = true,
-    cumulative::Bool = false,
-    density::Bool = false,
-    solar::Bool = false,
+    flat::Bool=true,
+    cumulative::Bool=false,
+    density::Bool=false,
+    solar::Bool=false
 )::NTuple{2,Vector}
 
     # Compute the total mass of metals for each particle
@@ -2063,8 +2073,8 @@ function computeTimeSeries(
     quantity::String,
     type::Union{Symbol,Nothing},
     sim_cosmo::Bool;
-    filter_function::Union{Function,Nothing} = nothing,
-    warnings::Bool = true,
+    filter_function::Union{Function,Nothing}=nothing,
+    warnings::Bool=true
 )::Vector
 
     !(quantity ∈ ["number", "mass"] && type === nothing) || throw(ArgumentError(
@@ -2123,7 +2133,7 @@ function computeTimeSeries(
                             "MASS";
                             sim_cosmo,
                             filter_function,
-                            warnings,
+                            warnings
                         )[type]["MASS"],
                     )
                 end
@@ -2155,7 +2165,7 @@ function computeTimeSeries(
                             "MASS";
                             sim_cosmo,
                             filter_function,
-                            warnings,
+                            warnings
                         )[:stars]["MASS"],
                     )
                 end

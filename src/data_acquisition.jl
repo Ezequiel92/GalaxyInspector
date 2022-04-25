@@ -3,6 +3,84 @@
 ####################################################################################################
 
 """
+    head_to_obj(filename::String)::GIO.SnapshotHeader
+
+Replacement to the [GadgetIO.jl](https://github.com/LudwigBoess/GadgetIO.jl) function [GIO.head\\_to\\_obj](https://ludwigboess.github.io/GadgetIO.jl/stable/api/#GadgetIO.head_to_obj-Tuple{Any}) to make it compatible with HDF5 files (from Arepo). 
+    
+It returns the header of a HDF5 snapshot as a `GIO.SnapshotHeader` object.
+
+# Arguments
+- `filename::String`: Path to the snapshot which header will be read.
+
+# Returns
+- A `GIO.SnapshotHeader` structure with all the header data.
+
+"""
+function head_to_obj(filename::String)::GIO.SnapshotHeader
+
+    header = GIO.SnapshotHeader()
+
+    h5open(filename, "r") do snap_file
+
+        h = snap_file["Header"]
+
+        header.npart = read_attribute(h, "NumPart_ThisFile")
+        header.massarr = read_attribute(h, "MassTable")
+        header.time = read_attribute(h, "Time")
+        header.z = read_attribute(h, "Redshift")
+        header.flag_sfr = read_attribute(h, "Flag_Sfr")
+        header.flag_feedback = read_attribute(h, "Flag_Feedback")
+        header.nall = read_attribute(h, "NumPart_Total")
+        header.flag_cooling = read_attribute(h, "Flag_Cooling")
+        header.num_files = read_attribute(h, "NumFilesPerSnapshot")
+        header.boxsize = read_attribute(h, "BoxSize")
+        header.omega_0 = read_attribute(h, "Omega0")
+        header.omega_l = read_attribute(h, "OmegaLambda")
+        header.h0 = read_attribute(h, "HubbleParam")
+        header.flag_stellarage = read_attribute(h, "Flag_StellarAge")
+        header.flag_metals = read_attribute(h, "Flag_Metals")
+        header.npartTotalHighWord = read_attribute(h, "NumPart_Total_HighWord")
+        header.flag_doubleprecision = read_attribute(h, "Flag_DoublePrecision")
+
+        # Legacy header fields, not present in Arepo output files
+        header.flag_entropy_instead_u = Int32(0)
+        header.flag_ic_info = Int32(0)
+        header.lpt_scalingfactor = Float32(0.0)
+
+    end
+
+    return header
+
+end
+
+"""
+    read_header(file_path::String)::GIO.SnapshotHeader
+
+Replacement to the [GadgetIO.jl](https://github.com/LudwigBoess/GadgetIO.jl) function [GIO.read\\_header](https://ludwigboess.github.io/GadgetIO.jl/stable/api/#GadgetIO.read_header-Tuple{String}) to make it compatible with HDF5 files (from Arepo). 
+
+It returns the header of a snapshot (in binary format or HDF5) as a `GIO.SnapshotHeader` object.
+
+# Arguments
+- `file_path::String`: Path to the snapshot (or folder in the case of multiple files per snapshot) 
+  which header will be read.
+
+# Returns
+- A `GIO.SnapshotHeader` structure with all the header data.
+
+"""
+function read_header(file_path::String)::GIO.SnapshotHeader
+
+    filename = GIO.select_file(file_path, 0)
+
+    if HDF5.ishdf5(filename)
+        return head_to_obj(filename)
+    end
+
+    return GIO.head_to_obj(filename)
+
+end
+
+"""
     getSnapshotPaths(
         base_name::String,
         source_path::String,
@@ -48,6 +126,238 @@ function getSnapshotPaths(base_name::String, source_path::String)::Dict{String,V
     return Dict("snap_numbers" => number_list, "snap_paths" => normpath.(path_list))
 
 end
+
+"""
+    print_blocks(filename::String)::Vector{String}
+
+Replacement to the [GadgetIO.jl](https://github.com/LudwigBoess/GadgetIO.jl) function [GIO.print\\_blocks](https://ludwigboess.github.io/GadgetIO.jl/stable/api/#GadgetIO.print_blocks-Tuple{String}) to make it compatible with HDF5 files (from Arepo). 
+
+Reads the names of the blocks in a snapshot, and returns them in an array.
+
+# Arguments
+- `filename::String`: Path to the snapshot which blocks will be read.
+
+# Returns
+- The names of the blocks present in the snapshot.
+
+"""
+function print_blocks(filename::String)::Vector{String}
+
+    snap_file = h5open(filename, "r")
+    particle_types = filter(contains(r"PartType."), keys(snap_file))
+    blocks = [keys(snap_file[p_type]) for p_type in particle_types]
+    close(snap_file)
+
+    return unique(Iterators.flatten(blocks))
+
+end
+
+"""
+    block_present(filename::String, blockname::String)::Bool
+
+Replacement to the [GadgetIO.jl](https://github.com/LudwigBoess/GadgetIO.jl) function [GIO.block\\_present](https://ludwigboess.github.io/GadgetIO.jl/stable/api/#GadgetIO.block_present) to make it compatible with HDF5 files (from Arepo). 
+
+Checks if a given block is present in the snapshot file.
+
+# Arguments
+- `filename::String`: Path to the snapshot file.
+
+# Returns
+- If the block `block` is in the snapshot.
+
+"""
+function block_present(filename::String, block::String)::Bool
+
+
+    if HDF5.ishdf5(filename)
+        if block in keys(HDF5Names)
+            return in(HDF5Names[block], print_blocks(filename))
+        else
+            # The block `block` is unknown
+            @warn(
+                "I don't have '$block' in the database, see the varible `HDF5Names` in \
+                `./src/constants.jl` for a list of possibilities"
+            )
+            return false
+        end
+    end
+
+    return in(block, GIO.print_blocks(filename, verbose=false))
+
+end
+
+"""
+    snap_to_dict(
+        file_path::String,
+        blocks::Vector{String},
+        particle_type::Integer,
+        filter_function::Function,
+    )::Dict{String,VecOrMat}
+
+Stores the specified blocks of a snapshot into a dictionary.
+
+# Arguments
+- `file_path::String`: Path to the snapshot file.
+- `blocks::Vector{String}`: Which blocks will be read.
+- `particle_type::Integer`: Type of particle, see `ParticleType` in `./src/constants.jl` for options.
+- `filter_function::Function`: A function with the signature: 
+
+  `foo(file_path::String)::Vector{Int64}`
+  
+  It indicates which particles will be read, taking the file path to a snapshot and returning the 
+  list of indices of the selected particles. See the [GadgetIO.jl](https://ludwigboess.github.io/GadgetIO.jl/stable/read_snapshots/#Filter-functions) documentation for examples.
+
+# Returns
+- A dictionary with the following structue:
+  - `block` => data of `block` in the snapshot located in `file_path`.
+
+"""
+function snap_to_dict(
+    file_path::String,
+    blocks::Vector{String},
+    particle_type::Integer,
+    filter_function::Function,
+)::Dict{String,VecOrMat}
+
+    snap_file = h5open(file_path, "r")
+    group = snap_file["PartType$(particle_type)"]
+    idx = filter_function(file_path)
+
+    output = Dict{String,VecOrMat}()
+
+    for block in blocks
+        data = read(group, HDF5Names[block])
+        output[block] = selectdim(data, ndims(data), idx)
+    end
+
+    close(snap_file)
+
+    return output
+
+end
+
+"""
+    read_snapshots(
+        file_path::String,
+        blocks::Vector{String},
+        particle_type::Integer,
+        filter_function::Function,
+    )::Dict{String,VecOrMat}
+
+Replacement to the [GadgetIO.jl](https://github.com/LudwigBoess/GadgetIO.jl) function [GIO.read\\_blocks\\_over\\_all\\_files](https://ludwigboess.github.io/GadgetIO.jl/stable/api/#GadgetIO.read_blocks_over_all_files-Tuple{String,%20Array{String}}) to make it compatible with HDF5 files (from Arepo). 
+
+Read the data for blocks `blocks` and particle type `particle_type`, in a given snapshot.
+
+# Arguments
+- `file_path::String`: Path to the snapshot file.
+- `blocks::Vector{String}`: Which blocks will be read.
+- `particle_type::Integer`: Type of particle, see `ParticleType` in `./src/constants.jl` for options.
+- `filter_function::Function`: A function with the signature: 
+
+  `foo(file_path::String)::Vector{Int64}`
+  
+  It indicates which particles will be read, taking the file path to a snapshot and returning the 
+  list of indices of the selected particles. See the [GadgetIO.jl](https://ludwigboess.github.io/GadgetIO.jl/stable/read_snapshots/#Filter-functions) documentation for examples.
+
+# Returns
+- A dictionary with the following structue:
+  - `block` => data of `block` in the snapshot located in `file_path`.
+
+"""
+function read_snapshots(
+    file_path::String,
+    blocks::Vector{String},
+    particle_type::Integer,
+    filter_function::Function,
+)::Dict{String,VecOrMat}
+
+    if HDF5.ishdf5(GIO.select_file(file_path, 0))
+
+        if isfile(file_path)
+            output = snap_to_dict(file_path, blocks, particle_type, filter_function)
+        else
+            output = Dict{String,VecOrMat}()
+
+            snap_data = [
+                snap_to_dict(file, blocks, particle_type, filter_function) for
+                file in glob("*", dirname(file_path))
+            ]
+
+            for key in keys(snap_data[1])
+                dims = ndims(snap_data[1][key])
+                output[key] = cat(get.(snap_data, key, [0])...; dims)
+            end
+
+        end
+
+        return output
+
+    else
+        return GIO.read_blocks_over_all_files(
+            file_path,
+            blocks;
+            filter_function,
+            parttype=particle_type,
+            verbose=false
+        )
+    end
+
+end
+
+"""
+    read_snapshots(
+        file_path::String,
+        block::String,,
+        particle_type::Integer,
+        filter_function::Function,
+    )::Dict{String,VecOrMat}
+
+Replacement to the [GadgetIO.jl](https://github.com/LudwigBoess/GadgetIO.jl) function [GIO.read\\_blocks\\_over\\_all\\_files](https://ludwigboess.github.io/GadgetIO.jl/stable/api/#GadgetIO.read_blocks_over_all_files-Tuple{String,%20Array{String}}) to make it compatible with HDF5 files (from Arepo). 
+
+Read the data for block `block` and particle type `particle_type`, in a given snapshot.
+
+# Arguments
+- `file_path::String`: Path to the snapshot file.
+- `block::String,`: Which block will be read.
+- `particle_type::Integer`: Type of particle, see `ParticleType` in `./src/constants.jl` for options.
+- `filter_function::Function`: A function with the signature: 
+
+  `foo(file_path::String)::Vector{Int64}`
+  
+  It indicates which particles will be read, taking the file path to a snapshot and returning the 
+  list of indices of the selected particles. See the [GadgetIO.jl](https://ludwigboess.github.io/GadgetIO.jl/stable/read_snapshots/#Filter-functions) documentation for examples.
+
+# Returns
+- A dictionary with the following structue:
+  - `block` => data of `block` in the snapshot located in `file_path`.
+
+"""
+function read_snapshots(
+    file_path::String,
+    block::String,
+    particle_type::Integer,
+    filter_function::Function,
+)::Dict{String,VecOrMat}
+    return read_snapshots(file_path, [block], particle_type, filter_function)
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 """
     makeSourceTable(
@@ -167,12 +477,11 @@ function getTemperature(
     end
 
     # Get the data from snapshot 
-    data = read_blocks_over_all_files(
+    data = read_snapshots(
         file_path,
-        blocks;
+        blocks,
+        ParticleType[:gas],
         filter_function,
-        parttype=ParticleType[:gas],
-        verbose=false
     )
 
     header = read_header(file_path)
@@ -249,12 +558,11 @@ function getRawData(
             filter_function = x -> passAll(x, type)
         end
 
-        return read_blocks_over_all_files(
+        return read_snapshots(
             file_path,
-            [block];
+            block,
+            ParticleType[type],
             filter_function,
-            parttype=ParticleType[type],
-            verbose=false
         )[block] * internalUnits(block, read_header(file_path); sim_cosmo)
 
     end
@@ -478,7 +786,7 @@ end
 """
     getSfrFile(
         source_path::String,
-        header::SnapshotHeader; 
+        header::GIO.SnapshotHeader; 
         <keyword arguments>
     )::Dict{Int32,VecOrMat{<:RealOrQty}}
 
@@ -486,7 +794,7 @@ Get the data from the `sfr.txt` file.
 
 # Arguments
 - `source_path::String`: Path to the directory containing the `sfr.txt` file.
-- `header::SnapshotHeader`: Header of one snapshot from the same simulation of the `sfr.txt` file.
+- `header::GIO.SnapshotHeader`: Header of one snapshot from the same simulation of the `sfr.txt` file.
 - `sim_cosmo::Bool = false`: If the simulation is cosmological, 
   - `false` ⟶ Newtonian simulation (`ComovingIntegrationOn` = 0).
   - `true` ⟶ Cosmological simulation (`ComovingIntegrationOn` = 1).
@@ -504,7 +812,7 @@ Get the data from the `sfr.txt` file.
 """
 function getSfrFile(
     source_path::String,
-    header::SnapshotHeader;
+    header::GIO.SnapshotHeader;
     sim_cosmo::Bool=false
 )::Dict{Int32,VecOrMat{<:RealOrQty}}
 
@@ -513,7 +821,7 @@ function getSfrFile(
 
     head = deepcopy(header)
     times = first(eachcol(file_data))
-    headers = Vector{SnapshotHeader}(undef, length(times))
+    headers = Vector{GIO.SnapshotHeader}(undef, length(times))
     for (i, t) in enumerate(times)
         if sim_cosmo
             # For cosmological simulations, only the scale factor in each header changes

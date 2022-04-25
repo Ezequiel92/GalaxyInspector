@@ -5,7 +5,8 @@
 push!(LOAD_PATH, joinpath(@__DIR__, "../../../src/"))
 using GadgetInspector;
 const GI = GadgetInspector;
-using JLD2, Unitful, UnitfulAstro, GadgetIO, CairoMakie
+using JLD2, Unitful, UnitfulAstro, CairoMakie
+import GadgetIO as GIO
 
 # Path to the directory where the reference results will be saved
 const BASE_OUT_PATH = joinpath(@__DIR__, "..")

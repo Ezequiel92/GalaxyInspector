@@ -16,7 +16,7 @@ module GadgetInspector
 using GadgetUnits, SPHtoGrid, SPHKernels
 import GadgetIO as GIO
 using Unitful, UnitfulAstro, CairoMakie, Colors, AverageShiftedHistograms, GLM, Glob, CSV, FileIO, 
-DelimitedFiles, ProgressMeter, LinearAlgebra, DataFrames, QuadGK, LaTeXStrings, PrettyTables
+DelimitedFiles, ProgressMeter, LinearAlgebra, DataFrames, QuadGK, LaTeXStrings, PrettyTables, HDF5
 
 if isdefined(Base, :Experimental) && isdefined(Base.Experimental, Symbol("@optlevel"))
     @eval Base.Experimental.@optlevel 3

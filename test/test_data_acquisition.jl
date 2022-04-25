@@ -5,9 +5,9 @@
 snapshots = GI.getSnapshotPaths(SNAP_NAME, BASE_SRC_PATH)
 snapshot = snapshots["snap_paths"][SNAP_N]
 snap_data = GI.SnapData("", 12, 14, 15UnitfulAstro.Myr)
-sim_data = GI.SimData(BASE_SRC_PATH, 1, :, SNAP_NAME, read_header(snapshot), nothing, 0.0)
-isolated_header = read_header(snapshot)
-cosmological_header = read_header(joinpath(
+sim_data = GI.SimData(BASE_SRC_PATH, 1, :, SNAP_NAME, GI.read_header(snapshot), nothing, 0.0)
+isolated_header = GI.read_header(snapshot)
+cosmological_header = GI.read_header(joinpath(
     BASE_SRC_PATH,
     "cosmological",
     SNAP_NAME * "dir_019",
@@ -21,7 +21,7 @@ snap_data_01 = @test_nowarn GI.getSnapshotData(snapshot, :gas, "POS")
 snap_data_02 = @test_nowarn GI.getSnapshotData(snapshot, :stars, ["AGE", "MASS", "POS"])
 snap_data_03 = @test_nowarn GI.getSnapshotData(snapshot, Dict(:gas => ["NE", "U"], :stars => ["Z"]))
 snap_data_04 = @test_nowarn GI.getSnapshotData(snapshot, [:gas, :stars], ["Z", "MASS", "POS"])
-sfr_file = @test_nowarn GI.getSfrFile(BASE_SRC_PATH, read_header(snapshot))
+sfr_file = @test_nowarn GI.getSfrFile(BASE_SRC_PATH, GI.read_header(snapshot))
 cpu_file_01 = @test_nowarn GI.getCpuFile(BASE_SRC_PATH, ["i/o", "hotngbs", "density"])
 cpu_file_02 = @test_nowarn GI.getCpuFile(BASE_SRC_PATH, "cs_sfr")
 molla_data = @test_nowarn GI.getMollá2015(BASE_SRC_PATH)
