@@ -578,7 +578,7 @@ function passPositiveQty(file_path::String; qty::String = "FMOL")::Vector{Int64}
         "Quantity '$qty' not supported. The supported types are $(keys(QUANTITIES))"
     ))
 
-    block_present(GadgetIO.select_file(file_path, 0), qty) || @error(
+    block_present(GIO.select_file(file_path, 0), qty) || @error(
         "I couldn't find the data block for quantity '$qty' in the snapshot $file_path"
     )
 
@@ -631,7 +631,7 @@ function passMetallicity(
 end
 
 @doc raw"""
-    energyIntegrand(header::GadgetIO.SnapshotHeader, a::Float64)::Float64
+    energyIntegrand(header::GIO.SnapshotHeader, a::Float64)::Float64
 
 The integrand of the integral that converts the scale factor to physical time,
 
@@ -649,14 +649,14 @@ H = H_0 \, a \, .
 ```
 
 # Arguments 
-- `header::GadgetIO.SnapshotHeader`: Header of the relevant snapshot file.
+- `header::GIO.SnapshotHeader`: Header of the relevant snapshot file.
 - `a::Float64`: Dimensionless scale factor.
 
 # Returns
 - The integrand evaluated at value `a`. The result is in Gyr. 
 
 """
-function energyIntegrand(header::GadgetIO.SnapshotHeader, a::Float64)::Float64
+function energyIntegrand(header::GIO.SnapshotHeader, a::Float64)::Float64
 
     # The integrand goes to 0 in the limit a ⟶ 0
     a != 0 || return 0
@@ -1463,7 +1463,7 @@ end
 @doc raw"""
     computeTime(
         scale_factors::Vector{<:Real}, 
-        header::GadgetIO.SnapshotHeader; 
+        header::GIO.SnapshotHeader; 
         <keyword arguments>
     )::Vector{<:Unitful.Time}
 
@@ -1483,7 +1483,7 @@ where
 
 # Arguments
 - `scale_factors::Vector{<:Real}`: Scale factors to be converted.
-- `header::GadgetIO.SnapshotHeader`: Header of some snapshot of the simulation (it contains the 
+- `header::GIO.SnapshotHeader`: Header of some snapshot of the simulation (it contains the 
   cosmological parameters). 
 - `a0::Real = scale_factor[1]`: Initial scale factor.
 
@@ -1493,7 +1493,7 @@ where
 """
 function computeTime(
     scale_factors::Vector{<:Real},
-    header::GadgetIO.SnapshotHeader;
+    header::GIO.SnapshotHeader;
     a0::Real = scale_factors[1],
 )::Vector{<:Unitful.Time}
 

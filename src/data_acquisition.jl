@@ -146,11 +146,11 @@ function getTemperature(
     blocks = ["Z", "MASS", "U", "NE"]
 
     # Return an empty array is some block is missing
-    if any(x -> !block_present(GadgetIO.select_file(file_path, 0), x), blocks)
+    if any(x -> !block_present(GIO.select_file(file_path, 0), x), blocks)
         if warnings
             # Get the indices of the missing blocks
             idx_missing = findall(
-                x -> !block_present(GadgetIO.select_file(file_path, 0), x),
+                x -> !block_present(GIO.select_file(file_path, 0), x),
                 blocks,
             )
             @warn(
@@ -233,7 +233,7 @@ function getRawData(
 
         return getTemperature(file_path; sim_cosmo, filter_function, warnings)
 
-    elseif !block_present(GadgetIO.select_file(file_path, 0), block)
+    elseif !block_present(GIO.select_file(file_path, 0), block)
 
         # If the block is missing from the snapshot
         !warnings || @warn(

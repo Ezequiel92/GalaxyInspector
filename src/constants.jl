@@ -32,7 +32,7 @@ Structure with information about a GADGET simulation.
   or : (every snapshot will be read).
 - `base_name::String`: Base name of the snapshot files, set in the GADGET variable 
   `SnapshotFileBase`.
-- `header::GadgetIO.SnapshotHeader`: Header of the snapshot.
+- `header::GIO.SnapshotHeader`: Header of the snapshot.
 - `filter_function::Union{Function,Nothing} = nothing`: A function with the signature: 
 
   `foo(file_path::String)::Vector{Int64}`
@@ -47,7 +47,7 @@ struct SimData
     sim_index::Int32
     idx::IndexType
     base_name::String
-    header::GadgetIO.SnapshotHeader
+    header::GIO.SnapshotHeader
     filter_function::Union{Function,Nothing}
     a0::Float64
 end

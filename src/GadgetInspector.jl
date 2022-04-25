@@ -13,7 +13,8 @@
 
 module GadgetInspector
 
-using GadgetIO, GadgetUnits, SPHtoGrid, SPHKernels
+using GadgetUnits, SPHtoGrid, SPHKernels
+import GadgetIO as GIO
 using Unitful, UnitfulAstro, CairoMakie, Colors, AverageShiftedHistograms, GLM, Glob, CSV, FileIO, 
 DelimitedFiles, ProgressMeter, LinearAlgebra, DataFrames, QuadGK, LaTeXStrings, PrettyTables
 
