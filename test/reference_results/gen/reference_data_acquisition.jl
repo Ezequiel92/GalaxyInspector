@@ -13,7 +13,12 @@ cosmological_header = GI.read_header(joinpath(
     SNAP_NAME * "dir_019",
     SNAP_NAME * "_019",
 ))
-
+velocities = GI.read_snapshots(
+    snapshot,
+    "VEL",
+    GI.ParticleType[:gas],
+    x -> GI.passAll(x, :gas),
+)
 temperature_data = GI.getTemperature(snapshot)
 raw_data = GI.getRawData(snapshot, :gas, "POS")
 snap_data_01 = GI.getSnapshotData(snapshot, :gas, "POS")
@@ -32,6 +37,9 @@ molla_data = GI.getMollá2015(BASE_SRC_PATH)
 jldsave(
     joinpath(BASE_OUT_PATH, "data_acquisition.jld2");
     snapshots,
+    isolated_header,
+    cosmological_header,
+    velocities,
     temperature_data,
     snap_data_01,
     snap_data_02,
