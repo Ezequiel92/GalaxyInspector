@@ -34,14 +34,8 @@ molla_data = @test_nowarn GI.getMollá2015(BASE_SRC_PATH)
 @testset "Data acquisition functions" begin
     jldopen(joinpath(BASE_DATA_PATH, "data_acquisition.jld2"), "r") do file
         @test GI.compare(snapshots["snap_numbers"], file["snapshots"]["snap_numbers"])
-        @test all(
-            getproperty(isolated_header, field) == getproperty(file["isolated_header"], field) for 
-            field in fieldnames(GIO.SnapshotHeader)
-        )
-        @test all(
-            getproperty(cosmological_header, field) == getproperty(file["cosmological_header"], field) for 
-            field in fieldnames(GIO.SnapshotHeader)
-        )
+        @test GI.compare(isolated_header, file["isolated_header"])
+        @test GI.compare(cosmological_header, file["cosmological_header"])
         @test GI.compare(velocities, file["velocities"])
         @test GI.block_present(snapshot, "POS")
         @test !GI.block_present(snapshot, "VORT")

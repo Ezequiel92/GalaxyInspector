@@ -819,6 +819,39 @@ function compare(x::RealOrQty, y::RealOrQty; atol::Float64=1e-5, rtol::Float64=1
 end
 
 """
+    compare(
+        x::GIO.SnapshotHeader, 
+        y::GIO.SnapshotHeader; 
+        <keyword arguments>
+    )::Bool
+
+Determine if two snapshot headers are equal.
+
+# Arguments
+- `x::GIO.SnapshotHeader`: First header to be compared.
+- `y::GIO.SnapshotHeader`: Second header to be compared.
+- `atol::Float64 = 1e-5`: Absolute tolerance.
+- `rtol::Float64 = 1e-5`: Relative tolerance.
+
+# Returns
+- Returns true when the headers are equal, and false otherwise.
+
+"""
+function compare(
+    x::GIO.SnapshotHeader, 
+    y::GIO.SnapshotHeader; 
+    atol::Float64=1e-5, 
+    rtol::Float64=1e-5,
+)::Bool
+    
+    return all(
+        compare(getproperty(x, field), getproperty(y, field); atol, rtol) for 
+        field in fieldnames(typeof(x))
+    )
+
+end
+
+"""
     compare(x, y; <keyword arguments>)::Bool
 
 Determine if two elements are equal, using the [isequal](https://docs.julialang.org/en/v1/base/base/#Base.isequal) function.
