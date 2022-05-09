@@ -196,6 +196,11 @@ const HDF5Names = Dict(
     "GROU" => "GroupNr",
     "HRGM" => "HighResGasMass",
     "REF"  => "AllowRefinement",
+    "IONF" => "IonizedFraction",
+    "ATOF" => "AtomicFraction",
+    "MOLF" => "MolecularFraction",
+    "METF" => "MetalFraction",
+    "STAF" => "StellarFraction",
 )
 
 "Database of dimensional properties for the quantities in the simulations."
@@ -217,6 +222,11 @@ const QUANTITIES = Dict(
     "FMOL"        => Qty(Unitful.NoDims, Unitful.NoUnits),
     "FMET"        => Qty(Unitful.NoDims, Unitful.NoUnits),
     "FSTR"        => Qty(Unitful.NoDims, Unitful.NoUnits),
+    "IONF"        => Qty(Unitful.NoDims, Unitful.NoUnits),
+    "ATOF"        => Qty(Unitful.NoDims, Unitful.NoUnits),
+    "MOLF"        => Qty(Unitful.NoDims, Unitful.NoUnits),
+    "METF"        => Qty(Unitful.NoDims, Unitful.NoUnits),
+    "STAF"        => Qty(Unitful.NoDims, Unitful.NoUnits),
     "TSTP"        => Qty(Unitful.𝐓, :internal),
     "SFRTXT_COL1" => Qty(Unitful.𝐓, :internal),
     "SFRTXT_COL2" => Qty(Unitful.𝐌, :internal),
