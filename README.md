@@ -1,11 +1,11 @@
 <div align="center">
-    <h1>🌌 GadgetInspector</h1>
+    <h1><img src="./resources/logo.png"/></h1>
 </div>
 
 <p align="center">
     <a href="https://github1s.com/Ezequiel92/GadgetInspector"><img src="http://forthebadge.com/images/badges/built-with-science.svg"></a>
     <a href="https://julialang.org"><img src="https://forthebadge.com/images/badges/made-with-julia.svg"></a>
-</p>
+</div>
 
 <p align="center">
     <a href="https://codecov.io/github/Ezequiel92/GadgetInspector?branch=main"><img src="https://img.shields.io/codecov/c/github/Ezequiel92/GadgetInspector?style=flat&logo=Codecov&labelColor=2B2D2F"></a>
