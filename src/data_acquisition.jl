@@ -121,7 +121,8 @@ function getSnapshotPaths(base_name::String, source_path::String)::Dict{String,V
     end
 
     # Get the numbers that characterize each snapshot
-    number_list = map(x -> rsplit(x, base_name * '_'; limit=2)[2], path_list)
+    r = Regex("(?<=" * base_name * "_" * ").*?(?=(?:\\.)|\$)")
+    number_list = map(x -> match(r, x).match, path_list)
 
     return Dict("snap_numbers" => number_list, "snap_paths" => normpath.(path_list))
 
@@ -227,7 +228,7 @@ function snap_to_dict(
 
     for block in blocks
         data = read(group, HDF5Names[block])
-        output[block] = selectdim(data, ndims(data), idx)
+        output[block] = collect(selectdim(data, ndims(data), idx))
     end
 
     close(snap_file)
