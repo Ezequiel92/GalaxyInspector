@@ -48,7 +48,7 @@ Many aspects of the plots can be configured, see the arguments below for details
 - `idx::IndexType = :`: Indexing of the simulation, i.e. indices of the snapshots that will be read.
   It can be an integer (a single snapshot), a vector of integers (several given snapshots), an
   UnitRange (e.g. 5:13) or : (every snapshot will be read).
-- `filter_functions::Vector{<:Union{Function,Nothing}} = [nothing,]`: List of functions (one per 
+- `filter_functions::Vector{<:Union{Function,Nothing}} = [nothing]`: List of functions (one per 
   simulation), all with the signature: 
 
   `foo(file_path::String)::Vector{Int64}`
@@ -56,10 +56,11 @@ Many aspects of the plots can be configured, see the arguments below for details
   Each function indicates which particles will be read in each simulation, taking the file path to 
   a snapshot and returning the list of indices of the selected particles. If set to `nothing`, then 
   every particle is read. See the [GadgetIO.jl](https://ludwigboess.github.io/GadgetIO.jl/stable/read_snapshots/#Filter-functions) documentation for examples.
-- `data_analysis::Function = trivial`: Optional data analysis function. See the required signature 
-  and examples in `src/data_analysis.jl`.
-- `da_args::Tuple = ()`: Positional arguments for the `data_analysis` function.
-- `da_kwargs::NamedTuple = (;)`: Keyword arguments for the `data_analysis` function.
+- `da_functions::Vector{<:Function} = [trivial]`: Optional vector of data analysis functions. 
+  See the required signature and examples in `src/data_analysis.jl`.
+- `da_args::Vector{<:Tuple} = [()]`: Vector of positional arguments for the `da_functions` functions.
+- `da_kwargs::Vector{<:NamedTuple} = [(;)]`: Vector of keyword arguments for the `da_functions` 
+  functions.
 - `post_processing!::Function = trivial`: Optional post processing function.
   See the required signature and examples in `src/post_processing.jl`.
 - `pp_args::Tuple = ()`: Positional arguments for the `post_processing!` function.
@@ -142,13 +143,13 @@ Many aspects of the plots can be configured, see the arguments below for details
   - `AxisAspect(n)`: The aspect ratio will be given by the number `n` = width / height.
   - `DataAspect()`: The aspect ratio of the data is used.
 - `hist_bins::Int64 = 20`: Number of bins for the histograms.
-- `series_colors::Union{Vector{ColorInput},Nothing} = nothing`: Colors for the diferent series 
+- `series_colors::Union{Vector{<:ColorInput},Nothing} = nothing`: Colors for the diferent series 
   to be plotted (diferent simulations). If set to `nothing`, the colors will be assigned 
   automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
 - `series_markers::Union{Vector{Symbol},Nothing} = nothing`: Markers for the different series 
   to be plotted (different simulations). If set to `nothing`, the markers will be assigned 
   automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
-- `series_linetypes::Union{Vector{LineStyleInput},Nothing} = nothing`: Line types for the different 
+- `series_linetypes::Union{Vector{<:LineStyleInput},Nothing} = nothing`: Line types for the different 
   series to be plotted (different simulations). If set to `nothing`, the line types will be assigned 
   automatically. This is only relevant for `lines!` and `scatterlines!` plots.
 - `animation::Bool = true`: If an animation of the results will be made and saved in `output_path`. 
@@ -168,10 +169,10 @@ function snapshotPlot(
     pf_kwargs::NamedTuple = (;),
     sim_cosmo::Bool = false,
     idx::IndexType = :,
-    filter_functions::Vector{<:Union{Function,Nothing}} = [nothing,],
-    data_analysis::Function = trivial,
-    da_args::Tuple = (),
-    da_kwargs::NamedTuple = (;),
+    filter_functions::Vector{<:Union{Function,Nothing}} = [nothing],
+    da_functions::Vector{<:Function} = [trivial],
+    da_args::Vector{<:Tuple} = [()],
+    da_kwargs::Vector{<:NamedTuple} = [(;)],
     post_processing!::Function = trivial,
     pp_args::Tuple = (),
     pp_kwargs::NamedTuple = (;),
@@ -203,9 +204,9 @@ function snapshotPlot(
     resolution::NTuple{2,Int64} = (1000, 750),
     aspect::Union{DataAspect,AxisAspect,Nothing} = nothing,
     hist_bins::Int64 = 20,
-    series_colors::Union{Vector{ColorInput},Nothing} = nothing,
+    series_colors::Union{Vector{<:ColorInput},Nothing} = nothing,
     series_markers::Union{Vector{Symbol},Nothing} = nothing,
-    series_linetypes::Union{Vector{LineStyleInput},Nothing} = nothing,
+    series_linetypes::Union{Vector{<:LineStyleInput},Nothing} = nothing,
     animation::Bool = true,
     anim_file::String = "animation.gif",
     framerate::Int64 = 10,
@@ -346,8 +347,11 @@ function snapshotPlot(
             # Skip missing snapshots
             snapshot !== missing || continue
 
-            # Filter function for the current simulation in the loop
+            # Filter and data analysis functions for the current simulation in the loop
             filter_function = filter_functions[mod1(sim_index, length(filter_functions))]
+            data_analysis = da_functions[mod1(sim_index, length(da_functions))]
+            da_arg = da_args[mod1(sim_index, length(da_args))]
+            da_kwarg = da_kwargs[mod1(sim_index, length(da_kwargs))]
 
             # Store basic information about the current snapshot and simulation in the loop
             metadata = Dict(
@@ -375,7 +379,7 @@ function snapshotPlot(
             )
 
             # Apply the analysis function
-            da_output = data_analysis(raw_data, da_args...; da_kwargs...)
+            da_output = data_analysis(raw_data, da_arg...; da_kwarg...)
 
             # Skip this snapshot if `data_analysis` returns `nothing`
             da_output === nothing ? continue : skipper = false
@@ -469,17 +473,17 @@ function snapshotPlot(
             if plot_function! == lines!
                 legend_element = [
                     LineElement(; color, linestyle) for
-                    (color, linestyle) in zip(colors, linestyles)
+                    (color, _, linestyle) in styles
                 ]
             elseif plot_function! == scatter!
                 legend_element = [
                     MarkerElement(; color, marker) for
-                    (color, marker) in zip(colors, markers)
+                    (color, marker, _) in styles
                 ]
             elseif plot_function! == scatterlines!
                 legend_element = [
                     [MarkerElement(; color, marker), LineElement(; color, linestyle)] for
-                    (color, marker, linestyle) in zip(colors, markers, linestyles)
+                    (color, marker, linestyle) in styles
                 ]
             end
 
@@ -563,7 +567,7 @@ Many aspects of the plot can be configured, see the arguments below for details.
 - `idx::IndexType = :`: Indexing of the simulation, i.e. indices of the snapshots that will be read.
   It can be an integer (a single snapshot), a vector of integers (several given snapshots), an
   UnitRange (e.g. 5:13) or : (every snapshot will be read).
-- `filter_functions::Vector{<:Union{Function,Nothing}} = [nothing,]`: List of functions (one per 
+- `filter_functions::Vector{<:Union{Function,Nothing}} = [nothing]`: List of functions (one per 
   simulation), all with the signature: 
 
   `foo(file_path::String)::Vector{Int64}`
@@ -571,10 +575,11 @@ Many aspects of the plot can be configured, see the arguments below for details.
   Each function indicates which particles will be read in each simulation, taking the file path to 
   a snapshot and returning the list of indices of the selected particles. If set to `nothing`, then 
   every particle is read. See the [GadgetIO.jl](https://ludwigboess.github.io/GadgetIO.jl/stable/read_snapshots/#Filter-functions) documentation for examples.
-- `data_analysis::Function = trivial`: Optional data analysis function. See the required signature 
-  and examples in `src/data_analysis.jl`.
-- `da_args::Tuple = ()`: Positional arguments for the `data_analysis` function.
-- `da_kwargs::NamedTuple = (;)`: Keyword arguments for the `data_analysis` function.
+- `da_functions::Vector{<:Function} = [trivial]`: Optional vector of data analysis functions. 
+  See the required signature and examples in `src/data_analysis.jl`.
+- `da_args::Vector{<:Tuple} = [()]`: Vector of positional arguments for the `da_functions` functions.
+- `da_kwargs::Vector{<:NamedTuple} = [(;)]`: Vector of keyword arguments for the `da_functions` 
+  functions.
 - `post_processing!::Function = trivial`: Optional post processing function.
   See the required signature and examples in `src/post_processing.jl`.
 - `pp_args::Tuple = ()`: Positional arguments for the `post_processing!` function.
@@ -651,13 +656,13 @@ Many aspects of the plot can be configured, see the arguments below for details.
   - `nothing`: Use the default given by [Makie.jl](http://makie.juliaplots.org/stable/index.html).
   - `AxisAspect(n)`: The aspect ratio will be given by the number `n` = width / height.
   - `DataAspect()`: The aspect ratio of the data is used.
-- `series_colors::Union{Vector{ColorInput},Nothing} = nothing`: Colors for the diferent series 
+- `series_colors::Union{Vector{<:ColorInput},Nothing} = nothing`: Colors for the diferent series 
   to be plotted (diferent simulations). If set to `nothing`, the colors will be assigned 
   automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
 - `series_markers::Union{Vector{Symbol},Nothing} = nothing`: Markers for the different series 
   to be plotted (different simulations). If set to `nothing`, the markers will be assigned 
   automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
-- `series_linetypes::Union{Vector{LineStyleInput},Nothing} = nothing`: Line types for the different 
+- `series_linetypes::Union{Vector{<:LineStyleInput},Nothing} = nothing`: Line types for the different 
   series to be plotted (different simulations). If set to `nothing`, the line types will be assigned 
   automatically. This is only relevant for `lines!` and `scatterlines!` plots.
 
@@ -669,9 +674,9 @@ function timeSeriesPlot(
     pf_kwargs::NamedTuple = (;),
     idx::IndexType = :,
     filter_functions::Vector{<:Union{Function,Nothing}} = [nothing,],
-    data_analysis::Function = trivial,
-    da_args::Tuple = (),
-    da_kwargs::NamedTuple = (;),
+    da_functions::Vector{<:Function} = [trivial],
+    da_args::Vector{<:Tuple} = [()],
+    da_kwargs::Vector{<:NamedTuple} = [(;)],
     post_processing!::Function = trivial,
     pp_args::Tuple = (),
     pp_kwargs::NamedTuple = (;),
@@ -701,9 +706,9 @@ function timeSeriesPlot(
     px_per_unit::Float64 = 1.0,
     resolution::NTuple{2,Int64} = (1000, 750),
     aspect::Union{DataAspect,AxisAspect,Nothing} = nothing,
-    series_colors::Union{Vector{ColorInput},Nothing} = nothing,
+    series_colors::Union{Vector{<:ColorInput},Nothing} = nothing,
     series_markers::Union{Vector{Symbol},Nothing} = nothing,
-    series_linetypes::Union{Vector{LineStyleInput},Nothing} = nothing
+    series_linetypes::Union{Vector{<:LineStyleInput},Nothing} = nothing
 )::Nothing
 
     length(base_names) == length(source_paths) || throw(ArgumentError(
@@ -784,6 +789,9 @@ function timeSeriesPlot(
 
         # Filter function for the current simulation in the loop
         filter_function = filter_functions[mod1(sim_index, length(filter_functions))]
+        data_analysis = da_functions[mod1(sim_index, length(da_functions))]
+        da_arg = da_args[mod1(sim_index, length(da_args))]
+        da_kwarg = da_kwargs[mod1(sim_index, length(da_kwargs))]
 
         # Header of the first snapshot
         header = read_header(getSnapshotPaths(base_name, source_path)["snap_paths"][1])
@@ -800,7 +808,7 @@ function timeSeriesPlot(
         )
 
         # Apply the analysis function
-        da_output = data_analysis(sim_data, da_args...; da_kwargs...)
+        da_output = data_analysis(sim_data, da_arg...; da_kwarg...)
 
         # Skip this simulation if `data_analysis` returns `nothing`
         if da_output === nothing
@@ -858,17 +866,17 @@ function timeSeriesPlot(
         if plot_function! == lines!
             legend_element = [
                 LineElement(; color, linestyle) for
-                (color, linestyle) in zip(colors, linestyles)
+                (color, _, linestyle) in styles
             ]
         elseif plot_function! == scatter!
             legend_element = [
                 MarkerElement(; color, marker) for
-                (color, marker) in zip(colors, markers)
+                (color, marker, _) in styles
             ]
         elseif plot_function! == scatterlines!
             legend_element = [
                 [MarkerElement(; color, marker), LineElement(; color, linestyle)] for
-                (color, marker, linestyle) in zip(colors, markers, linestyles)
+                (color, marker, linestyle) in styles
             ]
         end
 
@@ -950,7 +958,7 @@ etc.
 - `idx::IndexType = :`: Indexing of the simulation, i.e. indices of the snapshots that will be read.
   It can be an integer (a single snapshot), a vector of integers (several given snapshots), an
   UnitRange (e.g. 5:13) or : (every snapshot will be read).
-- `filter_functions::Vector{<:Union{Function,Nothing}} = [nothing,]`: List of functions (one per 
+- `filter_functions::Vector{<:Union{Function,Nothing}} = [nothing]`: List of functions (one per 
   simulation), all with the signature: 
 
   `foo(file_path::String)::Vector{Int64}`
@@ -958,10 +966,11 @@ etc.
   Each function indicates which particles will be read in each simulation, taking the file path to 
   a snapshot and returning the list of indices of the selected particles. If set to `nothing`, then 
   every particle is read. See the [GadgetIO.jl](https://ludwigboess.github.io/GadgetIO.jl/stable/read_snapshots/#Filter-functions) documentation for examples.
-- `data_analysis::Function = trivial`: Optional data analysis function. See the required signature 
-  and examples in `src/data_analysis.jl`.
-- `da_args::Tuple = ()`: Positional arguments for the `data_analysis` function.
-- `da_kwargs::NamedTuple = (;)`: Keyword arguments for the `data_analysis` function.
+- `da_functions::Vector{<:Function} = [trivial]`: Optional vector of data analysis functions. 
+  See the required signature and examples in `src/data_analysis.jl`.
+- `da_args::Vector{<:Tuple} = [()]`: Vector of positional arguments for the `da_functions` functions.
+- `da_kwargs::Vector{<:NamedTuple} = [(;)]`: Vector of keyword arguments for the `da_functions` 
+  functions.
 
 ## Axes options
 - `x_name::Union{String,LaTeXString} = "X"`: Name of the variable for the x axis. It should not 
@@ -1020,9 +1029,9 @@ function snapshotTable(
     show_progress::Bool = true,
     idx::IndexType = :,
     filter_functions::Vector{<:Union{Function,Nothing}} = [nothing,],
-    data_analysis::Function = trivial,
-    da_args::Tuple = (),
-    da_kwargs::NamedTuple = (;),
+    da_functions::Vector{<:Function} = [trivial],
+    da_args::Vector{<:Tuple} = [()],
+    da_kwargs::Vector{<:NamedTuple} = [(;)],
     x_name::String = "X",
     y_name::String = "Y",
     xunit_label::String = "[:auto_label]",
@@ -1112,6 +1121,9 @@ function snapshotTable(
 
             # Filter function for the current simulation in the loop
             filter_function = filter_functions[mod1(sim_index, length(filter_functions))]
+            data_analysis = da_functions[mod1(sim_index, length(da_functions))]
+            da_arg = da_args[mod1(sim_index, length(da_args))]
+            da_kwarg = da_kwargs[mod1(sim_index, length(da_kwargs))]
 
             # Store basic information about the current snapshot and simulation in the loop
             metadata = Dict(
@@ -1139,7 +1151,7 @@ function snapshotTable(
             )
 
             # Apply the analysis function
-            da_output = data_analysis(data_dict, da_args...; da_kwargs...)
+            da_output = data_analysis(data_dict, da_arg...; da_kwarg...)
 
             # Skip this snapshot if `data_analysis` returns `nothing`
             da_output === nothing ? continue : skipper = false
@@ -1263,7 +1275,7 @@ etc.
 - `idx::IndexType = :`: Indexing of the simulation, i.e. indices of the snapshots that will be read.
   It can be an integer (a single snapshot), a vector of integers (several given snapshots), an
   UnitRange (e.g. 5:13) or : (every snapshot will be read).
-- `filter_functions::Vector{<:Union{Function,Nothing}} = [nothing,]`: List of functions (one per 
+- `filter_functions::Vector{<:Union{Function,Nothing}} = [nothing]`: List of functions (one per 
   simulation), all with the signature: 
             
   `foo(file_path::String)::Vector{Int64}`
@@ -1271,10 +1283,11 @@ etc.
   Each function indicates which particles will be read in each simulation, taking the file path to 
   a snapshot and returning the list of indices of the selected particles. If set to `nothing`, then 
   every particle is read. See the [GadgetIO.jl](https://ludwigboess.github.io/GadgetIO.jl/stable/read_snapshots/#Filter-functions) documentation for examples.
-- `data_analysis::Function = trivial`: Optional data analysis function. See the required signature 
-  and examples in `src/data_analysis.jl`.
-- `da_args::Tuple = ()`: Positional arguments for the `data_analysis` function.
-- `da_kwargs::NamedTuple = (;)`: Keyword arguments for the `data_analysis` function.
+- `da_functions::Vector{<:Function} = [trivial]`: Optional vector of data analysis functions. 
+  See the required signature and examples in `src/data_analysis.jl`.
+- `da_args::Vector{<:Tuple} = [()]`: Vector of positional arguments for the `da_functions` functions.
+- `da_kwargs::Vector{<:NamedTuple} = [(;)]`: Vector of keyword arguments for the `da_functions` 
+  functions.
             
 ## Axes options  
 - `x_name::Union{String,LaTeXString} = "X"`: Name of the variable for the x axis. It should not 
@@ -1330,9 +1343,9 @@ function timeSeriesTable(
     title::String = "",
     idx::IndexType = :,
     filter_functions::Vector{<:Union{Function,Nothing}} = [nothing,],
-    data_analysis::Function = trivial,
-    da_args::Tuple = (),
-    da_kwargs::NamedTuple = (;),
+    da_functions::Vector{<:Function} = [trivial],
+    da_args::Vector{<:Tuple} = [()],
+    da_kwargs::Vector{<:NamedTuple} = [(;)],
     x_name::String = "X",
     y_name::String = "Y",
     xunit_label::String = "[:auto_label]",
@@ -1372,6 +1385,9 @@ function timeSeriesTable(
 
         # Filter function for the current simulation in the loop
         filter_function = filter_functions[mod1(sim_index, length(filter_functions))]
+        data_analysis = da_functions[mod1(sim_index, length(da_functions))]
+        da_arg = da_args[mod1(sim_index, length(da_args))]
+        da_kwarg = da_kwargs[mod1(sim_index, length(da_kwargs))]
 
         # Header of the first snapshot
         header = read_header(getSnapshotPaths(base_name, source_path)["snap_paths"][1])
@@ -1388,7 +1404,7 @@ function timeSeriesTable(
         )
 
         # Apply the analysis function
-        da_output = data_analysis(sim_data, da_args...; da_kwargs...)
+        da_output = data_analysis(sim_data, da_arg...; da_kwarg...)
 
         # Skip this simulation if `data_analysis` returns `nothing`
         if da_output === nothing
@@ -1448,766 +1464,3 @@ function timeSeriesTable(
     return nothing
 
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# """
-#     snapshotPlot(
-#         source_paths::Vector{String},
-#         base_names::Vector{String},
-#         quantities::Dict{Symbol,<:Union{String,Vector{String}}},
-#         plot_function!::Function; 
-#         <keyword arguments>
-#     )::Nothing
-
-# Pipeline for generating one figure per snapshot, of one or more simulations.
-
-# Some of the features are:
-
-# - It can produce scatter plots, line plots, histograms, and density maps. The last two for 
-#   only one simulation at a time.
-# - It can produce a GIF or MP4 animating all the resulting figures.
-# - It transparently manages units, you only have to indicate the target unit for the 
-#   final figure.
-
-# Many aspects of the plots can be configured, see the arguments below for details.
-
-# # Arguments
-# - `source_paths::Vector{String}`: Paths to the directories containing the snapshot files, 
-#   set in the GADGET variable `OutputDir`.
-# - `base_names::Vector{String}`: Base names of the snapshot files, set in the GADGET 
-#   variable `SnapshotFileBase`.
-# - `quantities::Dict{Symbol,<:Union{String,Vector{String}}}`: Dictionary where the keys are 
-#   the particle types (the possibilities are given by [`ParticleType`](@ref) in `src/constants.jl`), 
-#   and the values are the lists of data blocks to be extracted for each type.
-# - `plot_function!::Function`: A plotting function from [Makie.jl](http://makie.juliaplots.org/stable/index.html). 
-#   The options are:
-#   * `hist!`         ⟶ Histograms.
-#   * `scatter!`      ⟶ Scatter plots.
-#   * `lines!`        ⟶ Line plots.
-#   * `scatterlines!` ⟶ Scatter markers with lines between them.
-#   * `heatmap!`      ⟶ Heatmaps. 
-#   This will set the type of plot that will be generated.
-# - `pf_kwargs::NamedTuple = (;)`: Keyword arguments for the `plot_function!` function.
-# - `output_path::String = "snapshot_plots"`: Path to the output directory. The figures will 
-#   be stored in `output_path`/plots/ and will be named snapshot\\_XXX`output_format` where 
-#   XXX is the snapshot number.
-# - `sim_cosmo::Bool = false`:  If the simulation is cosmological, 
-#   * `false` ⟶ Newtonian simulation (`ComovingIntegrationOn` = 0).
-#   * `true`  ⟶ Cosmological simulation (`ComovingIntegrationOn` = 1).
-# - `filter_function::Union{Function,Nothing} = nothing`: A function with the signature: 
-
-#   `foo(file_path::String)::Vector{Int64}`
-  
-#   If set to `nothing`, then no particles are filtered. See the [GadgetIO.jl](https://ludwigboess.github.io/GadgetIO.jl/stable/read_snapshots/#Filter-functions) documentation for 
-#   examples.
-# - `idx::IndexType`: Indexing of the simulation, i.e. which snapshots will be plotted.
-#   It can be an integer (a single snapshot), a vector of integers (several given snapshots),
-#   an UnitRange (e.g. 5:13) or : (every snapshot will be plotted).
-# - `sim_labels::Union{Vector{String},Nothing} = basename.(source_paths)`: Labels for each 
-#   simulation, for the plot legend. Set it to `nothing` if you don't want a legend.
-# - `t_unit::Unitful.Units = UnitfulAstro.Myr`: Target unit for the time-stamps that will put 
-#   as titles.
-# - `warnings::Bool = true`: If a warning will be given when the data is not as expected,
-#   but the function can still run using sane defaults.
-# - `show_progress::Bool = true`: If a progress bar will be shown.
-# - `data_analysis::Function = (x...) -> x`: Optional data analysis function.
-#   See `src/data_analysis.jl` for the required signature and examples.
-# - `da_args::Tuple = ()`: Positional arguments for the `data_analysis` function.
-# - `da_kwargs::NamedTuple = (;)`: Keyword arguments for the `data_analysis` function.
-# - `post_processing!::Function = (x...) -> nothing`: Optional post processing function.
-#   See `src/post_processing.jl` for the required signature and examples.
-# - `pp_args::Tuple = ()`: Positional arguments for the `post_processing!` function.
-# - `pp_kwargs::NamedTuple = (;)`: Keyword arguments for the `post_processing!` function.
-# - `x_label::::Union{String,LaTeXString}`: Name of the variable for the x axis label. 
-#   It should not include units or scaling factors, these will be added automatically.
-# - `y_label::::Union{String,LaTeXString}`: Name of the variable for the y axis label. 
-#   It should not include units or scaling factors, these will be added automatically.
-# - `x_unit::Unitful.Units = Unitful.NoUnits`: Target unit for the quantity in the x axis. All 
-#   the x axis data will be converted to this unit, and it will be printed in the axis label.
-# - `y_unit::Unitful.Units = Unitful.NoUnits`: Target unit for the quantity in the y axis. All 
-#   the y axis data will be converted to this unit, and it will be printed in the axis label.
-# - `z_unit::Unitful.Units = Unitful.NoUnits`: Target unit for the quantity in the z axis. 
-#   Only valid for heatmaps, where the "z axis" is some kind of density. 
-# - `x_factor::Int64 = 0`: Numerical exponent to scale the x axis, e.g. if `x_factor` = 10 
-#   the corresponding axis will be scaled by ``10^{10}``. The default is no scaling.
-# - `y_factor::Int64 = 0`: Numerical exponent to scale the y axis, e.g. if `y_factor` = 10 
-#   the corresponding axis will be scaled by ``10^{10}``. The default is no scaling.
-# - `x_scale::Union{Function,Makie.Symlog10} = identity`: Scaling to be used for the x axis. 
-#   The options are the scaling functions accepted by [Makie.jl](http://makie.juliaplots.org/stable/index.html): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10 and identity.
-# - `y_scale::Union{Function,Makie.Symlog10} = identity`: Scaling to be used for the y axis. 
-#   The options are the scaling functions accepted by [Makie.jl](http://makie.juliaplots.org/stable/index.html): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10 and identity.
-# - `x_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}`: Set it to a value diferent 
-#   than `nothing` if you want to fix the limits of the x axis.
-# - `y_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}`: Set it to a value diferent 
-#   than `nothing` if you want to fix the limits of the y axis.
-# - `x_range::NTuple{2,<:Real} = (-Inf, Inf)`: The data will be trim down so its x coordinates
-#   fit within `x_range`.
-# - `y_range::NTuple{2,<:Real} = (-Inf, Inf)`: The data will be trim down so its y coordinates
-#   fit within `y_range`.
-# - `x_edges::Bool = false`: If the borders of `x_range` are to be kept.
-# - `y_edges::Bool = false`: If the borders of `y_range` are to be kept.
-# - `animation::Bool = true`: If an animation using all the generated figures will be made.
-#   The animation will be stored in `output_path`. 
-# - `anim_file::String = "animation.gif"`: Filename of the animation, with its extension.
-#   All formats supported by [Makie.jl](http://makie.juliaplots.org/stable/index.html) can be used, namely .mkv, .mp4, .webm and .gif.
-# - `frame_rate::Int64 = 10`: Frame rate of the animation.
-# - `output_format::String = ".svg"`: File format of the output figures. All formats supported by
-#   [Makie.jl](http://makie.juliaplots.org/stable/index.html) can be used, namely ".pdf", ".svg" and ".png". 
-# - `pt_per_unit::Float64 = 0.75`: Factor to scale up or down the size of the figures, keeping 
-#   their proportions. This one only works for `.pdf` and `.svg`.
-# - `px_per_unit::Float64 = 1.0`: Factor to scale up or down the size of the figures, keeping 
-#   their proportions. This one only works for `.png`.
-# - `resolution::NTuple{2,Int64} = (1000, 750)`: Resolution of the figures in points. 
-#   For `.png`, by defult points = pixels (as given by `px_per_unit` = 1.0). For `.pdf` and
-#   `.svg` points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
-# - `aspect::Union{DataAspect,AxisAspect,Nothing} = nothing`: Aspect ratio of the figures.
-#   The options are:
-#   * `nothing`: uses the default given by [Makie.jl](http://makie.juliaplots.org/stable/index.html).
-#   * `AxisAspect(n)`: The aspect ratio will be given by the number n = width / height.
-#   * `DataAspect()`: The aspect ratio of the data is used.
-# - `series_colors::Union{Vector{ColorInput},Nothing} = nothing`: Colors for the diferent 
-#   series to be plotted (in general, diferent simulations). If set to `nothing`, the colors 
-#   will be assigned automatically. This is only relevant for `scatter!` and `scatterlines!` 
-#   plots.
-# - `patchcolor::Union{ColorInput,Nothing} = nothing`: Color for the histogram bars.
-#   If set to `nothing`, they will be red.
-# - `series_markers::Union{Vector{Symbol},Nothing} = nothing`: Markers for the different series 
-#   to be plotted (in general, different simulations). If set to `nothing`, the markers will be 
-#   assigned automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
-# - `series_linetypes::Union{Vector{LineStyleInput},Nothing} = nothing`: Line types for the 
-#   different series to be plotted (in general, different simulations). If set to `nothing`, 
-#   the line types will be assigned automatically. This is only relevant for `lines!` and 
-#   `scatterlines!` plots.
-
-# """
-# function snapshotPlot(
-#     source_paths::Vector{String},
-#     base_names::Vector{String},
-#     quantities::Dict{Symbol,<:Union{String,Vector{String}}},
-#     plot_function!::Function;
-#     pf_kwargs::NamedTuple = (;),
-#     output_path::String = "snapshot_plots",
-#     sim_cosmo::Bool = false,
-#     filter_function::Union{Function,Nothing} = nothing,
-#     idx::IndexType = :,
-#     sim_labels::Union{Vector{String},Nothing} = basename.(source_paths),
-#     t_unit::Unitful.Units = UnitfulAstro.Myr,
-#     warnings::Bool = true,
-#     show_progress::Bool = true,
-#     data_analysis::Function = (x...) -> x,
-#     da_args::Tuple = (),
-#     da_kwargs::NamedTuple = (;),
-#     post_processing!::Function = (x...) -> nothing,
-#     pp_args::Tuple = (),
-#     pp_kwargs::NamedTuple = (;),
-#     x_label::Union{String,LaTeXString} = "",
-#     y_label::Union{String,LaTeXString} = "",
-#     x_unit::Unitful.Units = Unitful.NoUnits,
-#     y_unit::Unitful.Units = Unitful.NoUnits,
-#     x_factor::Int64 = 0,
-#     y_factor::Int64 = 0,
-#     x_scale::Union{Function,Makie.Symlog10} = identity,
-#     y_scale::Union{Function,Makie.Symlog10} = identity,
-#     x_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}} = (nothing, nothing),
-#     y_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}} = (nothing, nothing),
-#     x_range::NTuple{2,<:Real} = (-Inf, Inf),
-#     y_range::NTuple{2,<:Real} = (-Inf, Inf),
-#     x_edges::Bool = false,
-#     y_edges::Bool = false,
-#     animation::Bool = true,
-#     anim_file::String = "animation.gif",
-#     frame_rate::Int64 = 10,
-#     output_format::String = ".svg",
-#     pt_per_unit::Float64 = 0.75,
-#     px_per_unit::Float64 = 1.0,
-#     resolution::NTuple{2,Int64} = (1000, 750),
-#     aspect::Union{DataAspect,AxisAspect,Nothing} = nothing,
-#     series_colors::Union{Vector{ColorInput},Nothing} = nothing,
-#     patchcolor::Union{ColorInput,Nothing} = nothing,
-#     series_markers::Union{Vector{Symbol},Nothing} = nothing,
-#     series_linetypes::Union{Vector{LineStyleInput},Nothing} = nothing,
-# )::Nothing
-
-#     ########################################################################################
-#     # Get the data
-#     ########################################################################################
-
-#     # Get the paths to the snapshots of each simulation, and their numbers
-#     (
-#         length(base_names) == length(source_paths) ||
-#         throw(ArgumentError("`base_names` and `source_paths` must have the same length."))
-#     )
-#     source = getSnapshotPaths.(base_names, source_paths)
-
-#     # Organize the input data in a dataframe
-#     sim_df = makeSourceTable(source, idx, t_unit, sim_cosmo)
-
-#     # Get the initial scale factor (only relevant for cosmological simulations)
-#     # Assumes that every simulation has the same value
-#     a0 = read_header(sim_df[1, 4]).time
-
-#     # Pahts to the snapshots
-#     snap_paths = @view sim_df[:, 4:end]
-#     # Snapshot index independent of `idx`
-#     global_index = @view sim_df[:, :id]
-#     # Snapshot index after selection by `idx`
-#     local_index = 1:nrow(sim_df)
-#     # Clock time associated to each snapshot
-#     time_stamps = @view sim_df[:, :time_stamps]
-#     # Number in the filename of each snapshot
-#     numbers = @view sim_df[:, :numbers]
-
-#     # Every iteration is a snapshot
-#     iterator = zip(eachrow(snap_paths), global_index, local_index, time_stamps, numbers)
-
-#     # Create a directory to save the output files if it doesn't exist
-#     output_folder = mkpath(joinpath(output_path, "plots"))
-
-#     ########################################################################################
-#     # Set up the canvas and the animation
-#     ########################################################################################
-
-#     # Create a list of distinguishable colors for the different simulations
-#     colors = distinguishable_colors(
-#         length(base_names),
-#         [RGB(1, 1, 1), RGB(0, 0, 0)],
-#         dropseed = true,
-#     )
-#     # Choose different markers for the different simulations 
-#     # (used in scatter and scatterlines plots)
-#     markers = MARKERS[1:length(base_names)]
-#     # Choose different line styles for the different simulations 
-#     # (used in lines and scatterlines plots)
-#     linestyles = LINE_STYLES[1:length(base_names)]
-
-#     # Apply global theme
-#     set_theme!(theme)
-#     # Set colors, patchcolors, markers and line styles
-#     update_theme!(
-#         Axis = (
-#             palette = (
-#                 color = series_colors !== nothing ? series_colors : colors,
-#                 patchcolor = patchcolor !== nothing ? patchcolor : [:red],
-#                 marker = series_markers !== nothing ? series_markers : markers,
-#                 linestyle = series_linetypes !== nothing ? series_linetypes : linestyles,
-#             ),
-#         ),
-#     )
-
-#     # Create an empty figure
-#     figure = Figure(; resolution)
-
-#     # Set the axes
-#     axes = Axis(
-#         figure[1, 1];
-#         xlabel = getLabel(x_label, x_factor, x_unit),
-#         ylabel = getLabel(y_label, y_factor, y_unit),
-#         limits = (x_limits, y_limits),
-#         aspect,
-#     )
-
-#     (
-#         !(nrow(sim_df) < frame_rate && warnings) || @warn(
-#             "With the settings: `frame_rate` = $frame_rate and `idx` = $idx, the animation is less than a second long."
-#         )
-#     )
-
-#     # Initialize the animation stream
-#     animation ? vs = VideoStream(figure, framerate = frame_rate) : nothing
-
-#     ########################################################################################
-#     # Main loop
-#     ########################################################################################
-
-#     # Initialize the progress bar
-#     prog_bar = Progress(
-#         length(iterator),
-#         dt = 0.5,
-#         desc = "Analyzing and plotting the data... ",
-#         color = :blue,
-#         barglyphs = BarGlyphs("|#  |"),
-#         enabled = show_progress,
-#     )
-
-#     for (snapshot, global_idx, local_idx, t, number) in iterator
-
-#         # Flag to keep the x axis with a linear scale if there are less than 3 data points
-#         # * true: The axis will have a linear scale
-#         # * false: The axis will have the scale given by `x_scale`
-#         xscale_flag = false
-#         # Flag to keep the y axis with a linear scale if there are less than 3 data points
-#         # * true: The axis will have a linear scale
-#         # * false: The axis will have the scale given by `y_scale`
-#         yscale_flag = false
-#         # Flag to skip problematic snapshots
-#         # * true: The snapshot will be skipped.
-#         # * false: The snapshot will be plotted.
-#         skipper = true
-
-#         for (sim_idx, snap) in enumerate(snapshot)
-
-#             # Skip missing snapshots
-#             snap !== missing || continue
-
-#             # Save basic information about this snapshot
-#             snap_data = Dict(
-#                 :snap_data => SnapData(
-#                     snap,                # Path to the snapshot
-#                     read_header(snap),   # Header of the snapshot
-#                     global_idx,          # Global index of the snapshot
-#                     local_idx,           # Local index of the snapshot 
-#                     sim_idx,             # Simulation index
-#                     t,                   # Time stamp of the snapshot
-#                     a0,                  # Initial scale factor for the simulation
-#                 ),
-#             )
-
-#             # Get the data fields to be analyzed
-#             data = merge(
-#                 getSnapshotData(snap, quantities; sim_cosmo, filter_function, warnings),
-#                 snap_data,
-#             )
-
-#             # Apply the analysis function to the data
-#             da_output = data_analysis(data, da_args...; da_kwargs...)
-
-#             # Skip snapshot if `data_analysis` returns `nothing`
-#             da_output === nothing ? continue : skipper = false
-#             # Data size check
-#             checkDataShape(plot_function!, length(da_output), length(source_paths))
-
-#             # Unit conversion
-#             axis_data = [
-#                 ustrip.(unit, ax_data) for 
-#                 (unit, ax_data) in zip([x_unit, y_unit], da_output)
-#             ]
-          
-#             # Sanitize data
-#             if length(axis_data) == 1
-#                 flag_x, _ = sanitizeData!(
-#                     axis_data[1],
-#                     scale = x_factor,
-#                     func_domain = x_scale,
-#                     range = x_range,
-#                     keep_edges = x_edges,
-#                     min_left = 3,
-#                 )
-#                 flag_y = 0
-#             else
-#                 flag_x, flag_y = sanitizeData!(
-#                     axis_data[1],
-#                     axis_data[2],
-#                     scale = (x_factor, y_factor),
-#                     func_domain = (x_scale, y_scale),
-#                     range = (x_range, y_range),
-#                     keep_edges = (x_edges, y_edges),
-#                     min_left = 3,
-#                 )
-#             end
-#             # If, in this snapshot and for any simulation, filtering the data targeting a 
-#             # non linear scale would leaves less that three data points, the scale will 
-#             # revert to `identity` and the data will be left untouched
-#             if flag_x == 1
-#                 xscale_flag = true
-#             end
-#             if flag_y == 1
-#                 yscale_flag = true
-#             end
-
-#             # Plot the data
-#             plot_function!(
-#                 axes,
-#                 axis_data...;
-#                 bins = scaledBins(axis_data[1], 20, x_scale; limits = x_limits, warnings),
-#                 colormap = :inferno,
-#                 pf_kwargs...,
-#             )
-
-#         end
-
-#         !skipper || (next!(prog_bar); continue)
-
-#         # Set the scale of the axes
-#         axes.xscale = xscale_flag ? identity : x_scale
-#         axes.yscale = yscale_flag ? identity : y_scale
-
-#         # Set the time-stamp as the title
-#         time_stamp = string(round(typeof(t), t, sigdigits = 4))
-#         axes.title = "t = $time_stamp"
-
-#         # Set a legend if required
-#         if sim_labels !== nothing
-#             if plot_function! == lines!
-#                 legend_element = [
-#                     LineElement(; color, linestyle) for
-#                     (color, linestyle) in zip(colors, linestyles)
-#                 ]
-#             elseif plot_function! == scatter!
-#                 legend_element = [
-#                     MarkerElement(; color, marker) for
-#                     (color, marker) in zip(colors, markers)
-#                 ]
-#             elseif plot_function! == scatterlines!
-#                 legend_element = [
-#                     [MarkerElement(; color, marker), LineElement(; color, linestyle)] for 
-#                     (color, marker, linestyle) in zip(colors, markers, linestyles)
-#                 ]
-#             end
-#             Legend(figure[2, 1][1, 1], legend_element, sim_labels)
-#         end
-
-#         # Apply the post processing function
-#         pp_legend = post_processing!(figure, pp_args...; pp_kwargs...)
-
-#         # Set a post processing legend if necessary
-#         if pp_legend !== nothing
-#             Legend(
-#                 figure[2, 1][1, sim_labels !== nothing ? 2 : 1],
-#                 pp_legend[1],
-#                 pp_legend[2],
-#             )
-#         end
-
-#         # Save the figure
-#         save(
-#             joinpath(output_folder, "snapshot_" * number * output_format),
-#             figure;
-#             pt_per_unit,
-#             px_per_unit,
-#         )
-
-#         # Add the figure as a frame to the animation
-#         animation ? recordframe!(vs) : nothing
-
-#         # Clean the figure for the next step in the loop
-#         cleanPlot!(figure)
-
-#         # Advance the progress bar
-#         next!(prog_bar)
-
-#     end
-
-#     # Save the animation
-#     animation ? save(joinpath(output_path, anim_file), vs) : nothing
-
-#     return nothing
-
-# end
-
-# """
-#     timeSeriesPlot(
-#         source_paths::Vector{String},
-#         base_names::Vector{String},
-#         plot_function!::Function; 
-#         <keyword arguments>
-#     )::Nothing
-
-# Pipeline for generating a figure with the time evolution of some quantity, for one or more 
-# simulations.
-
-# Some of the features are:
-
-# - It can produce a scatter plot, a line plot, or a combination of both.
-# - It manages units in a transparent manner, you only have to indicate the target unit for the 
-#   final figure.
-
-# Many aspect of the figure can be configured, see the arguments below for details.
-
-# # Arguments
-# - `source_paths::Vector{String}`: Paths to the directories containing the snapshot files, 
-#   set in the GADGET variable `OutputDir`.
-# - `base_names::Vector{String}`: Base names of the snapshot files, set in the GADGET 
-#   variable `SnapshotFileBase`.
-# - `plot_function!::Function`: A plotting function from [Makie.jl](http://makie.juliaplots.org/stable/index.html). 
-#   The options are:
-#   * `scatter!`      ⟶ Scatter plots.
-#   * `lines!`        ⟶ Line plots.
-#   * `scatterlines!` ⟶ Scatter markers with lines between them.
-#   This will set the type of plot that will be generated.
-# - `pf_kwargs::NamedTuple = (;)`: Keyword arguments for the `plot_function!` function.
-# - `output_path::String = "snapshot_plots"`: Path to the output directory, where the final 
-#   figure will be stored.
-# - `filter_function::Union{Function,Nothing} = nothing`: A function with the signature: 
-
-#   `foo(file_path::String)::Vector{Int64}`
-  
-#   If set to `nothing`, then no particles are filtered. See the [GadgetIO.jl](https://ludwigboess.github.io/GadgetIO.jl/stable/read_snapshots/#Filter-functions) documentation for 
-#   examples.
-# - `idx::IndexType`: Indexing of the simulation, i.e. which snapshots will be plotted.
-#   It can be an integer (a single snapshot), a vector of integers (several given snapshots),
-#   an UnitRange (e.g. 5:13) or : (every snapshot will be plotted).
-# - `sim_labels::Union{Vector{String},Nothing} = basename.(source_paths)`: Labels for each 
-#   simulation, for the plot legend. Set it to `nothing` if you don't want a legend.
-# - `title::String = ""`: Title for the figure.
-# - `data_analysis::Function = (x...) -> x`: Optional data analysis function.
-#   See `src/data_analysis.jl` for the required signature and examples.
-# - `da_args::Tuple = ()`: Positional arguments for the `data_analysis` function.
-# - `da_kwargs::NamedTuple = (;)`: Keyword arguments for the `data_analysis` function.
-# - `post_processing!::Function = (x...) -> nothing`: Optional post processing function.
-#   See `src/post_processing.jl` for the required signature and examples.
-# - `pp_args::Tuple = ()`: Positional arguments for the `post_processing!` function.
-# - `pp_kwargs::NamedTuple = (;)`: Keyword arguments for the `post_processing!` function.
-# - `x_label::::Union{String,LaTeXString}`: Name of the variable for the x axis label. 
-#   It should not include units or scaling factors, these will be added automatically.
-# - `y_label::::Union{String,LaTeXString}`: Name of the variable for the y axis label. 
-#   It should not include units or scaling factors, these will be added automatically.
-# - `x_unit::Unitful.Units = Unitful.NoUnits`: Target unit for the quantity in the x axis. All 
-#   the x axis data will be converted to this unit, and it will be printed in the axis label.
-# - `y_unit::Unitful.Units = Unitful.NoUnits`: Target unit for the quantity in the y axis. All 
-#   the y axis data will be converted to this unit, and it will be printed in the axis label.
-# - `x_factor::Int64 = 0`: Numerical exponent to scale the x axis, e.g. if `x_factor` = 10 
-#   the corresponding axis will be scaled by ``10^{10}``. The default is no scaling.
-# - `y_factor::Int64 = 0`: Numerical exponent to scale the y axis, e.g. if `y_factor` = 10 
-#   the corresponding axis will be scaled by ``10^{10}``. The default is no scaling.
-# - `x_scale::Union{Function,Makie.Symlog10} = identity`: Scaling to be used for the x axis. 
-#   The options are the scaling functions accepted by [Makie.jl](http://makie.juliaplots.org/stable/index.html): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10 and identity.
-# - `y_scale::Union{Function,Makie.Symlog10} = identity`: Scaling to be used for the y axis. 
-#   The options are the scaling functions accepted by [Makie.jl](http://makie.juliaplots.org/stable/index.html): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10 and identity.
-# - `x_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}} = (nothing, nothing)`: Set it to a 
-#   value diferent than `nothing` if you want to fix the limits of the x axis.
-# - `y_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}} = (nothing, nothing)`: Set it to a 
-#   value diferent than `nothing` if you want to fix the limits of the y axis.
-# - `x_range::NTuple{2,<:Real} = (-Inf, Inf)`: The data will be trim down so its x coordinates
-#   fit within `x_range`.
-# - `y_range::NTuple{2,<:Real} = (-Inf, Inf)`: The data will be trim down so its y coordinates
-#   fit within `y_range`.
-# - `x_edges::Bool = false`: If the borders of `x_range` are to be kept.
-# - `y_edges::Bool = false`: If the borders of `y_range` are to be kept.
-# - `file_name::String = "figure.svg"`: Filename for the output figure with its extension. All 
-#   formats supported by [Makie.jl](http://makie.juliaplots.org/stable/index.html) can be used, namely ".pdf", ".svg" and ".png". 
-# - `pt_per_unit::Float64 = 0.75`: Factor to scale up or down the size of the figures, keeping 
-#   their proportions. This one only works for `.pdf` and `.svg`.
-# - `px_per_unit::Float64 = 1.0`: Factor to scale up or down the size of the figures, keeping 
-#   their proportions. This one only works for `.png`.
-# - `resolution::NTuple{2,Int64} = (1000, 750)`: Resolution of the figures in points. 
-#   For `.png`, by default points = pixels (as given by `px_per_unit` = 1.0). For `.pdf` and
-#   `.svg` points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
-# - `aspect::Union{DataAspect,AxisAspect,Nothing} = nothing`: Aspect ratio of the figures.
-#   The options are:
-#   * `nothing`: uses the default given by [Makie.jl](http://makie.juliaplots.org/stable/index.html).
-#   * `AxisAspect(n)`: The aspect ratio will be given by the number n = width / height.
-#   * `DataAspect()`: The aspect ratio of the data is used.
-# - `series_colors::Union{Vector{ColorInput},Nothing} = nothing`: Colors for the different 
-#   series to be plotted (in general, different simulations). If set to `nothing`, the colors 
-#   will be assigned automatically. This is only relevant for `scatter!` and `scatterlines!` 
-#   plots.
-# - `series_markers::Union{Vector{Symbol},Nothing} = nothing`: Markers for the different series 
-#   to be plotted (in general, different simulations). If set to `nothing`, the markers will be 
-#   assigned automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
-# - `series_linetypes::Union{Vector{LineStyleInput},Nothing} = nothing`: Line types for the 
-#   different series to be plotted (in general, different simulations). If set to `nothing`, 
-#   the line types will be assigned automatically. This is only relevant for `lines!` and 
-#   `scatterlines!` plots.
-
-# """
-# function timeSeriesPlot(
-#     source_paths::Vector{String},
-#     base_names::Vector{String},
-#     plot_function!::Function;
-#     pf_kwargs::NamedTuple = (;),
-#     output_path::String = "time_series_plots",
-#     filter_function::Union{Function,Nothing} = nothing,
-#     idx::IndexType = :,
-#     sim_labels::Union{Vector{String},Nothing} = basename.(source_paths),
-#     title::String = "",
-#     data_analysis::Function = (x...) -> x,
-#     da_args::Tuple = (),
-#     da_kwargs::NamedTuple = (;),
-#     post_processing!::Function = (x...) -> nothing,
-#     pp_args::Tuple = (),
-#     pp_kwargs::NamedTuple = (;),
-#     x_label::Union{String,LaTeXString} = "",
-#     y_label::Union{String,LaTeXString} = "",
-#     x_unit::Unitful.Units = Unitful.NoUnits,
-#     y_unit::Unitful.Units = Unitful.NoUnits,
-#     x_factor::Int64 = 0,
-#     y_factor::Int64 = 0,
-#     x_scale::Union{Function,Makie.Symlog10} = identity,
-#     y_scale::Union{Function,Makie.Symlog10} = identity,
-#     x_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}} = (nothing, nothing),
-#     y_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}} = (nothing, nothing),
-#     x_range::NTuple{2,<:Real} = (-Inf, Inf),
-#     y_range::NTuple{2,<:Real} = (-Inf, Inf),
-#     x_edges::Bool = false,
-#     y_edges::Bool = false,
-#     file_name::String = "figure.svg",
-#     pt_per_unit::Float64 = 0.75,
-#     px_per_unit::Float64 = 1.0,
-#     resolution::NTuple{2,Int64} = (1000, 750),
-#     aspect::Union{DataAspect,AxisAspect,Nothing} = nothing,
-#     series_colors::Union{Vector{ColorInput},Nothing} = nothing,
-#     series_markers::Union{Vector{Symbol},Nothing} = nothing,
-#     series_linetypes::Union{Vector{LineStyleInput},Nothing} = nothing,
-# )::Nothing
-
-#     ########################################################################################
-#     # Set up the canvas
-#     ########################################################################################    
-
-#     # Create a list of distinguishable colors for the different simulations
-#     colors = distinguishable_colors(
-#         length(base_names),
-#         [RGB(1, 1, 1), RGB(0, 0, 0)],
-#         dropseed = true,
-#     )
-#     # Choose different markers for the different simulations 
-#     # (used in scatter and scatterlines plots)
-#     markers = MARKERS[1:length(base_names)]
-#     # Choose different line styles for the different simulations 
-#     # (used in lines and scatterlines plots)
-#     linestyles = LINE_STYLES[1:length(base_names)]
-
-#     # Apply global theme
-#     set_theme!(theme)
-#     # Set colors, markers and line styles
-#     update_theme!(
-#         Axis = (
-#             palette = (
-#                 color = series_colors !== nothing ? series_colors : colors,
-#                 marker = series_markers !== nothing ? series_markers : markers,
-#                 linestyle = series_linetypes !== nothing ? series_linetypes : linestyles,
-#             ),
-#         ),
-#     )
-
-#     # Create an empty figure
-#     figure = Figure(; resolution)
-
-#     # Set the axes
-#     axes = Axis(
-#         figure[1, 1];
-#         xlabel = getLabel(x_label, x_factor, x_unit),
-#         ylabel = getLabel(y_label, y_factor, y_unit),
-#         limits = (x_limits, y_limits),
-#         title,
-#         aspect,
-#     )
-
-#     ########################################################################################
-#     # Main loop
-#     ########################################################################################
-
-#     # Flag to keep the x axis with a linear scale if there are less than 3 data points
-#     # * true: The axis will have a linear scale
-#     # * false: The axis will have the scale given by `x_scale`
-#     xscale_flag = false
-#     # Flag to keep the y axis with a linear scale if there are less than 3 data points
-#     # * true: The axis will have a linear scale
-#     # * false: The axis will have the scale given by `y_scale`
-#     yscale_flag = false
-
-#     for (source_path, base_name) in zip(source_paths, base_names)
-
-#         # Save basic information about this simulation
-#         sim_data = SimData(source_path, base_name, idx, filter_function)
-
-#         # Apply the analysis function to the data
-#         da_output = data_analysis(sim_data, da_args...; da_kwargs...)
-
-#         # Unit conversion
-#         axis_data = [ustrip.(unit, ax_data) for (unit, ax_data) in zip([x_unit, y_unit], da_output)]
-
-#         # Sanitize data
-#         flag_x, flag_y = sanitizeData!(
-#             axis_data[1],
-#             axis_data[2],
-#             scale = (x_factor, y_factor),
-#             func_domain = (x_scale, y_scale),
-#             range = (x_range, y_range),
-#             keep_edges = (x_edges, y_edges),
-#             min_left = 3,
-#         )
-#         # If, for this simulation, filtering the data targeting a non linear scale would 
-#         # leaves less that three data points, the scale will revert to `identity` and the
-#         # data will be left untouched
-#         if flag_x == 1
-#             xscale_flag = true
-#         end
-#         if flag_y == 1
-#             yscale_flag = true
-#         end
-
-#         # Plot the data
-#         plot_function!(axes, axis_data...; pf_kwargs...)
-
-#     end
-
-#     # Set the scale of the axes
-#     axes.xscale = xscale_flag ? identity : x_scale
-#     axes.yscale = yscale_flag ? identity : y_scale
-
-#     # Set a legend if required
-#     if sim_labels !== nothing
-#         if plot_function! == lines!
-#             legend_element = [
-#                 LineElement(; color, linestyle) for
-#                 (color, linestyle) in zip(colors, linestyles)
-#             ]
-#         elseif plot_function! == scatter!
-#             legend_element =
-#                 [MarkerElement(; color, marker) for (color, marker) in zip(colors, markers)]
-#         elseif plot_function! == scatterlines!
-#             legend_element = [
-#                 [MarkerElement(; color, marker), LineElement(; color, linestyle)] for
-#                 (color, marker, linestyle) in zip(colors, markers, linestyles)
-#             ]
-#         end
-#         Legend(figure[2, 1][1, 1], legend_element, sim_labels)
-#     end
-
-#     # Apply the post processing function
-#     pp_legend = post_processing!(figure, pp_args...; pp_kwargs...)
-
-#     # Set a post processing legend if necessary
-#     if pp_legend !== nothing
-#         Legend(
-#             figure[2, 1][1, sim_labels !== nothing ? 2 : 1],
-#             pp_legend[1],
-#             pp_legend[2],
-#         )
-#     end
-
-#     # Create a directory to save the output file if it doesn't exist
-#     fig_path = mkpath(output_path)
-
-#     # Save the figure
-#     save(joinpath(fig_path, file_name), figure; pt_per_unit, px_per_unit)
-
-#     return nothing
-
-# end
