@@ -14,12 +14,12 @@ total_star_mass = GI.computeTimeSeries(snapshots["snap_paths"], "mass", :stars, 
 @testset "GADGET utilities" begin
 
     @test GI.passAll(snapshot, :stars) == 1:2940
-    @test GI.energyIntegrand(cosmological_header, 0.53) ≈ 16.22598392575642
-    @test GI.internalUnits("POS", isolated_header) ≈ 1.000000135629411UnitfulAstro.kpc
+    @test GI.energyIntegrand(cosmological_header, 0.53) ≈ 16.225984
+    @test GI.internalUnits("POS", isolated_header) ≈ 1.00000013UnitfulAstro.kpc
     @test GI.internalUnits("TEMP", isolated_header) == u"K"
     @test GI.internalUnits("ID", isolated_header) == Unitful.NoUnits
     @test GI.internalUnits("FMOL", isolated_header) == Unitful.NoUnits
-    @test GI.internalUnits("SFRTXT_COL5", isolated_header) ≈ 1.0002967845365513e10UnitfulAstro.Msun
+    @test GI.internalUnits("SFRTXT_COL5", isolated_header) ≈ 1.00029678e10UnitfulAstro.Msun
     @test_nowarn GI.checkDataShape(heatmap!, 3, 1)
     @test_nowarn GI.checkDataShape(hist!, 1, 23)
     @test_nowarn GI.checkDataShape(scatterlines!, 2, 23)
@@ -146,12 +146,12 @@ end
     axis = Axis(figure[1, 1])
     scatter!(axis, 12:21, 77:86)
     plot = scatter(1:20, 33:52)
-    @test GI.xlimits(plot) == (0.050000012f0, 20.95f0)
-    @test GI.xlimits(axis) == (11.55f0, 21.45f0)
-    @test GI.xlimits(figure) == (11.55f0, 21.45f0)
-    @test GI.ylimits(plot) == (32.05f0, 52.95f0)
-    @test GI.ylimits(axis) == (76.55f0, 86.45f0)
-    @test GI.ylimits(figure) == (76.55f0, 86.45f0)
+    @test all(GI.xlimits(plot) .≈ (0.05, 20.95))
+    @test all(GI.xlimits(axis) .≈ (11.55f0, 21.45f0))
+    @test all(GI.xlimits(figure) .≈ (11.55f0, 21.45f0))
+    @test all(GI.ylimits(plot) .≈ (32.05f0, 52.95f0))
+    @test all(GI.ylimits(axis) .≈ (76.55f0, 86.455f0))
+    @test all(GI.ylimits(figure) .≈ (76.55f0, 86.455f0))
     @test GI.xscale(plot) == identity
     @test GI.xscale(axis) == identity
     @test GI.xscale(figure) == identity
@@ -165,8 +165,8 @@ end
     @test GI.pointData(axis) == point_2
     @test GI.pointData(figure) == point_2
 
-    @test GI.absCoor(plot, 0.5, 0.5) == (10.500000774860382, 42.5)
-    @test GI.absCoor(figure, 0.5, 0.5) == (16.500000476837158, 81.5)
+    @test all(GI.absCoor(plot, 0.5, 0.5) .≈ (10.4999998, 42.4999981))
+    @test all(GI.absCoor(figure, 0.5, 0.5) .≈ (16.5000005, 81.500004))
 
     @test_nowarn GI.cleanPlot!(figure)
 
@@ -208,8 +208,8 @@ end
     @test GI.formatError(0.694206, 1.83) == (0.7, 1.8)
     @test GI.formatError(0.042069, 1.83) == (0.0, 1.8)
 
-    @test GI.maxLength([1 2 3; 4 5 6; 7 8 9]) == 11.224972160321824
-    @test GI.maxLength([7 8 9; 4 5 6; 1 2 3]u"kg") == 11.224972160321824u"kg"
+    @test GI.maxLength([1 2 3; 4 5 6; 7 8 9]) ≈ 11.224972
+    @test GI.maxLength([7 8 9; 4 5 6; 1 2 3]u"kg") ≈ 11.224972u"kg"
 
     arr1 = [1.5, 9.6, 6.4]
     arr2 = [1.5, 9.6, 6.9]

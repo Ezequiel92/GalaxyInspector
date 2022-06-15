@@ -20,23 +20,23 @@ Base.isempty(l_str::LaTeXString) = l_str == L""
 Extract the limits of the axes from a [Makie.jl](http://makie.juliaplots.org/stable/index.html) plot, axis, or figure. In the case of a figure, it 
 will take the limits from the current axis object.
 """
-xlimits(plot::Makie.FigureAxisPlot) = plot.axis.elements[:xaxis].attributes[:limits][]
-xlimits(axis::Makie.Axis) = axis.elements[:xaxis].attributes[:limits][]
-xlimits(fig::Makie.Figure) = fig.current_axis.x.elements[:xaxis].attributes[:limits][]
-ylimits(plot::Makie.FigureAxisPlot) = plot.axis.elements[:yaxis].attributes[:limits][]
-ylimits(axis::Makie.Axis) = axis.elements[:yaxis].attributes[:limits][]
-ylimits(fig::Makie.Figure) = fig.current_axis.x.elements[:yaxis].attributes[:limits][]
+xlimits(plot::Makie.FigureAxisPlot) = plot.axis.xaxis.attributes[:limits][]
+xlimits(axis::Makie.Axis) = axis.xaxis.attributes[:limits][]
+xlimits(fig::Makie.Figure) = fig.current_axis.x.xaxis.attributes[:limits][]
+ylimits(plot::Makie.FigureAxisPlot) = plot.axis.yaxis.attributes[:limits][]
+ylimits(axis::Makie.Axis) = axis.yaxis.attributes[:limits][]
+ylimits(fig::Makie.Figure) = fig.current_axis.x.yaxis.attributes[:limits][]
 
 """
 Extract the scales of the axes from a [Makie.jl](http://makie.juliaplots.org/stable/index.html) plot, axis, or figure. In the case of a figure, it 
 will take the scales from the current axis object.
 """
-xscale(plot::Makie.FigureAxisPlot) = plot.axis.elements[:xaxis].attributes[:scale][]
-xscale(axis::Makie.Axis) = axis.elements[:xaxis].attributes[:scale][]
-xscale(fig::Makie.Figure) = fig.current_axis.x.elements[:xaxis].attributes[:scale][]
-yscale(plot::Makie.FigureAxisPlot) = plot.axis.elements[:yaxis].attributes[:scale][]
-yscale(axis::Makie.Axis) = axis.elements[:yaxis].attributes[:scale][]
-yscale(fig::Makie.Figure) = fig.current_axis.x.elements[:yaxis].attributes[:scale][]
+xscale(plot::Makie.FigureAxisPlot) = plot.axis.xaxis.attributes[:scale][]
+xscale(axis::Makie.Axis) = axis.xaxis.attributes[:scale][]
+xscale(fig::Makie.Figure) = fig.current_axis.x.xaxis.attributes[:scale][]
+yscale(plot::Makie.FigureAxisPlot) = plot.axis.yaxis.attributes[:scale][]
+yscale(axis::Makie.Axis) = axis.yaxis.attributes[:scale][]
+yscale(fig::Makie.Figure) = fig.current_axis.x.yaxis.attributes[:scale][]
 
 """
 Extract the data points from a [Makie.jl](http://makie.juliaplots.org/stable/index.html) plot, axis, or figure, as a Vector{Point2D}. For the three 
