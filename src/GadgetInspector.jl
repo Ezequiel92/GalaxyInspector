@@ -8,7 +8,7 @@
 #                     /____/                             /_/                                  /___/       
 # 
 ####################################################################################################
-# Julia module for analyzing and plotting the output of GAGET2/3/4 simulations             
+# Julia module for analyzing and plotting the output of GAGET2/3/4 and Arepo simulations             
 ####################################################################################################
 
 module GadgetInspector
