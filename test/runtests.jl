@@ -9,9 +9,9 @@ using JLD2, CairoMakie, LaTeXStrings, DataFrames, DelimitedFiles, Unitful, Unitf
 import GadgetIO as GIO
 
 # Path to the directory containing the reference results
-const BASE_DATA_PATH = joinpath(@__DIR__, "./reference_results")
+const BASE_DATA_PATH = joinpath(@__DIR__, "./reference/reference_results")
 # Path to the directory containing the snapshot files used to generate the reference results
-const BASE_SRC_PATH = joinpath(@__DIR__, "./reference_results/gen/example_source_data")
+const BASE_SRC_PATH = joinpath(@__DIR__, "./reference/gen/example_source_data")
 # Base name of the snapshot files, set in the GADGET variable `SnapshotFileBase`
 const SNAP_NAME = "snap"
 # Side dimension of the simulated region, for the case of vacuum boundary conditions
