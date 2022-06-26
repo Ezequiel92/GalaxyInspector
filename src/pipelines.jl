@@ -1110,11 +1110,12 @@ function snapshotTable(
         skipper = true
 
         # Initialize the vectors which will store the results
-        data = Vector{Float64}[]
-        rows_idx = Vector{Int64}[]
-        labels = String[]
+        n_sims = 2 * length(sim_labels)
+        data = Vector{Vector{Float64}}(undef, n_sims)
+        rows_idx = Vector{Vector{Int64}}(undef, n_sims)
+        labels = Vector{String}(undef, n_sims)
 
-        for ((sim_index, snapshot), sim_label) in zip(enumerate(snapshots), sim_labels)
+        for (sim_index, (snapshot, sim_label)) in enumerate(zip(snapshots, sim_labels))
 
             # Skip missing snapshots
             snapshot !== missing || continue
@@ -1190,9 +1191,12 @@ function snapshotTable(
             end
 
             # Save the results for this simulation
-            push!(data, axis_data[1], axis_data[2])
-            push!(rows_idx, [1:length(axis_data[1]);], [1:length(axis_data[2]);])
-            push!(labels, "$x_name ($sim_label)", "$y_name ($sim_label)")
+            data[2 * sim_index - 1] = axis_data[1]
+            data[2 * sim_index] = axis_data[2]
+            rows_idx[2 * sim_index - 1] = [1:length(axis_data[1]);]
+            rows_idx[2 * sim_index] = [1:length(axis_data[2]);]
+            labels[2 * sim_index - 1] = "$x_name ($sim_label)"
+            labels[2 * sim_index] = "$y_name ($sim_label)"
 
         end
 
@@ -1377,9 +1381,10 @@ function timeSeriesTable(
     iterator = enumerate(zip(source_paths, base_names, sim_labels))
 
     # Initialize the vectors which will store the results
-    data = Vector{Float64}[]
-    snap_idx = Vector{Int64}[]
-    labels = String[]
+    n_snaps = 2 * length(iterator)
+    data = Vector{Vector{Float64}}(undef, n_snaps)
+    snap_idx = Vector{Vector{Int64}}(undef, n_snaps)
+    labels = Vector{String}(undef, n_snaps)
 
     for (sim_index, (source_path, base_name, sim_label)) in iterator
 
@@ -1429,9 +1434,12 @@ function timeSeriesTable(
         y_data = y_func(y_data)
 
         # Save the results for this simulation
-        push!(data, x_data, y_data)
-        push!(snap_idx, [1:length(x_data);], [1:length(y_data);])
-        push!(labels, "$x_name ($sim_label)", "$y_name ($sim_label)")
+        data[2 * sim_index - 1] = x_data
+        data[2 * sim_index] = y_data
+        snap_idx[2 * sim_index - 1] = [1:length(x_data);]
+        snap_idx[2 * sim_index] = [1:length(y_data);]
+        labels[2 * sim_index - 1] = "$x_name ($sim_label)"
+        labels[2 * sim_index] = "$y_name ($sim_label)"
 
     end
 
