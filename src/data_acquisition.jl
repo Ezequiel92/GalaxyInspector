@@ -308,7 +308,7 @@ end
 """
     read_snapshots(
         file_path::String,
-        block::String,,
+        block::String,
         particle_type::Integer,
         filter_function::Function,
     )::Dict{String,VecOrMat}
@@ -341,24 +341,6 @@ function read_snapshots(
 )::Dict{String,VecOrMat}
     return read_snapshots(file_path, [block], particle_type, filter_function)
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 """
     makeSourceTable(
