@@ -1,6 +1,6 @@
 # Data Acquisition Functions
 
 ```@autodocs
-Modules = [GadgetInspector]
+Modules = [GalaxyInspector]
 Pages   = ["data_acquisition.jl"]
 ```

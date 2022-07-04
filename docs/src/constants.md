@@ -1,6 +1,6 @@
 # Constants
 
 ```@autodocs
-Modules = [GadgetInspector]
+Modules = [GalaxyInspector]
 Pages   = ["constants.jl"]
 ```

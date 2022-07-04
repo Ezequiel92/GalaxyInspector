@@ -2,7 +2,7 @@
 # Testing for the post processing functions in `src/post_processing.jl`
 ####################################################################################################
 
-@testset "Post processing functions" begin
+@testset "Post processing functions " begin
 
     figure = Figure()
     axis = Axis(figure[1, 1])

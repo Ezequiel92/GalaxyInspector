@@ -1,6 +1,6 @@
 # Post Processing Functions
 
 ```@autodocs
-Modules = [GadgetInspector]
+Modules = [GalaxyInspector]
 Pages   = ["post_processing.jl"]
 ```

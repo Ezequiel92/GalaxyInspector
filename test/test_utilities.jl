@@ -11,8 +11,8 @@ stellar_age = snap_data_02[:stars]["AGE"]
 stellar_mass = snap_data_04[:stars]["MASS"]
 total_star_mass = GI.computeTimeSeries(snapshots["snap_paths"], "mass", :stars, false)
 
-@testset "GADGET utilities" begin
-
+@testset "Plotting utilities        " begin
+   
     @test GI.passAll(snapshot, :stars) == 1:2940
     @test GI.energyIntegrand(cosmological_header, 0.53) ≈ 16.225984
     @test GI.internalUnits("POS", isolated_header) ≈ 1.00000013UnitfulAstro.kpc
@@ -134,7 +134,7 @@ total_star_mass = GI.computeTimeSeries(snapshots["snap_paths"], "mass", :stars, 
 
 end
 
-@testset "Generic utilities" begin
+@testset "Generic utilities         " begin
 
     @test GI.trivial(6.9, "nice") === nothing
     @test typeof(

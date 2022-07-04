@@ -53,7 +53,7 @@ ks_x, ks_y = GI.kennicuttSchmidt(
 
 qe_x, qe_y = GI.qtyEvolution(sim_data, "clock_time", "mass", nothing, :stars, warnings = false)
 
-@testset "Data analysis functions" begin
+@testset "Data analysis functions   " begin
     jldopen(joinpath(BASE_DATA_PATH, "data_analysis.jld2"), "r") do file
         @test GI.compare(hist_data, file["hist_data"])
         @test GI.compare(corr_x, file["corr_x"])

@@ -1,6 +1,6 @@
-# GadgetInspector
+# GalaxyInspector
 
-*A Julia module for data analysis of GAGET2/3/4 simulations.*
+*A Julia module for data analysis of Gadget2/3/4 and Arepo simulations.*
 
 ## Table of Contents
 

@@ -1,6 +1,6 @@
 # Utilities
 
 ```@autodocs
-Modules = [GadgetInspector]
+Modules = [GalaxyInspector]
 Pages   = ["utilities.jl"]
 ```

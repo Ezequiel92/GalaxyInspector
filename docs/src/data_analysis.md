@@ -1,6 +1,6 @@
 # Data Analysis Functions
 
 ```@autodocs
-Modules = [GadgetInspector]
+Modules = [GalaxyInspector]
 Pages   = ["data_analysis.jl"]
 ```

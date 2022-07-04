@@ -3,8 +3,8 @@
 ####################################################################################################
 
 push!(LOAD_PATH, joinpath(@__DIR__, "../../../src/"))
-using GadgetInspector;
-const GI = GadgetInspector;
+using GalaxyInspector;
+const GI = GalaxyInspector;
 using JLD2, Unitful, UnitfulAstro, CairoMakie
 import GadgetIO as GIO
 

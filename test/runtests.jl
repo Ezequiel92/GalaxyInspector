@@ -1,10 +1,10 @@
 ####################################################################################################
-# GadgetInspector testing
+# GalaxyInspector testing
 ####################################################################################################
 
 push!(LOAD_PATH, joinpath(@__DIR__, "../src/"))
-using GadgetInspector;
-const GI = GadgetInspector;
+using GalaxyInspector;
+const GI = GalaxyInspector;
 using JLD2, CairoMakie, LaTeXStrings, DataFrames, DelimitedFiles, Unitful, UnitfulAstro, Test, ReferenceTests
 import GadgetIO as GIO
 
@@ -23,7 +23,7 @@ const SIM_COSMO = false
 # Index of one particular snapshot for testing
 const SNAP_N = 16
 
-println("Testing GadgetInspector.jl...\n")
+println("Testing GalaxyInspector.jl...\n")
 
 include("test_data_acquisition.jl")
 include("test_utilities.jl")

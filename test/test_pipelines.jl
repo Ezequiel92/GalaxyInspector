@@ -2,7 +2,7 @@
 # Tests for the pipeline functions in `src/piepelines.jl`
 ####################################################################################################
 
-@testset "Pipeline functions" begin
+@testset "Pipeline functions        " begin
 
     out_dir = joinpath(@__DIR__, "test_plots")
     first_image = joinpath(out_dir, "plots/snapshot_150.png")

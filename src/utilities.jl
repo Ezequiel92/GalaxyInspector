@@ -69,7 +69,7 @@ Give the absolute x and y coordinates from the relative ones.
 
 # Examples
 ```julia-repl
-julia> GadgetInspector.absCoor(lines(rand(100)), 0.5, 0.5)
+julia> GalaxyInspector.absCoor(lines(rand(100)), 0.5, 0.5)
 (50.49999666213989, 0.5031078979372978)
 ```
 

@@ -1,6 +1,6 @@
 # Pipelines
 
 ```@autodocs
-Modules = [GadgetInspector]
+Modules = [GalaxyInspector]
 Pages   = ["pipelines.jl"]
 ```
