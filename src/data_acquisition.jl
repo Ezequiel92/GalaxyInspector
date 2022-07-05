@@ -805,7 +805,7 @@ function getSfrFile(
     head = deepcopy(header)
     times = first(eachcol(file_data))
     headers = Vector{GIO.SnapshotHeader}(undef, length(times))
-    for (i, t) in enumerate(times)
+    for (i, t) in pairs(times)
         if sim_cosmo
             # For cosmological simulations, only the scale factor in each header changes
             # from row to row, so take it from the first column of `sfr.txt`  
@@ -816,7 +816,7 @@ function getSfrFile(
 
     return Dict(
         n => column .* internalUnits.("SFRTXT_COL" * string(n), headers; sim_cosmo) for
-        (n, column) in enumerate(eachcol(file_data))
+        (n, column) in pairs(eachcol(file_data))
     )
 
 end
