@@ -2149,7 +2149,7 @@ function computeTimeSeries(
 
         qty_out = Vector{Unitful.Mass}(undef, length(snapshot_files))
 
-        for (i, (header, snapshot)) in pairs(zip(headers, snapshot_files))
+        for (i, (header, snapshot)) in enumerate(zip(headers, snapshot_files))
 
             unit = internalUnits("MASS", header; sim_cosmo)
             number = header.nall[ParticleType[type]+1]
@@ -2181,7 +2181,7 @@ function computeTimeSeries(
 
         stellar_mass = Vector{Unitful.Mass}(undef, length(snapshot_files))
 
-        for (i, (header, snapshot)) in pairs(zip(headers, snapshot_files))
+        for (i, (header, snapshot)) in enumerate(zip(headers, snapshot_files))
 
             unit = internalUnits("MASS", header; sim_cosmo)
             number = header.nall[ParticleType[:stars]+1]

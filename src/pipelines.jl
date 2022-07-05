@@ -342,7 +342,7 @@ function snapshotPlot(
         #   - `false`: The snapshot will be plotted.
         skipper = true
 
-        for (sim_index, (snapshot, style)) in pairs(zip(snapshots, styles))
+        for (sim_index, (snapshot, style)) in enumerate(zip(snapshots, styles))
 
             # Skip missing snapshots
             snapshot !== missing || continue
@@ -774,7 +774,7 @@ function timeSeriesPlot(
     # Main loop
     ################################################################################################
 
-    iterator = pairs(zip(source_paths, base_names, styles))
+    iterator = enumerate(zip(source_paths, base_names, styles))
 
     # Flag to keep the x axis with a linear scale if there are less than 3 data points
     #   - `true`: The axis will have a linear scale
@@ -1115,7 +1115,7 @@ function snapshotTable(
         rows_idx = Vector{Vector{Int64}}(undef, n_sims)
         labels = Vector{String}(undef, n_sims)
 
-        for (sim_index, (snapshot, sim_label)) in pairs(zip(snapshots, sim_labels))
+        for (sim_index, (snapshot, sim_label)) in enumerate(zip(snapshots, sim_labels))
 
             # Skip missing snapshots
             snapshot !== missing || continue
@@ -1378,7 +1378,7 @@ function timeSeriesTable(
     ]
 
     # Each iteration is a simulation
-    iterator = pairs(zip(source_paths, base_names, sim_labels))
+    iterator = enumerate(zip(source_paths, base_names, sim_labels))
 
     # Initialize the vectors which will store the results
     n_snaps = 2 * length(iterator)
