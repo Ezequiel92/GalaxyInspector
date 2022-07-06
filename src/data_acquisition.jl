@@ -381,7 +381,7 @@ function makeSourceTable(
 
     paths = [sim["snap_paths"] for sim in source]
     rows = [[1:length(p);] for p in paths]
-    labels = ["sim_$i" for i = 1:length(paths)]
+    labels = ["sim_$i" for i in 1:length(paths)]
 
     source_table = unstack(flatten(DataFrame(l=labels, p=paths, id=rows), [:p, :id]), :l, :p)
 
