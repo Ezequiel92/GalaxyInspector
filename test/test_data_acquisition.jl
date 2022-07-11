@@ -27,8 +27,8 @@ snap_data_02 = @test_nowarn GI.getSnapshotData(snapshot, :stars, ["AGE", "MASS",
 snap_data_03 = @test_nowarn GI.getSnapshotData(snapshot, Dict(:gas => ["NE", "U"], :stars => ["Z"]))
 snap_data_04 = @test_nowarn GI.getSnapshotData(snapshot, [:gas, :stars], ["Z", "MASS", "POS"])
 sfr_file = @test_nowarn GI.getSfrFile(BASE_SRC_PATH, GI.read_header(snapshot))
-cpu_file_01 = @test_nowarn GI.getCpuFile(BASE_SRC_PATH, ["i/o", "hotngbs", "density"])
-cpu_file_02 = @test_nowarn GI.getCpuFile(BASE_SRC_PATH, "cs_sfr")
+# cpu_file_01 = @test_nowarn GI.getCpuFile(BASE_SRC_PATH, ["i/o", "hotngbs", "density"])
+# cpu_file_02 = @test_nowarn GI.getCpuFile(BASE_SRC_PATH, "cs_sfr")
 molla_data = @test_nowarn GI.getMollá2015(BASE_SRC_PATH)
 
 @testset "Data acquisition functions" begin
@@ -45,8 +45,8 @@ molla_data = @test_nowarn GI.getMollá2015(BASE_SRC_PATH)
         @test GI.compare(snap_data_03, file["snap_data_03"])
         @test GI.compare(snap_data_04, file["snap_data_04"])
         @test GI.compare(sfr_file, file["sfr_file"])
-        @test GI.compare(cpu_file_01, file["cpu_file_01"])
-        @test GI.compare(cpu_file_02, file["cpu_file_02"])
+        # @test GI.compare(cpu_file_01, file["cpu_file_01"])
+        # @test GI.compare(cpu_file_02, file["cpu_file_02"])
         @test GI.compare(molla_data, file["molla_data"])
     end
 end

@@ -26,8 +26,8 @@ snap_data_02 = GI.getSnapshotData(snapshot, :stars, ["AGE", "MASS", "POS"])
 snap_data_03 = GI.getSnapshotData(snapshot, Dict(:gas => ["NE", "U"], :stars => ["Z"]))
 snap_data_04 = GI.getSnapshotData(snapshot, [:gas, :stars], ["Z", "MASS", "POS"])
 sfr_file = GI.getSfrFile(BASE_SRC_PATH, GI.read_header(snapshot))
-cpu_file_01 = GI.getCpuFile(BASE_SRC_PATH, ["i/o", "hotngbs", "density"])
-cpu_file_02 = GI.getCpuFile(BASE_SRC_PATH, "cs_sfr")
+# cpu_file_01 = GI.getCpuFile(BASE_SRC_PATH, ["i/o", "hotngbs", "density"])
+# cpu_file_02 = GI.getCpuFile(BASE_SRC_PATH, "cs_sfr")
 molla_data = GI.getMollá2015(BASE_SRC_PATH)
 
 ####################################################################################################
@@ -46,7 +46,7 @@ jldsave(
     snap_data_03,
     snap_data_04,
     sfr_file,
-    cpu_file_01,
-    cpu_file_02,
+    # cpu_file_01,
+    # cpu_file_02,
     molla_data
 )
