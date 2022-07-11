@@ -5,13 +5,13 @@
 push!(LOAD_PATH, joinpath(@__DIR__, "../src/"))
 using GalaxyInspector;
 const GI = GalaxyInspector;
-using JLD2, CairoMakie, LaTeXStrings, DataFrames, DelimitedFiles, Unitful, UnitfulAstro, Test, ReferenceTests
+using JLD2, CairoMakie, LaTeXStrings, DataFrames, DelimitedFiles, Unitful, UnitfulAstro, Test, ReferenceTests, Pkg.Artifacts
 import GadgetIO as GIO
 
 # Path to the directory containing the reference results
-const BASE_DATA_PATH = joinpath(@__DIR__, "./reference/reference_results")
+const BASE_DATA_PATH = artifact"reference_results"
 # Path to the directory containing the snapshot files used to generate the reference results
-const BASE_SRC_PATH = joinpath(@__DIR__, "./reference/gen/example_source_data")
+const BASE_SRC_PATH = artifact"example_data"
 # Base name of the snapshot files, set in the GADGET variable `SnapshotFileBase`
 const SNAP_NAME = "snap"
 # Side dimension of the simulated region, for the case of vacuum boundary conditions

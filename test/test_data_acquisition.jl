@@ -7,12 +7,12 @@ snapshot = snapshots["snap_paths"][SNAP_N]
 snap_data = GI.SnapData("", 12, 14, 15UnitfulAstro.Myr)
 sim_data = GI.SimData(BASE_SRC_PATH, 1, :, SNAP_NAME, GI.read_header(snapshot), nothing, 0.0)
 isolated_header = @test_nowarn GI.read_header(snapshot)
-cosmological_header = @test_nowarn GI.read_header(joinpath(
-    BASE_SRC_PATH,
-    "cosmological",
-    SNAP_NAME * "dir_019",
-    SNAP_NAME * "_019",
-))
+# cosmological_header = @test_nowarn GI.read_header(joinpath(
+#     BASE_SRC_PATH,
+#     "cosmological",
+#     SNAP_NAME * "dir_019",
+#     SNAP_NAME * "_019",
+# ))
 velocities = @test_nowarn GI.read_snapshots(
     snapshot,
     "VEL",
@@ -35,7 +35,7 @@ molla_data = @test_nowarn GI.getMollá2015(BASE_SRC_PATH)
     jldopen(joinpath(BASE_DATA_PATH, "data_acquisition.jld2"), "r") do file
         @test GI.compare(snapshots["snap_numbers"], file["snapshots"]["snap_numbers"])
         @test GI.compare(isolated_header, file["isolated_header"])
-        @test GI.compare(cosmological_header, file["cosmological_header"])
+        # @test GI.compare(cosmological_header, file["cosmological_header"])
         @test GI.compare(velocities, file["velocities"])
         @test GI.block_present(snapshot, "POS")
         @test !GI.block_present(snapshot, "VORT")
