@@ -237,7 +237,7 @@ function snapshotPlot(
     #   - Path to the snapshot (or `missing` is the snapshot doesn't exist), for the 3rd simulation
     #   - ... 
     sim_df = makeSourceTable(source, idx, t_unit, sim_cosmo)
-    iterator = pairs(eachrow(sim_df))
+    iterator = enumerate(Tables.namedtupleiterator(sim_df))
 
     # Number of simulations
     n_simulation = length(source_paths)
@@ -1079,7 +1079,7 @@ function snapshotTable(
     sim_df = makeSourceTable(source, idx, UnitfulAstro.Myr, sim_cosmo)
 
     # Each iteration is a snapshot
-    iterator = pairs(eachrow(sim_df))
+    iterator = enumerate(Tables.namedtupleiterator(sim_df))
 
     # Largest number of snapshots in a simulation
     max_n_snapshot = length(iterator)
