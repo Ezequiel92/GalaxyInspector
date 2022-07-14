@@ -34,19 +34,19 @@ include("reference_post_processing.jl")
 include("reference_pipelines.jl")
 
 # Compress results to be used as artifacts and delete files
-tar_file = joinpath(@__DIR__, "../$NAME.tar.gz")
+tar_file = joinpath(@__DIR__, "../$NAME.tar")
 Tar.create(BASE_OUT_PATH, tar_file)
 bind_artifact!(
-    joinpath(@__DIR__, "../../Artifacts.toml"), 
-    NAME, 
+    joinpath(@__DIR__, "../../Artifacts.toml"),
+    NAME,
     Base.SHA1(Tar.tree_hash(tar_file)),
-    download_info = [
+    download_info=[
         (
-            "https://github.com/Ezequiel92/GalaxyInspector/raw/main/resources/$NAME.tar", 
+            "https://github.com/Ezequiel92/GalaxyInspector/raw/main/resources/$NAME.tar",
             bytes2hex(open(sha256, tar_file)),
         ),
     ],
-    force = true,
+    force=true,
 )
 
-rm(BASE_OUT_PATH, force = true)
+rm(BASE_OUT_PATH, recursive=true)
