@@ -48,7 +48,7 @@
         Dict(:gas => "POS"),
         scatter!;
         output_path = out_dir,
-        sim_labels = ["example_source_data", "example_source_data"],
+        sim_labels = ["example_data", "example_data"],
         sim_cosmo = SIM_COSMO,
         idx = 16:17,
         t_unit = UnitfulAstro.Gyr,
@@ -86,7 +86,7 @@
         Dict(:gas => ["MASS", "POS"]),
         scatterlines!;
         output_path = out_dir,
-        sim_labels = ["example_source_data",],
+        sim_labels = ["example_data",],
         sim_cosmo = SIM_COSMO,
         idx = 16:17,
         t_unit = UnitfulAstro.Gyr,

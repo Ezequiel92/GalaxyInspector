@@ -32,6 +32,7 @@ snapshotPlot(
     Dict(:gas => "POS"),
     scatter!;
     output_path = joinpath(BASE_OUT_PATH, "snapshotPlot/scatter_plots"),
+    sim_labels = ["example_data", "example_data"],
     sim_cosmo = SIM_COSMO,
     idx = 16:17,
     t_unit = UnitfulAstro.Gyr,
@@ -59,6 +60,7 @@ snapshotPlot(
     Dict(:gas => ["MASS", "POS"]),
     scatterlines!;
     output_path = joinpath(BASE_OUT_PATH, "snapshotPlot/scatterlines"),
+    sim_labels = ["example_data",],
     sim_cosmo = SIM_COSMO,
     idx = 16:17,
     t_unit = UnitfulAstro.Gyr,

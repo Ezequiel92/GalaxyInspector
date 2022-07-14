@@ -5,7 +5,7 @@
 push!(LOAD_PATH, joinpath(@__DIR__, "../../src/"))
 using GalaxyInspector;
 const GI = GalaxyInspector;
-using JLD2, Unitful, UnitfulAstro, CairoMakie, Tar, Pkg.Artifacts, SHA
+using JLD2, Unitful, UnitfulAstro, CairoMakie, Tar, Pkg.Artifacts
 import GadgetIO as GIO
 
 const NAME = "reference_results"
@@ -34,17 +34,14 @@ include("reference_post_processing.jl")
 include("reference_pipelines.jl")
 
 # Compress results to be used as artifacts and delete files
-tar_file = joinpath(@__DIR__, "../$NAME.tar")
-Tar.create(BASE_OUT_PATH, tar_file)
+hash = create_artifact(dir -> cp(joinpath(@__DIR__, "../$NAME/"), dir, force=true))
+tarball_hash = archive_artifact(hash, joinpath(@__DIR__, "../$NAME.tar"))
 bind_artifact!(
     joinpath(@__DIR__, "../../Artifacts.toml"),
     NAME,
-    Base.SHA1(Tar.tree_hash(tar_file)),
+    hash,
     download_info=[
-        (
-            "https://github.com/Ezequiel92/GalaxyInspector/raw/main/resources/$NAME.tar",
-            bytes2hex(open(sha256, tar_file)),
-        ),
+        ("https://github.com/Ezequiel92/GalaxyInspector/raw/main/resources/$NAME.tar", tarball_hash),
     ],
     force=true,
 )
