@@ -2,12 +2,12 @@
 git-tree-sha1 = "e49d8a76277e5e7848d42a56d5bf30792f60d5dd"
 
     [[example_data.download]]
-    url = "https://github.com/Ezequiel92/GalaxyInspector/raw/main/resources/example_data.tar"
     sha256 = "e62907354751687a608aa30b2c60ada8bf9c88f6ecf1522ad1d8d6c365e842fd"
+    url = "https://github.com/Ezequiel92/GalaxyInspector/raw/main/resources/example_data.tar"
 
 [reference_results]
-git-tree-sha1 = "331be7e430143ebaaaf7710973a4fcc96854d4ce"
+git-tree-sha1 = "bb7b320beb2de586b876b3289e208fc62bd34edb"
 
     [[reference_results.download]]
+    sha256 = "dffafccf4e61b16b95d29d4082d66194b18b0393c974c8faaf0b815cd2d64a87"
     url = "https://github.com/Ezequiel92/GalaxyInspector/raw/main/resources/reference_results.tar"
-    sha256 = "5a4e5b6429dceaf4d16de3b0786d3cd9e3c5f262c112fc897b94622bd7e77b70"
