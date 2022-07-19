@@ -6,7 +6,7 @@ git-tree-sha1 = "e49d8a76277e5e7848d42a56d5bf30792f60d5dd"
     url = "https://github.com/ezequiel92/GalaxyInspector/raw/main/resources/example_data.tar"
 
 [reference_results]
-git-tree-sha1 = "8b38022a8caf35d9459cdfe469acec6cc46d3f6f"
+git-tree-sha1 = "092ae434792ddae2b31a227c3a56caa4e5197efe"
 
     [[reference_results.download]]
     sha256 = "84b7b0c6c608700c0d070b8c585d650b401dd2f9cbdb0159dd8b7d87e0d81cb8"
