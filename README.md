@@ -7,8 +7,8 @@
 </div>
 
 <p align="center">
-    <a href="https://codecov.io/github/ezequiel92/GalaxyInspector?branch=main"><img src="https://img.shields.io/codecov/c/github/ezequiel92/GalaxyInspector?style=flat&logo=Codecov&labelColor=2B2D2F"></a>
-    <a href="https://github.com/ezequiel92/GalaxyInspector/actions"><img src="https://img.shields.io/github/workflow/status/ezequiel92/GalaxyInspector/Run%20tests?style=flat&logo=GitHub&labelColor=2B2D2F"></a>
+    <!-- <a href="https://codecov.io/github/ezequiel92/GalaxyInspector?branch=main"><img src="https://img.shields.io/codecov/c/github/ezequiel92/GalaxyInspector?style=flat&logo=Codecov&labelColor=2B2D2F"></a> -->
+    <!-- <a href="https://github.com/ezequiel92/GalaxyInspector/actions"><img src="https://img.shields.io/github/workflow/status/ezequiel92/GalaxyInspector/Run%20tests?style=flat&logo=GitHub&labelColor=2B2D2F"></a> -->
     <a href="https://github.com/ezequiel92/GalaxyInspector/blob/main/LICENSE"><img src="https://img.shields.io/github/license/ezequiel92/GalaxyInspector?style=flat&logo=GNU&labelColor=2B2D2F"></a>
     <a href="https://ezequiel92.github.io/GalaxyInspector/dev/intro/"><img src="https://img.shields.io/badge/docs-dev-blue.svg?style=flat&logo=GitBook&labelColor=2B2D2F"></a>
 </p>
