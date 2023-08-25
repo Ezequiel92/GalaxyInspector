@@ -3,8 +3,7 @@
 </div>
 
 <p align="center">
-    <a href="https://github1s.com/ezequiel92/GalaxyInspector"><img src="http://forthebadge.com/images/badges/built-with-science.svg"></a>
-    <a href="https://julialang.org"><img src="https://forthebadge.com/images/badges/made-with-julia.svg"></a>
+    <a href="https://julialang.org"><img src="https://img.shields.io/badge/-Julia-9558B2?style=for-the-badge&logo=julia&logoColor=white"></a>
 </div>
 
 <p align="center">
