@@ -1,0 +1,29 @@
+name: Deploy documentation
+
+on: [push, pull_request]
+
+concurrency:
+    group: deploy_docs
+    cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      matrix:
+        include:
+          - jlenv: 'docs/'
+            makejl: 'docs/make.jl'
+    steps:
+      - uses: actions/checkout@v3
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: '1'
+      - run: |
+          julia --project=${{ matrix.jlenv }} -e '
+            using Pkg
+            Pkg.develop(PackageSpec(path=pwd()))
+            Pkg.instantiate()'
+      - run: julia --project=${{ matrix.jlenv }} --color=yes ${{ matrix.makejl }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
