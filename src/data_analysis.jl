@@ -527,7 +527,7 @@ Compute a 2D density histogram.
 
 !!! note
 
-By default, ``M_\\odot \, kpc^-2`` is used as unit of density, so the output will be ``\\log10(\\rho / M_\\odot \, kpc^-2)``.
+By default, ``M_\\odot \\, kpc^-2`` is used as unit of density, so the output will be ``\\log10(\\rho / M_\\odot \\, kpc^-2)``.
 
 # Arguments
 
