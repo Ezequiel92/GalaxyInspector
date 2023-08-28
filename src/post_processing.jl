@@ -297,7 +297,7 @@ Draw a line plot with the fit for the KS relation in Kennicutt (1998).
 
 # References
 
-R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies.* The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 """
 function ppKennicutt1998!(
     figure::Makie.Figure;
@@ -473,7 +473,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
 
 # References
 
-M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function* Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
+M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
 function ppMolla2015!(
     figure::Makie.Figure,
@@ -581,7 +581,7 @@ Draw a scatter plot with the experimental data of the xGASS and xCOLD GASS colla
 
 # References
 
-R. Feldmann (2020). *The link between star formation and gas in nearby galaxies* Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
+R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*. Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
 """
 function ppFeldmann2020!(
     figure::Makie.Figure,

@@ -285,7 +285,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
 
 # References
 
-M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function* Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
+M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
 function daMolla2015(
     data_dict::Dict,
@@ -527,8 +527,7 @@ Compute a 2D density histogram.
 
 !!! note
 
-
-By default, M⊙ * kpc^-2 is used as unit of density, so the output will be log10(ρ / M⊙ * kpc^-2).
+By default, ``M_\\odot \, kpc^-2`` is used as unit of density, so the output will be ``\\log10(\\rho / M_\\odot \, kpc^-2)``.
 
 # Arguments
 
@@ -862,7 +861,6 @@ end
 Compute a 2D mean velocity field.
 
 !!! note
-
 
 If the stellar masses and velocities can be found in `data_dict`, the velocity field is boosted with respect to the stellar center of mass.
 

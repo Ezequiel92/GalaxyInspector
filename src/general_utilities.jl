@@ -357,7 +357,6 @@ By default, no transformation is done.
 
 !!! note
 
-
 The datasets must have the same length, and any operation that deletes an element, will delete the corresponding element (i.e. with the same index) in the other dataset, so that the dataset will stay of equal length.
 
 # Arguments
@@ -373,8 +372,8 @@ The datasets must have the same length, and any operation that deletes an elemen
 
 # Returns
 
-    - A tuple with four flags:
-
+  - A tuple with four flags:
+  
       + If `x_data` was successfully modified to fit within the domain of `func_domain[1]`.
       + If `y_data` was successfully modified to fit within the domain of `func_domain[2]`.
       + If `x_data` was successfully modified to fit within `range[1]`.
@@ -1408,7 +1407,7 @@ cleanPlot!(default) = error("cleanPlot!: I cannot clean elements of type $(typeo
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, |r - r'| / h.
+  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
@@ -1421,7 +1420,7 @@ cleanPlot!(default) = error("cleanPlot!: I cannot clean elements of type $(typeo
 
 J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
 
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. (doi:10.1007/s11831-010-9040-7)(https://doi.org/10.1007/s11831-010-9040-7)
+M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
 """
 function cubicSplineKernel(q::Real, h::Number)::Number
 
@@ -1450,7 +1449,7 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, |r - r'| / h.
+  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
@@ -1463,7 +1462,7 @@ end
 
 J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
 
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. (doi:10.1007/s11831-010-9040-7)(https://doi.org/10.1007/s11831-010-9040-7)
+M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
 """
 function gaussianKernel(q::Real, h::Number)::Number
 
@@ -1490,7 +1489,7 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, |r - r'| / h.
+  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
@@ -1503,7 +1502,7 @@ end
 
 J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
 
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. (doi:10.1007/s11831-010-9040-7)(https://doi.org/10.1007/s11831-010-9040-7)
+M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
 """
 function quinticSplineKernel(q::Real, h::Number)::Number
 
@@ -1534,7 +1533,7 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, |r - r'| / h.
+  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
@@ -1547,7 +1546,7 @@ end
 
 J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
 
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. (doi:10.1007/s11831-010-9040-7)(https://doi.org/10.1007/s11831-010-9040-7)
+M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
 """
 function superGaussianKernel(q::Real, h::Number)::Number
 
@@ -1574,7 +1573,7 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, |r - r'| / h.
+  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
@@ -1587,7 +1586,7 @@ end
 
 J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
 
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. (doi:10.1007/s11831-010-9040-7)(https://doi.org/10.1007/s11831-010-9040-7)
+M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
 """
 function wendlandQuinticKernel(q::Real, h::Number)::Number
 
@@ -1614,7 +1613,7 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, |r - r'| / h.
+  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
@@ -1627,7 +1626,7 @@ end
 
 J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
 
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. (doi:10.1007/s11831-010-9040-7)(https://doi.org/10.1007/s11831-010-9040-7)
+M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
 """
 function wendlandQuinticC4Kernel(q::Real, h::Number)::Number
 
@@ -1654,7 +1653,7 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, |r - r'| / h.
+  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
@@ -1667,7 +1666,7 @@ end
 
 J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
 
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. (doi:10.1007/s11831-010-9040-7)(https://doi.org/10.1007/s11831-010-9040-7)
+M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
 """
 function wendlandQuinticC6Kernel(q::Real, h::Number)::Number
 

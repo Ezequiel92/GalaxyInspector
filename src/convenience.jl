@@ -1749,7 +1749,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `x_quantity::Symbol: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`   -> Stellar mass.
       + `:molecular_mass` -> Molecular hydrogen (H₂) mass.
@@ -1774,7 +1774,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
 
 # References
 
-R. Feldmann (2020). *The link between star formation and gas in nearby galaxies* Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
+R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*. Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
 """
 function compareWithFeldmann2020(
     simulation_paths::Vector{String},
@@ -1879,7 +1879,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
 
 # References
 
-M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function* Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
+M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
 function compareWithMolla2015(
     simulation_paths::Vector{String},
@@ -1972,7 +1972,6 @@ end
 Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`.
 
 !!! note
-
 
 This method plots the KS relation using cylindrical bins at a fix moment in time.
 
@@ -2120,7 +2119,6 @@ end
 Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`.
 
 !!! note
-
 
 This method plots the KS relation for the whole galaxy at different points in time.
 

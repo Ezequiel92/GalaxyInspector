@@ -20,7 +20,6 @@ Some of the features are:
 
 !!! note
 
-
 The snapshots of different simulations are grouped by the number in the file names, regardless of the "Time" parameter in the header.
 The data from the longest running simulation is used for the time stamp in the automatic title.
 
@@ -38,7 +37,7 @@ The data from the longest running simulation is used for the time stamp in the a
       + `heatmap!`      -> Heatmap.
   - `pf_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the functions in `plot_functions`.
 
-## `snapshotPlot` configuration
+## snapshotPlot configuration
 
   - `output_path::String="./plots"`: Path to the output folder.
   - `base_filename::String="snapshot"`: Every file will be named `base_filename`-XXX`output_format` where XXX is the snapshot number.
@@ -729,7 +728,7 @@ Some of the features are:
       + `scatterlines!` -> Scatter plot with lines between the markers.
   - `pf_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the functions in `plot_functions`.
 
-## `timeSeriesPlot` configuration
+## timeSeriesPlot configuration
 
   - `output_path::String="./plots"`: Path to the output folder.
   - `filename::String="time_series"`: Filename for the figure, without the extension.

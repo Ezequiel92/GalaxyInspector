@@ -20,19 +20,19 @@ Relative path, within the simulation directory, to the `sfr.txt` file.
 const SFR_REL_PATH = "output/sfr.txt"
 
 """
-Internal unit of length used in IllustrisTNG, equivalent to 1.0 Mpc.
+Internal unit of length used in IllustrisTNG, equivalent to ``1.0 Mpc``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_L_UNIT = 3.085678e24u"cm"
 
 """
-Internal unit of mass used in IllustrisTNG, equivalent to 10^10 M⊙.
+Internal unit of mass used in IllustrisTNG, equivalent to ``10^10 M\_\\odot``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_M_UNIT = 1.989e43u"g"
 
 """
-Internal unit of velocity used in IllustrisTNG, equivalent to 1.0 km * s^-1.
+Internal unit of velocity used in IllustrisTNG, equivalent to ``1.0 km * s^-1``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
@@ -71,7 +71,7 @@ Solar metallicity, as used in the code.
 
 # References
 
-M. Asplund et al. (2006). *The new solar abundances - Part I: the observations*. Communications in Asteroseismology, **147**. [doi:10.1553/cia147s76](https://doi.org/10.1553/cia147s76))
+M. Asplund et al. (2006). *The new solar abundances - Part I: the observations*. Communications in Asteroseismology, **147**. [doi:10.1553/cia147s76](https://doi.org/10.1553/cia147s76)
 """
 const SOLAR_METALLICITY = 0.0127
 
@@ -81,7 +81,6 @@ const SOLAR_METALLICITY = 0.0127
 Code index for each type of cell/particle.
 
 !!! note
-
 
 This index is for simulations with 7 cell/particle types.
 
@@ -103,7 +102,6 @@ const FullParticleIndex = Dict(
 Code index for each type of cell/particle.
 
 !!! note
-
 
 This index is for simulations with 6 cell/particle types.
 
@@ -253,7 +251,7 @@ Milky Way profiles, taken from Mollá et al. (2015).
 
 # References
 
-M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function* Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
+M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
 const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Mollá2015.csv")
 
@@ -262,7 +260,7 @@ Global galaxy properties, taken from Feldmann (2020).
 
 # References
 
-R. Feldmann (2020). *The link between star formation and gas in nearby galaxies* Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
+R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*. Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
 """
 const FELDMANN2020_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Feldmann2020.csv")
 
@@ -515,20 +513,20 @@ Unit conversion struct.
 
 # Fields
 
-  - `x_cgs::Unitful.Length`: Length, from internal units to cm.
-  - `x_cosmo::Unitful.Length`: Length, from internal units to kpc.
-  - `v_cgs::Unitful.Velocity`: Velocity, from internal units to cm * s^-1.
-  - `v_cosmo::Unitful.Velocity`: Velocity, from internal units to km * s^-1.
+  - `x_cgs::Unitful.Length`: Length, from internal units to ``cm``.
+  - `x_cosmo::Unitful.Length`: Length, from internal units to ``kpc``.
+  - `v_cgs::Unitful.Velocity`: Velocity, from internal units to ``cm \, s^-1``.
+  - `v_cosmo::Unitful.Velocity`: Velocity, from internal units to ``km \, s^-1``.
   - `m_cgs::Unitful.Mass`: Mass, from internal units to g.
-  - `m_cosmo::Unitful.Mass`: Mass, from internal units to M⊙.
+  - `m_cosmo::Unitful.Mass`: Mass, from internal units to ``M_\\odot``.
   - `t_cgs::Unitful.Time`: Time, from internal units to s.
-  - `t_cosmo::Unitful.Time`: Time, from internal units to Myr.
-  - `E_cgs::Unitful.Energy`: Energy, from internal units to erg.
-  - `E_eV::Unitful.Energy`: Energy, from internal units to eV.
+  - `t_cosmo::Unitful.Time`: Time, from internal units to ``Myr``.
+  - `E_cgs::Unitful.Energy`: Energy, from internal units to ``erg``.
+  - `E_eV::Unitful.Energy`: Energy, from internal units to ``eV``.
   - `rho_cgs::Unitful.Density`: Density, from internal units to g * cm^-3.
-  - `rho_cosmo::Unitful.Density`: Density, from internal units to M⊙ * kpc^-3.
-  - `rho_number::NumberDensity`: Number density, from internal units to cm^-3.
-  - `P_Pa::Unitful.Pressure`: Pressure, from internal units to Pa.
+  - `rho_cosmo::Unitful.Density`: Density, from internal units to ``M_\\odot \\, kpc^-3``.
+  - `rho_number::NumberDensity`: Number density, from internal units to ``cm^-3``.
+  - `P_Pa::Unitful.Pressure`: Pressure, from internal units to ``Pa``.
 """
 struct InternalUnits
 

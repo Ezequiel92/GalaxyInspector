@@ -197,7 +197,6 @@ Check if the snapshot in `path` comes from a cosmological simulation.
 
 !!! note
 
-
 If each snapshot is made of multiple files, I'll read the first one to check if the simulation is cosmological.
 
 # Arguments
@@ -603,7 +602,6 @@ end
 Translate the positions of the cells/particles in `data_dict`.
 
 !!! note
-
 
 The velocities will be boosted to the stellar center of mass of the system. If there are no stars, no transformation in applied to the velocities.
 
@@ -1397,16 +1395,16 @@ end
 @doc raw"""
     energyIntegrand(a::Float64, header::SnapshotHeader)::Float64
 
-The integrand of the integral that converts the scale factor into physical time,
+The integrand of the integral that converts the scale factor into physical time:
 
 ```math
-\frac{1}{H\,\sqrt{\epsilon}} \, ,
+\frac{1}{H\,\sqrt{\mathcal{E}}} \, ,
 ``` 
 
 where 
 
 ```math
-\epsilon = \Omega_\lambda + \frac{1 - \Omega_\lambda - \Omega_0}{a^2} + \frac{\Omega_0}{a^3} \, , 
+\mathcal{E} = \Omega_\lambda + (1 - \Omega_\lambda - \Omega_0) \, a^{-2} + \Omega_0 \, a^{-3} \, , 
 ```
 ```math
 H = H_0 \, a \, .
@@ -1601,7 +1599,7 @@ Compute the physical time corresponding to each of the `scale_factors`.
 To get the physical time `t` from the scale factor `a`, one does the integral:
 
 ```math
-t = H_0^{\,-1} \int_0^a \frac{\mathrm{d}a'}{a' \, \sqrt{\mathcal{E}(a')}} \, ,
+t = \frac{1}{H_0} \int_0^a \frac{\mathrm{d}a'}{a' \, \sqrt{\mathcal{E}(a')}} \, ,
 ```
 
 where
@@ -1640,7 +1638,7 @@ Compute the physical time corresponding to the scale factor `a`.
 To get the physical time `t` from the scale factor `a`, one does the integral:
 
 ```math
-t = H_0^{\,-1} \int_0^a \frac{\mathrm{d}a'}{a' \, \sqrt{\mathcal{E}(a')}} \, ,
+t = \frac{1}{H_0} \int_0^a \frac{\mathrm{d}a'}{a' \, \sqrt{\mathcal{E}(a')}} \, ,
 ```
 
 where
@@ -2155,7 +2153,7 @@ Compute the spin parameter for a system of cells/particles, with respect to the 
 The spin parameter was originally defined by Peebles (1969) as, 
 
 ```math
-\lambda = \frac{J \, \sqrt(E)}{G \, M^{5/2}} \, ,
+\lambda = \frac{J \, \sqrt{E}}{G \, M^{5/2}} \, ,
 ``` 
 
 where $J$ is the norm of the total angular momentum, $M$ the total mass, $G$ the gravitational constant, and
@@ -2175,18 +2173,10 @@ Due to the computational complexity of calculating $E_P$ for a group of $N$ part
 where $J$ is the norm of the total angular momentum inside a sphere of radius $R$ containing mass $M$, and 
 
 ```math
-V = \sqrt{G \, M / R} \, , 
+V = \sqrt{\frac{G \, M}{R}} \, , 
 ```
 
 is the circular velocity at $R$.
-
-# References
-
-P. J. E. Peebles (1969). *Origin of the Angular Momentum of Galaxies*. Astrophysical Journal, **155**, 393. [doi:10.1086/149876](https://doi.org/10.1086/149876)
-
-J. S. Bullock et al. (2001). *A Universal Angular Momentum Profile for Galactic Halos*. The Astrophysical Journal, **555(1)**, 240. [doi:10.1086/321477](https://doi.org/10.1086/321477)
-
-J. Zjupa et al. (2017). *Angular momentum properties of haloes and their baryon content in the Illustris simulation*. Monthly Notices of the Royal Astronomical Society, **466(2)**, 1625–1647. [doi:10.1093/mnras/stw2945](https://doi.org/10.1093/mnras/stw2945)
 
 # Arguments
 
@@ -2198,6 +2188,14 @@ J. Zjupa et al. (2017). *Angular momentum properties of haloes and their baryon 
 # Returns
 
   - The spin parameter.
+
+# References
+
+P. J. E. Peebles (1969). *Origin of the Angular Momentum of Galaxies*. Astrophysical Journal, **155**, 393. [doi:10.1086/149876](https://doi.org/10.1086/149876)
+  
+J. S. Bullock et al. (2001). *A Universal Angular Momentum Profile for Galactic Halos*. The Astrophysical Journal, **555(1)**, 240. [doi:10.1086/321477](https://doi.org/10.1086/321477)
+  
+J. Zjupa et al. (2017). *Angular momentum properties of haloes and their baryon content in the Illustris simulation*. Monthly Notices of the Royal Astronomical Society, **466(2)**, 1625–1647. [doi:10.1093/mnras/stw2945](https://doi.org/10.1093/mnras/stw2945)
 """
 function computeSpinParameter(
     positions::Matrix{<:Unitful.Length},
@@ -2343,7 +2341,7 @@ Compute the circular velocity of each stellar particle, with respect to the orig
 The circular velocity of a star is,
 
 ```math
-v_\mathrm{circ} = \sqrt(\mathrm{G} \, M(r) / r) \, , 
+v_\mathrm{circ} = \sqrt{\mathrm{G} \, M(r) / r} \, , 
 ```
 
 where ``r`` is the radial distance of the star, and ``M(r)`` is the total mass within a sphere of radius ``r``.
@@ -2430,7 +2428,7 @@ The circularity of a star is,
 where ``j_z`` is the z component of its specific angular momentum, and ``j_\mathrm{circ}`` is the specific angular momentum of a circular orbit,
 
 ```math
-j_\mathrm{circ} = r \, v_\mathrm{circ} = \sqrt(\mathrm{G} \, r \, M(r)) \, , 
+j_\mathrm{circ} = r \, v_\mathrm{circ} = \sqrt{\mathrm{G} \, r \, M(r)} \, , 
 ```
 
 where ``r`` is the radial distance of the star, and ``M(r)`` is the total mass within a sphere of radius ``r``.
@@ -2920,7 +2918,7 @@ end
 
 Compute the star formation rate of each stellar particle in `data`.
 
-The SFR of each stellar particle younger that `age_resol`, is its mass divided by `age_resol`. It is defined as 0.0 for older particles.
+The SFR of each stellar particle younger that `age_resol`, is its mass divided by `age_resol`. It is defined as 0 for older particles.
 
 # Arguments
 
