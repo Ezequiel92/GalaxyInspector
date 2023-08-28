@@ -908,8 +908,8 @@ Read the `sfr.txt` file.
 
       + `1` -> Time or scale factor (internal units).
       + `2` -> Total stellar mass to be formed prior to stochastic sampling (internal units).
-      + `3` -> Instantaneous star formation rate of all cells (``M_\\odot \, yr^-1``).
-      + `4` -> Instantaneous star formation rate of active cells (``M_\\odot \, yr^-1``).
+      + `3` -> Instantaneous star formation rate of all cells (``M_\\odot \\, yr^-1``).
+      + `4` -> Instantaneous star formation rate of active cells (``M_\\odot \\, yr^-1``).
       + `5` -> Total mass in stars formed after stochastic sampling (internal units).
       + `6` -> Cumulative stellar mass formed (internal units).
 """
