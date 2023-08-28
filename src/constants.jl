@@ -515,8 +515,8 @@ Unit conversion struct.
 
   - `x_cgs::Unitful.Length`: Length, from internal units to ``cm``.
   - `x_cosmo::Unitful.Length`: Length, from internal units to ``kpc``.
-  - `v_cgs::Unitful.Velocity`: Velocity, from internal units to ``cm \, s^-1``.
-  - `v_cosmo::Unitful.Velocity`: Velocity, from internal units to ``km \, s^-1``.
+  - `v_cgs::Unitful.Velocity`: Velocity, from internal units to ``cm \\, s^-1``.
+  - `v_cosmo::Unitful.Velocity`: Velocity, from internal units to ``km \\, s^-1``.
   - `m_cgs::Unitful.Mass`: Mass, from internal units to g.
   - `m_cosmo::Unitful.Mass`: Mass, from internal units to ``M_\\odot``.
   - `t_cgs::Unitful.Time`: Time, from internal units to s.
