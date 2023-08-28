@@ -26,7 +26,7 @@ See the documentation [here](https://www.tng-project.org/data/docs/specification
 const ILLUSTRIS_L_UNIT = 3.085678e24u"cm"
 
 """
-Internal unit of mass used in IllustrisTNG, equivalent to ``10^10 M\_\\odot``.
+Internal unit of mass used in IllustrisTNG, equivalent to ``10^10 M_\\odot``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_M_UNIT = 1.989e43u"g"
