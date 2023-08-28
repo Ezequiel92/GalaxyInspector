@@ -526,7 +526,6 @@ end
 Compute a 2D density histogram.
 
 !!! note
-
 By default, ``M_\\odot \\, kpc^-2`` is used as unit of density, so the output will be ``\\log10(\\rho / M_\\odot \\, kpc^-2)``.
 
 # Arguments
@@ -861,7 +860,6 @@ end
 Compute a 2D mean velocity field.
 
 !!! note
-
 If the stellar masses and velocities can be found in `data_dict`, the velocity field is boosted with respect to the stellar center of mass.
 
 # Arguments

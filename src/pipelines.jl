@@ -19,7 +19,6 @@ Some of the features are:
   - It transparently manages units; you only have to indicate the final unit of each axis.
 
 !!! note
-
 The snapshots of different simulations are grouped by the number in the file names, regardless of the "Time" parameter in the header.
 The data from the longest running simulation is used for the time stamp in the automatic title.
 

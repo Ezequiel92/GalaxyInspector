@@ -356,7 +356,6 @@ Do the following transformations over `x_data` and `y_data`, in order:
 By default, no transformation is done.
 
 !!! note
-
 The datasets must have the same length, and any operation that deletes an element, will delete the corresponding element (i.e. with the same index) in the other dataset, so that the dataset will stay of equal length.
 
 # Arguments

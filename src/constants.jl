@@ -81,7 +81,6 @@ const SOLAR_METALLICITY = 0.0127
 Code index for each type of cell/particle.
 
 !!! note
-
 This index is for simulations with 7 cell/particle types.
 
 # References
@@ -102,7 +101,6 @@ const FullParticleIndex = Dict(
 Code index for each type of cell/particle.
 
 !!! note
-
 This index is for simulations with 6 cell/particle types.
 
 # References

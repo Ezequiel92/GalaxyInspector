@@ -1972,7 +1972,6 @@ end
 Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`.
 
 !!! note
-
 This method plots the KS relation using cylindrical bins at a fix moment in time.
 
 # Arguments
@@ -2119,7 +2118,6 @@ end
 Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`.
 
 !!! note
-
 This method plots the KS relation for the whole galaxy at different points in time.
 
 # Arguments
