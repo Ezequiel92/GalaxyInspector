@@ -8,7 +8,8 @@
 Read the header of a group catalog in the HDF5 format.
 
 !!! note
-If each group catalog is made of multiple files, I'll read the header on the first one.
+
+    If each group catalog is made of multiple files, I'll read the header on the first one.
 
 # Arguments
 
@@ -85,7 +86,8 @@ end
 Read the header of a snapshot in the HDF5 format.
 
 !!! note
-If each snapshot is made of multiple files, I'll read the header on the first one.
+
+    If each snapshot is made of multiple files, I'll read the header on the first one.
 
 # Arguments
 
@@ -218,7 +220,8 @@ end
 Checks if a given block exist in a snapshot.
 
 !!! note
-If each snapshot is made of multiple files, I'll check only in the first one.
+
+    If each snapshot is made of multiple files, I'll check only in the first one.
 
 # Arguments
 
@@ -282,7 +285,8 @@ end
 Read the "Time" field in the header of a snapshot file.
 
 !!! note
-If each snapshot is made of multiple files, I'll read the header on the first one.
+
+    If each snapshot is made of multiple files, I'll read the header on the first one.
 
 # Arguments
 
@@ -1059,7 +1063,8 @@ end
 Find the path and number of every snapshot in `simulation_path`.
 
 !!! note
-If each snapshot is made of multiple files, the `:paths` field will have paths to folders, each one containing the sub-files of the corresponding snapshot.
+
+    If each snapshot is made of multiple files, the `:paths` field will have paths to folders, each one containing the sub-files of the corresponding snapshot.
 
 # Arguments
 
@@ -1121,7 +1126,8 @@ end
 Find the path and number of every group catalog in `simulation_path`.
 
 !!! note
-If each group catalog is made of multiple files, the `:paths` field will have paths to folders, each one containing the sub-files of the corresponding group catalog.
+
+    If each group catalog is made of multiple files, the `:paths` field will have paths to folders, each one containing the sub-files of the corresponding group catalog.
 
 # Arguments
 

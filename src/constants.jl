@@ -20,19 +20,19 @@ Relative path, within the simulation directory, to the `sfr.txt` file.
 const SFR_REL_PATH = "output/sfr.txt"
 
 """
-Internal unit of length used in IllustrisTNG, equivalent to ``1.0 Mpc``.
+Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{Mpc}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_L_UNIT = 3.085678e24u"cm"
 
 """
-Internal unit of mass used in IllustrisTNG, equivalent to ``10^10 M_\\odot``.
+Internal unit of mass used in IllustrisTNG, equivalent to ``10^{10} \\, \\mathrm{M_\\odot}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_M_UNIT = 1.989e43u"g"
 
 """
-Internal unit of velocity used in IllustrisTNG, equivalent to ``1.0 km * s^-1``.
+Internal unit of velocity used in IllustrisTNG, equivalent to ``1.0 \\, \\mathrm{km \\, s^-1}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
@@ -81,7 +81,8 @@ const SOLAR_METALLICITY = 0.0127
 Code index for each type of cell/particle.
 
 !!! note
-This index is for simulations with 7 cell/particle types.
+
+    This index is for simulations with 7 cell/particle types.
 
 # References
 
@@ -101,7 +102,8 @@ const FullParticleIndex = Dict(
 Code index for each type of cell/particle.
 
 !!! note
-This index is for simulations with 6 cell/particle types.
+
+    This index is for simulations with 6 cell/particle types.
 
 # References
 

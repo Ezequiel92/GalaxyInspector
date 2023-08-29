@@ -196,7 +196,8 @@ end
 Check if the snapshot in `path` comes from a cosmological simulation.
 
 !!! note
-If each snapshot is made of multiple files, I'll read the first one to check if the simulation is cosmological.
+
+    If each snapshot is made of multiple files, I'll read the first one to check if the simulation is cosmological.
 
 # Arguments
 
@@ -601,7 +602,8 @@ end
 Translate the positions of the cells/particles in `data_dict`.
 
 !!! note
-The velocities will be boosted to the stellar center of mass of the system. If there are no stars, no transformation in applied to the velocities.
+
+    The velocities will be boosted to the stellar center of mass of the system. If there are no stars, no transformation in applied to the velocities.
 
 # Arguments
 
