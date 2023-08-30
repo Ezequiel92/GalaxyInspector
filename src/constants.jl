@@ -32,7 +32,7 @@ See the documentation [here](https://www.tng-project.org/data/docs/specification
 const ILLUSTRIS_M_UNIT = 1.989e43u"g"
 
 """
-Internal unit of velocity used in IllustrisTNG, equivalent to ``1.0 \\, \\mathrm{km \\, s^-1}``.
+Internal unit of velocity used in IllustrisTNG, equivalent to ``1.0 \\, \\mathrm{km \\, s^{-1}}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
@@ -55,7 +55,7 @@ const AGE_RESOLUTION_ρ = 200u"Myr"
 """
 Critical density for Newtonian simulations, above which the gas particles enter the star formation routine.
 
-This value corresponds to `CritPhysDensity` ``= 0.318 \\, \\mathrm{cm^{-3}}`` in the `param.txt` file. Which is converted to internal units within the code using `CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`
+This value corresponds to `CritPhysDensity = 0.318` ``[\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`
 """
 const CRITICAL_DENSITY = 1.033780605417362e7u"Msun*kpc^-3"
 
@@ -119,7 +119,7 @@ const DefaultParticleIndex = Dict(
 )
 
 """
-Current index in use.
+Current cell/particle index in use.
 """
 const ParticleIndex = FullParticleIndex
 
@@ -227,7 +227,7 @@ const AtomicWeight = Dict(
 )
 
 """
-Fits for the molecular Kennicutt-Schmidt relation, taken from Bigiel et al. (2008).
+Path to the file with the fits for the molecular Kennicutt-Schmidt relation, taken from Bigiel et al. (2008).
 
 # References
 
@@ -236,18 +236,34 @@ F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC S
 const BIGIEL2008_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Bigiel2008.txt")
 
 """
-Slope, intercept and unit of surface density of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
+Slope of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
 
 # References
 
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 """
 const KS98_SLOPE = 1.4
+
+"""
+Intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
+
+# References
+
+R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+"""
 const KS98_INTERCEPT = 2.5e-4u"Msun*yr^-1*kpc^-2"
+
+"""
+Unit of surface density of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
+
+# References
+
+R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+"""
 const KS98_RHO_UNIT = u"Msun*pc^-2"
 
 """
-Milky Way profiles, taken from Mollá et al. (2015).
+Path to the file with the Milky Way profiles, taken from Mollá et al. (2015).
 
 # References
 
@@ -256,7 +272,7 @@ M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the in
 const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Mollá2015.csv")
 
 """
-Global galaxy properties, taken from Feldmann (2020).
+Path to the file with the global galaxy properties, taken from Feldmann (2020).
 
 # References
 
@@ -374,7 +390,7 @@ const THEME = Theme(
 # Structures
 
 """
-Metadata in the HDF5 group "Header" of a snapshot file.
+Data in the "Header" group of a HDF5 snapshot file.
 
 # Fields
 
@@ -409,7 +425,7 @@ Base.@kwdef mutable struct SnapshotHeader
 end
 
 """
-Metadata in the HDF5 group "Header" of a group catalog file.
+Data in the "Header" group of a HDF5 group catalog file.
 
 # Fields
 
@@ -446,7 +462,7 @@ Metadata for a simulation.
 
   - `path::String`: Full path to the simulation directory.
   - `index::Int64`: An index associated with the simulation.
-  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots).
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots).
   - `cosmological::Bool`: If the simulation is cosmological,
 
       + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0).
@@ -496,7 +512,7 @@ struct Snapshot
 end
 
 """
-Metadata of a group catalog file.
+Metadata for a group catalog file.
 
 # Fields
 
@@ -513,20 +529,20 @@ Unit conversion struct.
 
 # Fields
 
-  - `x_cgs::Unitful.Length`: Length, from internal units to ``cm``.
-  - `x_cosmo::Unitful.Length`: Length, from internal units to ``kpc``.
-  - `v_cgs::Unitful.Velocity`: Velocity, from internal units to ``cm \\, s^-1``.
-  - `v_cosmo::Unitful.Velocity`: Velocity, from internal units to ``km \\, s^-1``.
-  - `m_cgs::Unitful.Mass`: Mass, from internal units to g.
-  - `m_cosmo::Unitful.Mass`: Mass, from internal units to ``M_\\odot``.
-  - `t_cgs::Unitful.Time`: Time, from internal units to s.
-  - `t_cosmo::Unitful.Time`: Time, from internal units to ``Myr``.
-  - `E_cgs::Unitful.Energy`: Energy, from internal units to ``erg``.
-  - `E_eV::Unitful.Energy`: Energy, from internal units to ``eV``.
-  - `rho_cgs::Unitful.Density`: Density, from internal units to g * cm^-3.
-  - `rho_cosmo::Unitful.Density`: Density, from internal units to ``M_\\odot \\, kpc^-3``.
-  - `rho_number::NumberDensity`: Number density, from internal units to ``cm^-3``.
-  - `P_Pa::Unitful.Pressure`: Pressure, from internal units to ``Pa``.
+  - `x_cgs::Unitful.Length`: Length, from internal units to ``\\mathrm{cm}``.
+  - `x_cosmo::Unitful.Length`: Length, from internal units to ``\\mathrm{kpc}``.
+  - `v_cgs::Unitful.Velocity`: Velocity, from internal units to ``\\mathrm{cm \\, s^{-1}}``.
+  - `v_cosmo::Unitful.Velocity`: Velocity, from internal units to ``\\mathrm{km \\, s^{-1}}``.
+  - `m_cgs::Unitful.Mass`: Mass, from internal units to ``\\mathrm{g}``.
+  - `m_cosmo::Unitful.Mass`: Mass, from internal units to ``\\mathrm{M_\\odot}``.
+  - `t_cgs::Unitful.Time`: Time, from internal units to ``\\mathrm{s}``.
+  - `t_cosmo::Unitful.Time`: Time, from internal units to ``\\mathrm{Myr}``.
+  - `E_cgs::Unitful.Energy`: Energy, from internal units to ``\\mathrm{erg}``.
+  - `E_eV::Unitful.Energy`: Energy, from internal units to ``\\mathrm{eV}``.
+  - `rho_cgs::Unitful.Density`: Density, from internal units to ``\\mathrm{g * cm^{-3}}``.
+  - `rho_cosmo::Unitful.Density`: Density, from internal units to ``\\mathrm{M_\\odot \\, kpc^{-3}}``.
+  - `rho_number::NumberDensity`: Number density, from internal units to ``\\mathrm{cm^{-3}}``.
+  - `P_Pa::Unitful.Pressure`: Pressure, from internal units to ``\\mathrm{Pa}``.
 """
 struct InternalUnits
 
@@ -909,7 +925,7 @@ struct Qty
 end
 
 """
-Database of dimensional properties of the quantities in the code.
+Dictionary of dimensional properties for the quantities in the code.
 """
 const QUANTITIES = Dict(
     # Snapshot quantities
