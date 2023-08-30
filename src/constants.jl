@@ -189,7 +189,7 @@ const StellarAbundance = [Symbol(element, "_stellar_abundance") for element in k
 @doc raw"""
 Solar abundances.
 
-They are defined as $12 + \log_{10}(N_x / N_H)$, where $N_x$ and $N_H$ are the number densities of element $X$ and hydrogen respectively.
+They are defined as $12 + \log_{10}(N_x / N_H)$, where $N_x$ and $N_H$ are the number densities of element $\mathrm{X}$ and hydrogen respectively.
 
 # References
 

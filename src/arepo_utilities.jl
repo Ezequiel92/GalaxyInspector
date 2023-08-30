@@ -1404,7 +1404,7 @@ The integrand of the integral that converts the scale factor into physical time:
 where 
 
 ```math
-\mathcal{E} = \Omega_\lambda + (1 - \Omega_\lambda - \Omega_m) \, a^{-2} + \Omega_m \, a^{-3} \, , 
+\mathcal{E} = \Omega_\Lambda + (1 - \Omega_\Lambda - \Omega_m) \, a^{-2} + \Omega_m \, a^{-3} \, , 
 ```
 ```math
 H = H_0 \, a \, .
@@ -2572,7 +2572,7 @@ end
         <keyword arguments>
     )::Float64
 
-Compute the total abundance of a given element, as $n_X / n_H$ where $n_X$ is the number of atoms of element $X$ and $n_H$ the number of hydrogen atoms.
+Compute the total abundance of a given element, as $n_X / n_H$ where $n_X$ is the number of atoms of element $\mathrm{X}$ and $n_H$ the number of hydrogen atoms.
 
 # Arguments
 
