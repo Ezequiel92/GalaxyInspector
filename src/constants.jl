@@ -60,9 +60,9 @@ This value corresponds to `CritPhysDensity = 0.318` ``[\\mathrm{cm^{-3}}]`` in t
 const CRITICAL_DENSITY = 1.033780605417362e7u"Msun*kpc^-3"
 
 @doc raw"""
-Hubble constant in ``\mathrm{Gyr^{-1}}``.
+Hubble constant in $\mathrm{Gyr^{-1}}$.
 
-This value corresponds to ``H_0 = 0.102201 \, \mathrm{Gyr}^{-1} = 100 \, \mathrm{km} \, \mathrm{s}^{-1} \, \mathrm{Mpc}^{-1}``.
+This value corresponds to $H_0 = 0.102201 \, \mathrm{Gyr}^{-1} = 100 \, \mathrm{km} \, \mathrm{s}^{-1} \, \mathrm{Mpc}^{-1}$.
 """
 const HUBBLE_CONSTANT = 0.102201
 
@@ -189,7 +189,7 @@ const StellarAbundance = [Symbol(element, "_stellar_abundance") for element in k
 @doc raw"""
 Solar abundances.
 
-They are defined as ``12 + \log_{10}(N_x / N_H)``, where ``N_x`` and ``N_H`` are the number densities of element ``X`` and hydrogen respectively.
+They are defined as $12 + \log_{10}(N_x / N_H)$, where $N_x$ and $N_H$ are the number densities of element $X$ and hydrogen respectively.
 
 # References
 

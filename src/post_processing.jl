@@ -167,7 +167,7 @@ end
 
 Draw a linear fit for the data in `figure`. 
 
-An annotation with the equation ``y = a \, x + b``, and the fitted values of ``a`` and ``b``, will be positioned in the upper right corner of the plot.
+An annotation with the equation $y = a \, x + b$, and the fitted values of $a$ and $b$, will be positioned in the upper right corner of the plot.
 
 # Arguments
 
@@ -175,7 +175,7 @@ An annotation with the equation ``y = a \, x + b``, and the fitted values of ``a
   - `error_formating::Symbol=:std_error`: Error format for the annotation. The options are:
 
       + `:std_error`     -> mean ± standard_error.
-      + `:conf_interval` -> mean ± max(upper``_{95\%}`` - mean, mean - lower``_{95\%}``). 
+      + `:conf_interval` -> mean ± max(upper$_{95\%}$ - mean, mean - lower$_{95\%}$). 
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `warnings::Bool=true`: If a warning will be raised when there are no points to fit.
@@ -459,7 +459,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
       + `:molecular_area_density` -> Molecular hydrogen area mass density.
       + `:atomic_area_density`    -> Atomic hydrogen area mass density.
       + `:sfr_area_density`       -> Star formation rate area density.
-      + `:X_stellar_abundance`    -> Stellar abundance of element X, as 12 + log10(X / H). `X` can be `O` (oxygen), `N` (nitrogen), or `C` (carbon).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. `X` can be `O` (oxygen), `N` (nitrogen), or `C` (carbon).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `error_bars::Bool=true`: If the error bars will be plotted.
@@ -560,14 +560,14 @@ Draw a scatter plot with the experimental data of the xGASS and xCOLD GASS colla
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`   -> Stellar mass.
-      + `:molecular_mass` -> Molecular hydrogen (H₂) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (HI) mass.
+      + `:molecular_mass` -> Molecular hydrogen (``H_2``) mass.
+      + `:atomic_mass`    -> Atomic hydrogen (``HI``) mass.
       + `:sfr`            -> The star formation rate.
   - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
 
       + `:stellar_mass`   -> Stellar mass.
-      + `:molecular_mass` -> Molecular hydrogen (H₂) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (HI) mass.
+      + `:molecular_mass` -> Molecular hydrogen (``H_2``) mass.
+      + `:atomic_mass`    -> Atomic hydrogen (``HI``) mass.
       + `:sfr`            -> The star formation rate.
   - `color::ColorType=:red`: Color of the markers.
   - `marker::Symbol=:circle`: Style of marker.

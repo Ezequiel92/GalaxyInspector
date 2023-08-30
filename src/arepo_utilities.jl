@@ -9,7 +9,7 @@ Construct the unit part of an axis label.
 
 # Arguments
 
-  - `factor::Int64`: Exponential factor to scale down the units. If different from 0, a term of the form "10^`factor`" will be added to the label.
+  - `factor::Int64`: Exponential factor to scale down the units. If different from 0, a term of the form 10^`factor` will be added to the label.
   - `unit::Unitful.Units`: Unit of the axis.
   - `latex::Bool=true`: If the output will be a `LaTeXString`, or a plain `String`.
 
@@ -80,7 +80,7 @@ Construct an axis label.
 # Arguments
 
   - `label::AbstractString`: Variable name.
-  - `factor::Int64`: Exponential factor to scale down the units. If different from 0, a term of the form "10^`factor`" will be added to the label.
+  - `factor::Int64`: Exponential factor to scale down the units. If different from 0, a term of the form 10^`factor` will be added to the label.
   - `unit::Unitful.Units`: Unit of the axis.
   - `latex::Bool=true`: If the output will be a `LaTeXString`, or a plain `String`.
 
@@ -446,7 +446,7 @@ end
 """
     computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int64})::Vector{<:Unitful.Length}
 
-Compute a the center of mass of a given halo or subhalo.
+Read the center of mass of a given halo or subhalo.
 
 # Arguments
 
@@ -751,10 +751,10 @@ Select the plotting parameters for a given `quantity`.
       + `:gas_mass`                 -> Gas mass.
       + `:dm_mass`                  -> Dark matter mass.
       + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`           -> Molecular hydrogen (H₂) mass.
-      + `:atomic_mass`              -> Atomic hydrogen (HI) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (HII) mass.
-      + `:neutral_mass`             -> Neutral hydrogen (HI + H₂) mass.
+      + `:molecular_mass`           -> Molecular hydrogen (``H_2``) mass.
+      + `:atomic_mass`              -> Atomic hydrogen (``HI``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``HII``) mass.
+      + `:neutral_mass`             -> Neutral hydrogen (``HI + H_2``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`         -> Gas mass fraction of ionized hydrogen.
@@ -774,8 +774,8 @@ Select the plotting parameters for a given `quantity`.
       + `:sfr_area_density`         -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element X, as 12 + log10(X / H). The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element X, as 12 + log10(X / H). The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin. 
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -790,7 +790,7 @@ Select the plotting parameters for a given `quantity`.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as log10(T / K).
+      + `:temperature`              -> Gas temperature, as ``\\log10(T / \\mathrm{K})``.
       + `:scale_factor`             -> Scale factor.
       + `:redshift`                 -> Redshift.
       + `:physical_time`            -> Physical time since the Big Bang.
@@ -1261,7 +1261,7 @@ Merge several request dictionaries, ignoring duplicates.
 
 # Arguments
 
-  - `requests`: The request dictionaries for [`readSnapshot`](@ref)).
+  - `requests`: The request dictionaries for [`readSnapshot`](@ref).
 
 # Returns
 
@@ -1286,7 +1286,7 @@ Add the blocks in `addition` to `request`, only for the types already present in
 
 # Arguments
 
-  - `request::Dict{Symbol,Vector{String}}`: The request dictionary for [`readSnapshot`](@ref)).
+  - `request::Dict{Symbol,Vector{String}}`: The request dictionary for [`readSnapshot`](@ref).
   - `addition::Dict{Symbol,Vector{String}}`: Request dictionary with the blocks to be added, only for the types already present in `request`.
 
 # Returns
@@ -1417,7 +1417,7 @@ H = H_0 \, a \, .
 
 # Returns
 
-  - The integrand evaluated at `a`, in Gyr. 
+  - The integrand evaluated at `a`, in $\mathrm{Gyr}$. 
 """
 function energyIntegrand(a::Float64, header::SnapshotHeader)::Float64
 
@@ -1454,14 +1454,6 @@ Compute a profile.
   - `quantity::Vector{<:Number}`: The profile will be of this quantity.
   - `grid::CircularGrid`: Circular grid.
   - `norm_values::Vector{<:Number}=[]`: Values to normalize `quantity`.
-  - `f::Function=identity`: A functions with the signature:
-
-    `f(values) -> output`
-
-    where
-
-      + `values::Vector{<:Number}`: Vector with the values of the profile.
-      + `output::Vector{<:Number}`: The return value of `computeProfile`.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
   - `total::Bool=false`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
@@ -1476,7 +1468,6 @@ function computeProfile(
     quantity::Vector{<:Number},
     grid::CircularGrid;
     norm_values::Vector{<:Number}=Number[],
-    f::Function=identity,
     flat::Bool=true,
     total::Bool=false,
     cumulative::Bool=false,
@@ -1512,10 +1503,10 @@ function computeProfile(
     region = flat ? grid.bin_areas : grid.bin_volumes
 
     if cumulative
-        return f(density ? cumsum(profile) ./ cumsum(region) : cumsum(profile))
+        return density ? cumsum(profile) ./ cumsum(region) : cumsum(profile)
     end
 
-    return f(density ? profile ./ region : profile)
+    return density ? profile ./ region : profile
 
 end
 
@@ -1596,7 +1587,7 @@ countStars(path::String)::Int64 = count(findRealStars(path))
 
 Compute the physical time corresponding to each of the `scale_factors`.
 
-To get the physical time `t` from the scale factor `a`, one does the integral:
+To get the physical time $t$ from the scale factor `a`, one does the integral:
 
 ```math
 t = \frac{1}{H_0} \int_0^a \frac{\mathrm{d}a'}{a' \, \sqrt{\mathcal{E}(a')}} \, ,
@@ -1635,7 +1626,7 @@ end
 
 Compute the physical time corresponding to the scale factor `a`.
 
-To get the physical time `t` from the scale factor `a`, one does the integral:
+To get the physical time $t$ from the scale factor `a`, one does the integral:
 
 ```math
 t = \frac{1}{H_0} \int_0^a \frac{\mathrm{d}a'}{a' \, \sqrt{\mathcal{E}(a')}} \, ,
@@ -1898,7 +1889,7 @@ end
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix to make the principal axes the new reference system.
+Compute the rotation matrix that will make the principal axes the new reference system.
 
 # Arguments
 
@@ -1957,7 +1948,7 @@ end
 """
     computeGlobalRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix to make the principal axes, of the whole system in `data`, the new reference system. 
+    Compute the rotation matrix that will make the principal axes, of the whole system in `data`, the new reference system.
 
 # Arguments
 
@@ -2164,7 +2155,7 @@ E = |E_P + E_k| \, ,
 
 where $E_P$ is the total potencial energy and $E_k$ is the total kinetic energy (including thermal energy of the gas).
 
-Due to the computational complexity of calculating $E_P$ for a group of $N$ particles when $N$ is large, Bullock et al. (2001) proposed an alternative definition of the spin parameter,
+Due to the computational complexity of calculating $E_P$ for a large group of particles, Bullock et al. (2001) proposed an alternative definition of the spin parameter,
 
 ```math
 \lambda = \frac{J}{\sqrt{2} \, M \, R \, V} \, ,
@@ -2176,7 +2167,7 @@ where $J$ is the norm of the total angular momentum inside a sphere of radius $R
 V = \sqrt{\frac{G \, M}{R}} \, , 
 ```
 
-is the circular velocity at $R$.
+is the circular velocity.
 
 # Arguments
 
@@ -2310,7 +2301,7 @@ Compute the velocity of the stellar center of mass.
 
 # Returns
 
-  - The velocity of the center of mass.
+  - The velocity of the stellar center of mass.
 """
 function computeStellarVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
 
@@ -2341,10 +2332,10 @@ Compute the circular velocity of each stellar particle, with respect to the orig
 The circular velocity of a star is,
 
 ```math
-v_\mathrm{circ} = \sqrt{\mathrm{G} \, M(r) / r} \, , 
+v_\mathrm{circ} = \sqrt{\frac{\mathrm{G} \, M(r)}{r}} \, , 
 ```
 
-where ``r`` is the radial distance of the star, and ``M(r)`` is the total mass within a sphere of radius ``r``.
+where $r$ is the radial distance of the star, and $M(r)$ is the total mass within a sphere of radius $r$.
 
 # Arguments 
 
@@ -2417,7 +2408,7 @@ end
 @doc raw"""
     computeStellarCircularity(data_dict::Dict)::Vector{Float64}
 
-Compute the circularity of each stellar particle, with respect to the origin and the z direction [0, 0, 1].
+Compute the circularity of each stellar particle, with respect to the origin and the $z$ direction [0, 0, 1].
 
 The circularity of a star is,
 
@@ -2425,13 +2416,13 @@ The circularity of a star is,
 \epsilon = j_z / j_\mathrm{circ} \, ,
 ``` 
 
-where ``j_z`` is the z component of its specific angular momentum, and ``j_\mathrm{circ}`` is the specific angular momentum of a circular orbit,
+where $j_z$ is the $z$ component of its specific angular momentum, and $j_\mathrm{circ}$ is the specific angular momentum of a circular orbit,
 
 ```math
 j_\mathrm{circ} = r \, v_\mathrm{circ} = \sqrt{\mathrm{G} \, r \, M(r)} \, , 
 ```
 
-where ``r`` is the radial distance of the star, and ``M(r)`` is the total mass within a sphere of radius ``r``.
+where $r$ is the radial distance of the star, and $M(r)$ is the total mass within a sphere of radius $r$.
 
 # Arguments 
 
@@ -2475,7 +2466,7 @@ end
 """
     computeMetalMass(data_dict::Dict, type_symbol::Symbol)::Vector{<:Unitful.Mass}
 
-Compute the total mass of metals (elements above He) in each cell/particle.
+Compute the total mass of metals (elements above helium) in each cell/particle.
 
 # Arguments
 
@@ -2581,7 +2572,7 @@ end
         <keyword arguments>
     )::Float64
 
-Compute the total abundance of a given element, as $n_X / n_H$ where $n_X$ is the number of atoms of element X and $n_H$ the number of hydrogen atoms.
+Compute the total abundance of a given element, as $n_X / n_H$ where $n_X$ is the number of atoms of element $X$ and $n_H$ the number of hydrogen atoms.
 
 # Arguments
 
@@ -2918,7 +2909,7 @@ end
 
 Compute the star formation rate of each stellar particle in `data`.
 
-The SFR of each stellar particle younger that `age_resol`, is its mass divided by `age_resol`. It is defined as 0 for older particles.
+For stellar particles younger that `age_resol`, the SFR is its mass divided by `age_resol`. It is defined as 0 for older particles.
 
 # Arguments
 
@@ -2990,10 +2981,10 @@ Compute an integrated quantity for the whole system in `data`.
       + `:gas_mass`               -> Gas mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`         -> Molecular hydrogen (H₂) mass.
-      + `:atomic_mass`            -> Atomic hydrogen (HI) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (HII) mass.
-      + `:neutral_mass`           -> Neutral hydrogen (HI + H₂) mass.
+      + `:molecular_mass`         -> Molecular hydrogen (``H_2``) mass.
+      + `:atomic_mass`            -> Atomic hydrogen (``HI``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (``HII``) mass.
+      + `:neutral_mass`           -> Neutral hydrogen (``HI + H_2``) mass.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
@@ -3007,8 +2998,8 @@ Compute an integrated quantity for the whole system in `data`.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element X, as 12 + log10(X / H). The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element X, as 12 + log10(X / H). The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
@@ -3273,10 +3264,10 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:gas_mass`                 -> Gas mass.
       + `:dm_mass`                  -> Dark matter mass.
       + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`           -> Molecular hydrogen (H₂) mass.
-      + `:atomic_mass`              -> Atomic hydrogen (HI) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (HII) mass.
-      + `:neutral_mass`             -> Neutral hydrogen (HI + H₂) mass.
+      + `:molecular_mass`           -> Molecular hydrogen (``H_2``) mass.
+      + `:atomic_mass`              -> Atomic hydrogen (``HI``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``HII``) mass.
+      + `:neutral_mass`             -> Neutral hydrogen (``HI + H_2``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`         -> Gas mass fraction of ionized hydrogen.
@@ -3289,8 +3280,8 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element X, as 12 + log10(X / H). The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element X, as 12 + log10(X / H). The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin. 
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -3302,7 +3293,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as log10(T / K).
+      + `:temperature`              -> Gas temperature, as ``\\log10(T / \\mathrm{K})``.
 
 # Returns
 
