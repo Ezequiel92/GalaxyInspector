@@ -3,12 +3,12 @@
 ####################################################################################################
 
 """
-Area of a circle of radius `r`.
+Area of a circle with radius `r`.
 """
 area(r::Number)::Number = π * r * r
 
 """
-Volume of a sphere of radius `r`.
+Volume of a sphere with radius `r`.
 """
 volume(r::Number)::Number = π * r * r * r * 4.0 / 3.0
 
@@ -44,7 +44,7 @@ ring(vec::Vector, index::Integer) = vec[mod1(index, length(vec))]
 """
     safeSelect(vec::Vector, index::IndexType; warnings::Bool=true)
 
-Make the indexing operation `vec[index]` work ignoring out of bounds indices.
+Make the indexing operation `vec[index]` ignore indices that are out of bounds.
 
 # Arguments
 
@@ -117,7 +117,7 @@ isPositive(x::AbstractArray)::Bool = all(isPositive, x)
 isPositive(x...)::Bool = all(isPositive, x)
 
 """
-Extension of `Base.isempty` to check for empty LaTeXStrings.
+Extension of `Base.isempty` to check for empty [LaTeXStrings](https://github.com/JuliaStrings/LaTeXStrings.jl).
 """
 Base.isempty(l_str::LaTeXString)::Bool = l_str == L""
 
@@ -357,7 +357,7 @@ By default, no transformation is done.
 
 !!! note
 
-    The datasets must have the same length, and any operation that deletes an element, will delete the corresponding element (i.e. with the same index) in the other dataset, so that the dataset will stay of equal length.
+    The datasets must have the same length, and any operation that deletes an element, will delete the corresponding element (i.e. with the same index) in the other dataset, so that the dataset will remain of equal length.
 
 # Arguments
 
@@ -544,7 +544,7 @@ Compute a 1D histogram of `values`.
 # Arguments
 
   - `positions::Vector{<:Number}`: Positions of the `values` within a 1D axis. This determines to which bin each value will be added.
-  - `values::Vector{<:Number}`: The values that will be added up to each bin, according to their `positions`.
+  - `values::Vector{<:Number}`: The values that will be added up in each bin, according to their `positions`.
   - `grid::Union{LinearGrid,CircularGrid}`: A linear or circular grid.
   - `total::Bool=true`: If the sum (default) or the mean of `values` will be computed for each bin.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
@@ -644,7 +644,7 @@ Compute a 1D histogram of `values`.
 # Arguments
 
   - `positions::Vector{<:Number}`: Positions of the `values` within a 1D axis. This determines to which bin each value will be added.
-  - `values::Vector{<:Number}`: The values that will be added up to each bin, according to their `positions`.
+  - `values::Vector{<:Number}`: The values that will be added up in each bin, according to their `positions`.
   - `edges::Vector{<:Number}`: A sorted list of bin edges.
   - `total::Bool=true`: If the sum (default) or the mean of `values` will be computed for each bin.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
@@ -731,7 +731,7 @@ Compute a 1D histogram of `positions`.
 
 # Arguments
 
-  - `positions::Vector{<:Number}`: Values for which the histogram of count will be constructed.
+  - `positions::Vector{<:Number}`: Values for which the histogram will be constructed.
   - `grid::Union{LinearGrid,CircularGrid}`: A linear or circular grid.
 
 # Returns
@@ -791,7 +791,7 @@ Compute a 1D histogram of `positions`.
 
 # Arguments
 
-  - `positions::Vector{<:Number}`: Values for which the histogram of count will be constructed.
+  - `positions::Vector{<:Number}`: Values for which the histogram will be constructed.
   - `edges::Vector{<:Number}`: A sorted list of bin edges.
 
 # Returns
@@ -1053,7 +1053,7 @@ Compute a 2D histogram of `positions`.
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Values for which the histogram of count will be constructed.
+  - `positions::Matrix{<:Number}`: Values for which the histogram will be constructed.
   - `grid::SquareGrid`: A square grid.
 
 # Returns
@@ -1119,7 +1119,7 @@ Compute a 2D histogram of `positions`.
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Values for which the histogram of count will be constructed.
+  - `positions::Matrix{<:Number}`: Values for which the histogram will be constructed.
   - `grid::SquareGrid`: A square grid.
   - `x_edges::Vector{<:Number}`: A sorted list of bin edges for the x axis.
   - `y_edges::Vector{<:Number}`: A sorted list of bin edges for the y axis.
@@ -1407,12 +1407,12 @@ cleanPlot!(default) = error("cleanPlot!: I cannot clean elements of type $(typeo
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
+  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
 
-  - The kernel function evaluated at a separation `q * h`, and with a smoothing length `h`.
+  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
 
 # References
 
@@ -1449,12 +1449,12 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
+  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
 
-  - The kernel function evaluated at a separation `q * h`, and with a smoothing length `h`.
+  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
 
 # References
 
@@ -1489,12 +1489,12 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
+  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
 
-  - The kernel function evaluated at a separation `q * h`, and with a smoothing length `h`.
+  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
 
 # References
 
@@ -1533,12 +1533,12 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
+  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
 
-  - The kernel function evaluated at a separation `q * h`, and with a smoothing length `h`.
+  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
 
 # References
 
@@ -1573,12 +1573,12 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
+  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
 
-  - The kernel function evaluated at a separation `q * h`, and with a smoothing length `h`.
+  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
 
 # References
 
@@ -1613,12 +1613,12 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
+  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
 
-  - The kernel function evaluated at a separation `q * h`, and with a smoothing length `h`.
+  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
 
 # References
 
@@ -1653,12 +1653,12 @@ end
 
 # Arguments
 
-  - `q::Real`: Relative distance to the neighbor, ``\\abs{r - r'} / h``.
+  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
   - `h::Number`: Smoothing length.
 
 # Returns
 
-  - The kernel function evaluated at a separation `q * h`, and with a smoothing length `h`.
+  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
 
 # References
 

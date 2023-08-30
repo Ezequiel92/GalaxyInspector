@@ -539,7 +539,7 @@ Unit conversion struct.
   - `t_cosmo::Unitful.Time`: Time, from internal units to ``\\mathrm{Myr}``.
   - `E_cgs::Unitful.Energy`: Energy, from internal units to ``\\mathrm{erg}``.
   - `E_eV::Unitful.Energy`: Energy, from internal units to ``\\mathrm{eV}``.
-  - `rho_cgs::Unitful.Density`: Density, from internal units to ``\\mathrm{g * cm^{-3}}``.
+  - `rho_cgs::Unitful.Density`: Density, from internal units to ``\\mathrm{g \\, cm^{-3}}``.
   - `rho_cosmo::Unitful.Density`: Density, from internal units to ``\\mathrm{M_\\odot \\, kpc^{-3}}``.
   - `rho_number::NumberDensity`: Number density, from internal units to ``\\mathrm{cm^{-3}}``.
   - `P_Pa::Unitful.Pressure`: Pressure, from internal units to ``\\mathrm{Pa}``.
