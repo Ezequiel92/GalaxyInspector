@@ -119,7 +119,7 @@ Some of the features are:
 ## Plotting options
 
   - `save_figures::Bool=true`: If every figure will be saved as an image.
-  - `backup_results::Bool=false`: If the values to be plotted will be backup in a JLD2 file.
+  - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -770,7 +770,7 @@ Some of the features are:
 ## Plotting options
 
   - `save_figure::Bool=true`: If the plot will be saved as an image.
-  - `backup_results::Bool=false`: If the values to be plotted will be backup in a JLD2 file.
+  - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.

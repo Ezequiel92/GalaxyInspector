@@ -459,7 +459,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
       + `:molecular_area_density` -> Molecular hydrogen area mass density.
       + `:atomic_area_density`    -> Atomic hydrogen area mass density.
       + `:sfr_area_density`       -> Star formation rate area density.
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. ``X`` can be O (oxygen), N (nitrogen), or C (carbon).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. ``\\mathrm{X}`` can be O (oxygen), N (nitrogen), or C (carbon).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `error_bars::Bool=true`: If the error bars will be plotted.
@@ -560,14 +560,14 @@ Draw a scatter plot with the experimental data of the xGASS and xCOLD GASS colla
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`   -> Stellar mass.
-      + `:molecular_mass` -> Molecular hydrogen (``H_2``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``HI``) mass.
+      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:sfr`            -> The star formation rate.
   - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
 
       + `:stellar_mass`   -> Stellar mass.
-      + `:molecular_mass` -> Molecular hydrogen (``H_2``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``HI``) mass.
+      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:sfr`            -> The star formation rate.
   - `color::ColorType=:red`: Color of the markers.
   - `marker::Symbol=:circle`: Style of marker.

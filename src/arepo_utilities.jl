@@ -751,10 +751,10 @@ Select the plotting parameters for a given `quantity`.
       + `:gas_mass`                 -> Gas mass.
       + `:dm_mass`                  -> Dark matter mass.
       + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`           -> Molecular hydrogen (``H_2``) mass.
-      + `:atomic_mass`              -> Atomic hydrogen (``HI``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (``HII``) mass.
-      + `:neutral_mass`             -> Neutral hydrogen (``HI + H_2``) mass.
+      + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`         -> Gas mass fraction of ionized hydrogen.
@@ -774,8 +774,8 @@ Select the plotting parameters for a given `quantity`.
       + `:sfr_area_density`         -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin. 
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -2981,10 +2981,10 @@ Compute an integrated quantity for the whole system in `data`.
       + `:gas_mass`               -> Gas mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`         -> Molecular hydrogen (``H_2``) mass.
-      + `:atomic_mass`            -> Atomic hydrogen (``HI``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (``HII``) mass.
-      + `:neutral_mass`           -> Neutral hydrogen (``HI + H_2``) mass.
+      + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
@@ -2998,8 +2998,8 @@ Compute an integrated quantity for the whole system in `data`.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
@@ -3264,10 +3264,10 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:gas_mass`                 -> Gas mass.
       + `:dm_mass`                  -> Dark matter mass.
       + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`           -> Molecular hydrogen (``H_2``) mass.
-      + `:atomic_mass`              -> Atomic hydrogen (``HI``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (``HII``) mass.
-      + `:neutral_mass`             -> Neutral hydrogen (``HI + H_2``) mass.
+      + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`         -> Gas mass fraction of ionized hydrogen.
@@ -3280,8 +3280,8 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin. 
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
