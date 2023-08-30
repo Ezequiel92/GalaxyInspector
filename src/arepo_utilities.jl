@@ -753,7 +753,7 @@ Select the plotting parameters for a given `quantity`.
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
@@ -2983,7 +2983,7 @@ Compute an integrated quantity for the whole system in `data`.
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
@@ -3266,7 +3266,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.

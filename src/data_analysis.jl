@@ -550,7 +550,7 @@ Compute a 2D density histogram.
       + `:bh_mass`        -> Black hole mass.
       + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`   -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If the results will be smooth out using the [`cubicSplineKernel`](@ref) kernel.
@@ -719,7 +719,7 @@ Compute a 2D histogram.
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
@@ -755,7 +755,7 @@ Compute a 2D histogram.
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
@@ -962,7 +962,7 @@ Compute two global quantities of the simulation.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
@@ -996,7 +996,7 @@ Compute two global quantities of the simulation.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
@@ -1073,7 +1073,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
@@ -1109,7 +1109,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
@@ -1208,7 +1208,7 @@ Compute the time series of two quantities.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
@@ -1242,7 +1242,7 @@ Compute the time series of two quantities.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.

@@ -751,7 +751,7 @@ Plot a 2D histogram of the density.
       + `:bh_mass`        -> Black hole mass.
       + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`   -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
@@ -895,7 +895,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
@@ -931,7 +931,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
@@ -1083,7 +1083,7 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
@@ -1119,7 +1119,7 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:bh_mass`                  -> Black hole mass.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
@@ -1272,7 +1272,7 @@ Plot a time series.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
@@ -1306,7 +1306,7 @@ Plot a time series.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (```\\mathrm{HII}``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
