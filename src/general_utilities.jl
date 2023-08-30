@@ -385,6 +385,7 @@ By default, no transformation is done.
 
       + If `x_data` was successfully modified to fit within the domain of `func_domain[1]`.
       + If `y_data` was successfully modified to fit within the domain of `func_domain[2]`.
+      + If `x_data` was successfully modified to fit within `range[1]`.
 """
 function sanitizeData!(
     x_data::Vector{<:Number},

@@ -152,7 +152,7 @@ function daKennicuttSchmidt(
 end
 
 """
-    function daBigiel2008(
+    function daKennicuttSchmidtLaw(
         data_dict::Dict,
         grid::CircularGrid,
         quantity::Symbol,
@@ -190,12 +190,8 @@ Compute the (molecular or neutral) gas mass and SFR surface densities, used in t
       + A vector with the SFR surface density of each ring.
 
     It returns `nothing` if any of the necessary quantities are missing.
-
-# References
-
-F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-function daBigiel2008(
+function daKennicuttSchmidtLaw(
     data_dict::Dict,
     grid::CircularGrid,
     quantity::Symbol,
@@ -212,7 +208,7 @@ function daBigiel2008(
     elseif quantity == :neutral_area_density
         gas_masses = computeNeutralMass(data_dict)
     else
-        throw(ArgumentError("daBigiel2008: `quantity` can only be :molecular_area_density \
+        throw(ArgumentError("daKennicuttSchmidtLaw: `quantity` can only be :molecular_area_density \
         and :neutral_area_density, but I got :$(quantity)"))
     end
 
@@ -468,7 +464,7 @@ end
         grid::LinearGrid,
     )::Union{NTuple{2,Vector{Float64}},Nothing}
 
-Compute a count histogram of the stellar circularity, normalized to the maximum number of counts.
+Compute a histogram of the stellar circularity, normalized to the maximum number of counts.
 
 # Arguments
 
@@ -527,7 +523,7 @@ Compute a 2D density histogram.
 
 !!! note
 
-    By default, ``M_\\odot \\, kpc^-2`` is used as unit of density, so the output will be ``\\log10(\\rho / M_\\odot \\, kpc^-2)``.
+    By default, ``\\mathrm{M_\\odot \\, kpc^{-2}}`` is used as unit of density, so the output will be ``\\log_{10}(\\rho \\, / \\, \\mathrm{M_\\odot \\, kpc^{-2}})``.
 
 # Arguments
 
@@ -556,7 +552,7 @@ Compute a 2D density histogram.
       + `:atomic_mass`    -> Atomic hydrogen (``HI``) mass.
       + `:ionized_mass`   -> Ionized hydrogen (``HII``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``HI + H_2``) mass.
-  - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are :xy, :xz, and :yz.
+  - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If the results will be smooth out using the [`cubicSplineKernel`](@ref) kernel.
   - `neighbors::Int64=32`: Number of neighbors for the 2D smoothing (only relevant if `smooth` = true).
 
@@ -737,8 +733,8 @@ Compute a 2D count histogram.
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -750,7 +746,7 @@ Compute a 2D count histogram.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as ``\\log10(T / \\mathrm{K})``.
+      + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
 
       + `:stellar_mass`             -> Stellar mass.
@@ -773,8 +769,8 @@ Compute a 2D count histogram.
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -786,7 +782,7 @@ Compute a 2D count histogram.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as ``\\log10(T / \\mathrm{K})``.
+      + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `x_range::NTuple{2,<:Number}`: x axis range for the histogram grid.
   - `y_range::NTuple{2,<:Number}`: y axis range for the histogram grid.
   - `n_bins::Int64`: Number of bins per side of the grid.
@@ -882,7 +878,7 @@ Compute a 2D mean velocity field.
 
   - `grid::SquareGrid`: Square grid.
   - `type_symbol::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`ParticleIndex`](@ref).
-  - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are :xy, :xz, and :yz.
+  - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
 
 # Returns
 
@@ -981,8 +977,8 @@ Compute two global quantities of the simulation.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
@@ -1015,8 +1011,8 @@ Compute two global quantities of the simulation.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
@@ -1091,8 +1087,8 @@ Compute two quantities for every cell/particle in the simulation.
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -1104,7 +1100,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as ``\\log10(T / \\mathrm{K})``.
+      + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
 
       + `:stellar_mass`             -> Stellar mass.
@@ -1127,8 +1123,8 @@ Compute two quantities for every cell/particle in the simulation.
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -1140,7 +1136,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as ``\\log10(T / \\mathrm{K})``.
+      + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
 
 # Returns
 
@@ -1227,8 +1223,8 @@ Compute the time series of two quantities.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
@@ -1261,8 +1257,8 @@ Compute the time series of two quantities.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`        -> Gas abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. The possibilities are the keys of [`ElementIndex`](@ref).
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.

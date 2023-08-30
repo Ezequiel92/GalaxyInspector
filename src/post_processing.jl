@@ -167,7 +167,7 @@ end
 
 Draw a linear fit for the data in `figure`. 
 
-An annotation with the equation $y = a \, x + b$, and the fitted values of $a$ and $b$, will be positioned in the upper right corner of the plot.
+An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ and $b$, will be positioned in the upper right corner of the plot.
 
 # Arguments
 
@@ -459,7 +459,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
       + `:molecular_area_density` -> Molecular hydrogen area mass density.
       + `:atomic_area_density`    -> Atomic hydrogen area mass density.
       + `:sfr_area_density`       -> Star formation rate area density.
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log10(X / H)``. `X` can be `O` (oxygen), `N` (nitrogen), or `C` (carbon).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``X``, as ``12 + \\log_{10}(X \\, / \\, H)``. ``X`` can be O (oxygen), N (nitrogen), or C (carbon).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `error_bars::Bool=true`: If the error bars will be plotted.
