@@ -87,7 +87,7 @@ Read the header of a snapshot in the HDF5 format.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll read the header on the first one.
+    If each snapshot is made of multiple files, I'll read the header on the first chunck.
 
 # Arguments
 
@@ -221,7 +221,7 @@ Checks if a given block exist in a snapshot.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll check only in the first one.
+    If each snapshot is made of multiple files, I'll check only in the first chunck.
 
 # Arguments
 
@@ -286,7 +286,7 @@ Read the "Time" field in the header of a snapshot file.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll read the header on the first one.
+    If each snapshot is made of multiple files, I'll read the header on the first chunck.
 
 # Arguments
 
@@ -908,8 +908,8 @@ Read the `sfr.txt` file.
 
       + `1` -> Time or scale factor (internal units).
       + `2` -> Total stellar mass to be formed prior to stochastic sampling (internal units).
-      + `3` -> Instantaneous star formation rate of all cells (``M_\\odot \\, yr^-1``).
-      + `4` -> Instantaneous star formation rate of active cells (``M_\\odot \\, yr^-1``).
+      + `3` -> Instantaneous star formation rate of all cells (``\\mathrm{M_\\odot \\, yr^{-1}}``).
+      + `4` -> Instantaneous star formation rate of active cells (``\\mathrm{M_\\odot \\, yr^{-1}}``).
       + `5` -> Total mass in stars formed after stochastic sampling (internal units).
       + `6` -> Cumulative stellar mass formed (internal units).
 """
@@ -966,7 +966,7 @@ For each process in `targets` a matrix with all the CPU usage data is returned.
 
   - A dictionary with the following shape:
 
-    target process -> matrix with columns:
+    `target process` -> matrix with columns:
 
       + Clock time in seconds.
       + Clock time as a percentage.

@@ -197,7 +197,7 @@ Check if the snapshot in `path` comes from a cosmological simulation.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll read the first one to check if the simulation is cosmological.
+    If each snapshot is made of multiple files, I'll read the first chunck to check if the simulation is cosmological.
 
 # Arguments
 

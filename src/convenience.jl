@@ -1864,9 +1864,9 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
       + `:molecular_area_density` -> Molecular hydrogen area mass density.
       + `:atomic_area_density`    -> Atomic hydrogen area mass density.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ`.
-      + `:O_stellar_abundance`    -> Stellar abundance of oxygen, as 12 + log10(O / H).
-      + `:N_stellar_abundance`    -> Stellar abundance of nitrogen, as 12 + log10(N / H).
-      + `:C_stellar_abundance`    -> Stellar abundance of carbon, as 12 + log10(C / H).
+      + `:O_stellar_abundance`    -> Stellar abundance of oxygen, as ``12 + \\log_{10}(O \\, / \\, H)``.
+      + `:N_stellar_abundance`    -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(N \\, / \\, H)``.
+      + `:C_stellar_abundance`    -> Stellar abundance of carbon, as ``12 + \\log_{10}(C \\, / \\, H)``.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
