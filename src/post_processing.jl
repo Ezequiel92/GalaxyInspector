@@ -283,8 +283,8 @@ Draw a line plot with the fit for the KS relation in Kennicutt (1998).
   - `figure::Makie.Figure`: Makie figure to be drawn over.
   - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
-  - `x_log::Bool=true`: If the x axis is ``\\log(\\Sigma_\\mathrm{gas})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{gas}`` (`x_log` = false).
-  - `y_log::Bool=true`: If the y axis is ``\\log(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
+  - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{gas})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{gas}`` (`x_log` = false).
+  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
 
@@ -358,8 +358,8 @@ Draw a line plot with the fit for the KS relation in Bigiel et al. (2008).
       + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
   - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
-  - `x_log::Bool=true`: If the x axis is ``\\log(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
-  - `y_log::Bool=true`: If the y axis is ``\\log(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
+  - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
+  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
 

@@ -1404,7 +1404,7 @@ The integrand of the integral that converts the scale factor into physical time:
 where 
 
 ```math
-\mathcal{E} = \Omega_\lambda + (1 - \Omega_\lambda - \Omega_0) \, a^{-2} + \Omega_0 \, a^{-3} \, , 
+\mathcal{E} = \Omega_\lambda + (1 - \Omega_\lambda - \Omega_m) \, a^{-2} + \Omega_m \, a^{-3} \, , 
 ```
 ```math
 H = H_0 \, a \, .
