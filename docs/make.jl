@@ -21,7 +21,7 @@ makedocs(
     authors="Ezequiel Lozano",
     format=Documenter.HTML(
         assets=[
-            asset("https://fonts.googleapis.com/css?family=Inconsolata&display=swap", class=:css),
+            asset("https://fonts.googleapis.com/css?family=Fira+Code&display=swap", class=:css),
         ],
         prettyurls=CI,
         edit_link="main",

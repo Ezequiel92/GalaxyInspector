@@ -37,7 +37,7 @@ Some of the features are:
       + `heatmap!`      -> Heatmap.
   - `pf_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the functions in `plot_functions`.
 
-## snapshotPlot configuration
+### snapshotPlot configuration
 
   - `output_path::String="./plots"`: Path to the output folder.
   - `base_filename::String="snapshot"`: Every file will be named `base_filename`-XXX`output_format` where XXX is the snapshot number.
@@ -45,7 +45,7 @@ Some of the features are:
   - `warnings::Bool=true`: If a warning will be raised when there is some problem, but the function can still run using sane defaults.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
-## Data manipulation options
+### Data manipulation options
 
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
   - `filter_function::Function=filterNothing`: A functions with the signature:
@@ -105,7 +105,7 @@ Some of the features are:
   - `x_func::Function=identity`: Function to be applied to the values of the x axis. It must be a pure function with the signature `x_func(x_values::Vector{Float64})::Vector{Float64}`. The output must have the same length as the input. This function will be applied regardless of units and possible domain problems (use `x_trim` to solve incompatibilities), and that it will not be reflected in the automatic labeling.
   - `y_func::Function=identity`: Function to be applied to the values of the y axis. It must be a pure function with the signature `y_func(y_values::Vector{Float64})::Vector{Float64}`. The output must have the same length as the input. This function will be applied regardless of units and possible domain problems (use `y_trim` to solve incompatibilities), and that it will not be reflected in the automatic labeling.
 
-## Axes options
+### Axes options
 
   - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_var_name` / 10^`x_exp_factor` `x_unit`.
   - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` / 10^`y_exp_factor` `y_unit`.
@@ -116,7 +116,7 @@ Some of the features are:
   - `xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the x axis.
   - `yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the y axis.
 
-## Plotting options
+### Plotting options
 
   - `save_figures::Bool=true`: If every figure will be saved as an image.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
@@ -728,7 +728,7 @@ Some of the features are:
       + `scatterlines!` -> Scatter plot with lines between the markers.
   - `pf_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the functions in `plot_functions`.
 
-## timeSeriesPlot configuration
+### timeSeriesPlot configuration
 
   - `output_path::String="./plots"`: Path to the output folder.
   - `filename::String="time_series"`: Filename for the figure, without the extension.
@@ -736,7 +736,7 @@ Some of the features are:
   - `warnings::Bool=true`: If a warning will be raised when there is some problem, but the function can still run using sane defaults.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
-## Data manipulation options
+### Data manipulation options
 
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
   - `da_functions::Vector{<:Function}=[getNothing]`: Vector of data analysis functions. See the required signature and examples in `./src/data_analysis.jl`.
@@ -756,7 +756,7 @@ Some of the features are:
   - `x_func::Function=identity`: Function to be applied to the values of the x axis. It must be a pure function with the signature `x_func(x_values::Vector{Float64})::Vector{Float64}`. The output must have the same length as the input. This function will be applied regardless of units and possible domain problems (use `x_trim` to solve incompatibilities), and that it will not be reflected in the automatic labeling.
   - `y_func::Function=identity`: Function to be applied to the values of the y axis. It must be a pure function with the signature `y_func(y_values::Vector{Float64})::Vector{Float64}`. The output must have the same length as the input. This function will be applied regardless of units and possible domain problems (use `y_trim` to solve incompatibilities), and that it will not be reflected in the automatic labeling.
 
-## Axes options
+### Axes options
 
   - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_var_name` / 10^`x_exp_factor` `x_unit`.
   - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` / 10^`y_exp_factor` `y_unit`.
@@ -767,7 +767,7 @@ Some of the features are:
   - `xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the x axis.
   - `yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the y axis.
 
-## Plotting options
+### Plotting options
 
   - `save_figure::Bool=true`: If the plot will be saved as an image.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
