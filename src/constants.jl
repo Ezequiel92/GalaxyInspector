@@ -55,7 +55,7 @@ const AGE_RESOLUTION_ρ = 200u"Myr"
 """
 Critical density for Newtonian simulations, above which the gas particles enter the star formation routine.
 
-This value corresponds to `CritPhysDensity = 0.318` ``[\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`
+This value corresponds to `CritPhysDensity` ``= 0.318 [\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`
 """
 const CRITICAL_DENSITY = 1.033780605417362e7u"Msun*kpc^-3"
 
@@ -189,7 +189,7 @@ const StellarAbundance = [Symbol(element, "_stellar_abundance") for element in k
 @doc raw"""
 Solar abundances.
 
-They are defined as $12 + \log_{10}(N_x / N_H)$, where $N_x$ and $N_H$ are the number densities of element $\mathrm{X}$ and hydrogen respectively.
+They are defined as $12 + \log_{10}(N_\mathrm{X} / N_\mathrm{H})$, where $N_\mathrm{X}$ and $N_\mathrm{H}$ are the number densities of element $\mathrm{X}$ and hydrogen respectively.
 
 # References
 
