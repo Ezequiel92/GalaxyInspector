@@ -719,7 +719,11 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
     elseif rotation == :global_pa
         rotation_matrix = computeGlobalRotationMatrix(data_dict)
     elseif rotation == :stellar_pa
-        rotation_matrix = computeRotationMatrix(data_dict[:stars]["POS "], data_dict[:stars]["MASS"])
+        rotation_matrix = computeRotationMatrix(
+            data_dict[:stars]["POS "], 
+            data_dict[:stars]["VEL "],
+            data_dict[:stars]["MASS"], 
+        )
     end
 
     @inbounds for type_symbol in snapshotTypes(data_dict)
@@ -1885,7 +1889,8 @@ end
 
 """
     computeRotationMatrix(
-        positions::VecOrMat{<:Unitful.Length},
+        positions::Matrix{<:Unitful.Length}, 
+        velocities::Matrix{<:Unitful.Velocity},
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
@@ -1893,20 +1898,25 @@ Compute the rotation matrix that will make the principal axes the new reference 
 
 # Arguments
 
-  - `positions::VecOrMat{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `masses::Vector{<:Unitful.Mass}`: Masses of the cells/particles.
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
 
 # Returns
 
   - The rotation matrix.
 """
 function computeRotationMatrix(
-    positions::VecOrMat{<:Unitful.Length},
+    positions::Matrix{<:Unitful.Length}, 
+    velocities::Matrix{<:Unitful.Velocity},
     masses::Vector{<:Unitful.Mass},
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
     # Check for missing data
-    !any(isempty, [positions, masses]) || return I
+    !any(isempty, [positions, velocities, masses]) || return I
+
+    # Compute the total angular momentum
+    L = computeTotalAngularMomentum(positions, velocities, masses)
 
     # Strip units
     masses = ustrip(masses)
@@ -1941,7 +1951,20 @@ function computeRotationMatrix(
     foreach(normalize!, eachcol(pa))
 
     # The rotation matrix is the inverse of the eigenvector matrix
-    return inv(pa)
+    RM = inv(pa)
+
+    # Compute the angle between the total angular momentum and the
+    # pricipal component normal to the plane of the galactic disc
+    θ = acos(dot(pa[:, 3], L) / norm(pa[:, 3]))
+
+    # Rotate 180° aroud the x axis if the total angular momentum is not aligned with
+    # the pricipal component normal to the plane of the galactic disc
+    if θ < (0.5 * π)
+        RM[2, :] *= -1.0 # Flips the y axis to mantain the chirality of the reference system
+        RM[3, :] *= -1.0 # Flips the z axis
+    end
+
+    return RM
 
 end
 
@@ -1983,17 +2006,23 @@ function computeGlobalRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},Uni
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["POS "])
         ]...,
     )
+    velocities = hcat(
+        [
+            data_dict[type_symbol]["VEL "] for 
+            type_symbol in type_symbols if !isempty(data_dict[type_symbol]["VEL "])
+        ]...
+    )
     masses = vcat(
         [
-            data_dict[type_symbol]["MASS"] for
+            data_dict[type_symbol]["MASS"] for 
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["MASS"])
-        ]...,
+        ]...
     )
 
     # Check for missing data
-    !any(isempty, [positions, masses]) || return I
+    !any(isempty, [positions, velocities, masses]) || return I
 
-    return computeRotationMatrix(positions, masses)
+    return computeRotationMatrix(positions, velocities, masses)
 
 end
 

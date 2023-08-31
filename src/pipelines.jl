@@ -593,11 +593,11 @@ function snapshotPlot(
                 (
                     !warnings ||
                     @warn("snapshotPlot: I cound not find the time data for the snapshot \
-                    number $(snapshot_number) in the longest running simulation, with \
-                    simulation table: \n$(longest_sim_table). Defaulting to no title.")
+                    number $(snapshot_number) in the longest running simulation with \
+                    simulation table: \n$(longest_sim_table). \nDefaulting to no title.")
                 )
 
-                axes.title = nothing
+                axes.title = ""
 
             else
 
