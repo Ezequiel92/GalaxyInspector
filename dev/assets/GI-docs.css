@@ -20,13 +20,11 @@ p>a:after {
     font-family: "JuliaMono";
 }
 
-.swatch {}
-
 .category {
     font-size: 0.8em;
 }
 
-html.theme--documenter-dark p>code {
+/* html.theme--documenter-dark p>code {
     color: #eff !important;
 }
 
@@ -37,4 +35,4 @@ html.theme--documenter-dark li>code {
 
 html.theme--documenter-dark a>code {
     color: #eff !important;
-}
+} */
