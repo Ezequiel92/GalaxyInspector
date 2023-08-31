@@ -101,8 +101,10 @@ function simulationReport(
         ############################################################################################
 
         # Create the output file
-        file =
-            open(joinpath(mkpath(output_path), "report-for-$(basename(simulation_path)).txt"), "w")
+        file = open(
+            joinpath(mkpath(output_path), "report-for-$(basename(simulation_path)).txt"), 
+            "w",
+        )
 
         println(file, "#"^100)
         println(file, "\nSimulation name:  $(basename(simulation_path))")
@@ -150,7 +152,10 @@ function simulationReport(
         # Select the filter function, translation and request dictionary
         filter_function, translation, _, request = selectFilter(
             filter_mode,
-            Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
+            mergeRequests(
+                Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
+                Dict(:gas => ["NHP ", "NH  ", "PRES", "FRAC"]),
+            )
         )
 
         # Read the necessary snapshot data
@@ -307,6 +312,52 @@ function simulationReport(
             file,
             "\n\t\tTotal mass:             $(round(typeof(1.0u"Msun"), total_mass, sigdigits=3))\n",
         )
+
+        ############################################################################################
+        # Print the mass of each hydrogen phase
+        ############################################################################################
+
+        println(file, "\tHydrogen masses:\n")
+
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+
+        if :stars in component_list
+
+            hii_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
+            hii_percent = (hii_mass / gas_mass) * 100
+            h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
+            h2_percent = (h2_mass / gas_mass) * 100
+            hi_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
+            hi_percent = (hi_mass / gas_mass) * 100
+            
+            title = "Ionized mass:"
+            title *= " "^(24 - length(title))
+
+            println(
+                file, 
+                "\t\t$(title)$(round(typeof(1.0u"Msun"), hii_mass, sigdigits=3)) \
+                ($(round(hii_percent, sigdigits=3))% of total gas mass)",
+            )
+
+            title = "Molecular mass:"
+            title *= " "^(24 - length(title))
+
+            println(
+                file, 
+                "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
+                ($(round(h2_percent, sigdigits=3))% of total gas mass)",
+            )
+
+            title = "Atomic mass:"
+            title *= " "^(24 - length(title))
+
+            println(
+                file, 
+                "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
+                ($(round(hi_percent, sigdigits=3))% of total gas mass)\n",
+            )
+
+        end
 
         ############################################################################################
         # Print the center of mass of each component
@@ -526,7 +577,14 @@ function simulationReport(
             println(file, "\tMasses:\n")
             for (i, mass) in enumerate(g_mass_type)
 
-                component = ParticleNames[IndexParticle[i - 1]]
+                type_symbol = IndexParticle[i - 1]
+
+                if type_symbol ==:stars
+                    component = "Stellar/Wind particles"
+                else
+                    component = ParticleNames[type_symbol]
+                end
+
                 println(
                     file,
                     "\t\t$(component):$(" "^(22 - length(component))) \
@@ -594,7 +652,14 @@ function simulationReport(
             println(file, "\n\tMasses:\n")
             for (i, mass) in enumerate(s_mass_type)
 
-                component = ParticleNames[IndexParticle[i - 1]]
+                type_symbol = IndexParticle[i - 1]
+
+                if type_symbol ==:stars
+                    component = "Stellar/Wind particles"
+                else
+                    component = ParticleNames[type_symbol]
+                end
+
                 println(
                     file,
                     "\t\t$(component):$(" "^(22 - length(component))) \

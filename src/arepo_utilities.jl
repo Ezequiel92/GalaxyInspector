@@ -2729,10 +2729,10 @@ function computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         # Fraction of ionized hydrogen according to our model
         f_HII = dg["FRAC"][1, :] ./ (1.0 .- dg["FRAC"][4, :])
 
-        # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
+        # When there is no data from our model, use the fraction of ionized hydrogen from Arepo
         fi = [
-            isnan(fh2) ? nhp / (nhp + nh) : fh2 for
-            (fh2, nh, nhp) in zip(f_HII, dg["NH  "], dg["NHP "])
+            isnan(fhii) ? nhp / (nhp + nh) : fhii for
+            (fhii, nh, nhp) in zip(f_HII, dg["NH  "], dg["NHP "])
         ]
 
     else
@@ -2795,7 +2795,11 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     else
 
         # Fraction of neutral hydrogen according to Arepo
-        fa = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
+        fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
+        # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
+        fm = @. 1 / (1 + (P0 / dg["PRES"]))
+
+        fa = setPositive(fn .- fm)
 
     end
 
@@ -2852,8 +2856,12 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     else
 
+        # Fraction of neutral hydrogen according to Arepo
+        fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
         # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
-        fm = @. 1 / (1 + (P0 / dg["PRES"]))
+        fp = @. 1 / (1 + (P0 / dg["PRES"]))
+
+        fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
 
     end
 
