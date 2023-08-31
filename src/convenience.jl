@@ -1465,7 +1465,7 @@ function rotationCurve(
         # Data manipulation options
         slice=slice_n,
         filter_function,
-        da_functions=[daVelocityProfile],
+        da_functions=[daRotationCurve],
         da_args=[(radius,)],
         da_kwargs=[(;)],
         post_processing=getNothing,

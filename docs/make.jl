@@ -19,11 +19,18 @@ Themes.compile(
 makedocs(
     sitename="GalaxyInspector.jl",
     authors="Ezequiel Lozano",
-    format=Documenter.HTML(
-        assets=[
-            asset("https://fonts.googleapis.com/css?family=Fira+Code&display=swap", class=:css),
-        ],
+    # format=Documenter.HTML(
+    #     assets=[
+    #         asset("https://fonts.googleapis.com/css?family=Fira+Code&display=swap", class=:css),
+    #     ],
+    #     prettyurls=CI,
+    #     edit_link="main",
+    # ),
+    format   = Documenter.HTML(
         prettyurls=CI,
+        assets=["./assets/GI-docs.css"],
+        warn_outdated=true,
+        collapselevel=1,
         edit_link="main",
     ),
     modules=[GalaxyInspector],
@@ -46,6 +53,6 @@ if CI
     deploydocs(
         repo="github.com/Ezequiel92/GalaxyInspector.git",
         devbranch="main",
-        versions=["dev" => "dev"],
+        versions=["stable" => "stable"],
     )
 end

@@ -35,12 +35,12 @@
 ####################################################################################################
 
 """
-    daVelocityProfile(
+    daRotationCurve(
         data_dict::Dict,
         R::Unitful.Length,
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
-Compute a circular velocity profile.
+Compute a rotation curve.
 
 # Arguments
 
@@ -66,7 +66,7 @@ Compute a circular velocity profile.
       + A vector with the distances to each star.
       + A vector with the circular velocity of each star.
 """
-function daVelocityProfile(
+function daRotationCurve(
     data_dict::Dict,
     R::Unitful.Length,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
