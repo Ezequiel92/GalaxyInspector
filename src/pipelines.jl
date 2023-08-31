@@ -588,32 +588,47 @@ function snapshotPlot(
             longest_sim_table = argmax(nrow, simulation_tables)
             time_row = filter(:numbers => ==(snapshot_number), longest_sim_table)
 
-            if title == :physical_time
+            if isa(title, Symbol) && isempty(time_row)
 
-                c_t = ustrip(u"Gyr", time_row[1, :physical_times])
-                time_stamp = round(c_t, digits=2)
-                axes.title = L"t = %$time_stamp \, \mathrm{Gyr}"
+                (
+                    !warnings ||
+                    @warn("snapshotPlot: I cound not find the time data for the snapshot \
+                    number $(snapshot_number) in the longest running simulation, with \
+                    simulation table: \n$(longest_sim_table). Defaulting to no title.")
+                )
 
-            elseif title == :lookback_time
-
-                p_t = ustrip(u"Gyr", time_row[1, :lookback_times])
-                time_stamp = round(p_t, digits=2)
-                axes.title = L"lt = %$time_stamp \, \mathrm{Gyr}"
-
-            elseif title == :redshift
-
-                time_stamp = round(time_row[1, :redshifts], digits=2)
-                axes.title = L"z = \mathrm{%$time_stamp}"
-
-            elseif title == :scale_factor
-
-                time_stamp = round(time_row[1, :scale_factors], digits=2)
-                axes.title = L"a = \mathrm{%$time_stamp}"
+                axes.title = nothing
 
             else
 
-                # Use the user provided title
-                axes.title = title
+                if title == :physical_time
+
+                    c_t = ustrip(u"Gyr", time_row[1, :physical_times])
+                    time_stamp = round(c_t, digits=2)
+                    axes.title = L"t = %$time_stamp \, \mathrm{Gyr}"
+
+                elseif title == :lookback_time
+
+                    p_t = ustrip(u"Gyr", time_row[1, :lookback_times])
+                    time_stamp = round(p_t, digits=2)
+                    axes.title = L"lt = %$time_stamp \, \mathrm{Gyr}"
+
+                elseif title == :redshift
+
+                    time_stamp = round(time_row[1, :redshifts], digits=2)
+                    axes.title = L"z = \mathrm{%$time_stamp}"
+
+                elseif title == :scale_factor
+
+                    time_stamp = round(time_row[1, :scale_factors], digits=2)
+                    axes.title = L"a = \mathrm{%$time_stamp}"
+
+                else
+
+                    # Use the user provided title
+                    axes.title = title
+
+                end
 
             end
 
