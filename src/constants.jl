@@ -20,6 +20,11 @@ Relative path, within the simulation directory, to the `sfr.txt` file.
 const SFR_REL_PATH = "output/sfr.txt"
 
 """
+If physical units will be used throughout, instead of comoving units.
+"""
+const PHYSICAL_UNITS = true
+
+"""
 Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{Mpc}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
@@ -316,9 +321,6 @@ const IndexType = Union{
 # Dimensions of specific energy
 @derived_dimension SpecificEnergy Unitful.𝐋^2 * Unitful.𝐓^-2 true
 
-# Dimensions of number density
-@derived_dimension NumberDensity Unitful.𝐋^-3 true
-
 # Dimensions of surface density
 @derived_dimension SurfaceDensity Unitful.𝐌 * Unitful.𝐋^-2 true
 
@@ -531,23 +533,22 @@ Unit conversion struct.
 
   - `x_cgs::Unitful.Length`: Length, from internal units to ``\\mathrm{cm}``.
   - `x_cosmo::Unitful.Length`: Length, from internal units to ``\\mathrm{kpc}``.
+  - `x_comoving::Unitful.Length`: Length, from internal units to ``\\mathrm{ckpc}``.
   - `v_cgs::Unitful.Velocity`: Velocity, from internal units to ``\\mathrm{cm \\, s^{-1}}``.
   - `v_cosmo::Unitful.Velocity`: Velocity, from internal units to ``\\mathrm{km \\, s^{-1}}``.
   - `m_cgs::Unitful.Mass`: Mass, from internal units to ``\\mathrm{g}``.
   - `m_cosmo::Unitful.Mass`: Mass, from internal units to ``\\mathrm{M_\\odot}``.
   - `t_cgs::Unitful.Time`: Time, from internal units to ``\\mathrm{s}``.
   - `t_cosmo::Unitful.Time`: Time, from internal units to ``\\mathrm{Myr}``.
-  - `E_cgs::Unitful.Energy`: Energy, from internal units to ``\\mathrm{erg}``.
-  - `E_eV::Unitful.Energy`: Energy, from internal units to ``\\mathrm{eV}``.
+  - `U_cgs::Unitful.Energy`: Specific energy, from internal units to ``\\mathrm{erg \\, g^{-1}}``.
   - `rho_cgs::Unitful.Density`: Density, from internal units to ``\\mathrm{g \\, cm^{-3}}``.
-  - `rho_cosmo::Unitful.Density`: Density, from internal units to ``\\mathrm{M_\\odot \\, kpc^{-3}}``.
-  - `rho_number::NumberDensity`: Number density, from internal units to ``\\mathrm{cm^{-3}}``.
   - `P_Pa::Unitful.Pressure`: Pressure, from internal units to ``\\mathrm{Pa}``.
 """
 struct InternalUnits
 
     x_cgs::Unitful.Length      # Length, from internal units to cm
     x_cosmo::Unitful.Length    # Length, from internal units to kpc
+    x_comoving::Unitful.Length # Length, from internal units to ckpc
 
     v_cgs::Unitful.Velocity    # Velocity, from internal units to cm * s^-1
     v_cosmo::Unitful.Velocity  # Velocity, from internal units to km * s^-1
@@ -558,13 +559,9 @@ struct InternalUnits
     t_cgs::Unitful.Time        # Time, from internal units to s
     t_cosmo::Unitful.Time      # Time, from internal units to Myr
 
-    E_cgs::Unitful.Energy      # Energy, from internal units to erg
-    E_eV::Unitful.Energy       # Energy, from internal units to eV
+    U_cgs::SpecificEnergy      # Specific energy, from internal units to erg * g^-1
 
     rho_cgs::Unitful.Density   # Density, from internal units to g * cm^-3
-    rho_cosmo::Unitful.Density # Density, from internal units to M⊙ * kpc^-3
-
-    rho_number::NumberDensity  # Number density, density from internal units to cm^-3
 
     P_Pa::Unitful.Pressure     # Pressure, from internal units to Pa
 
@@ -589,8 +586,13 @@ struct InternalUnits
         h0::Float64=1.0,
     )
 
+        ############################################################################################
+        # Base units
+        ############################################################################################
+
         x_cgs = l_unit * a0 / h0
         x_cosmo = x_cgs |> u"kpc"
+        x_comoving = l_unit / h0 |> u"kpc"
 
         v_cgs = v_unit * sqrt(a0)
         v_cosmo = v_cgs |> u"km*s^-1"
@@ -598,33 +600,33 @@ struct InternalUnits
         m_cgs = m_unit / h0
         m_cosmo = m_cgs |> u"Msun"
 
+        ############################################################################################
+        # Derived units
+        ############################################################################################
+
+        # Only used in non-cosmological simulations
         t_cgs = x_cgs / v_cgs
         t_cosmo = t_cgs |> u"Myr"
 
-        E_cgs = m_cgs * v_cgs^2 |> u"erg"
-        E_eV = E_cgs |> u"eV"
+        U_cgs = v_unit^2 |> u"erg*g^-1"
 
         rho_cgs = m_cgs / x_cgs^3
-        rho_cosmo = m_cgs / x_cgs^3 |> u"Msun*kpc^-3"
 
-        rho_number = rho_cosmo / Unitful.mp |> u"cm^-3"
-
-        P_Pa = m_cgs / (x_cgs * t_cgs^2) |> u"Pa"
+        # Thermal pressure (it uses v_unit^2 instead of v_cgs^2, which would add an extra factor of a0)
+        P_Pa = v_unit^2 * m_cgs / x_cgs^3 |> u"Pa"
 
         new(
             x_cgs,
             x_cosmo,
+            x_comoving,
             v_cgs,
             v_cosmo,
             m_cgs,
             m_cosmo,
             t_cgs,
             t_cosmo,
-            E_cgs,
-            E_eV,
+            U_cgs,
             rho_cgs,
-            rho_cosmo,
-            rho_number,
             P_Pa,
         )
 

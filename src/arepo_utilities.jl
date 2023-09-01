@@ -300,7 +300,11 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
         elseif dimensions == Unitful.𝐋
 
             # From internal units to kpc
-            return IU.x_cosmo
+            if PHYSICAL_UNITS
+                return IU.x_cosmo
+            else
+                return IU.x_comoving
+            end
 
         elseif dimensions == Unitful.𝐓
 
@@ -315,13 +319,8 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
 
         elseif dimensions == Unitful.𝐋^2 * Unitful.𝐓^-2
 
-            # From internal units to erg * M⊙^-1
-            return IU.E_cgs * IU.m_cosmo^-1
-
-        elseif dimensions == Unitful.𝐌 * Unitful.𝐓^-1
-
-            # From internal units to M⊙ * Myr^-1
-            return IU.m_cosmo * IU.t_cosmo^-1
+            # From internal units to erg * g^-1
+            return IU.U_cgs
 
         elseif dimensions == Unitful.𝐋 * Unitful.𝐓^-1
 

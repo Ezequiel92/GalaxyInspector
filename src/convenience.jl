@@ -122,7 +122,11 @@ function simulationReport(
             println(file, "Cosmological:     No")
         end
 
-        println(file, "Units:            Physical\n")
+        if PHYSICAL_UNITS
+            println(file, "Units:            Physical\n")
+        else
+            println(file, "Units:            Comoving\n")
+        end
 
         println(file, "#"^100)
         println(file, "\nSnapshot number:  $(o_idx) (of $(snapshot_length))")
@@ -288,7 +292,7 @@ function simulationReport(
             println(
                 file, 
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
-                ($(hi_percent)% of total gas mass)\n",
+                ($(hi_percent)% of total gas mass)",
             )
 
             title = "Molecular mass:"
@@ -296,7 +300,7 @@ function simulationReport(
             println(
                 file, 
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
-                ($(h2_percent)% of total gas mass)",
+                ($(h2_percent)% of total gas mass)\n",
             )
 
         end
@@ -390,7 +394,7 @@ function simulationReport(
             println(
                 file, 
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
-                ($(hi_percent)% of total gas mass)\n",
+                ($(hi_percent)% of total gas mass)",
             )
 
             title = "Molecular mass:"
@@ -398,7 +402,7 @@ function simulationReport(
             println(
                 file, 
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
-                ($(h2_percent)% of total gas mass)",
+                ($(h2_percent)% of total gas mass)\n",
             )
 
         end
