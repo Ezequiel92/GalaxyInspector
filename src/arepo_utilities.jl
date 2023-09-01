@@ -1894,7 +1894,7 @@ end
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will make the principal axes the new reference system.
+Compute the rotation matrix that will make the principal axes the new reference system, with the total angular momentum in the same direction as the principal component normal to the galactic disc. 
 
 # Arguments
 
@@ -1953,14 +1953,14 @@ function computeRotationMatrix(
     # The rotation matrix is the inverse of the eigenvector matrix
     RM = inv(pa)
 
-    # Compute the angle between the total angular momentum and the
-    # pricipal component normal to the plane of the galactic disc
+    # Compute the angle between the total angular momentum and the 
+    # principal component normal to the plane of the galactic disc 
     θ = acos(dot(pa[:, 3], L) / norm(pa[:, 3]))
 
-    # Rotate 180° aroud the x axis if the total angular momentum is not aligned with
-    # the pricipal component normal to the plane of the galactic disc
+    # Rotate 180° around the x axis if the total angular momentum is not pointing in the same
+    # direction as the principal component normal to the plane of the galactic disc 
     if θ < (0.5 * π)
-        RM[2, :] *= -1.0 # Flips the y axis to mantain the chirality of the reference system
+        RM[2, :] *= -1.0 # Flips the y axis to maintain the chirality of the reference system
         RM[3, :] *= -1.0 # Flips the z axis
     end
 
@@ -1999,7 +1999,7 @@ function computeGlobalRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},Uni
 
     @info("computeGlobalRotationMatrix: The pincipal axis will be computed using $(type_symbols)")
 
-    # Concatenate the position and masses of all the cells and particles in the system
+    # Concatenate the positions, velocities, and masses of all the cells and particles in the system
     positions = hcat(
         [
             data_dict[type_symbol]["POS "] for
@@ -2727,7 +2727,7 @@ function computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of ionized hydrogen according to our model
-        f_HII = dg["FRAC"][1, :] ./ (1.0 .- dg["FRAC"][4, :])
+        f_HII = @. dg["FRAC"][1, :] / (1.0 - dg["FRAC"][4, :])
 
         # When there is no data from our model, use the fraction of ionized hydrogen from Arepo
         fi = [
@@ -2738,7 +2738,7 @@ function computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     else
 
         # Fraction of ionized hydrogen according to Arepo
-        fi = dg["NHP "] ./ (dg["NHP "] .+ dg["NH  "])
+        fi = @. dg["NHP "] / (dg["NHP "] + dg["NH  "])
 
     end
 
@@ -2776,6 +2776,10 @@ Compute the atomic hydrogen mass of every gas cell in `data`.
 # Returns
 
   - The mass of atomic hydrogen in every gas cell.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
@@ -2784,9 +2788,10 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of atomic hydrogen according to our model
-        f_HI = dg["FRAC"][2, :] ./ (1 .- dg["FRAC"][4, :])
+        f_HI = @. dg["FRAC"][2, :] / (1.0 - dg["FRAC"][4, :])
 
         # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
+        # assuming that the fraction of molecular hydrogen is 0
         fa = [
             isnan(fhi) ? nh / (nhp + nh) : fhi for
             (fhi, nh, nhp) in zip(f_HI, dg["NH  "], dg["NHP "])
@@ -2795,10 +2800,13 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     else
 
         # Fraction of neutral hydrogen according to Arepo
-        fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
-        # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
-        fm = @. 1 / (1 + (P0 / dg["PRES"]))
+        fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
 
+        # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
+        fm = @. 1.0 / (1.0 + (P0 / dg["PRES"]))
+
+        # Use the fraction of neutral hydrogen that is not molecular according to the pressure relation, 
+        # unless that value is negative, in that case use 0 assuming all neutral hydrogen is molecular 
         fa = setPositive(fn .- fm)
 
     end
@@ -2849,18 +2857,22 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of molecular hydrogen according to our model
-        f_H2 = dg["FRAC"][3, :] ./ (1 .- dg["FRAC"][4, :])
+        f_H2 = @. dg["FRAC"][3, :] / (1.0 - dg["FRAC"][4, :])
 
-        # When there is no data from our model, use 0.0
+        # When there is no data from our model, use 0
         fm = replace!(f_H2, NaN => 0.0)
 
     else
 
         # Fraction of neutral hydrogen according to Arepo
-        fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
-        # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
-        fp = @. 1 / (1 + (P0 / dg["PRES"]))
+        fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
 
+        # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
+        fp = @. 1.0 / (1.0 + (P0 / dg["PRES"]))
+
+        # Use the fraction of molecular hydrogen according to the pressure relation, unless 
+        # that value is larger than the fraction of neutral hydrogen according to Arepo, 
+        # in that case use the neutral fraction assuming is all molecular hydrogen 
         fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
 
     end
@@ -2907,16 +2919,19 @@ function computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of atomic hydrogen according to our model
-        f_HI = dg["FRAC"][2, :] ./ (1 .- dg["FRAC"][4, :])
+        f_HI = @. dg["FRAC"][2, :] / (1.0 - dg["FRAC"][4, :])
+
         # Fraction of molecular hydrogen according to our model
-        f_H2 = dg["FRAC"][3, :] ./ (1 .- dg["FRAC"][4, :])
+        f_H2 = @. dg["FRAC"][3, :] / (1.0 - dg["FRAC"][4, :])
 
         # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
+        # assuming that the fraction of molecular hydrogen is 0
         fa = [
             isnan(fhi) ? nh / (nhp + nh) : fhi for
             (fhi, nh, nhp) in zip(f_HI, dg["NH  "], dg["NHP "])
         ]
-        # When there is no data from our model, use 0.0
+
+        # When there is no data from our model, use 0
         fm = replace!(f_H2, NaN => 0.0)
 
         fn = fa .+ fm
@@ -2924,7 +2939,7 @@ function computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     else
 
         # Fraction of neutral hydrogen according to Arepo
-        fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
+        fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
 
     end
 

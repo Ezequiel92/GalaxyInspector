@@ -257,6 +257,51 @@ function simulationReport(
         )
 
         ############################################################################################
+        # Print the mass of each hydrogen phase
+        ############################################################################################
+
+        if :gas in component_list
+
+            println(file, "\tHydrogen masses:\n")
+
+            gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+
+            hii_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
+            hii_percent = round((hii_mass / gas_mass) * 100, sigdigits=3)
+
+            hi_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
+            hi_percent = round((hi_mass / gas_mass) * 100, sigdigits=3)
+
+            h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
+            h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
+            
+            title = "Ionized mass:"
+            title *= " "^(24 - length(title))
+            println(
+                file, 
+                "\t\t$(title)$(round(typeof(1.0u"Msun"), hii_mass, sigdigits=3)) \
+                ($(hii_percent)% of total gas mass)",
+            )
+
+            title = "Atomic mass:"
+            title *= " "^(24 - length(title))
+            println(
+                file, 
+                "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
+                ($(hi_percent)% of total gas mass)\n",
+            )
+
+            title = "Molecular mass:"
+            title *= " "^(24 - length(title))
+            println(
+                file, 
+                "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
+                ($(h2_percent)% of total gas mass)",
+            )
+
+        end
+
+        ############################################################################################
         # Print the global properties of the simulation after filtering
         ############################################################################################
 
@@ -317,44 +362,43 @@ function simulationReport(
         # Print the mass of each hydrogen phase
         ############################################################################################
 
-        println(file, "\tHydrogen masses:\n")
+        if :gas in component_list
 
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+            println(file, "\tHydrogen masses:\n")
 
-        if :stars in component_list
+            gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
             hii_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
-            hii_percent = (hii_mass / gas_mass) * 100
-            h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
-            h2_percent = (h2_mass / gas_mass) * 100
+            hii_percent = round((hii_mass / gas_mass) * 100, sigdigits=3)
+
             hi_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
-            hi_percent = (hi_mass / gas_mass) * 100
+            hi_percent = round((hi_mass / gas_mass) * 100, sigdigits=3)
+
+            h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
+            h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
             
             title = "Ionized mass:"
             title *= " "^(24 - length(title))
-
             println(
                 file, 
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hii_mass, sigdigits=3)) \
-                ($(round(hii_percent, sigdigits=3))% of total gas mass)",
-            )
-
-            title = "Molecular mass:"
-            title *= " "^(24 - length(title))
-
-            println(
-                file, 
-                "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
-                ($(round(h2_percent, sigdigits=3))% of total gas mass)",
+                ($(hii_percent)% of total gas mass)",
             )
 
             title = "Atomic mass:"
             title *= " "^(24 - length(title))
-
             println(
                 file, 
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
-                ($(round(hi_percent, sigdigits=3))% of total gas mass)\n",
+                ($(hi_percent)% of total gas mass)\n",
+            )
+
+            title = "Molecular mass:"
+            title *= " "^(24 - length(title))
+            println(
+                file, 
+                "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
+                ($(h2_percent)% of total gas mass)",
             )
 
         end
