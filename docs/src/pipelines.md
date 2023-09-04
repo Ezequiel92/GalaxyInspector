@@ -1,4 +1,4 @@
-# Pipelines
+# API: Pipelines
 
 ```@autodocs
 Modules = [GalaxyInspector]

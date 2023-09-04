@@ -28,16 +28,18 @@ makedocs(
     ),
     modules=[GalaxyInspector],
     pages=[
-        "Introduction"               => "intro.md",
-        "Convenience functions"      => "convenience.md",
-        "Pipelines"                  => "pipelines.md",
-        "Data acquisition functions" => "data_acquisition.md",
-        "Data analysis functions"    => "data_analysis.md",
-        "Post processing functions"  => "post_processing.md",
-        "Arepo utilities"            => "arepo_utilities.md",
-        "General utilities"          => "general_utilities.md",
-        "Constants"                  => "constants.md",
-        "Index"                      => "index.md",
+        "Introduction" => "intro.md",
+        "API"          => Any[
+            "api/convenience.md",
+            "api/pipelines.md",
+            "api/data_acquisition.md",
+            "api/data_analysis.md",
+            "api/post_processing.md",
+            "api/arepo_utilities.md",
+            "api/general_utilities.md",
+            "api/constants.md",
+        ],
+        "Index"        => "index.md",
     ],
 )
 

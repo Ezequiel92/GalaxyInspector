@@ -1,4 +1,4 @@
-# Convenience functions
+# API: Convenience functions
 
 This are the main exported functions. 
 

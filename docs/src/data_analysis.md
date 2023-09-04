@@ -1,4 +1,4 @@
-# Data analysis functions
+# API: Data analysis functions
 
 ```@autodocs
 Modules = [GalaxyInspector]

@@ -1,4 +1,4 @@
-# Arepo utilities
+# API: Arepo utilities
 
 These functions are only used internally (not exported), and depend on the particulars of the Arepo code (e.g. units or the structure of the snapshots).
 

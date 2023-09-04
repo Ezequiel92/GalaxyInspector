@@ -1,4 +1,4 @@
-# Post processing functions
+# API: Post processing functions
 
 ```@autodocs
 Modules = [GalaxyInspector]
