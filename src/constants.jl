@@ -410,7 +410,7 @@ Data in the "Header" group of a HDF5 snapshot file.
   - `m_unit::Unitful.Mass`: Conversion factor from internal units of mass to grams.
   - `v_unit::Unitful.Velocity`: Conversion factor from internal units of velocity to centimeters per second.
 """
-Base.@kwdef mutable struct SnapshotHeader
+@kwdef mutable struct SnapshotHeader
     box_size::Float64
     h0::Float64
     mass_table::Vector{Float64}
@@ -443,7 +443,7 @@ Data in the "Header" group of a HDF5 group catalog file.
   - `redshift::Float64 = NaN`: The redshift.
   - `time::Float64 = NaN`: The physical time/scale factor.
 """
-Base.@kwdef mutable struct GroupCatHeader
+@kwdef mutable struct GroupCatHeader
     box_size::Float64 = NaN
     h0::Float64 = NaN
     n_groups_part::Int32 = -1
@@ -901,7 +901,7 @@ Plotting parameters for a quantity.
   - `unit::Unitful.Units = Unitful.NoUnits`: Target unit for the axis.
   - `axis_label::AbstractString = "auto_label"`: Label for the axis. It can contain the string `auto_label`, which will be replaced by the default label: `var_name` / 10^`exp_factor` `unit`.
 """
-Base.@kwdef mutable struct PlotParams
+@kwdef mutable struct PlotParams
     request::Dict{Symbol,Vector{String}} = Dict{Symbol,Vector{String}}()
     var_name::AbstractString = ""
     exp_factor::Int64 = 0
