@@ -1887,39 +1887,33 @@ function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
 end
 
 """
-    computeRotationMatrix(
+    computePrincipalAxes(
         positions::Matrix{<:Unitful.Length}, 
-        velocities::Matrix{<:Unitful.Velocity},
         masses::Vector{<:Unitful.Mass},
-    )::Union{Matrix{Float64},UniformScaling{Bool}}
+    )::Matrix{Float64}
 
-Compute the rotation matrix that will make the principal axes the new reference system, with the total angular momentum in the same direction as the principal component normal to the galactic disc. 
+Compute the principal axes of a group of cells/particles.
 
 # Arguments
 
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
+  - `masses::Vector{<:Unitful.Mass}`: Masses of the cells/particles.
 
 # Returns
 
-  - The rotation matrix.
+  - The principal axes in a matrix, where each column is an axis.
 """
-function computeRotationMatrix(
+function computePrincipalAxes(
     positions::Matrix{<:Unitful.Length}, 
-    velocities::Matrix{<:Unitful.Velocity},
     masses::Vector{<:Unitful.Mass},
-)::Union{Matrix{Float64},UniformScaling{Bool}}
+)::Matrix{Float64}
 
     # Check for missing data
-    !any(isempty, [positions, velocities, masses]) || return I
-
-    # Compute the total angular momentum
-    L = computeTotalAngularMomentum(positions, velocities, masses)
-
-    # Strip units
-    masses = ustrip(masses)
-    positions = ustrip(positions)
+    (
+        !any(isempty, [positions, masses])  ||
+        throw(ArgumentError("computePrincipalAxes: The principal axes are not defined for an \
+        empty system"))
+    )
 
     # Allocate memory
     J = zeros(Float64, (3, 3))
@@ -1944,33 +1938,55 @@ function computeRotationMatrix(
     J[3, 2] = J[2, 3]
 
     # Compute the principal axes
-    pa = eigvecs(J)
+    return eigvecs(J)
 
-    # Normalize each eigenvector
-    foreach(normalize!, eachcol(pa))
+end
 
-    # The rotation matrix is the inverse of the eigenvector matrix
-    RM = inv(pa)
+"""
+    computeRotationMatrix(
+        positions::Matrix{<:Unitful.Length}, 
+        velocities::Matrix{<:Unitful.Velocity},
+        masses::Vector{<:Unitful.Mass},
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-    # Compute the angle between the total angular momentum and the 
-    # principal component normal to the plane of the galactic disc 
-    θ = acos(dot(pa[:, 3], L) / norm(pa[:, 3]))
+Compute the rotation matrix that will make the total angular momentum the new z axis. 
 
-    # Rotate 180° around the x axis if the total angular momentum is not pointing in the same
-    # direction as the principal component normal to the plane of the galactic disc 
-    if θ < (0.5 * π)
-        RM[2, :] *= -1.0 # Flips the y axis to maintain the chirality of the reference system
-        RM[3, :] *= -1.0 # Flips the z axis
-    end
+# Arguments
 
-    return RM
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computeRotationMatrix(
+    positions::Matrix{<:Unitful.Length}, 
+    velocities::Matrix{<:Unitful.Velocity},
+    masses::Vector{<:Unitful.Mass},
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    # Check for missing data
+    !any(isempty, [positions, velocities, masses]) || return I
+
+    # Compute the total angular momentum
+    L = computeTotalAngularMomentum(positions, velocities, masses)
+
+    # Rotation vector
+    n = normalize!([L[2], -L[1], 0.0])
+
+    # Angle of rotation
+    θ = acos(L[3])
+        
+    return Matrix{Float64}(AngleAxis(θ, n...))
 
 end
 
 """
     computeGlobalRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will make the principal axes, of the whole system in `data`, the new reference system.
+Compute the rotation matrix that will make the total angular momentum, of the whole system in `data`, the new z axis.
 
 # Arguments
 
