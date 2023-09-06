@@ -1,6 +1,8 @@
 # Convenience functions
 
-These functions can be view as examples of how to use the more configurable (but much more complicated) pipeline functions, or as simple pre made recipes for specific plots.
+These functions are simple premade recipes for specific plot types.
+
+They also function as examples of how to use the more configurable, but much more complicated, pipeline functions.
 
 ---
 
