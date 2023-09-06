@@ -8,9 +8,9 @@
 #
 # A data analysis functions for `snapshotPlot` must take a dictionary with the following shape:
 # 
-#   + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-#   + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-#   + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+#   + `:sim_data`          -> ::Simulation (see the definition of `Simulation` in `./src/constants.jl`.).
+#   + `:snap_data`         -> ::Snapshot (see the definition of `Snapshot` in `./src/constants.jl`.).
+#   + `:gc_data`           -> ::GroupCatalog (see the definition of `GroupCatalog` in `./src/constants.jl`.).
 #   + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
 #   + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
 #   + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
