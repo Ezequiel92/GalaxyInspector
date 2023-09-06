@@ -707,8 +707,8 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
   - `rotation::Symbol`: Type of rotation. The options are:
 
       + `:zero`       -> No rotation is appplied.
-      + `:global_pa`  -> Sets the principal axes of the whole system as the new reference system.
-      + `:stellar_pa` -> Sets the stellar principal axes as the new reference system.
+      + `:global_pa`  -> Sets the angular momentum of the whole system as the new z axis.
+      + `:stellar_pa` -> Sets the stellar angular momentum as the new z axis.
 """
 function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
@@ -1939,6 +1939,62 @@ function computePrincipalAxes(
 
     # Compute the principal axes
     return eigvecs(J)
+
+end
+
+"""
+    computeGlobalPrincipalAxes(data_dict::Dict)::Matrix{Float64}
+
+Compute the principal axes of the whole system in `data`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - The principal axes in a matrix, where each column is an axis.
+"""
+function computeGlobalPrincipalAxes(data_dict::Dict)::Matrix{Float64}
+
+    type_symbols = snapshotTypes(data_dict)
+
+    @info("computeGlobalPrincipalAxes: The principal axes will be computed using $(type_symbols)")
+
+    # Concatenate the position and masses of all the cells and particles in the system
+    positions = hcat(
+        [
+            data_dict[type_symbol]["POS "] for
+            type_symbol in type_symbols if !isempty(data_dict[type_symbol]["POS "])
+        ]...,
+    )
+    masses = vcat(
+        [
+            data_dict[type_symbol]["MASS"] for
+            type_symbol in type_symbols if !isempty(data_dict[type_symbol]["MASS"])
+        ]...,
+    )
+
+    # Check for missing data
+    (
+        !any(isempty, [positions, masses]) || 
+        throw(ArgumentError("computeGlobalPrincipalAxes: The principal axes are not defined \
+        for an empty system"))
+    )
+
+    return computePrincipalAxes(positions, masses)
 
 end
 
@@ -3610,8 +3666,8 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
           + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int64` halo, as the new origin.
       + Rotation for the simulation box. The posibilities are:
 
-          + `:global_pa`  -> Sets the principal axes of the whole system as the new reference system.
-          + `:stellar_pa` -> Sets the stellar principal axes as the new reference system.
+          + `:global_pa`  -> Sets the angular momentum of the whole system as the new z axis.
+          + `:stellar_pa` -> Sets the stellar angular momentum as the new z axis.
       + New request dictionary.
 
 """

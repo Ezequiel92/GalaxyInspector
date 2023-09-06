@@ -90,9 +90,9 @@ Some of the features are:
       + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int64` halo, as the new origin.
   - `rotation::Symbol=:zero`: Type of rotation (only relevant if `transform_box` = true). The options are:
 
-      + `:zero`       -> No rotation is applied.
-      + `:global_pa`  -> Sets the principal axes of the whole system (after filtering) as the new reference system.
-      + `:stellar_pa` -> Sets the stellar principal axes (after filtering) as the new reference system.
+      + `:zero`       -> No rotation is appplied.
+      + `:global_pa`  -> Sets the angular momentum of the whole system as the new z axis.
+      + `:stellar_pa` -> Sets the stellar angular momentum as the new z axis.
   - `smooth::Int64=0`: The result of `da_functions` will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing. Only valid for `scatter!`, `lines!`, and `scatterlines!` plots.
   - `x_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the x axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the y axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
