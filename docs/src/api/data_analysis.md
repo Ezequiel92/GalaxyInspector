@@ -45,8 +45,8 @@ A data analysis functions for [`timeSeriesPlot`](@ref) must take a [`Simulation`
 where:
 
   - `sim_data::Simulation`, see [`Simulation`](https://ezequiel92.github.io/GalaxyInspector/dev/api/constants/#GalaxyInspector.Simulation).
-  - `processed\_data\_x::Vector{<:Number}`
-  - `processed\_data\_y::Vector{<:Number}`
+  - `processed_data_x::Vector{<:Number}`
+  - `processed_data_y::Vector{<:Number}`
 
 ---
 

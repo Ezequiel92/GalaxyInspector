@@ -1905,7 +1905,7 @@ function compareWithFeldmann2020(
     timeSeriesPlot(
         simulation_paths,
         [scatterlines!];
-        pf_kwargs=[(; markersize=12)],
+        pf_kwargs=[(; markersize=14)],
         # `timeSeriesPlot` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)-with-Feldmann2020",
@@ -1919,7 +1919,7 @@ function compareWithFeldmann2020(
         da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=true)],
         post_processing=ppFeldmann2020!,
         pp_args=(x_quantity, y_quantity),
-        pp_kwargs=(; color=:blue),
+        pp_kwargs=(;),
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=0,

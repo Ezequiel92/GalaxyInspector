@@ -3753,7 +3753,7 @@ function selectFilter(
         rotation = :stellar_pa
 
         new_request = mergeRequests(
-            addRequest(request, Dict(:stars => ["POS ", "MASS", "VEL "])),
+            mergeRequests(request, Dict(:stars => ["POS ", "MASS", "VEL "])),
             Dict(:group => ["G_Nsubs", "G_LenType", "G_CM"], :subhalo => ["S_LenType", "S_CM"]),
         )
 

@@ -623,7 +623,7 @@ function ppFeldmann2020!(
     end
 
     # Plot the selected values
-    scatter!(figure.current_axis.x, x_data, y_data; color, marker)
+    scatter!(figure.current_axis.x, x_data, y_data; color, marker, markersize=8)
 
     return [MarkerElement(; color, marker)], ["Feldmann (2020)"]
 
