@@ -1,8 +1,8 @@
 # Convenience functions
 
-These functions are simple premade recipes for specific plot types.
+These functions are simple pre-made recipes for specific plot types.
 
-They also function as examples of how to use the more configurable, but much more complicated, [pipeline functions](https://ezequiel92.github.io/GalaxyInspector/dev/api/pipelines/).
+They also function as examples of how to use the more configurable, but much more complicated, [pipeline](https://ezequiel92.github.io/GalaxyInspector/dev/api/pipelines/) functions.
 
 ---
 
