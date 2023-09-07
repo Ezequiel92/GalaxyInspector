@@ -8,9 +8,9 @@
 #
 # A data analysis functions for `snapshotPlot` must take a dictionary with the following shape:
 # 
-#   + `:sim_data`          -> ::Simulation (see the definition of `Simulation` in `./src/constants.jl`.).
-#   + `:snap_data`         -> ::Snapshot (see the definition of `Snapshot` in `./src/constants.jl`.).
-#   + `:gc_data`           -> ::GroupCatalog (see the definition of `GroupCatalog` in `./src/constants.jl`.).
+#   + `:sim_data`          -> ::Simulation (see the `Simulation` struct in `./src/constants.jl`.).
+#   + `:snap_data`         -> ::Snapshot (see the `Snapshot` struct in `./src/constants.jl`.).
+#   + `:gc_data`           -> ::GroupCatalog (see the `GroupCatalog` struct in `./src/constants.jl`.).
 #   + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
 #   + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
 #   + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
@@ -1180,7 +1180,7 @@ end
 #
 # where:
 #
-#   - sim_data::Simulation, see the definition of `Simulation` in `./src/constants.jl`.
+#   - sim_data::Simulation, see the `Simulation` struct in `./src/constants.jl`.
 #   - processed_data_x::Vector{<:Number}
 #   - processed_data_y::Vector{<:Number}
 #
