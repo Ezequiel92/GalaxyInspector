@@ -4,7 +4,7 @@ A post-processing function must take a [Makie](https://docs.makie.org/stable/) f
 
 Expected signature:
 
-  post_processing(figure, args...; kwargs...) -> ([marker, ...], [label, ...]) or `nothing`
+  post\_processing(figure, args...; kwargs...) -> ([marker, ...], [label, ...]) or `nothing`
 
 where:
 

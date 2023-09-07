@@ -22,7 +22,7 @@ and return one or more vectors or matrices with the processed data. It should re
 
 ### Expected signature:
 
-  da_function(data_dict, args...; kwargs...) -> (processed_data, ...)  or `nothing`
+  da\_function(data\_dict, args...; kwargs...) -> (processed\_data, ...)  or `nothing`
 
 where:
 
@@ -36,13 +36,13 @@ A data analysis functions for [`timeSeriesPlot`](@ref) must take a [`Simulation`
 
 ### Expected signature:
 
-  da_function(sim_data, args...; kw_args...) -> (processed_data_x, processed_data_y)
+  da\_function(sim\_data, args...; kw\_args...) -> (processed\_data\_x, processed\_data\_y)
 
 where:
 
   - sim_data::Simulation, see [`Simulation`](https://ezequiel92.github.io/GalaxyInspector/dev/api/constants/#GalaxyInspector.Simulation).
-  - processed_data_x::Vector{<:Number}
-  - processed_data_y::Vector{<:Number}
+  - processed\_data\_x::Vector{<:Number}
+  - processed\_data\_y::Vector{<:Number}
 
 ---
 
