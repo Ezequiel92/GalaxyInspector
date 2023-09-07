@@ -1,6 +1,8 @@
 # Data acquisition functions
 
-These function read the output files (e.g. snapshots and FoF catalogs) from the simulation, and load the data to memory using dictionaries.
+These function read the different output files from the simulation (snapshots, FoF catalogs, sfr.txt, etc.), and load the data into memory as dictionaries.
+
+Some of these functions are exported.
 
 ---
 

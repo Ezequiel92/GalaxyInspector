@@ -1,8 +1,10 @@
 # Arepo utilities
 
-These functions are only used internally (not exported), and depend on the particulars of the Arepo code (e.g. units or the structure of the snapshots).
+These functions are only used internally, and depend on the particulars of the Arepo code (e.g. units).
 
-Here you can find the lowest level functions that compute physical quantities (e.g. angular momentum, gas temperature, etc.).
+Here you can find the lowest level functions that compute physical quantities (angular momentum, gas temperature, etc.).
+
+None of these functions are exported.
 
 ---
 

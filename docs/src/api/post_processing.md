@@ -2,15 +2,19 @@
 
 A post-processing function must take a [Makie](https://docs.makie.org/stable/) figure, add something to it, and return how to label the additions (or `nothing` when no new labels should be drawn).
 
-Expected signature:
+None of these functions are exported.
 
-  post\_processing(figure, args...; kwargs...) -> ([marker, ...], [label, ...]) or `nothing`
+### Expected signature:
+
+```julia
+  post_processing(figure, args...; kwargs...) -> ([marker, ...], [label, ...])
+```
 
 where:
 
-  - figure::Makie.Figure
-  - marker::LegendElement
-  - label::String
+  - `figure::Makie.Figure`
+  - `marker::LegendElement`
+  - `label::String`
 
 ---
 

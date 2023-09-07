@@ -2,7 +2,9 @@
 
 These functions construct a plotting pipeline, from reading the data to generating the figures and animations.
 
-They have many of optional allowing to configure most aspects of the plots.
+They have many optional arguments allowing to configure most aspects of the plots.
+
+All these functions are exported.
 
 ---
 

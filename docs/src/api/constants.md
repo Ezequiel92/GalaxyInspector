@@ -1,6 +1,8 @@
 # Constants
 
-List of constant and structures used to configure GalaxyInspector, and to store information about Arepo (e.g. the available quantities in the snapshot and their units).
+This is a list of constant and types used to configure GalaxyInspector and to store information about Arepo (e.g. the quantities in a snapshot and their units).
+
+None of these constants and types are exported.
 
 ---
 
