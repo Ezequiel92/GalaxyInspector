@@ -1312,7 +1312,7 @@ end
 """
     findQtyExtrema(
         simulation_path::String,
-        snap_n::Int64,
+        slice_n::Int64,
         type_symbol::Symbol,
         block::String; 
         <keyword arguments>
@@ -1323,7 +1323,7 @@ Compute the minimum and maximum values of `block`.
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `snap_n::Int64`: Snapshot number (starting from 0 like the number in the file name). If set to a negative number, the values in the whole simulation will be compared.
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1. If set to a negative number, the values in the whole simulation will be compared.
   - `type_symbol::Symbol`: Cell/particle type. The possibilities are the keys of [`ParticleIndex`](@ref).
   - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `f::Function=identity`: A functions with the signature:
@@ -1342,7 +1342,7 @@ Compute the minimum and maximum values of `block`.
 """
 function findQtyExtrema(
     simulation_path::String,
-    snap_n::Int64,
+    slice_n::Int64,
     type_symbol::Symbol,
     block::String;
     f::Function=identity,
@@ -1356,22 +1356,25 @@ function findQtyExtrema(
 
     simulation_table = makeSimulationTable(simulation_path; warnings)
 
-    if snap_n >= 0
+    if slice_n > 0
 
-        snapshot_row = filter(:numbers => ==(lpad(snap_n, 3, "0")), simulation_table)
+        # Get the number in the filename
+        snap_n = safeSelect(simulation_table[!, :numbers], slice_n; warnings)
 
+        # Check that after slicing there is one snapshot left
         (
-            !isempty(snapshot_row) || 
-            throw(ArgumentError("findQtyExtrema: I could not find the snapshot with number \
-            $(snap_n), the available options are in the table: \n$(simulation_table)"))
-
+            !isempty(snap_n) ||
+            throw(ArgumentError("findQtyExtrema: There are no snapshots with `slice_n` = \
+            $(slice_n), the contents of $(simulation_path) are: \n$(simulation_table)"))
         )
 
+        # Find the target row and snapshot path
+        snapshot_row = filter(:numbers => ==(lpad(snap_n, 3, "0")), simulation_table)
         snapshot_path = snapshot_row[1, :snapshot_paths]
 
         (
             !ismissing(snapshot_path) || 
-            throw(ArgumentError("findQtyExtrema: The snapshot with number $(snap_n) seems \
+            throw(ArgumentError("findQtyExtrema: The snapshot number $(slice_n) seems \
             to be missing"))
 
         )

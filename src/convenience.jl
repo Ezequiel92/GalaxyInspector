@@ -5,7 +5,7 @@
 """
     simulationReport(
         simulation_paths::Vector{String},
-        snap_n::Int64; 
+        slice_n::Int64; 
         <keyword arguments>
     )::Nothing
 
@@ -14,7 +14,7 @@ Write a text file with information about a given snapshot and simulation.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be printed for each simulation.
-  - `snap_n::Int64`: Snapshot number (starting from 0 like the number in the file name).
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be considered in the "filtered" section of the report. The options are:
 
@@ -29,7 +29,7 @@ Write a text file with information about a given snapshot and simulation.
 """
 function simulationReport(
     simulation_paths::Vector{String},
-    snap_n::Int64;
+    slice_n::Int64;
     output_path::String="./",
     filter_mode::Symbol=:all,
     halo_idx::Int64=1,
@@ -54,17 +54,21 @@ function simulationReport(
         #   - 8. Group catalog path
         simulation_table = makeSimulationTable(simulation_path)
 
-        # Find the target snapshot
+        # Get the number in the filename
+        snap_n = safeSelect(simulation_table[!, :numbers], slice_n; warnings)
+
+        # Check that after slicing there is one snapshot left
+        (
+            !isempty(snap_n) ||
+            throw(ArgumentError("simulationReport: There are no snapshots with `slice_n` = \
+            $(slice_n), the contents of $(simulation_path) are: \n$(simulation_table)"))
+        )
+
+        # Find the target row
         snapshot_row = filter(:numbers => ==(lpad(snap_n, 3, "0")), simulation_table)
 
         # Construct the file name of the target snapshot
         snapshot_filename = "\"$(SNAP_BASENAME)_$(lpad(snap_n, 3, "0"))\""
-
-        (
-            !isempty(snapshot_row) ||
-            throw(ArgumentError("simulationReport: I could not find the snapshot \
-            $(snapshot_filename), the contents of $(simulation_path) are: \n$(simulation_table)"))
-        )
 
         # Select the path to the target snapshot
         snapshot_path = snapshot_row[1, :snapshot_paths]
@@ -517,7 +521,7 @@ function simulationReport(
 
                 min, max = findQtyExtrema(
                     simulation_path,
-                    snap_n,
+                    slice_n,
                     :gas,
                     quantity;
                     f=x -> filter(!isnan, x),
@@ -855,7 +859,7 @@ Plot a 2D histogram of the density.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Snapshot number (starting from 1, and independent of the number in the file names). If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
 
       + `:stellar_mass`   -> Stellar mass.
@@ -999,7 +1003,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Snapshot number (starting from 1, and independent of the number in the file names). If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`             -> Stellar mass.
@@ -1187,7 +1191,7 @@ Plot two quantities as a density scatter plot (2D histogram).
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Snapshot number (starting from 1, and independent of the number in the file names). If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`             -> Stellar mass.
@@ -1535,7 +1539,7 @@ Plot the galaxy rotation curve of a set of simulations.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Snapshot number (starting from 1, and independent of the number in the file names). If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `radius::Unitful.Length=FILTER_R`: Maximum radial distance for the rotation curve.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
@@ -1642,7 +1646,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Snapshot number (starting from 1, and independent of the number in the file names). If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:sfr`          -> The star formation rate.
@@ -1755,7 +1759,7 @@ Plot a histogram of the stellar circularity.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Snapshot number (starting from 1, and independent of the number in the file names). If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `range::NTuple{2,<:Number}=(-2.0, 2.0)`: Circularity range.
   - `n_bins::Int64=60`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
@@ -1970,7 +1974,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Snapshot number (starting from 1, and independent of the number in the file names). If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_area_density`   -> Stellar area mass density.
@@ -2091,7 +2095,7 @@ Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Snapshot number (starting from 1, and independent of the number in the file names). If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
 
       + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
