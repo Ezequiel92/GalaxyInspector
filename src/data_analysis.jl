@@ -431,7 +431,7 @@ function daStellarHistory(
     # Compute the time axis
     min, max = extrema(birth_times)
     bin_width = (max - min) / n_bins
-    x_axis = collect(range(min + (bin_width / 2), length=n_bins, step=bin_width))
+    x_axis = collect(range(min + (bin_width * 0.5), length=n_bins, step=bin_width))
 
     # Compute the stellar quantity
     if quantity == :sfr
@@ -646,7 +646,7 @@ function daDensity2DHistogram(
         elseif "RHO " ∈ keys(data_dict[type_symbol])
             densities = data_dict[type_symbol]["RHO "]
             masses = data_dict[type_symbol]["MASS"]
-            smoothing_lengths = [cbrt(m / ((4 / 3) * π * ρ)) for (m, ρ) in zip(masses, densities)]
+            smoothing_lengths = [cbrt(m / (1.333 * π * ρ)) for (m, ρ) in zip(masses, densities)]
         else
             throw(ArgumentError("daDensity2DHistogram: Neither the \"SOFT\" or \"RHO \" blocks \
             where present for the cell/particle type :$(type_symbol), and I need one of them to \

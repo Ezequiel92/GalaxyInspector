@@ -10,7 +10,7 @@ area(r::Number)::Number = π * r * r
 """
 Volume of a sphere with radius `r`.
 """
-volume(r::Number)::Number = π * r * r * r * 4.0 / 3.0
+volume(r::Number)::Number = π * r * r * r * 1.333
 
 """
     ring(vec::Vector, index::Integer)
@@ -869,7 +869,7 @@ function histogram2D(
     )
 
     # Half bin size
-    h_bin_width = grid.bin_width / 2.0
+    h_bin_width = grid.bin_width * 0.5
 
     # Compute the physical position of the grid borders
     h_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
@@ -1063,7 +1063,7 @@ Compute a 2D histogram of `positions`.
 function histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int64}
 
     # Half bin size
-    h_bin_width = grid.bin_width / 2.0
+    h_bin_width = grid.bin_width * 0.5
 
     # Compute the physical position of the grid borders
     h_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
@@ -1396,10 +1396,6 @@ Default function to end `cleanPlot!` recursion if an unknown type is encountered
 """
 cleanPlot!(default) = error("cleanPlot!: I cannot clean elements of type $(typeof(default))")
 
-####################################################################################################
-# SPH kernels.
-####################################################################################################
-
 """
     cubicSplineKernel(q::Real, h::Number)::Number
 
@@ -1430,258 +1426,14 @@ function cubicSplineKernel(q::Real, h::Number)::Number
         but I got `q` = $q and `h` = $h"))
     )
 
-    σ3 = 10 / (7 * area(h))
+    σ3 = 10.0 / (7.0 * area(h))
 
     if 0 <= q <= 1
-        return σ3 * (1 - (3 / 2) * q^2 * (1 - q / 2))
+        return σ3 * (1.0 - 1.5 * q * q * (1.0 - q * 0.5))
     elseif 1 < q <= 2
-        return (σ3 / 4) * (2 - q)^3
+        return (σ3 * 0.25) * (2.0 - q)^3.0
     else
         return zero(σ3)
-    end
-
-end
-
-"""
-    gaussianKernel(q::Real, h::Number)::Number
-
-2D gaussian kernel.
-
-# Arguments
-
-  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
-  - `h::Number`: Smoothing length.
-
-# Returns
-
-  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
-
-# References
-
-[PySPH documentation](https://pysph.readthedocs.io/en/latest/reference/kernels.html)
-
-J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
-
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
-"""
-function gaussianKernel(q::Real, h::Number)::Number
-
-    (
-        isPositive(q, h) || 
-        throw(DomainError("gaussianKernel: `q` and `h` must be positive, \
-        but I got `q` = $q and `h` = $h"))
-    )
-
-    σg = 1 / area(h)
-
-    if 0 <= q <= 3
-        return σg * ℯ^(-(q^2))
-    else
-        return zero(σg)
-    end
-
-end
-
-"""
-    quinticSplineKernel(q::Real, h::Number)::Number
-
-2D quintic spline kernel.
-
-# Arguments
-
-  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
-  - `h::Number`: Smoothing length.
-
-# Returns
-
-  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
-
-# References
-
-[PySPH documentation](https://pysph.readthedocs.io/en/latest/reference/kernels.html)
-
-J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
-
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
-"""
-function quinticSplineKernel(q::Real, h::Number)::Number
-
-    (
-        isPositive(q, h) || 
-        throw(DomainError("quinticSplineKernel: `q` and `h` must be positive, \
-        but I got `q` = $q and `h` = $h"))
-    )
-
-    σ5 = 7 / (478 * area(h))
-
-    if 0 <= q <= 1
-        return σ5 * ((3 - q)^5 - 6 * (2 - q)^5 + 15 * (1 - q)^5)
-    elseif 1 < q <= 2
-        return σ5 * ((3 - q)^5 - 6 * (2 - q)^5)
-    elseif 2 < q <= 3
-        return σ5 * (3 - q)^5
-    else
-        return zero(σ5)
-    end
-
-end
-
-"""
-    superGaussianKernel(q::Real, h::Number)::Number
-
-2D super gaussian kernel.
-
-# Arguments
-
-  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
-  - `h::Number`: Smoothing length.
-
-# Returns
-
-  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
-
-# References
-
-[PySPH documentation](https://pysph.readthedocs.io/en/latest/reference/kernels.html)
-
-J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
-
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
-"""
-function superGaussianKernel(q::Real, h::Number)::Number
-
-    (
-        isPositive(q, h) || 
-        throw(DomainError("superGaussianKernel: `q` and `h` must be positive, \
-        but I got `q` = $q and `h` = $h"))
-    )
-
-    σsg = 1 / area(h)
-
-    if 0 <= q <= 3
-        return σsg * ℯ^(-(q^2)) * (2 - q^2)
-    else
-        return zero(σsg)
-    end
-
-end
-
-"""
-    wendlandQuinticKernel(q::Real, h::Number)::Number
-
-2D Wendland quintic kernel.
-
-# Arguments
-
-  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
-  - `h::Number`: Smoothing length.
-
-# Returns
-
-  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
-
-# References
-
-[PySPH documentation](https://pysph.readthedocs.io/en/latest/reference/kernels.html)
-
-J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
-
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
-"""
-function wendlandQuinticKernel(q::Real, h::Number)::Number
-
-    (
-        isPositive(q, h) ||
-        throw(DomainError("wendlandQuinticKernel: `q` and `h` must be positive, \
-        but I got `q` = $q and `h` = $h"))
-    )
-
-    αd = 7 / (4 * area(h))
-
-    if 0 <= q <= 2
-        return αd * (1 - q / 2)^4 * (2 * q + 1)
-    else
-        return zero(αd)
-    end
-
-end
-
-"""
-    wendlandQuinticC4Kernel(q::Real, h::Number)::Number
-
-2D Wendland quintic C4 kernel.
-
-# Arguments
-
-  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
-  - `h::Number`: Smoothing length.
-
-# Returns
-
-  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
-
-# References
-
-[PySPH documentation](https://pysph.readthedocs.io/en/latest/reference/kernels.html)
-
-J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
-
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
-"""
-function wendlandQuinticC4Kernel(q::Real, h::Number)::Number
-
-    (
-        isPositive(q, h) ||
-        throw(DomainError("wendlandQuinticC4Kernel: `q` and `h` must be positive, \
-        but I got `q` = $q and `h` = $h"))
-    )
-
-    αd = 9 / (4 * area(h))
-
-    if 0 <= q <= 2
-        return αd * (1 - q / 2)^6 * ((35 / 12) * q^2 + 3 * q + 1)
-    else
-        return zero(αd)
-    end
-
-end
-
-"""
-    wendlandQuinticC6Kernel(q::Real, h::Number)::Number
-
-2D Wendland quintic C6 kernel.
-
-# Arguments
-
-  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
-  - `h::Number`: Smoothing length.
-
-# Returns
-
-  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
-
-# References
-
-[PySPH documentation](https://pysph.readthedocs.io/en/latest/reference/kernels.html)
-
-J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
-
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
-"""
-function wendlandQuinticC6Kernel(q::Real, h::Number)::Number
-
-    (
-        isPositive(q, h) ||
-        throw(DomainError("wendlandQuinticC6Kernel: `q` and `h` must be positive, \
-        but I got `q` = $q and `h` = $h"))
-    )
-
-    αd = 78 / (28 * area(h))
-
-    if 0 <= q <= 2
-        return αd * (1 - q / 2)^8 * (4 * q^3 + 6.25 * q^2 + 4 * q + 1)
-    else
-        return zero(αd)
     end
 
 end

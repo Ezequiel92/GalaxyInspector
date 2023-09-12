@@ -608,10 +608,10 @@ struct InternalUnits
 
         U_cgs = v_unit^2 |> u"erg*g^-1"
 
-        rho_cgs = m_cgs / x_cgs^3
+        rho_cgs = m_cgs * x_cgs^-3
 
         # Thermal pressure (it uses v_unit^2 instead of v_cgs^2, which would add an extra factor of a0)
-        P_Pa = v_unit^2 * m_cgs / x_cgs^3 |> u"Pa"
+        P_Pa = v_unit^2 * m_cgs * x_cgs^-3 |> u"Pa"
 
         new(
             x_cgs,
@@ -915,7 +915,7 @@ Dimensional information about a physical quantity.
 # Fields
 
   - `hdf5_name::String`: HDF5 block name.
-  - `dimensions::Unitful.Dimensions`: Physical dimensions of the quantity, e.g. `Unitful.𝐋 / Unitful.𝐓`.
+  - `dimensions::Unitful.Dimensions`: Physical dimensions of the quantity, e.g. `Unitful.𝐋 * Unitful.𝐓^-1`.
   - `unit::Union{Unitful.Units,Symbol}`: Units of the quantity within the code. It can be a unit from [Unitful](https://github.com/PainterQubits/Unitful.jl) or [UnitfulAstro](https://github.com/JuliaAstro/UnitfulAstro.jl), or it can be the symbol `:internal` which denotes internal code units.
 """
 struct Qty

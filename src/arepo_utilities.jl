@@ -177,7 +177,7 @@ function formatError(q_mean::Number, q_error::Number)::NTuple{2,<:Number}
             round_mean = round(mean; digits)
             round_error = round(error, sigdigits=1 + extra)
         else
-            first_digit = trunc(error / 10.0^(floor(sigdigit_pos)))
+            first_digit = trunc(error * 10.0^(-floor(sigdigit_pos)))
             extra = first_digit == 1.0 ? 2 : 1
             sigdigits = ceil(Int64, log10(abs(mean))) - ceil(Int64, sigdigit_pos) + extra
             round_mean = round(mean; sigdigits)
@@ -1757,7 +1757,7 @@ function computeTemperature(
 
     # T = (adiabatic_index - 1) * internal_energy_per_unit_mass * 
     #     (total_mass / total_number_of_particles) / boltzmann_constant
-    return @. 2.0 / 3.0 * internal_energy * μ * Unitful.mp / Unitful.k
+    return @. 0.6667 * internal_energy * μ * Unitful.mp / Unitful.k
 
 end
 
@@ -2320,7 +2320,7 @@ function computeSpinParameter(
         )
     )
 
-    return uconvert(Unitful.NoUnits, J / sqrt(2 * R * Unitful.G * M^3))
+    return uconvert(Unitful.NoUnits, J / sqrt(2.0 * R * Unitful.G * M^3))
 
 end
 
@@ -2723,7 +2723,7 @@ function computeGlobalAbundance(
     # Compute the relative abundance of `element`
     abundance = ustrip(Unitful.NoUnits, n_X / n_H)
 
-    return abundance / (solar ? exp10(SolarAbundance[element] - 12) : 1.0)
+    return abundance / (solar ? exp10(SolarAbundance[element] - 12.0) : 1.0)
 
 end
 

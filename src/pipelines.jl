@@ -657,7 +657,7 @@ function snapshotPlot(
                     end
                 end
 
-                nbanks = Int64(ceil(length(sim_labels) / 3))
+                nbanks = Int64(ceil(length(sim_labels) * 0.3333))
                 Makie.Legend(figure[2, 1][1, 1], legend_element, sim_labels; nbanks)
 
             end
@@ -667,7 +667,7 @@ function snapshotPlot(
 
             # Add the post processing legend
             if !isnothing(pp_legend)
-                nbanks = Int64(ceil(length(pp_legend) / 3))
+                nbanks = Int64(ceil(length(pp_legend) * 0.3333))
                 Makie.Legend(
                     figure[2, 1][!isnothing(sim_labels) ? 2 : 1, 1],
                     pp_legend[1],
@@ -1080,7 +1080,7 @@ function timeSeriesPlot(
                 end
             end
 
-            nbanks = Int64(ceil(length(sim_labels) / 3))
+            nbanks = Int64(ceil(length(sim_labels) * 0.3333))
             Makie.Legend(figure[2, 1][1, 1], legend_element, sim_labels; nbanks)
 
         end
@@ -1090,7 +1090,7 @@ function timeSeriesPlot(
 
         # Add the post processing legend
         if !isnothing(pp_legend)
-            nbanks = Int64(ceil(length(pp_legend) / 3))
+            nbanks = Int64(ceil(length(pp_legend) * 0.3333))
             Makie.Legend(
                 figure[2, 1][!isnothing(sim_labels) ? 2 : 1, 1],
                 pp_legend[1],

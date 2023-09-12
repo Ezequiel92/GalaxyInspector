@@ -422,9 +422,9 @@ function ppBigiel2008!(
 
     # Compute the area density of gas
     if x_log
-        Σg = @. ustrip(u"Msun * pc^-2", exp10(x_points) / 10 * x_unit)
+        Σg = @. ustrip(u"Msun * pc^-2", exp10(x_points) * 0.1 * x_unit)
     else
-        Σg = @. ustrip(u"Msun * pc^-2", x_points / 10 * x_unit)
+        Σg = @. ustrip(u"Msun * pc^-2", x_points * 0.1 * x_unit)
     end
 
     # Compute the values for the y axis
