@@ -111,8 +111,8 @@ Some of the features are:
   - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` / 10^`y_exp_factor` `y_unit`.
   - `xaxis_var_name::AbstractString=""`: Name of the variable for the x axis.
   - `yaxis_var_name::AbstractString=""`: Name of the variable for the y axis.
-  - `xaxis_scale_func::Union{Function,Makie.Symlog10}=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `yaxis_scale_func::Union{Function,Makie.Symlog10}=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `xaxis_scale_func::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `yaxis_scale_func::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the x axis.
   - `yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the y axis.
 
@@ -184,8 +184,8 @@ function snapshotPlot(
     yaxis_label::AbstractString="auto_label",
     xaxis_var_name::AbstractString="",
     yaxis_var_name::AbstractString="",
-    xaxis_scale_func::Union{Function,Makie.Symlog10}=identity,
-    yaxis_scale_func::Union{Function,Makie.Symlog10}=identity,
+    xaxis_scale_func::Function=identity,
+    yaxis_scale_func::Function=identity,
     xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
     yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
     # Plotting options
@@ -777,8 +777,8 @@ Some of the features are:
   - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` / 10^`y_exp_factor` `y_unit`.
   - `xaxis_var_name::AbstractString=""`: Name of the variable for the x axis.
   - `yaxis_var_name::AbstractString=""`: Name of the variable for the y axis.
-  - `xaxis_scale_func::Union{Function,Makie.Symlog10}=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `yaxis_scale_func::Union{Function,Makie.Symlog10}=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `xaxis_scale_func::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `yaxis_scale_func::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the x axis.
   - `yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the y axis.
 
@@ -837,8 +837,8 @@ function timeSeriesPlot(
     yaxis_label::AbstractString="auto_label",
     xaxis_var_name::AbstractString="",
     yaxis_var_name::AbstractString="",
-    xaxis_scale_func::Union{Function,Makie.Symlog10}=identity,
-    yaxis_scale_func::Union{Function,Makie.Symlog10}=identity,
+    xaxis_scale_func::Function=identity,
+    yaxis_scale_func::Function=identity,
     xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
     yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
     # Plotting options

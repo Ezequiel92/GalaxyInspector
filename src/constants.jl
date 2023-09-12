@@ -340,9 +340,7 @@ const MARKERS = [:ltriangle, :circle, :+, :diamond, :cross, :rtriangle, :star4, 
 """
 List of line styles.
 """
-const LINE_STYLES = [
-    nothing, :dash, :dot, :dashdot, "-....", (".", :dense), :dashdotdot, ("-", :loose),
-]
+const LINE_STYLES = [:solid, :dash, :dot, :dashdot, :dashdotdot, (".", :dense), ("-", :loose)]
 
 """
 Global plot theme.
