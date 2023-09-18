@@ -1,19 +1,19 @@
 push!(LOAD_PATH, "./src/")
 using Documenter, GalaxyInspector
-using DocumenterTools
+# using DocumenterTools: Themes
 
 # True if it is being deployed, false if it is being compile locally
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
 
 # Compile themes
-compile(
-    joinpath(@__DIR__, "src/assets/light.scss"),
-    joinpath(@__DIR__, "src/assets/themes/documenter-light.css"),
-)
-compile(
-    joinpath(@__DIR__, "src/assets/dark.scss"),
-    joinpath(@__DIR__, "src/assets/themes/documenter-dark.css"),
-)
+# compile(
+#     joinpath(@__DIR__, "src/assets/light.scss"),
+#     joinpath(@__DIR__, "src/assets/themes/documenter-light.css"),
+# )
+# compile(
+#     joinpath(@__DIR__, "src/assets/dark.scss"),
+#     joinpath(@__DIR__, "src/assets/themes/documenter-dark.css"),
+# )
 
 # Compile documentation
 makedocs(
