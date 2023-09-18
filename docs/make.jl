@@ -41,6 +41,7 @@ makedocs(
         ],
         "Index"        => "index.md",
     ],
+    warnonly=[:missing_docs],
 )
 
 # Deploy the documentation to GitHub pages
