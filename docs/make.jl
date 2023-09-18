@@ -1,6 +1,6 @@
 push!(LOAD_PATH, "./src/")
 using Documenter, GalaxyInspector
-using DocumenterTools: Themes
+using DocumenterTools
 
 # True if it is being deployed, false if it is being compile locally
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
