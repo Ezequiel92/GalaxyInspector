@@ -150,7 +150,12 @@ function simulationReport(
         ############################################################################################
 
         # Detect which components are present in the snapshot
-        component_list = h5open(snapshot_path, "r") do snapshot
+        if isfile(snapshot_path)
+            file_path = snapshot_path
+        else
+            file_path = minimum(glob("$(SNAP_BASENAME)_*.*.hdf5", snapshot_path))
+        end
+        component_list = h5open(file_path, "r") do snapshot
             filter(
                 in([:gas, :halo, :stars, :black_hole]),
                 [get(ParticleType, key, nothing) for key in keys(snapshot)],
@@ -417,6 +422,8 @@ function simulationReport(
 
         println(file, "\tCenter of mass:\n")
 
+        global_cm = computeGlobalCenterOfMass(data_dict)
+
         for component in component_list
 
             cm = computeCenterOfMass(data_dict[component]["POS "], data_dict[component]["MASS"])
@@ -425,16 +432,29 @@ function simulationReport(
             title *= " "^(24 - length(title))
 
             println(file, "\t\t$(title)$(round.(ustrip.(u"Mpc", cm), sigdigits=6)) $(u"Mpc")")
+            println(file, "\t\tDistance to global CM:  $(sqrt(sum((global_cm - cm).^2)))\n")
 
         end
 
-        global_cm = round.(ustrip.(u"Mpc", computeGlobalCenterOfMass(data_dict)), sigdigits=6)
+        if :stars ∈ component_list && :halo ∈ component_list
+            position_star = data_dict[:stars]["POS "]
+            mass_star = data_dict[:stars]["MASS"]
+        
+            position_dm = data_dict[:halo]["POS "]
+            mass_dm = data_dict[:halo]["MASS"]
+        
+            cm_dm = computeCenterOfMass(position_dm, mass_dm)
+            cm_star = computeCenterOfMass(position_star, mass_star)
+            println(file, "\t\tStars to halo distance: $(sqrt(sum((cm_star - cm_dm).^2)))")
+        end
 
-        println(file, "\n\t\tGlobal center of mass:   $(global_cm) $(u"Mpc")\n")
+        global_cm = round.(ustrip.(u"Mpc", global_cm), sigdigits=6)
+
+        println(file, "\n\t\tGlobal center of mass:  $(global_cm) $(u"Mpc")\n")
 
         # Translate the simulation box
         translateData!(data_dict, translation)
-
+    
         ############################################################################################
         # Print the normalized angular momentum of each component
         ############################################################################################

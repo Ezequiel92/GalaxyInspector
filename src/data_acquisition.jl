@@ -1087,7 +1087,8 @@ function getSnapshotPaths(simulation_path::String; warnings::Bool=true)::Dict{Sy
 
     # Get the full list of paths to every snapshot in `simulation_path`
     path_list = [
-        glob("**/$(SNAP_BASENAME)_*", simulation_path)
+        glob("*/*/$(SNAP_BASENAME)_*", simulation_path)
+        glob("*/$(SNAP_BASENAME)_*", simulation_path)
         glob("$(SNAP_BASENAME)_*", simulation_path)
     ]
 
@@ -1150,7 +1151,8 @@ function getGroupCatPaths(simulation_path::String; warnings::Bool=true)::Dict{Sy
 
     # Get the full list of paths to every group catalog in `simulation_path`
     path_list = [
-        glob("**/$(GC_BASENAME)_*", simulation_path)
+        glob("*/*/$(GC_BASENAME)_*", simulation_path)
+        glob("*/$(GC_BASENAME)_*", simulation_path)
         glob("$(GC_BASENAME)_*", simulation_path)
     ]
 
