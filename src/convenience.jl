@@ -674,7 +674,7 @@ function simulationReport(
             println(
                 file,
                 "\tSeparation between the minimum potencial and the global CM: \
-                \n\n\t\t$(round.(ustrip.(u"kpc", separation), sigdigits=6)) $(u"Mpc")\n",
+                \n\n\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
             )
 
             ########################################################################################
@@ -758,7 +758,7 @@ function simulationReport(
             println(
                 file,
                 "\tSeparation between the minimum potencial and the global CM: \
-                \n\n\t\t$(round.(ustrip.(u"kpc", separation), sigdigits=6)) $(u"Mpc")\n",
+                \n\n\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
             )
 
             ########################################################################################
