@@ -139,7 +139,7 @@ function simulationReport(
         if !ismissing(groupcat_path)
 
             println(file, "Subfind number:   $(o_idx) (of $(groupcat_length))")
-            println(file, "Subfind path:     $(snapshot_path)\n")
+            println(file, "Subfind path:     $(groupcat_path)\n")
 
         end
 
@@ -436,21 +436,8 @@ function simulationReport(
 
         end
 
-        if :stars ∈ component_list && :halo ∈ component_list
-            position_star = data_dict[:stars]["POS "]
-            mass_star = data_dict[:stars]["MASS"]
-        
-            position_dm = data_dict[:halo]["POS "]
-            mass_dm = data_dict[:halo]["MASS"]
-        
-            cm_dm = computeCenterOfMass(position_dm, mass_dm)
-            cm_star = computeCenterOfMass(position_star, mass_star)
-            println(file, "\t\tStars to halo distance: $(sqrt(sum((cm_star - cm_dm).^2)))")
-        end
-
         global_cm = round.(ustrip.(u"Mpc", global_cm), sigdigits=6)
-
-        println(file, "\n\t\tGlobal center of mass:  $(global_cm) $(u"Mpc")\n")
+        println(file, "\t\tGlobal center of mass:  $(global_cm) $(u"Mpc")\n")
 
         # Translate the simulation box
         translateData!(data_dict, translation)
@@ -570,8 +557,7 @@ function simulationReport(
             )
 
             request = Dict(
-                :subhalo =>
-                    ["S_Mass", "S_MassType", "S_LenType", "S_CM", "S_Pos", "S_HalfmassRad"],
+                :subhalo => ["S_Mass", "S_MassType", "S_LenType", "S_CM", "S_Pos", "S_HalfmassRad"],
                 :group => [
                     "G_Mass",
                     "G_MassType",
@@ -611,16 +597,16 @@ function simulationReport(
             s_mass          = gc_data[:subhalo]["S_Mass"][subhalo_abs_idx]
             s_mass_type     = gc_data[:subhalo]["S_MassType"][:, subhalo_abs_idx]
             s_len_type      = gc_data[:subhalo]["S_LenType"][:, subhalo_abs_idx]
-            s_cm            = ustrip.(u"Mpc", gc_data[:subhalo]["S_CM"][:, subhalo_abs_idx])
-            s_pos           = ustrip.(u"Mpc", gc_data[:subhalo]["S_Pos"][:, subhalo_abs_idx])
+            s_cm            = gc_data[:subhalo]["S_CM"][:, subhalo_abs_idx]
+            s_pos           = gc_data[:subhalo]["S_Pos"][:, subhalo_abs_idx]
             s_half_mass_rad = gc_data[:subhalo]["S_HalfmassRad"][subhalo_abs_idx]
             g_mass          = gc_data[:group]["G_Mass"][halo_idx]
             g_mass_type     = gc_data[:group]["G_MassType"][:, halo_idx]
             g_m_crit_200    = gc_data[:group]["G_M_Crit200"][halo_idx]
             g_len_type      = gc_data[:group]["G_LenType"][:, halo_idx]
             g_n_subs        = gc_data[:group]["G_Nsubs"][halo_idx]
-            g_cm            = ustrip.(u"Mpc", gc_data[:group]["G_CM"][:, halo_idx])
-            g_pos           = ustrip.(u"Mpc", gc_data[:group]["G_Pos"][:, halo_idx])
+            g_cm            = gc_data[:group]["G_CM"][:, halo_idx]
+            g_pos           = gc_data[:group]["G_Pos"][:, halo_idx]
             g_r_crit_200    = gc_data[:group]["G_R_Crit200"][halo_idx]
 
             ########################################################################################
@@ -672,7 +658,24 @@ function simulationReport(
 
             ########################################################################################
 
-            println(file, "\n\tCenter of mass:\n\n\t\t$(round.(g_cm, sigdigits=6)) Mpc\n")
+            println(
+                file, 
+                "\n\tCenter of mass:\n\n\t\t$(round.(ustrip.(u"Mpc", g_cm), sigdigits=6)) \
+                $(u"Mpc")\n",
+            )
+
+            println(
+                file,
+                "\tPosition of the particle with the minimum gravitational potential energy: \
+                \n\n\t\t$(round.(ustrip.(u"Mpc", g_pos), sigdigits=6)) $(u"Mpc")\n",
+            )
+
+            separation = sqrt(sum((g_cm - g_pos).^2))
+            println(
+                file,
+                "\tSeparation between the minimum potencial and the global CM: \
+                \n\n\t\t$(round.(ustrip.(u"kpc", separation), sigdigits=6)) $(u"Mpc")\n",
+            )
 
             ########################################################################################
 
@@ -680,14 +683,6 @@ function simulationReport(
                 file,
                 "\tTotal mass enclosed in a sphere with a mean density 200 times the critical \
                 density:\n\n\t\t$(round(typeof(1.0u"Msun"), g_m_crit_200, sigdigits=3))\n",
-            )
-
-            ########################################################################################
-
-            println(
-                file,
-                "\tPosition of the particle with the minimum gravitational potential energy: \
-                \n\n\t\t$(round.(g_pos, sigdigits=6)) Mpc\n",
             )
 
             ########################################################################################
@@ -747,14 +742,23 @@ function simulationReport(
 
             ########################################################################################
 
-            println(file, "\n\tCenter of mass:\n\n\t\t$(round.(s_cm, sigdigits=6)) Mpc\n")
-
-            ########################################################################################
+            println(
+                file, 
+                "\n\tCenter of mass:\n\n\t\t$(round.(ustrip.(u"Mpc", s_cm), sigdigits=6)) \
+                $(u"Mpc")\n",
+            )
 
             println(
                 file,
                 "\tPosition of the particle with the minimum gravitational potential energy: \
-                \n\n\t\t$(round.(s_pos, sigdigits=6)) Mpc\n",
+                \n\n\t\t$(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
+            )
+
+            separation = sqrt(sum((s_cm - s_pos).^2))
+            println(
+                file,
+                "\tSeparation between the minimum potencial and the global CM: \
+                \n\n\t\t$(round.(ustrip.(u"kpc", separation), sigdigits=6)) $(u"Mpc")\n",
             )
 
             ########################################################################################

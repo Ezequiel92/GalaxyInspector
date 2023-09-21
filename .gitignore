@@ -1,4 +1,3 @@
 docs/build/
 docs/src/assets/themes/
-src/_temp.jl
 .github/workflows/run_tests.yml
