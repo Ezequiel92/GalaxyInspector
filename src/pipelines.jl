@@ -86,7 +86,7 @@ Some of the features are:
       + `:zero`                       -> No translation is applied.
       + `:global_cm`                  -> Sets the center of mass of the whole system (after filtering) as the new origin.
       + `:stellar_cm`                 -> Sets the stellar center of mass (after filtering) as the new origin.
-      + `(halo_idx, subhalo_rel_idx)` -> Sets the center of mass of the `subhalo_rel_idx::Int64` subhalo (of the `halo_idx::Int64` halo), as the new origin.
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int64` subhalo (of the `halo_idx::Int64` halo), as the new origin.
       + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int64` halo, as the new origin.
   - `rotation::Symbol=:zero`: Type of rotation (only relevant if `transform_box` = true). The options are:
 

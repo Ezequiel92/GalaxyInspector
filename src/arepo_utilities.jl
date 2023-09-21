@@ -445,7 +445,7 @@ end
 """
     computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int64})::Vector{<:Unitful.Length}
 
-Read the center of mass of a given halo or subhalo.
+Read the position of the potencial minimum for a given halo or subhalo.
 
 # Arguments
 
@@ -465,11 +465,11 @@ Read the center of mass of a given halo or subhalo.
   - `subfind_idx::NTuple{2,Int64}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, the center of mass of the whole halo with index `halo_idx` is returned.
+      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, the potencial minimum of the whole halo with index `halo_idx` is returned.
 
 # Returns
 
-  - The specified center of mass.
+  - The specified potencial minimum.
 """
 function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int64})::Vector{<:Unitful.Length}
 
@@ -477,14 +477,14 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int64})::Vector{<:
 
     # Load the necessary data
     g_n_subs = data_dict[:group]["G_Nsubs"]
-    g_cm = data_dict[:group]["G_CM"]
-    s_cm = data_dict[:subhalo]["S_CM"]
+    g_pos = data_dict[:group]["G_Pos"]
+    s_pos = data_dict[:subhalo]["S_Pos"]
 
     # Check that the requested halo index is within bounds
     n_groups_total = data_dict[:gc_data].header.n_groups_total
 
     (
-        !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_cm, s_cm]) ||
+        !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_pos, s_pos]) ||
         return zeros(typeof(1.0u"kpc"), 3)
     )
 
@@ -494,8 +494,8 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int64})::Vector{<:
         $(data_dict[:gc_data].path), so halo_idx = $(halo_idx) is out of bounds"))
     )
 
-    # Select the halo center of mass if `subhalo_rel_idx` == 0
-    isPositive(subhalo_rel_idx) || return g_cm[:, halo_idx]
+    # Select the halo potencial minimum if `subhalo_rel_idx` == 0
+    isPositive(subhalo_rel_idx) || return g_pos[:, halo_idx]
 
     # Check that the requested subhalo index is within bounds
     n_subfinds = g_n_subs[halo_idx]
@@ -516,8 +516,8 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int64})::Vector{<:
     # Compute the subhalo absolute index
     subhalo_abs_idx = n_subs_floor + subhalo_rel_idx
 
-    # Select the subhalo center of mass
-    return s_cm[:, subhalo_abs_idx]
+    # Select the subhalo potencial minimum
+    return s_pos[:, subhalo_abs_idx]
 
 end
 
@@ -624,7 +624,7 @@ Translate the positions of the cells/particles in `data_dict`.
       + `:zero`                       -> No translation is applied.
       + `:global_cm`                  -> Sets the center of mass of the whole system as the new origin.
       + `:stellar_cm`                 -> Sets the stellar center of mass as the new origin.
-      + `(halo_idx, subhalo_rel_idx)` -> Sets the center of mass of the `subhalo_rel_idx::Int64` subhalo (of the `halo_idx::Int64` halo), as the new origin.
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int64` subhalo (of the `halo_idx::Int64` halo), as the new origin.
       + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int64` halo, as the new origin.
 """
 function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int64}})::Nothing
@@ -2468,10 +2468,10 @@ function computeStellarVcirc(
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
     # Compute the radial distance to each star
-    r = computeDistance(data_dict[:stars]["POS "])
+    rs = computeDistance(data_dict[:stars]["POS "])
 
     # Check for missing data
-    !isempty(r) || return Unitful.Velocity[]
+    !isempty(rs) || return Unitful.Velocity[]
 
     type_symbols = [:stars, :gas, :halo, :black_hole]
 
@@ -2492,19 +2492,19 @@ function computeStellarVcirc(
     )
 
     # Use the radial distances as bin edges for the mass histogram
-    edges = [0.0u"kpc", r...]
+    edges = [0.0u"kpc", rs...]
 
     # Compute to total mass within each stellar radial distance
-    M = similar(r, eltype(masses))
+    M = similar(rs, eltype(masses))
     cumsum!(M, histogram1D(distances, masses, edges; empty_nan=false))
 
     # The mass histogram is a sorted array, so it is reverted to the unsorted order of `r`
     # to make `vcirc` the circular velocity of each star in the order of the snapshot
-    invpermute!(M, sortperm(r))
+    invpermute!(M, sortperm(rs))
 
-    vcirc = @. sqrt(Unitful.G * M / r)
+    vcirc = [iszero(r) ? 0.0u"km*s^-1" : sqrt(Unitful.G * m / r) for (m, r) in zip(M, rs)]
 
-    return r, vcirc
+    return rs, vcirc
 
 end
 
@@ -2557,12 +2557,17 @@ function computeStellarCircularity(data_dict::Dict)::Vector{Float64}
     !any(isempty, [positions, velocities]) || return Float64[]
 
     # Compute the specific angular momentum in the z direction
-    jz = [x[1] * v[2] - x[2] * v[1] for (x, v) in zip(eachcol(positions), eachcol(velocities))]
+    jzs = [x[1] * v[2] - x[2] * v[1] for (x, v) in zip(eachcol(positions), eachcol(velocities))]
 
     # Compute the circular velocities and the radial distances
-    r, vcirc = computeStellarVcirc(data_dict)
+    rs, vcircs = computeStellarVcirc(data_dict)
 
-    return @. ustrip(Unitful.NoUnits, jz / (r * vcirc))
+    stellar_circularity = [
+        any(iszero, [r, vcirc]) ? 0.0 : ustrip(Unitful.NoUnits, jz / (r * vcirc)) for 
+        (jz, r, vcirc) in zip(jzs, rs, vcircs)
+    ]
+
+    return stellar_circularity
 
 end
 
@@ -3665,7 +3670,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
-          + `(halo_idx, subhalo_rel_idx)` -> Selects the center of mass of the `subhalo_rel_idx::Int64` subhalo (of the `halo_idx::Int64` halo), as the new origin.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int64` subhalo (of the `halo_idx::Int64` halo), as the new origin.
           + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int64` halo, as the new origin.
       + Rotation for the simulation box. The posibilities are:
 
@@ -3709,8 +3714,8 @@ function selectFilter(
                 ),
             ),
             Dict(
-                :group => ["G_Nsubs", "G_LenType", "G_CM"], 
-                :subhalo => ["S_LenType", "S_CM"],
+                :group => ["G_Nsubs", "G_LenType", "G_Pos"], 
+                :subhalo => ["S_LenType", "S_Pos"],
                 :stars => ["POS ", "MASS", "VEL "],
             ),
         )
@@ -3730,8 +3735,8 @@ function selectFilter(
                 ),
             ),
             Dict(
-                :group => ["G_Nsubs", "G_LenType", "G_CM"], 
-                :subhalo => ["S_LenType", "S_CM"],
+                :group => ["G_Nsubs", "G_LenType", "G_Pos"], 
+                :subhalo => ["S_LenType", "S_Pos"],
                 :stars => ["POS ", "MASS", "VEL "],
             ),
         )
@@ -3757,7 +3762,7 @@ function selectFilter(
 
         new_request = mergeRequests(
             mergeRequests(request, Dict(:stars => ["POS ", "MASS", "VEL "])),
-            Dict(:group => ["G_Nsubs", "G_LenType", "G_CM"], :subhalo => ["S_LenType", "S_CM"]),
+            Dict(:group => ["G_Nsubs", "G_LenType"], :subhalo => ["S_LenType"]),
         )
 
     else
