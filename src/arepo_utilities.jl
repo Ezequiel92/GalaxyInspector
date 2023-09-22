@@ -707,22 +707,31 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
   - `rotation::Symbol`: Type of rotation. The options are:
 
       + `:zero`       -> No rotation is appplied.
-      + `:global_pa`  -> Sets the angular momentum of the whole system as the new z axis.
-      + `:stellar_pa` -> Sets the stellar angular momentum as the new z axis.
+      + `:global_am`  -> Sets the angular momentum of the whole system as the new z axis.
+      + `:stellar_am` -> Sets the stellar angular momentum as the new z axis.
+      + `:stellar_pa` -> Sets the stellar principal axis as the new coordinate system.
 """
 function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
     # Compute the rotation matrix
     if rotation == :zero
         return nothing
-    elseif rotation == :global_pa
-        rotation_matrix = computeGlobalRotationMatrix(data_dict)
-    elseif rotation == :stellar_pa
-        rotation_matrix = computeRotationMatrix(
+    elseif rotation == :global_am
+        rotation_matrix = computeGlobalAMRotationMatrix(data_dict)
+    elseif rotation == :stellar_am
+        rotation_matrix = computeAMRotationMatrix(
             data_dict[:stars]["POS "], 
             data_dict[:stars]["VEL "],
             data_dict[:stars]["MASS"], 
         )
+    elseif rotation == :stellar_pa
+        rotation_matrix = computePARotationMatrix(
+            data_dict[:stars]["POS "], 
+            data_dict[:stars]["VEL "],
+            data_dict[:stars]["MASS"], 
+        )
+    else
+        throw(ArgumentError("rotateData!: I don't recognize the rotation :$(rotation)"))
     end
 
     @inbounds for type_symbol in snapshotTypes(data_dict)
@@ -2002,13 +2011,13 @@ function computeGlobalPrincipalAxes(data_dict::Dict)::Matrix{Float64}
 end
 
 """
-    computeRotationMatrix(
+    computeAMRotationMatrix(
         positions::Matrix{<:Unitful.Length}, 
         velocities::Matrix{<:Unitful.Velocity},
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will make the total angular momentum the new z axis. 
+Compute the rotation matrix that will turn the total angular momentum into the z axis; when view as an active (alibi) trasformation. 
 
 # Arguments
 
@@ -2020,7 +2029,7 @@ Compute the rotation matrix that will make the total angular momentum the new z 
 
   - The rotation matrix.
 """
-function computeRotationMatrix(
+function computeAMRotationMatrix(
     positions::Matrix{<:Unitful.Length}, 
     velocities::Matrix{<:Unitful.Velocity},
     masses::Vector{<:Unitful.Mass},
@@ -2033,7 +2042,7 @@ function computeRotationMatrix(
     L = computeTotalAngularMomentum(positions, velocities, masses)
 
     # Rotation vector
-    n = normalize!([L[2], -L[1], 0.0])
+    n = [L[2], -L[1], 0.0]
 
     # Angle of rotation
     θ = acos(L[3])
@@ -2043,9 +2052,54 @@ function computeRotationMatrix(
 end
 
 """
-    computeGlobalRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
+    computePARotationMatrix(
+        positions::Matrix{<:Unitful.Length}, 
+        velocities::Matrix{<:Unitful.Velocity},
+        masses::Vector{<:Unitful.Mass},
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will make the total angular momentum, of the whole system in `data`, the new z axis.
+Compute the rotation matrix that will turn the pricipal axis into the new coordinate system; when view as an pasive (alias) trasformation. 
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computePARotationMatrix(
+    positions::Matrix{<:Unitful.Length}, 
+    velocities::Matrix{<:Unitful.Velocity},
+    masses::Vector{<:Unitful.Mass},
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+#TODO
+
+    # Check for missing data
+    !any(isempty, [positions, velocities, masses]) || return I
+
+    # Compute the total angular momentum
+    L = computeTotalAngularMomentum(positions, velocities, masses)
+
+    # Rotation vector
+    n = [L[2], -L[1], 0.0]
+
+    # Angle of rotation
+    θ = acos(L[3])
+        
+    return Matrix{Float64}(AngleAxis(θ, n...))
+
+#TODO
+
+end
+
+"""
+    computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix that will turn the total angular momentum, of the whole system in `data`, into the z axis; when view as an active (alibi) trasformation. 
 
 # Arguments
 
@@ -2067,11 +2121,11 @@ Compute the rotation matrix that will make the total angular momentum, of the wh
 
   - The rotation matrix.
 """
-function computeGlobalRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
+function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
 
     type_symbols = snapshotTypes(data_dict)
 
-    @info("computeGlobalRotationMatrix: The pincipal axis will be computed using $(type_symbols)")
+    @info("computeGlobalAMRotationMatrix: The pincipal axis will be computed using $(type_symbols)")
 
     # Concatenate the positions, velocities, and masses of all the cells and particles in the system
     positions = hcat(
@@ -2096,7 +2150,7 @@ function computeGlobalRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},Uni
     # Check for missing data
     !any(isempty, [positions, velocities, masses]) || return I
 
-    return computeRotationMatrix(positions, velocities, masses)
+    return computeAMRotationMatrix(positions, velocities, masses)
 
 end
 
@@ -3674,8 +3728,9 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
           + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int64` halo, as the new origin.
       + Rotation for the simulation box. The posibilities are:
 
-          + `:global_pa`  -> Sets the angular momentum of the whole system as the new z axis.
-          + `:stellar_pa` -> Sets the stellar angular momentum as the new z axis.
+          + `:global_am`  -> Sets the angular momentum of the whole system as the new z axis.
+          + `:stellar_am` -> Sets the stellar angular momentum as the new z axis.
+          + `:stellar_pa` -> Sets the stellar principal axis as the new coordinate system.
       + New request dictionary.
 
 """
@@ -3689,7 +3744,7 @@ function selectFilter(
         # Plot every cell/particle
         filter_function = filterNothing
         translation = :global_cm
-        rotation = :global_pa
+        rotation = :global_am
 
         new_request = mergeRequests(
             addRequest(
@@ -3746,7 +3801,7 @@ function selectFilter(
         # Plot only the cell/particle inside a sphere with radius `FILTER_R`
         filter_function = dd -> filterWithin(dd, FILTER_R, :cm)
         translation = :global_cm
-        rotation = :global_pa
+        rotation = :global_am
 
         new_request = addRequest(
             request,

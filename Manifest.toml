@@ -136,9 +136,9 @@ version = "1.0.5"
 
 [[deps.CairoMakie]]
 deps = ["Base64", "Cairo", "Colors", "FFTW", "FileIO", "FreeType", "GeometryBasics", "LinearAlgebra", "Makie", "PrecompileTools", "SHA"]
-git-tree-sha1 = "696e7931bd6f5c773418452cbe5fd241cb85ac2a"
+git-tree-sha1 = "6f2fa27e8609b72e97e36ede7e6aa981d8c7c98d"
 uuid = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-version = "0.10.9"
+version = "0.10.10"
 
 [[deps.Cairo_jll]]
 deps = ["Artifacts", "Bzip2_jll", "CompilerSupportLibraries_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Pkg", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
@@ -708,9 +708,9 @@ version = "1.0.0"
 
 [[deps.JLD2]]
 deps = ["FileIO", "MacroTools", "Mmap", "OrderedCollections", "Pkg", "Printf", "Reexport", "Requires", "TranscodingStreams", "UUIDs"]
-git-tree-sha1 = "773125c999b4ebfe31e679593c8af7f43f401f1c"
+git-tree-sha1 = "c11d691a0dc8e90acfa4740d293ade57f68bfdbb"
 uuid = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
-version = "0.4.34"
+version = "0.4.35"
 
 [[deps.JLLWrappers]]
 deps = ["Artifacts", "Preferences"]
@@ -905,15 +905,15 @@ version = "0.5.11"
 
 [[deps.Makie]]
 deps = ["Animations", "Base64", "CRC32c", "ColorBrewer", "ColorSchemes", "ColorTypes", "Colors", "Contour", "DelaunayTriangulation", "Distributions", "DocStringExtensions", "Downloads", "FFMPEG_jll", "FileIO", "FixedPointNumbers", "Formatting", "FreeType", "FreeTypeAbstraction", "GeometryBasics", "GridLayoutBase", "ImageIO", "InteractiveUtils", "IntervalSets", "Isoband", "KernelDensity", "LaTeXStrings", "LinearAlgebra", "MacroTools", "MakieCore", "Markdown", "Match", "MathTeXEngine", "Observables", "OffsetArrays", "Packing", "PlotUtils", "PolygonOps", "PrecompileTools", "Printf", "REPL", "Random", "RelocatableFolders", "Setfield", "ShaderAbstractions", "Showoff", "SignedDistanceFields", "SparseArrays", "StableHashTraits", "Statistics", "StatsBase", "StatsFuns", "StructArrays", "TriplotBase", "UnicodeFun"]
-git-tree-sha1 = "ecc334efc4a8a68800776b0d85ab7bb2fff63f7a"
+git-tree-sha1 = "cf10f4b9d09da50f124ab7bcb530e57f700328f0"
 uuid = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
-version = "0.19.9"
+version = "0.19.10"
 
 [[deps.MakieCore]]
 deps = ["Observables"]
-git-tree-sha1 = "1efb1166dd9398f2ccf6d728f896658c9c84733e"
+git-tree-sha1 = "17d51182db2667962bc7e1d18b74881d0d0adbe6"
 uuid = "20f20a25-4f0e-4fdf-b5d1-57303727442b"
-version = "0.6.6"
+version = "0.6.7"
 
 [[deps.MappedArrays]]
 git-tree-sha1 = "2dab0221fe2b0f2cb6754eaa743cc266339f527e"
@@ -1068,9 +1068,9 @@ version = "4.1.5+0"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "e78db7bd5c26fc5a6911b50a47ee302219157ea8"
+git-tree-sha1 = "ceeda72c9fd6bbebc4f4f598560789145a8b6c4c"
 uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
-version = "3.0.10+0"
+version = "3.0.11+0"
 
 [[deps.OpenSpecFun_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Pkg"]
@@ -1102,9 +1102,9 @@ version = "10.42.0+0"
 
 [[deps.PDMats]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
-git-tree-sha1 = "67eae2738d63117a196f497d7db789821bce61d1"
+git-tree-sha1 = "3129380a93388e5062e946974246fe3f2e7c73e2"
 uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
-version = "0.11.17"
+version = "0.11.18"
 
 [[deps.PGFPlotsX]]
 deps = ["ArgCheck", "Dates", "DefaultApplication", "DocStringExtensions", "MacroTools", "OrderedCollections", "Parameters", "Requires", "Tables"]
@@ -1384,9 +1384,9 @@ version = "1.1.1"
 
 [[deps.ShaderAbstractions]]
 deps = ["ColorTypes", "FixedPointNumbers", "GeometryBasics", "LinearAlgebra", "Observables", "StaticArrays", "StructArrays", "Tables"]
-git-tree-sha1 = "0d15c3e7b2003f4451714f08ffec2b77badc2dc4"
+git-tree-sha1 = "db0219befe4507878b1a90e07820fed3e62c289d"
 uuid = "65257c39-d410-5151-9873-9b3e5be5013e"
-version = "0.3.0"
+version = "0.4.0"
 
 [[deps.SharedArrays]]
 deps = ["Distributed", "Mmap", "Random", "Serialization"]
@@ -1587,9 +1587,9 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.TiffImages]]
 deps = ["ColorTypes", "DataStructures", "DocStringExtensions", "FileIO", "FixedPointNumbers", "IndirectArrays", "Inflate", "Mmap", "OffsetArrays", "PkgVersion", "ProgressMeter", "UUIDs"]
-git-tree-sha1 = "3c4535892eff963d14acee719df445287c2d8f98"
+git-tree-sha1 = "b7dc44cb005a7ef743b8fe98970afef003efdce7"
 uuid = "731e570b-9d59-4bfa-96dc-6df516fadf69"
-version = "0.6.5"
+version = "0.6.6"
 
 [[deps.TranscodingStreams]]
 deps = ["Random", "Test"]
