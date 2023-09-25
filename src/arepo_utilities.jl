@@ -1875,8 +1875,6 @@ function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
 
     type_symbols = snapshotTypes(data_dict)
 
-    @info("computeGlobalCenterOfMass: The center of mass will be computed using $(type_symbols)")
-
     # Concatenate the position and masses of all the cells and particles in the system
     positions = hcat(
         [
@@ -1893,6 +1891,9 @@ function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
 
     # Check for missing data
     !any(isempty, [positions, masses]) || return zeros(typeof(1.0u"kpc"), 3)
+
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), type_symbols)
+    @info("computeGlobalCenterOfMass: The center of mass will be computed using $(type_symbols)")
 
     return computeCenterOfMass(positions, masses)
 
@@ -1919,6 +1920,8 @@ function computePrincipalAxes(
     positions::Matrix{<:Unitful.Length}, 
     masses::Vector{<:Unitful.Mass},
 )::Matrix{Float64}
+
+#TODO
 
     # Check for missing data
     (
@@ -1952,61 +1955,7 @@ function computePrincipalAxes(
     # Compute the principal axes
     return eigvecs(J)
 
-end
-
-"""
-    computeGlobalPrincipalAxes(data_dict::Dict)::Matrix{Float64}
-
-Compute the principal axes of the whole system in `data`.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-
-# Returns
-
-  - The principal axes in a matrix, where each column is an axis.
-"""
-function computeGlobalPrincipalAxes(data_dict::Dict)::Matrix{Float64}
-
-    type_symbols = snapshotTypes(data_dict)
-
-    @info("computeGlobalPrincipalAxes: The principal axes will be computed using $(type_symbols)")
-
-    # Concatenate the position and masses of all the cells and particles in the system
-    positions = hcat(
-        [
-            data_dict[type_symbol]["POS "] for
-            type_symbol in type_symbols if !isempty(data_dict[type_symbol]["POS "])
-        ]...,
-    )
-    masses = vcat(
-        [
-            data_dict[type_symbol]["MASS"] for
-            type_symbol in type_symbols if !isempty(data_dict[type_symbol]["MASS"])
-        ]...,
-    )
-
-    # Check for missing data
-    (
-        !any(isempty, [positions, masses]) || 
-        throw(ArgumentError("computeGlobalPrincipalAxes: The principal axes are not defined \
-        for an empty system"))
-    )
-
-    return computePrincipalAxes(positions, masses)
+#TODO
 
 end
 
@@ -2125,8 +2074,6 @@ function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},U
 
     type_symbols = snapshotTypes(data_dict)
 
-    @info("computeGlobalAMRotationMatrix: The pincipal axis will be computed using $(type_symbols)")
-
     # Concatenate the positions, velocities, and masses of all the cells and particles in the system
     positions = hcat(
         [
@@ -2149,6 +2096,10 @@ function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},U
 
     # Check for missing data
     !any(isempty, [positions, velocities, masses]) || return I
+
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), type_symbols)
+    @info("computeGlobalAMRotationMatrix: The rotation matrix will be computed \
+    using $(type_symbols)")
 
     return computeAMRotationMatrix(positions, velocities, masses)
 
@@ -2258,9 +2209,6 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
 
     type_symbols = snapshotTypes(data_dict)
 
-    @info("computeGlobalAngularMomentum: The angular momentum will be computed \
-    using $(type_symbols)")
-
     # Concatenate the position, velocities, and masses of all the cells and particles in the system
     positions = hcat(
         [
@@ -2283,6 +2231,10 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
 
     # Check for missing data
     !any(isempty, [positions, velocities, masses]) || return [0.0, 0.0, 1.0]
+
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), type_symbols)
+    @info("computeGlobalAngularMomentum: The angular momentum will be computed \
+    using $(type_symbols)")
 
     return computeTotalAngularMomentum(positions, velocities, masses; normal)
 
@@ -2408,8 +2360,6 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=FILTER_R)
 
     type_symbols = snapshotTypes(data_dict)
 
-    @info("computeGlobalSpinParameter: The spin parameter will be computed using $(type_symbols)")
-
     # Concatenate the position and masses of all the cells and particles in the system
     positions = hcat(
         [
@@ -2429,6 +2379,9 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=FILTER_R)
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["MASS"])
         ]...
     )
+
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), type_symbols)
+    @info("computeGlobalSpinParameter: The spin parameter will be computed using $(type_symbols)")
 
     # Compute the total spin parameter
     return computeSpinParameter(positions, velocities, masses; R)
@@ -2529,8 +2482,6 @@ function computeStellarVcirc(
 
     type_symbols = [:stars, :gas, :halo, :black_hole]
 
-    @info("computeStellarVcirc: The circular velocity will be computed using $(type_symbols)")
-
     # Concatenate the position and masses of all the cells and particles in the system
     distances = vcat(
         [
@@ -2544,6 +2495,9 @@ function computeStellarVcirc(
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["MASS"])
         ]...,
     )
+
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), type_symbols)
+    @info("computeStellarVcirc: The circular velocity will be computed using $(type_symbols)")
 
     # Use the radial distances as bin edges for the mass histogram
     edges = [0.0u"kpc", rs...]
