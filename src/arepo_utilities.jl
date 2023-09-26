@@ -725,11 +725,7 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
             data_dict[:stars]["MASS"], 
         )
     elseif rotation == :stellar_pa
-        rotation_matrix = computePARotationMatrix(
-            data_dict[:stars]["POS "], 
-            data_dict[:stars]["VEL "],
-            data_dict[:stars]["MASS"], 
-        )
+        rotation_matrix = computePARotationMatrix(data_dict[:stars]["POS "])
     else
         throw(ArgumentError("rotateData!: I don't recognize the rotation :$(rotation)"))
     end
@@ -1900,12 +1896,12 @@ function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
 end
 
 """
-    computePrincipalAxes(
+    computeInertiaTensor(
         positions::Matrix{<:Unitful.Length}, 
         masses::Vector{<:Unitful.Mass},
     )::Matrix{Float64}
 
-Compute the principal axes of a group of cells/particles.
+Compute the inertia tensor of a group of cells/particles.
 
 # Arguments
 
@@ -1914,19 +1910,17 @@ Compute the principal axes of a group of cells/particles.
 
 # Returns
 
-  - The principal axes in a matrix, where each column is an axis.
+  - The inertia tensor.
 """
-function computePrincipalAxes(
+function computeInertiaTensor(
     positions::Matrix{<:Unitful.Length}, 
     masses::Vector{<:Unitful.Mass},
 )::Matrix{Float64}
 
-#TODO
-
     # Check for missing data
     (
         !any(isempty, [positions, masses])  ||
-        throw(ArgumentError("computePrincipalAxes: The principal axes are not defined for an \
+        throw(ArgumentError("computeInertiaTensor: The inertia tensor is not defined for an \
         empty system"))
     )
 
@@ -1952,10 +1946,7 @@ function computePrincipalAxes(
     J[3, 1] = J[1, 3]
     J[3, 2] = J[2, 3]
 
-    # Compute the principal axes
-    return eigvecs(J)
-
-#TODO
+    return J
 
 end
 
@@ -2003,8 +1994,6 @@ end
 """
     computePARotationMatrix(
         positions::Matrix{<:Unitful.Length}, 
-        velocities::Matrix{<:Unitful.Velocity},
-        masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
 Compute the rotation matrix that will turn the pricipal axis into the new coordinate system; when view as an pasive (alias) trasformation. 
@@ -2012,36 +2001,26 @@ Compute the rotation matrix that will turn the pricipal axis into the new coordi
 # Arguments
 
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
 
 # Returns
 
   - The rotation matrix.
 """
 function computePARotationMatrix(
-    positions::Matrix{<:Unitful.Length}, 
-    velocities::Matrix{<:Unitful.Velocity},
-    masses::Vector{<:Unitful.Mass},
+    positions::Matrix{<:Unitful.Length},
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-#TODO
-
     # Check for missing data
-    !any(isempty, [positions, velocities, masses]) || return I
+    !isempty(positions) || return I
 
-    # Compute the total angular momentum
-    L = computeTotalAngularMomentum(positions, velocities, masses)
+    # Principal axis operator
+    R = ustrip.(positions * positions')
 
-    # Rotation vector
-    n = [L[2], -L[1], 0.0]
+    # Reverse the order of the eigenvectors, making the last column the eigenvector 
+    # with the largest eigenvalue, which should correspond to the new z axis
+    pa = eigvecs(R)[:, end:-1:1]
 
-    # Angle of rotation
-    θ = acos(L[3])
-        
-    return Matrix{Float64}(AngleAxis(θ, n...))
-
-#TODO
+    return Matrix{Float64}(pa')
 
 end
 
