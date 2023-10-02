@@ -725,7 +725,11 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
             data_dict[:stars]["MASS"], 
         )
     elseif rotation == :stellar_pa
-        rotation_matrix = computePARotationMatrix(data_dict[:stars]["POS "])
+        rotation_matrix = computePARotationMatrix(
+            data_dict[:stars]["POS "], 
+            data_dict[:stars]["VEL "],
+            data_dict[:stars]["MASS"], 
+        )
     else
         throw(ArgumentError("rotateData!: I don't recognize the rotation :$(rotation)"))
     end
@@ -1994,6 +1998,8 @@ end
 """
     computePARotationMatrix(
         positions::Matrix{<:Unitful.Length}, 
+        velocities::Matrix{<:Unitful.Velocity},
+        masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
 Compute the rotation matrix that will turn the pricipal axis into the new coordinate system; when view as an pasive (alias) trasformation. 
@@ -2001,13 +2007,17 @@ Compute the rotation matrix that will turn the pricipal axis into the new coordi
 # Arguments
 
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
 
 # Returns
 
   - The rotation matrix.
 """
 function computePARotationMatrix(
-    positions::Matrix{<:Unitful.Length},
+    positions::Matrix{<:Unitful.Length}, 
+    velocities::Matrix{<:Unitful.Velocity},
+    masses::Vector{<:Unitful.Mass},
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
     # Check for missing data
@@ -2020,7 +2030,24 @@ function computePARotationMatrix(
     # with the largest eigenvalue, which should correspond to the new z axis
     pa = eigvecs(R)[:, end:-1:1]
 
-    return Matrix{Float64}(pa')
+    # Compute the total angular momentum
+    L = computeTotalAngularMomentum(positions, velocities, masses; normal=true)
+
+    # 3rd principal axis ≡ new z axis
+    pa_z = pa[:, 3]
+
+    # Angle between the total angular momentum and the thrid pricipal component
+    θ = acos(L ⋅ pa_z)
+
+    if θ <= (π * 0.5)
+        rotation_matrix = Matrix{Float64}(pa')
+    else
+        # Rotate 180º around the y axis, so that the 3rd principal axis point roughly
+        # in the same direction as the total angular momentum 
+        rotation_matrix = [-1 0 0; 0 1 0; 0 0 -1] * Matrix{Float64}(pa')
+    end
+
+    return rotation_matrix
 
 end
 
