@@ -26,7 +26,7 @@ Some of the features are:
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`ParticleIndex`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref). Which data blocks are needed depends on the provided functions `da_functions`.
+  - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref). Which data blocks are needed depends on the provided functions `da_functions`.
   - `plot_functions::Vector{<:Function}`: Vector of plotting functions from [Makie](https://docs.makie.org/stable/). This sets the type of plot for each simulation.
     The supported functions are:
 
@@ -81,24 +81,24 @@ Some of the features are:
   - `pp_args::Tuple=()`: Positional arguments for the post processing function.
   - `pp_kwargs::NamedTuple=(;)`: Keyword arguments for the post processing function.
   - `transform_box::Bool=false`: If a translation and rotation (in that order) will be applied to the simulation box, affecting the positions and velocities of all the cells and particles. If active, it is applied AFTER the `filter_function`.
-  - `translation::Union{Symbol,NTuple{2,Int64}}=:zero`: Type of translation (only relevant if `transform_box` = true). The options are:
+  - `translation::Union{Symbol,NTuple{2,Int}}=:zero`: Type of translation (only relevant if `transform_box` = true). The options are:
 
       + `:zero`                       -> No translation is applied.
       + `:global_cm`                  -> Sets the center of mass of the whole system (after filtering) as the new origin.
       + `:stellar_cm`                 -> Sets the stellar center of mass (after filtering) as the new origin.
-      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int64` subhalo (of the `halo_idx::Int64` halo), as the new origin.
-      + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int64` halo, as the new origin.
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+      + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo, as the new origin.
   - `rotation::Symbol=:zero`: Type of rotation (only relevant if `transform_box` = true). The options are:
 
       + `:zero`       -> No rotation is appplied.
       + `:global_am`  -> Sets the angular momentum of the whole system as the new z axis.
       + `:stellar_am` -> Sets the stellar angular momentum as the new z axis.
       + `:stellar_pa` -> Sets the stellar principal axis as the new coordinate system.
-  - `smooth::Int64=0`: The result of `da_functions` will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing. Only valid for `scatter!`, `lines!`, and `scatterlines!` plots.
+  - `smooth::Int=0`: The result of `da_functions` will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing. Only valid for `scatter!`, `lines!`, and `scatterlines!` plots.
   - `x_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the x axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the y axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
-  - `x_exp_factor::Int64=0`: Numerical exponent to scale down the x axis, e.g. if `x_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
-  - `y_exp_factor::Int64=0`: Numerical exponent to scale down the y axis, e.g. if `y_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
+  - `x_exp_factor::Int=0`: Numerical exponent to scale down the x axis, e.g. if `x_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
+  - `y_exp_factor::Int=0`: Numerical exponent to scale down the y axis, e.g. if `y_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
   - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.
   - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`. This option does not affect histograms.
   - `x_edges::Bool=false`: Set it to `true` if you want to keep the borders of `x_trim`.
@@ -130,7 +130,7 @@ Some of the features are:
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
-  - `resolution::NTuple{2,Int64}=(1000, 750)`: Resolution of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
+  - `resolution::NTuple{2,Int}=(1000, 750)`: Resolution of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
   - `aspect::Union{DataAspect,AxisAspect,Nothing}=nothing`: Aspect ratio of the figures. The options are:
 
       + `nothing`       -> Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
@@ -144,7 +144,7 @@ Some of the features are:
 
   - `animation::Bool=false`: If an animation will be created.
   - `animation_filename::String="animation.mp4"`: Filename for the animation, including its extension. All formats supported by [Makie](https://docs.makie.org/stable/) can be used, namely `.mkv`, `.mp4`, `.webm` and `.gif`.
-  - `framerate::Int64=15`: Frame rate of the animation.
+  - `framerate::Int=15`: Frame rate of the animation.
 """
 function snapshotPlot(
     simulation_paths::Vector{String},
@@ -167,13 +167,13 @@ function snapshotPlot(
     pp_args::Tuple=(),
     pp_kwargs::NamedTuple=(;),
     transform_box::Bool=false,
-    translation::Union{Symbol,NTuple{2,Int64}}=:zero,
+    translation::Union{Symbol,NTuple{2,Int}}=:zero,
     rotation::Symbol=:zero,
-    smooth::Int64=0,
+    smooth::Int=0,
     x_unit::Unitful.Units=Unitful.NoUnits,
     y_unit::Unitful.Units=Unitful.NoUnits,
-    x_exp_factor::Int64=0,
-    y_exp_factor::Int64=0,
+    x_exp_factor::Int=0,
+    y_exp_factor::Int=0,
     x_trim::NTuple{2,<:Real}=(-Inf, Inf),
     y_trim::NTuple{2,<:Real}=(-Inf, Inf),
     x_edges::Bool=false,
@@ -196,7 +196,7 @@ function snapshotPlot(
     title::Union{Symbol,<:AbstractString}="",
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
-    resolution::NTuple{2,Int64}=(1000, 750),
+    resolution::NTuple{2,Int}=(1000, 750),
     aspect::Union{DataAspect,AxisAspect,Nothing}=nothing,
     series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
     series_markers::Union{Vector{Symbol},Nothing}=nothing,
@@ -204,7 +204,7 @@ function snapshotPlot(
     # Animation options
     animation::Bool=false,
     animation_filename::String="animation.mp4",
-    framerate::Int64=15,
+    framerate::Int=15,
 )::Nothing
 
     # Create the output folder if it doesn't exist 
@@ -658,7 +658,7 @@ function snapshotPlot(
                     end
                 end
 
-                nbanks = Int64(ceil(length(sim_labels) * 0.3333))
+                nbanks = Int(ceil(length(sim_labels) * 0.3333))
                 Makie.Legend(figure[2, 1][1, 1], legend_element, sim_labels; nbanks)
 
             end
@@ -668,7 +668,7 @@ function snapshotPlot(
 
             # Add the post processing legend
             if !isnothing(pp_legend)
-                nbanks = Int64(ceil(length(pp_legend) * 0.3333))
+                nbanks = Int(ceil(length(pp_legend) * 0.3333))
                 Makie.Legend(
                     figure[2, 1][!isnothing(sim_labels) ? 2 : 1, 1],
                     pp_legend[1],
@@ -763,8 +763,8 @@ Some of the features are:
   - `pp_kwargs::NamedTuple=(;)`: Keyword arguments for the post processing function.
   - `x_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the x axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the y axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
-  - `x_exp_factor::Int64=0`: Numerical exponent to scale down the x axis, e.g. if `x_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
-  - `y_exp_factor::Int64=0`: Numerical exponent to scale down the y axis, e.g. if `y_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
+  - `x_exp_factor::Int=0`: Numerical exponent to scale down the x axis, e.g. if `x_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
+  - `y_exp_factor::Int=0`: Numerical exponent to scale down the y axis, e.g. if `y_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
   - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.
   - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`.
   - `x_edges::Bool=false`: Set it to `true` if you want to keep the borders of `x_trim`.
@@ -791,7 +791,7 @@ Some of the features are:
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
-  - `resolution::NTuple{2,Int64}=(1000, 750)`: Resolution of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
+  - `resolution::NTuple{2,Int}=(1000, 750)`: Resolution of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
   - `aspect::Union{DataAspect,AxisAspect,Nothing}=nothing`: Aspect ratio of the figures. The options are:
 
       + `nothing`       -> Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
@@ -825,8 +825,8 @@ function timeSeriesPlot(
     pp_kwargs::NamedTuple=(;),
     x_unit::Unitful.Units=Unitful.NoUnits,
     y_unit::Unitful.Units=Unitful.NoUnits,
-    x_exp_factor::Int64=0,
-    y_exp_factor::Int64=0,
+    x_exp_factor::Int=0,
+    y_exp_factor::Int=0,
     x_trim::NTuple{2,<:Real}=(-Inf, Inf),
     y_trim::NTuple{2,<:Real}=(-Inf, Inf),
     x_edges::Bool=false,
@@ -849,7 +849,7 @@ function timeSeriesPlot(
     title::AbstractString="",
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
-    resolution::NTuple{2,Int64}=(1000, 750),
+    resolution::NTuple{2,Int}=(1000, 750),
     aspect::Union{DataAspect,AxisAspect,Nothing}=nothing,
     series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
     series_markers::Union{Vector{Symbol},Nothing}=nothing,
@@ -1081,7 +1081,7 @@ function timeSeriesPlot(
                 end
             end
 
-            nbanks = Int64(ceil(length(sim_labels) * 0.3333))
+            nbanks = Int(ceil(length(sim_labels) * 0.3333))
             Makie.Legend(figure[2, 1][1, 1], legend_element, sim_labels; nbanks)
 
         end
@@ -1091,7 +1091,7 @@ function timeSeriesPlot(
 
         # Add the post processing legend
         if !isnothing(pp_legend)
-            nbanks = Int64(ceil(length(pp_legend) * 0.3333))
+            nbanks = Int(ceil(length(pp_legend) * 0.3333))
             Makie.Legend(
                 figure[2, 1][!isnothing(sim_labels) ? 2 : 1, 1],
                 pp_legend[1],

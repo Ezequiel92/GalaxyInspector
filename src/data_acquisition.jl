@@ -141,9 +141,9 @@ function readSnapHeader(path::String)::SnapshotHeader
 
         # Only for the stars edit the number in the header, to exclude wind particles
         num_part = read_attribute(h, "NumPart_ThisFile")
-        num_part[ParticleIndex[:stars] + 1] = num_part_stars
+        num_part[PARTICLE_INDEX[:stars] + 1] = num_part_stars
         num_total = read_attribute(h, "NumPart_Total")
-        num_total[ParticleIndex[:stars] + 1] = num_total_stars
+        num_total[PARTICLE_INDEX[:stars] + 1] = num_total_stars
 
         # Check if the units are in the header, otherwise use the IllustrisTNG values
         attrs_present = keys(HDF5.attrs(h))
@@ -225,7 +225,7 @@ Checks if a given block exist in a snapshot.
 
 # Arguments
 
-  - `type_symbol::Symbol`: The cell/particle type of the target block. The possibilities are the keys of [`ParticleIndex`](@ref).
+  - `type_symbol::Symbol`: The cell/particle type of the target block. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `path::String`: Path to the snapshot file or folder.
 
@@ -265,7 +265,7 @@ function blockPresent(type_symbol::Symbol, block::String, path::String)::Bool
 
     response = h5open(file_path, "r") do snapshot
 
-        type_str = ParticleCodeName[type_symbol]
+        type_str = PARTICLE_CODE_NAME[type_symbol]
 
         if type_str ∈ keys(snapshot)
             blockPresent(block, snapshot[type_str])
@@ -368,7 +368,7 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
 
     data = h5open(file_path, "r") do snapshot
 
-        group = snapshot[ParticleCodeName[:gas]]
+        group = snapshot[PARTICLE_CODE_NAME[:gas]]
 
         # Get the indices of the missing blocks
         idx_missing = map(x -> !blockPresent(x, group), blocks)
@@ -569,7 +569,7 @@ function readSnapBlocks(
 
             blocks = copy(request[type_symbol])
 
-            type_str = ParticleCodeName[type_symbol]
+            type_str = PARTICLE_CODE_NAME[type_symbol]
 
             # Allocate memory
             qty_data = Dict{String,VecOrMat{<:Number}}()
@@ -620,7 +620,7 @@ function readSnapBlocks(
                         elseif block == "MASS"
 
                             # Read the mass table from the header
-                            mass_table = header.mass_table[ParticleIndex[type_symbol] + 1]
+                            mass_table = header.mass_table[PARTICLE_INDEX[type_symbol] + 1]
 
                             if iszero(mass_table)
 
@@ -630,7 +630,7 @@ function readSnapBlocks(
                             else
 
                                 # All cell/particles have the same mass
-                                cp_number = header.num_part[ParticleIndex[type_symbol] + 1]
+                                cp_number = header.num_part[PARTICLE_INDEX[type_symbol] + 1]
                                 qty_data["MASS"] = fill(mass_table, cp_number) .* unit
 
                             end
@@ -874,7 +874,7 @@ Convenience function to directly get the data associated with one block.
 # Arguments
 
   - `path::String`: Path to the snapshot file or folder.
-  - `type_symbol::Symbol`: Type of cell/particle. The possibilities are the keys of [`ParticleIndex`](@ref).
+  - `type_symbol::Symbol`: Type of cell/particle. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
 
 # Returns
@@ -959,7 +959,7 @@ For each process in `targets` a matrix with all the CPU usage data is returned.
 
   - `file_path::String`: Path to the `cpu.txt` file.
   - `targets::Vector{String}`: Target processes.
-  - `step::Int64=1`: Step used to traverse the rows.
+  - `step::Int=1`: Step used to traverse the rows.
   - `warnings::Bool=true`: If a warning will be given when there are missing targets.
 
 # Returns
@@ -976,7 +976,7 @@ For each process in `targets` a matrix with all the CPU usage data is returned.
 function readCpuFile(
     file_path::String,
     targets::Vector{String};
-    step::Int64=1,
+    step::Int=1,
     warnings::Bool=true,
 )::Dict{String,Matrix{Float64}}
 

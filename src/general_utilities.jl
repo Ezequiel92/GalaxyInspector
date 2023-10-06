@@ -60,10 +60,10 @@ Make the indexing operation `vec[index]` ignore indices that are out of bounds.
 
 ```julia-repl
 julia> safeSelect([1, 2, 3], 11; warnings=false)
-Int64[]
+Int[]
 
 julia> safeSelect([1, 2, 3], 1:5; warnings=false)
-3-element Vector{Int64}:
+3-element Vector{Int}:
  1
  2
  3
@@ -72,12 +72,12 @@ julia> safeSelect([1, 2, 3], 1:3:10; warnings=false)
 1
 
 julia> safeSelect([1, 2, 3], [1, 2, 5, 9]; warnings=false)
-2-element Vector{Int64}:
+2-element Vector{Int}:
  1
  2
 
 julia> safeSelect([1, 2, 3], (:); warnings=false)
-3-element Vector{Int64}:
+3-element Vector{Int}:
  1
  2
  3
@@ -145,7 +145,7 @@ Delete every element in `data` that is outside the given `range`.
   - `data::Vector{<:Number}`: Dataset that will be pruned.
   - `range::Tuple{<:Number,<:Number}`: The range in question.
   - `keep_edges::Bool=true`: If the edges of the range will be kept.
-  - `min_left::Int64=0`: Minimum number of values that need to be left after pruning to proceed with the transformation.
+  - `min_left::Int=0`: Minimum number of values that need to be left after pruning to proceed with the transformation.
 
 # Returns
 
@@ -155,7 +155,7 @@ function rangeCut!(
     data::Vector{<:Number},
     range::Tuple{<:Number,<:Number};
     keep_edges::Bool=true,
-    min_left::Int64=0,
+    min_left::Int=0,
 )::Bool
 
     # Shortcut computation for special cases
@@ -201,7 +201,7 @@ Every corresponding element in `s_data` (i.e. with the same index) will be delet
   - `s_data::Vector`: Slave dataset that will be pruned according to which values of `m_data` are outside `range`.
   - `range::Tuple{<:Number,<:Number}`: The range in question.
   - `keep_edges::Bool=true`: If the edges of the range will be kept.
-  - `min_left::Int64=0`: Minimum number of values that need to be left in the master dataset after pruning to proceed with the transformation.
+  - `min_left::Int=0`: Minimum number of values that need to be left in the master dataset after pruning to proceed with the transformation.
 
 # Returns
 
@@ -212,7 +212,7 @@ function rangeCut!(
     s_data::Vector,
     range::Tuple{<:Number,<:Number};
     keep_edges::Bool=true,
-    min_left::Int64=0,
+    min_left::Int=0,
 )::Bool
 
     # Shortcut computation for special cases
@@ -274,8 +274,8 @@ By default, no transformation is done.
   - `func_domain::Function=identity`: `data` will be trimmed to fit within the domain of the function `func_domain`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `range::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Every element in `data` that falls outside of `range` will be deleted.
   - `keep_edges::Bool=true`: If the edges of `range` will be kept.
-  - `min_left::Int64=0`: Minimum number of values that need to be left after each transformation to procced with it.
-  - `exp_factor::Int64=0`: Every element in `data` will be divided by 10^`exp_factor`.
+  - `min_left::Int=0`: Minimum number of values that need to be left after each transformation to procced with it.
+  - `exp_factor::Int=0`: Every element in `data` will be divided by 10^`exp_factor`.
   - `warnings::Bool=true`: If a warning will be given when `data` is a vector of Integers, which may cause wrong results when dividing by 10^`exp_factor`.
 
 # Returns
@@ -290,8 +290,8 @@ function sanitizeData!(
     func_domain::Function=identity,
     range::Tuple{<:Number,<:Number}=(-Inf, Inf),
     keep_edges::Bool=true,
-    min_left::Int64=0,
-    exp_factor::Int64=0,
+    min_left::Int=0,
+    exp_factor::Int=0,
     warnings::Bool=true,
 )::NTuple{2,Bool}
 
@@ -366,8 +366,8 @@ By default, no transformation is done.
   - `func_domain::NTuple{2,Function}=(identity, identity)`: `x_data` will be trimmed to fit within the domain of the function `func_domain[1]`, and `y_data` will be trimmed to fit within the domain of the function `func_domain[2]`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `range::Tuple{Tuple{<:Number,<:Number},Tuple{<:Number,<:Number}}=((-Inf, Inf), (-Inf, Inf))`: Every element in `x_data` that falls outside of `range[1]` will be deleted, and every element in `y_data` that falls outside of `range[2]` will be deleted.
   - `keep_edges::NTuple{2,Bool}=(true, true)`: If the edges of each corresponding `range` will be kept.
-  - `min_left::Int64=0`: Minimum number of values that need to be left in each dataset after any of the transformations to procced with them.
-  - `exp_factor::NTuple{2,Int64}=(0, 0)`: Every element in `x_data` will be divided by 10^`exp_factor[1]`, and every element in `y_data` will be divided by 10^`exp_factor[2]`.
+  - `min_left::Int=0`: Minimum number of values that need to be left in each dataset after any of the transformations to procced with them.
+  - `exp_factor::NTuple{2,Int}=(0, 0)`: Every element in `x_data` will be divided by 10^`exp_factor[1]`, and every element in `y_data` will be divided by 10^`exp_factor[2]`.
   - `warnings::Bool=true`: If a warning will be given when any of the datasets is a vector of Integers, which may cause wrong results when dividing by 10^`exp_factor`.
 
 # Returns
@@ -385,8 +385,8 @@ function sanitizeData!(
     func_domain::NTuple{2,Function}=(identity, identity),
     range::Tuple{Tuple{<:Number,<:Number},Tuple{<:Number,<:Number}}=((-Inf, Inf), (-Inf, Inf)),
     keep_edges::NTuple{2,Bool}=(true, true),
-    min_left::Int64=0,
-    exp_factor::NTuple{2,Int64}=(0, 0),
+    min_left::Int=0,
+    exp_factor::NTuple{2,Int}=(0, 0),
     warnings::Bool=true,
 )::NTuple{4,Bool}
 
@@ -479,7 +479,7 @@ end
 """
     scaledBins(
         values::Vector{<:Number}, 
-        n_bins::Int64; 
+        n_bins::Int; 
         <keyword arguments>
     )::Vector{Float64}
 
@@ -488,7 +488,7 @@ Compute a set of bin edges, for a given list values.
 # Arguments
 
   - `values::Vector{<:Number}`: Values to be binned.
-  - `n_bins::Int64`: Number of bins.
+  - `n_bins::Int`: Number of bins.
   - `scaling::Function=identity`: Scaling function. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `limits::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Set it to a value different than `Inf` if you want to fix the limits of the binning.
 
@@ -498,7 +498,7 @@ Compute a set of bin edges, for a given list values.
 """
 function scaledBins(
     values::Vector{<:Number},
-    n_bins::Int64;
+    n_bins::Int;
     scaling::Function=identity,
     limits::Tuple{<:Number,<:Number}=(-Inf, Inf),
 )::Vector{<:Number}
@@ -585,7 +585,7 @@ function histogram1D(
 
     # Allocate memory
     histogram = zeros(eltype(values), n_bins)
-    counts = zeros(Int64, n_bins)
+    counts = zeros(Int, n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the grid range
     @inbounds for (position, value) in zip(positions, values)
@@ -599,7 +599,7 @@ function histogram1D(
         elseif position == p_max
             idx = n_bins
         else
-            idx = ceil(Int64, (position - p_min) / width)
+            idx = ceil(Int, (position - p_min) / width)
         end
 
         histogram[idx] += value
@@ -677,7 +677,7 @@ function histogram1D(
 
     # Allocate memory
     histogram = zeros(eltype(values), n_bins)
-    counts = zeros(Int64, n_bins)
+    counts = zeros(Int, n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the range of the edges
     @inbounds for (position, value) in zip(positions, values)
@@ -725,7 +725,7 @@ end
     histogram1D(
         positions::Vector{<:Number},
         grid::Union{LinearGrid,CircularGrid},
-    )::Vector{Int64}
+    )::Vector{Int}
 
 Compute a 1D histogram of `positions`.
 
@@ -741,7 +741,7 @@ Compute a 1D histogram of `positions`.
 function histogram1D(
     positions::Vector{<:Number},
     grid::Union{LinearGrid,CircularGrid},
-)::Vector{Int64}
+)::Vector{Int}
 
     n_bins = length(grid.grid)
 
@@ -759,7 +759,7 @@ function histogram1D(
     width = (p_max - p_min) / n_bins
 
     # Allocate memory
-    histogram = zeros(Int64, n_bins)
+    histogram = zeros(Int, n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the grid range
     @inbounds for position in positions
@@ -773,7 +773,7 @@ function histogram1D(
         elseif position == p_max
             idx = n_bins
         else
-            idx = ceil(Int64, (position - p_min) / width)
+            idx = ceil(Int, (position - p_min) / width)
         end
 
         histogram[idx] += 1
@@ -785,7 +785,7 @@ function histogram1D(
 end
 
 """
-    histogram1D(positions::Vector{<:Number}, edges::Vector{<:Number})::Vector{Int64}
+    histogram1D(positions::Vector{<:Number}, edges::Vector{<:Number})::Vector{Int}
 
 Compute a 1D histogram of `positions`.
 
@@ -798,7 +798,7 @@ Compute a 1D histogram of `positions`.
 
   - A vector with the counts.
 """
-function histogram1D(positions::Vector{<:Number}, edges::Vector{<:Number})::Vector{Int64}
+function histogram1D(positions::Vector{<:Number}, edges::Vector{<:Number})::Vector{Int}
 
     issorted(edges) || sort!(edges)
 
@@ -808,7 +808,7 @@ function histogram1D(positions::Vector{<:Number}, edges::Vector{<:Number})::Vect
     p_max = last(edges)
 
     # Allocate memory
-    histogram = zeros(Int64, n_bins)
+    histogram = zeros(Int, n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the range of the edges
     @inbounds for position in positions
@@ -877,7 +877,7 @@ function histogram2D(
 
     # Allocate memory
     histogram = zeros(eltype(values), size(grid.grid))
-    counts = zeros(Int64, size(grid.grid))
+    counts = zeros(Int, size(grid.grid))
 
     @inbounds for (i, point) in pairs(eachcol(positions))
 
@@ -898,7 +898,7 @@ function histogram2D(
         elseif x == h_borders[2]
             i_x = grid.n_bins
         else
-            i_x = ceil(Int64, (x - h_borders[1]) / grid.bin_width)
+            i_x = ceil(Int, (x - h_borders[1]) / grid.bin_width)
         end
 
         if y == v_borders[1]
@@ -906,7 +906,7 @@ function histogram2D(
         elseif y == v_borders[2]
             i_y = grid.n_bins
         else
-            i_y = ceil(Int64, (y - v_borders[1]) / grid.bin_width)
+            i_y = ceil(Int, (y - v_borders[1]) / grid.bin_width)
         end
 
         histogram[grid.n_bins - i_y + 1, i_x] += values[i]
@@ -989,7 +989,7 @@ function histogram2D(
 
     # Allocate memory
     histogram = zeros(eltype(values), (n_x_bins, n_y_bins))
-    counts = zeros(Int64, (n_x_bins, n_y_bins))
+    counts = zeros(Int, (n_x_bins, n_y_bins))
 
     @inbounds for (i, point) in pairs(eachcol(positions))
 
@@ -1047,7 +1047,7 @@ function histogram2D(
 end
 
 """
-    histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int64}
+    histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int}
 
 Compute a 2D histogram of `positions`.
 
@@ -1060,7 +1060,7 @@ Compute a 2D histogram of `positions`.
 
   - A matrix with the counts.
 """
-function histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int64}
+function histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int}
 
     # Half bin size
     h_bin_width = grid.bin_width * 0.5
@@ -1070,7 +1070,7 @@ function histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int6
     v_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
 
     # Allocate memory
-    histogram = zeros(Int64, size(grid.grid))
+    histogram = zeros(Int, size(grid.grid))
 
     @inbounds for point in eachcol(positions)
 
@@ -1089,7 +1089,7 @@ function histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int6
         elseif x == h_borders[2]
             i_x = grid.n_bins
         else
-            i_x = ceil(Int64, (x - h_borders[1]) / grid.bin_width)
+            i_x = ceil(Int, (x - h_borders[1]) / grid.bin_width)
         end
 
         if y == v_borders[1]
@@ -1097,7 +1097,7 @@ function histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int6
         elseif y == v_borders[2]
             i_y = grid.n_bins
         else
-            i_y = ceil(Int64, (y - v_borders[1]) / grid.bin_width)
+            i_y = ceil(Int, (y - v_borders[1]) / grid.bin_width)
         end
 
         histogram[grid.n_bins - i_y + 1, i_x] += 1
@@ -1113,7 +1113,7 @@ end
         positions::Matrix{<:Number},
         x_edges::Vector{<:Number},
         y_edges::Vector{<:Number},
-    )::Matrix{Int64}
+    )::Matrix{Int}
 
 Compute a 2D histogram of `positions`.
 
@@ -1132,7 +1132,7 @@ function histogram2D(
     positions::Matrix{<:Number},
     x_edges::Vector{<:Number},
     y_edges::Vector{<:Number},
-)::Matrix{Int64}
+)::Matrix{Int}
 
     issorted(x_edges) || sort!(x_edges)
     issorted(y_edges) || sort!(y_edges)
@@ -1144,7 +1144,7 @@ function histogram2D(
     v_borders = (first(y_edges), last(y_edges))
 
     # Allocate memory
-    histogram = zeros(Int64, (n_x_bins, n_y_bins))
+    histogram = zeros(Int, (n_x_bins, n_y_bins))
 
     @inbounds for point in eachcol(positions)
 
@@ -1182,7 +1182,7 @@ end
     smoothWindow(
         x_data::Vector{<:Number},
         y_data::Vector{<:Number},
-        n_bins::Int64;
+        n_bins::Int;
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
@@ -1192,7 +1192,7 @@ Separate the values of `x_data` in `n_bins` bins and compute the mean value of `
 
   - `x_data::Vector{<:Number}`: x-axis data.
   - `y_data::Vector{<:Number}`: y-axis data.
-  - `n_bins::Int64`: Number of bins.
+  - `n_bins::Int`: Number of bins.
   - `scaling::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity. All the values of `x_data` must be in the domain of `scaling`.
 
 # Returns
@@ -1202,7 +1202,7 @@ Separate the values of `x_data` in `n_bins` bins and compute the mean value of `
 function smoothWindow(
     x_data::Vector{<:Number},
     y_data::Vector{<:Number},
-    n_bins::Int64;
+    n_bins::Int;
     scaling::Function=identity,
 )::NTuple{2,Vector{<:Number}}
 

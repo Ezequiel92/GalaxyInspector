@@ -5,7 +5,7 @@
 """
     simulationReport(
         simulation_paths::Vector{String},
-        slice_n::Int64; 
+        slice_n::Int; 
         <keyword arguments>
     )::Nothing
 
@@ -14,7 +14,7 @@ Write a text file with information about a given snapshot and simulation.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be printed for each simulation.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be considered in the "filtered" section of the report. The options are:
 
@@ -23,17 +23,17 @@ Write a text file with information about a given snapshot and simulation.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
-  - `halo_idx::Int64=1`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int64=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1.
+  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1.
   - `warnings::Bool=true`: If a warning will be given when there is missing files.
 """
 function simulationReport(
     simulation_paths::Vector{String},
-    slice_n::Int64;
+    slice_n::Int;
     output_path::String="./",
     filter_mode::Symbol=:all,
-    halo_idx::Int64=1,
-    subhalo_rel_idx::Int64=1,
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
     warnings::Bool=true,
 )::Nothing
 
@@ -158,7 +158,7 @@ function simulationReport(
         component_list = h5open(file_path, "r") do snapshot
             filter(
                 in([:gas, :halo, :stars, :black_hole]),
-                [get(ParticleType, key, nothing) for key in keys(snapshot)],
+                [get(PARTICLE_TYPE, key, nothing) for key in keys(snapshot)],
             )
         end
 
@@ -231,11 +231,11 @@ function simulationReport(
         total_count = 0
         for component in component_list
 
-            count = getindex(getfield(snapshot_header, :num_total), ParticleIndex[component] + 1)
+            count = getindex(getfield(snapshot_header, :num_total), PARTICLE_INDEX[component] + 1)
 
             total_count += count
 
-            title = "$(ParticleNames[component]):"
+            title = "$(PARTICLE_NAMES[component]):"
             title *= " "^(24 - length(title))
 
             println(file, "\t\t$(title)$(count)")
@@ -257,7 +257,7 @@ function simulationReport(
 
             total_mass += mass
 
-            title = "$(ParticleNames[component]):"
+            title = "$(PARTICLE_NAMES[component]):"
             title *= " "^(24 - length(title))
 
             println(file, "\t\t$(title)$(round(typeof(1.0u"Msun"), mass, sigdigits=3))")
@@ -335,7 +335,7 @@ function simulationReport(
 
             count = length(data_dict[component]["MASS"])
 
-            title = "$(ParticleNames[component]):"
+            title = "$(PARTICLE_NAMES[component]):"
             title *= " "^(24 - length(title))
 
             total_count += count
@@ -359,7 +359,7 @@ function simulationReport(
 
             total_mass += mass
 
-            title = "$(ParticleNames[component]):"
+            title = "$(PARTICLE_NAMES[component]):"
             title *= " "^(24 - length(title))
 
             println(file, "\t\t$(title)$(round(typeof(1.0u"Msun"), mass, sigdigits=3))")
@@ -428,7 +428,7 @@ function simulationReport(
 
             cm = computeCenterOfMass(data_dict[component]["POS "], data_dict[component]["MASS"])
 
-            title = "$(ParticleNames[component]):"
+            title = "$(PARTICLE_NAMES[component]):"
             title *= " "^(24 - length(title))
 
             println(file, "\t\t$(title)$(round.(ustrip.(u"Mpc", cm), sigdigits=6)) $(u"Mpc")")
@@ -456,7 +456,7 @@ function simulationReport(
                 data_dict[component]["MASS"];
             )
 
-            title = "$(ParticleNames[component]):"
+            title = "$(PARTICLE_NAMES[component]):"
             title *= " "^(24 - length(title))
 
             println(file, "\t\t$(title)$(round.(L, sigdigits=3))")
@@ -481,7 +481,7 @@ function simulationReport(
                 data_dict[component]["MASS"],
             )
 
-            title = "$(ParticleNames[component]):"
+            title = "$(PARTICLE_NAMES[component]):"
             title *= " "^(24 - length(title))
 
             println(file, "\t\t$(title)$(round.(λ, sigdigits=3))")
@@ -621,7 +621,7 @@ function simulationReport(
             println(file, "\tCell/particle number:\n")
             for (i, len) in enumerate(g_len_type)
 
-                component = ParticleNames[IndexParticle[i - 1]]
+                component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
                 println(file, "\t\t$(component):$(" "^(22 - length(component))) $(len)")
 
             end
@@ -635,12 +635,12 @@ function simulationReport(
             println(file, "\tMasses:\n")
             for (i, mass) in enumerate(g_mass_type)
 
-                type_symbol = IndexParticle[i - 1]
+                type_symbol = INDEX_PARTICLE[i - 1]
 
                 if type_symbol ==:stars
                     component = "Stellar/Wind particles"
                 else
-                    component = ParticleNames[type_symbol]
+                    component = PARTICLE_NAMES[type_symbol]
                 end
 
                 println(
@@ -709,7 +709,7 @@ function simulationReport(
             println(file, "\tCell/particle number:\n")
             for (i, len) in enumerate(s_len_type)
 
-                component = ParticleNames[IndexParticle[i - 1]]
+                component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
                 println(file, "\t\t$(component):$(" "^(22 - length(component))) $(len)")
 
             end
@@ -719,12 +719,12 @@ function simulationReport(
             println(file, "\n\tMasses:\n")
             for (i, mass) in enumerate(s_mass_type)
 
-                type_symbol = IndexParticle[i - 1]
+                type_symbol = INDEX_PARTICLE[i - 1]
 
                 if type_symbol ==:stars
                     component = "Stellar/Wind particles"
                 else
-                    component = ParticleNames[type_symbol]
+                    component = PARTICLE_NAMES[type_symbol]
                 end
 
                 println(
@@ -874,7 +874,7 @@ end
 """
     densityMap(
         simulation_paths::Vector{String},
-        slice_n::Int64;
+        slice_n::Int;
         <keyword arguments>
     )::Nothing
 
@@ -883,7 +883,7 @@ Plot a 2D histogram of the density.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
 
       + `:stellar_mass`   -> Stellar mass.
@@ -909,7 +909,7 @@ Plot a 2D histogram of the density.
 """
 function densityMap(
     simulation_paths::Vector{String},
-    slice_n::Int64;
+    slice_n::Int;
     quantities::Vector{Symbol}=[:gas_mass],
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -920,7 +920,7 @@ function densityMap(
 )::Nothing
 
     # Compute number of pixel per side
-    resolution = round(Int64, box_size / pixel_length)
+    resolution = round(Int, box_size / pixel_length)
 
     # Set up the grid
     grid = SquareGrid(box_size, resolution)
@@ -1016,7 +1016,7 @@ end
 """
     scatterPlot(
         simulation_paths::Vector{String},
-        slice_n::Int64,
+        slice_n::Int,
         x_quantity::Symbol,
         y_quantity::Symbol;
         <keyword arguments>
@@ -1027,7 +1027,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`             -> Stellar mass.
@@ -1050,8 +1050,8 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -1086,8 +1086,8 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -1111,7 +1111,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
 """
 function scatterPlot(
     simulation_paths::Vector{String},
-    slice_n::Int64,
+    slice_n::Int,
     x_quantity::Symbol,
     y_quantity::Symbol;
     output_path::String="./",
@@ -1201,12 +1201,12 @@ end
 """
     scatterDensityMap(
         simulation_paths::Vector{String},
-        slice_n::Int64,
+        slice_n::Int,
         x_quantity::Symbol,
         y_quantity::Symbol,
         x_range::NTuple{2, <:Number},
         y_range::NTuple{2, <:Number},
-        n_bins::Int64;
+        n_bins::Int;
         <keyword arguments>
     )::Nothing
 
@@ -1215,7 +1215,7 @@ Plot two quantities as a density scatter plot (2D histogram).
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`             -> Stellar mass.
@@ -1238,8 +1238,8 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -1274,8 +1274,8 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -1290,7 +1290,7 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `x_range::NTuple{2,<:Number}`: x axis range.
   - `y_range::NTuple{2,<:Number}`: y axis range.
-  - `n_bins::Int64`: Number of bins per side of the square grid.
+  - `n_bins::Int`: Number of bins per side of the square grid.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
@@ -1302,12 +1302,12 @@ Plot two quantities as a density scatter plot (2D histogram).
 """
 function scatterDensityMap(
     simulation_paths::Vector{String},
-    slice_n::Int64,
+    slice_n::Int,
     x_quantity::Symbol,
     y_quantity::Symbol,
     x_range::NTuple{2,<:Number},
     y_range::NTuple{2,<:Number},
-    n_bins::Int64;
+    n_bins::Int;
     output_path::String="./",
     filter_mode::Symbol=:all,
 )::Nothing
@@ -1428,8 +1428,8 @@ Plot a time series.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
@@ -1462,8 +1462,8 @@ Plot a time series.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
@@ -1554,7 +1554,7 @@ end
 """
     rotationCurve(
         simulation_paths::Vector{String},
-        slice_n::Int64;
+        slice_n::Int;
         <keyword arguments>
     )::Nothing
 
@@ -1563,7 +1563,7 @@ Plot the galaxy rotation curve of a set of simulations.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `radius::Unitful.Length=FILTER_R`: Maximum radial distance for the rotation curve.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
@@ -1577,7 +1577,7 @@ Plot the galaxy rotation curve of a set of simulations.
 """
 function rotationCurve(
     simulation_paths::Vector{String},
-    slice_n::Int64;
+    slice_n::Int;
     radius::Unitful.Length=FILTER_R,
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -1660,7 +1660,7 @@ end
 """
     stellarHistory(
         simulation_paths::Vector{String},
-        slice_n::Int64,
+        slice_n::Int,
         quantity::Symbol;
         <keyword arguments>
     )::Nothing
@@ -1670,13 +1670,13 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:sfr`          -> The star formation rate.
       + `:ssfr`         -> The specific star formation rate.
       + `:stellar_mass` -> Stellar mass.
-  - `n_bins::Int64=20`: Number of bins (time intervals).
+  - `n_bins::Int=20`: Number of bins (time intervals).
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
@@ -1689,9 +1689,9 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
 """
 function stellarHistory(
     simulation_paths::Vector{String},
-    slice_n::Int64,
+    slice_n::Int,
     quantity::Symbol;
-    n_bins::Int64=20,
+    n_bins::Int=20,
     output_path::String="./",
     filter_mode::Symbol=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
@@ -1774,7 +1774,7 @@ end
 """
     stellarCircularity(
         simulation_paths::Vector{String},
-        slice_n::Int64;
+        slice_n::Int;
         <keyword arguments>
     )::Nothing
 
@@ -1783,9 +1783,9 @@ Plot a histogram of the stellar circularity.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `range::NTuple{2,<:Number}=(-2.0, 2.0)`: Circularity range.
-  - `n_bins::Int64=60`: Number of bins.
+  - `n_bins::Int=60`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
@@ -1798,9 +1798,9 @@ Plot a histogram of the stellar circularity.
 """
 function stellarCircularity(
     simulation_paths::Vector{String},
-    slice_n::Int64;
+    slice_n::Int;
     range::NTuple{2,<:Number}=(-2.0, 2.0),
-    n_bins::Int64=60,
+    n_bins::Int=60,
     output_path::String="./",
     filter_mode::Symbol=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
@@ -1988,7 +1988,7 @@ end
 """
     compareWithMolla2015(
         simulation_paths::Vector{String},
-        slice_n::Int64,
+        slice_n::Int,
         quantity::Symbol;
         <keyword arguments>
     )::Nothing
@@ -1998,7 +1998,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_area_density`   -> Stellar area mass density.
@@ -2024,7 +2024,7 @@ M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the in
 """
 function compareWithMolla2015(
     simulation_paths::Vector{String},
-    slice_n::Int64,
+    slice_n::Int,
     quantity::Symbol;
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -2106,7 +2106,7 @@ end
 """
     compareWithKennicuttBigiel(
         simulation_paths::Vector{String},
-        slice_n::Int64;
+        slice_n::Int;
         <keyword arguments>
     )::Nothing
 
@@ -2119,7 +2119,7 @@ Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
 
       + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
@@ -2143,7 +2143,7 @@ F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC S
 """
 function compareWithKennicuttBigiel(
     simulation_paths::Vector{String},
-    slice_n::Int64;
+    slice_n::Int;
     quantity::Symbol=:molecular_area_density,
     output_path::String="./",
     filter_mode::Symbol=:all,

@@ -3,13 +3,13 @@
 ####################################################################################################
 
 """
-    getUnitLabel(factor::Int64, unit::Unitful.Units; <keyword arguments>)::AbstractString
+    getUnitLabel(factor::Int, unit::Unitful.Units; <keyword arguments>)::AbstractString
 
 Construct the unit part of an axis label.
 
 # Arguments
 
-  - `factor::Int64`: Exponential factor to scale down the units. If different from 0, a term of the form 10^`factor` will be added to the label.
+  - `factor::Int`: Exponential factor to scale down the units. If different from 0, a term of the form 10^`factor` will be added to the label.
   - `unit::Unitful.Units`: Unit of the axis.
   - `latex::Bool=true`: If the output will be a `LaTeXString`, or a plain `String`.
 
@@ -17,7 +17,7 @@ Construct the unit part of an axis label.
 
   - The `LaTeXString` or `String`: "10^`factor` `unit`". The `factor` term only appears if `factor` != 0, the unit term only appears if `unit` != `Unitful.NoUnits`.
 """
-function getUnitLabel(factor::Int64, unit::Unitful.Units; latex::Bool=true)::AbstractString
+function getUnitLabel(factor::Int, unit::Unitful.Units; latex::Bool=true)::AbstractString
 
     if latex
 
@@ -70,7 +70,7 @@ end
 """
     getLabel(
         label::AbstractString, 
-        factor::Int64, 
+        factor::Int, 
         unit::Unitful.Units; 
         <keyword arguments>
     )::AbstractString
@@ -80,7 +80,7 @@ Construct an axis label.
 # Arguments
 
   - `label::AbstractString`: Variable name.
-  - `factor::Int64`: Exponential factor to scale down the units. If different from 0, a term of the form 10^`factor` will be added to the label.
+  - `factor::Int`: Exponential factor to scale down the units. If different from 0, a term of the form 10^`factor` will be added to the label.
   - `unit::Unitful.Units`: Unit of the axis.
   - `latex::Bool=true`: If the output will be a `LaTeXString`, or a plain `String`.
 
@@ -90,7 +90,7 @@ Construct an axis label.
 """
 function getLabel(
     label::AbstractString,
-    factor::Int64,
+    factor::Int,
     unit::Unitful.Units;
     latex::Bool=true,
 )::AbstractString
@@ -173,13 +173,13 @@ function formatError(q_mean::Number, q_error::Number)::NTuple{2,<:Number}
         if error < 1.0
             first_digit = trunc(error * 10.0^(floor(sigdigit_pos) + 1.0))
             extra = first_digit == 1.0 ? 1 : 0
-            digits = ceil(Int64, sigdigit_pos) + extra
+            digits = ceil(Int, sigdigit_pos) + extra
             round_mean = round(mean; digits)
             round_error = round(error, sigdigits=1 + extra)
         else
             first_digit = trunc(error * 10.0^(-floor(sigdigit_pos)))
             extra = first_digit == 1.0 ? 2 : 1
-            sigdigits = ceil(Int64, log10(abs(mean))) - ceil(Int64, sigdigit_pos) + extra
+            sigdigits = ceil(Int, log10(abs(mean))) - ceil(Int, sigdigit_pos) + extra
             round_mean = round(mean; sigdigits)
             round_error = round(error, sigdigits=extra)
         end
@@ -357,7 +357,7 @@ Find which cell/particle types are part of the keys of `data`.
 
   - A vector with the cell/particle types.
 """
-snapshotTypes(data::Dict)::Vector{Symbol} = collect(keys(ParticleIndex) ∩ keys(data))
+snapshotTypes(data::Dict)::Vector{Symbol} = collect(keys(PARTICLE_INDEX) ∩ keys(data))
 
 """
     groupcatTypes(data::Dict)::Vector{Symbol}
@@ -443,7 +443,7 @@ function filterData!(data_dict::Dict; filter_function::Function=filterNothing)::
 end
 
 """
-    computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int64})::Vector{<:Unitful.Length}
+    computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
 Read the position of the potencial minimum for a given halo or subhalo.
 
@@ -462,7 +462,7 @@ Read the position of the potencial minimum for a given halo or subhalo.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `subfind_idx::NTuple{2,Int64}`: Tuple with two elements:
+  - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
       + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, the potencial minimum of the whole halo with index `halo_idx` is returned.
@@ -471,7 +471,7 @@ Read the position of the potencial minimum for a given halo or subhalo.
 
   - The specified potencial minimum.
 """
-function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int64})::Vector{<:Unitful.Length}
+function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
     halo_idx, subhalo_rel_idx = subfind_idx
 
@@ -596,7 +596,7 @@ function translatePoints(
 end
 
 """
-    translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int64}})::Nothing
+    translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}})::Nothing
 
 Translate the positions of the cells/particles in `data_dict`.
 
@@ -619,15 +619,15 @@ Translate the positions of the cells/particles in `data_dict`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `translation::Union{Symbol,NTuple{2,Int64}}=:zero`: Type of translation. The options are:
+  - `translation::Union{Symbol,NTuple{2,Int}}=:zero`: Type of translation. The options are:
 
       + `:zero`                       -> No translation is applied.
       + `:global_cm`                  -> Sets the center of mass of the whole system as the new origin.
       + `:stellar_cm`                 -> Sets the stellar center of mass as the new origin.
-      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int64` subhalo (of the `halo_idx::Int64` halo), as the new origin.
-      + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int64` halo, as the new origin.
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+      + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo, as the new origin.
 """
-function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int64}})::Nothing
+function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}})::Nothing
 
     translation != :zero || return nothing
 
@@ -786,8 +786,8 @@ Select the plotting parameters for a given `quantity`.
       + `:sfr_area_density`         -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin. 
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -814,7 +814,7 @@ Select the plotting parameters for a given `quantity`.
 
       + `request::Dict{Symbol,Vector{String}}` -> Data request for [`readSnapshot`](@ref).
       + `var_name::AbstractString`             -> Name of the quantity for the plot axis.
-      + `exp_factor::Int64`                    -> Numerical exponent to scale down the axis.
+      + `exp_factor::Int`                    -> Numerical exponent to scale down the axis.
       + `unit::Unitful.Units`                  -> Target unit for the axis.
       + `axis_label::AbstractString`           -> Label for the axis.
 """
@@ -1038,7 +1038,7 @@ function plotParams(quantity::Symbol)::PlotParams
             var_name = L"Z_\star \, / \, Z_\odot",
         )
 
-    elseif quantity ∈ GasAbundance
+    elseif quantity ∈ GAS_ABUNDANCE
 
         element_string = first(split(string(quantity), "_"))
 
@@ -1047,7 +1047,7 @@ function plotParams(quantity::Symbol)::PlotParams
             axis_label = L"12 + \log_{10}(\mathrm{%$element_string} \, / \, \mathrm{H})",
         )
 
-    elseif quantity ∈ StellarAbundance
+    elseif quantity ∈ STELLAR_ABUNDANCE
 
         element_string = first(split(string(quantity), "_"))
 
@@ -1321,7 +1321,7 @@ end
 """
     findQtyExtrema(
         simulation_path::String,
-        slice_n::Int64,
+        slice_n::Int,
         type_symbol::Symbol,
         block::String; 
         <keyword arguments>
@@ -1332,8 +1332,8 @@ Compute the minimum and maximum values of `block`.
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int64`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1. If set to a negative number, the values in the whole simulation will be compared.
-  - `type_symbol::Symbol`: Cell/particle type. The possibilities are the keys of [`ParticleIndex`](@ref).
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1. If set to a negative number, the values in the whole simulation will be compared.
+  - `type_symbol::Symbol`: Cell/particle type. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `f::Function=identity`: A functions with the signature:
 
@@ -1351,7 +1351,7 @@ Compute the minimum and maximum values of `block`.
 """
 function findQtyExtrema(
     simulation_path::String,
-    slice_n::Int64,
+    slice_n::Int,
     type_symbol::Symbol,
     block::String;
     f::Function=identity,
@@ -1526,7 +1526,7 @@ function computeProfile(
 end
 
 """
-    findRealStars(path::String)::Vector{Int64}
+    findRealStars(path::String)::Vector{Int}
 
 Find the indices of the stars in a snapshot, excluding wind particles.
 
@@ -1549,10 +1549,10 @@ function findRealStars(path::String)::Vector{Bool}
         )
 
         time_of_birth = h5open(path, "r") do snapshot
-            if ParticleCodeName[:stars] ∉ keys(snapshot)
+            if PARTICLE_CODE_NAME[:stars] ∉ keys(snapshot)
                 Float64[]
             else
-                read(snapshot[ParticleCodeName[:stars]], QUANTITIES["GAGE"].hdf5_name)
+                read(snapshot[PARTICLE_CODE_NAME[:stars]], QUANTITIES["GAGE"].hdf5_name)
             end
         end
 
@@ -1579,7 +1579,7 @@ function findRealStars(path::String)::Vector{Bool}
 end
 
 """
-    countStars(path::String)::Int64
+    countStars(path::String)::Int
 
 Count the number of stars in a snapshot, excluding wind particles.
 
@@ -1591,7 +1591,7 @@ Count the number of stars in a snapshot, excluding wind particles.
 
   - The number of stars.
 """
-countStars(path::String)::Int64 = count(findRealStars(path))
+countStars(path::String)::Int = count(findRealStars(path))
 
 @doc raw"""
     computeTime(
@@ -1752,7 +1752,7 @@ function computeTemperature(
 )::Vector{<:Unitful.Temperature}
 
     # xH := mass_fraction_of_hydrogen
-    xH = metals[ElementIndex[:H], :]
+    xH = metals[ELEMENT_INDEX[:H], :]
 
     # yHe := number_of_helium_atoms / number_of_hydrogen_atoms
     # Take the mass fraction of metals as negligible
@@ -2649,7 +2649,7 @@ Compute the total mass of `element` in each cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `type_symbol::Symbol`: For which cell/particle type the element mass will be calculated. The possibilities are `:stars` and `:gas`.
-  - `element::Symbol`: Target element. The possibilities are the keys of [`ElementIndex`](@ref).
+  - `element::Symbol`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
 
 # Returns
 
@@ -2662,9 +2662,9 @@ function computeElementMass(
 )::Vector{<:Unitful.Mass}
 
     (
-        element ∈ keys(ElementIndex) || 
+        element ∈ keys(ELEMENT_INDEX) || 
         throw(ArgumentError("computeElementMass: :$(element) is not a tracked element, \
-        the options are the keys of `ElementIndex`, see `./src/constants.jl`"))
+        the options are the keys of `ELEMENT_INDEX`, see `./src/constants.jl`"))
     )
 
     if type_symbol == :gas
@@ -2682,7 +2682,7 @@ function computeElementMass(
         return Unitful.Mass[]
     end
 
-    return setPositive(data[z_block][ElementIndex[element], :]) .* data["MASS"]
+    return setPositive(data[z_block][ELEMENT_INDEX[element], :]) .* data["MASS"]
 
 end
 
@@ -2712,7 +2712,7 @@ Compute the total abundance of a given element, as $n_X / n_H$ where $n_X$ is th
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `type_symbol::Symbol`: For which cell/particle type the abundance will be calculated. The possibilities are `:stars` and `:gas`.
-  - `element::Symbol`: Target element. The possibilities are the keys of [`ElementIndex`](@ref).
+  - `element::Symbol`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
   - `solar::Bool=false`: If the result will be normalized to the solar abundance or not.
 
 # Returns
@@ -2736,13 +2736,13 @@ function computeGlobalAbundance(
     )
 
     # Compute the number of atoms
-    n_X = metal_mass / AtomicWeight[element]
-    n_H = hydrogen_mass / AtomicWeight[:H]
+    n_X = metal_mass / ATOMIC_WEIGHTS[element]
+    n_H = hydrogen_mass / ATOMIC_WEIGHTS[:H]
 
     # Compute the relative abundance of `element`
     abundance = ustrip(Unitful.NoUnits, n_X / n_H)
 
-    return abundance / (solar ? exp10(SolarAbundance[element] - 12.0) : 1.0)
+    return abundance / (solar ? exp10(SOLAR_ABUNDANCE[element] - 12.0) : 1.0)
 
 end
 
@@ -3143,8 +3143,8 @@ Compute an integrated quantity for the whole system in `data`.
       + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
@@ -3289,14 +3289,14 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
             integrated_qty = (metal_mass / stellar_mass) / SOLAR_METALLICITY
         end
 
-    elseif quantity ∈ GasAbundance
+    elseif quantity ∈ GAS_ABUNDANCE
 
         element_symbol = Symbol(first(split(string(quantity), "_")))
 
         abundance = 12 + log10(computeGlobalAbundance(data, :gas, element_symbol))
         integrated_qty = isinf(abundance) ? NaN : abundance
 
-    elseif quantity ∈ StellarAbundance
+    elseif quantity ∈ STELLAR_ABUNDANCE
 
         element_symbol = Symbol(first(split(string(quantity), "_")))
 
@@ -3425,8 +3425,8 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:neutral_number_density`   -> Neutral hydrogen number density.
       + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ElementIndex`](@ref).
+      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
       + `:gas_radial_distance`      -> Distance of every gas cell to the origin. 
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
@@ -3554,7 +3554,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         scatter_qty = setPositive(data_dict[:stars]["GZ2 "]) ./ SOLAR_METALLICITY
 
-    elseif quantity ∈ GasAbundance
+    elseif quantity ∈ GAS_ABUNDANCE
 
         element_symbol = Symbol(first(split(string(quantity), "_")))
 
@@ -3564,8 +3564,8 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         if isempty(hydrogen_mass)
             scatter_qty = Float64[]
         else
-            n_X = element_mass ./ AtomicWeight[element_symbol]
-            n_H = hydrogen_mass ./ AtomicWeight[:H]
+            n_X = element_mass ./ ATOMIC_WEIGHTS[element_symbol]
+            n_H = hydrogen_mass ./ ATOMIC_WEIGHTS[:H]
 
             abundance = ustrip.(Unitful.NoUnits, n_X ./ n_H)
 
@@ -3573,7 +3573,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
             replace!(x -> isinf(x) ? NaN : x, scatter_qty)
         end
 
-    elseif quantity ∈ StellarAbundance
+    elseif quantity ∈ STELLAR_ABUNDANCE
 
         element_symbol = Symbol(first(split(string(quantity), "_")))
 
@@ -3583,8 +3583,8 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         if isempty(hydrogen_mass)
             scatter_qty = Float64[]
         else
-            n_X = element_mass ./ AtomicWeight[element_symbol]
-            n_H = hydrogen_mass ./ AtomicWeight[:H]
+            n_X = element_mass ./ ATOMIC_WEIGHTS[element_symbol]
+            n_H = hydrogen_mass ./ ATOMIC_WEIGHTS[:H]
 
             abundance = ustrip.(Unitful.NoUnits, n_X ./ n_H)
 
@@ -3658,7 +3658,7 @@ end
     selectFilter(
         filter_mode::Symbol, 
         request::Dict{Symbol,Vector{String}},
-    )::Tuple{Function,Union{Symbol,NTuple{2,Int64}},Symbol,Dict{Symbol,Vector{String}}}
+    )::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
 
 Select a filter function, and the corresponding translation and rotation for the simulation box. 
     
@@ -3684,8 +3684,8 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int64` subhalo (of the `halo_idx::Int64` halo), as the new origin.
-          + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int64` halo, as the new origin.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+          + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
       + Rotation for the simulation box. The posibilities are:
 
           + `:global_am`  -> Sets the angular momentum of the whole system as the new z axis.
@@ -3697,7 +3697,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 function selectFilter(
     filter_mode::Symbol,
     request::Dict{Symbol,Vector{String}},
-)::Tuple{Function,Union{Symbol,NTuple{2,Int64}},Symbol,Dict{Symbol,Vector{String}}}
+)::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
 
     if filter_mode == :all
 
@@ -3709,7 +3709,7 @@ function selectFilter(
         new_request = mergeRequests(
             addRequest(
                 request,
-                Dict(type_symbol => ["POS ", "MASS"] for type_symbol in keys(ParticleIndex)),
+                Dict(type_symbol => ["POS ", "MASS"] for type_symbol in keys(PARTICLE_INDEX)),
             ),
             Dict(:stars => ["POS ", "MASS", "VEL "]),
         )
@@ -3725,7 +3725,7 @@ function selectFilter(
             addRequest(
                 request,
                 Dict(
-                    type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(ParticleIndex)
+                    type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)
                 ),
             ),
             Dict(
@@ -3746,7 +3746,7 @@ function selectFilter(
             addRequest(
                 request,
                 Dict(
-                    type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(ParticleIndex)
+                    type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)
                 ),
             ),
             Dict(
@@ -3765,7 +3765,7 @@ function selectFilter(
 
         new_request = addRequest(
             request,
-            Dict(type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(ParticleIndex)),
+            Dict(type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)),
         )
 
     elseif filter_mode == :stellar_subhalo
@@ -3830,7 +3830,7 @@ end
 """
 Default filter function that does not filter any cells/particles.
 """
-filterNothing(x...; y...)::Dict{Symbol,IndexType} = PassAll
+filterNothing(x...; y...)::Dict{Symbol,IndexType} = PASS_ALL
 
 """
     filterWithin(data_dict::Dict, r::Unitful.Length, origin...)::Dict{Symbol,IndexType}
@@ -4056,8 +4056,8 @@ Filter out cells/particles that do not belong to a given halo and subhalo.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `halo_idx::Int64`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int64`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
 
 # Returns
 
@@ -4070,8 +4070,8 @@ Filter out cells/particles that do not belong to a given halo and subhalo.
 """
 function filterSubhalo(
     data_dict::Dict;
-    halo_idx::Int64=1,
-    subhalo_rel_idx::Int64=1,
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
 )::Dict{Symbol,IndexType}
 
     # Load the necessary data
@@ -4083,7 +4083,7 @@ function filterSubhalo(
     n_groups_total = data_dict[:gc_data].header.n_groups_total
     (
         !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_len_type, s_len_type]) ||
-        return Dict(type_symbol => Int64[] for type_symbol in snapshotTypes(data_dict))
+        return Dict(type_symbol => Int[] for type_symbol in snapshotTypes(data_dict))
     )
 
     # Check that the requested halo index is within bounds
@@ -4125,7 +4125,7 @@ function filterSubhalo(
         # Compute the number of particles in the current halo, 
         # upto the last subhalo before `subhalo_rel_idx`
         if isone(subhalo_abs_idx)
-            len_type_floor_in_halo = zeros(Int64, size(s_len_type, 1))
+            len_type_floor_in_halo = zeros(Int, size(s_len_type, 1))
         else
             len_type_floor_in_halo = sum(
                 s_len_type[:, (n_subs_floor + 1):(subhalo_abs_idx - 1)], dims=2; init=0,
@@ -4145,10 +4145,10 @@ function filterSubhalo(
     # Fill the filter dictionary
     @inbounds for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
 
-        type_symbol = IndexParticle[i - 1]
+        type_symbol = INDEX_PARTICLE[i - 1]
 
         @inbounds if first_idx == last_idx || iszero(last_idx)
-            indices[type_symbol] = Int64[]
+            indices[type_symbol] = Int[]
         end
 
         if type_symbol == :stars
