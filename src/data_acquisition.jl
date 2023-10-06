@@ -986,7 +986,7 @@ function readCpuFile(
     file_data = eachline(file_path)
 
     # Set up an auxiliary dictionary
-    data_aux = Dict(target => Vector{Matrix{Float64}}(undef, 0) for target in targets)
+    data_aux = Dict(target => Vector{Matrix{Float64}}[] for target in targets)
 
     # Clock time for each sync-point
     time = 0.0
@@ -1025,8 +1025,7 @@ function readCpuFile(
 
     (
         !(warnings && any(isempty, values(data_aux))) ||
-        @warn("readCpuFile: I could not find some/all the target rows ($(targets)) \
-        in $(file_path)")
+        @warn("readCpuFile: I could not find some of the target rows in $(file_path)")
     )
 
     # Allocate memory
@@ -1041,9 +1040,9 @@ function readCpuFile(
         l_e = length(data)
 
         if 1 < step < l_e
-            data_out[target] = reduce(vcat, data[1:step:end])
+            data_out[target] = vcat(data[1:step:end]...)
         else
-            data_out[target] = reduce(vcat, data)
+            data_out[target] = vcat(data...)
             (
                 !(warnings && step > l_e) ||
                 @warn("readCpuFile: `step` = $(step) is bigger than the number \
