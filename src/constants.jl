@@ -5,81 +5,59 @@
 # Configuration
 
 """
-SNAP_BASENAME
-
 Base name of the snapshot files, set in the code variable `SnapshotFileBase`.
 """
 const SNAP_BASENAME = "snap"
 
 """
-GC_BASENAME
-
 Base name of the group catalog files.
 """
 const GC_BASENAME = "fof_subhalo_tab"
 
 """
-SFR_REL_PATH
-
 Relative path, within the simulation directory, to the `sfr.txt` file.
 """
 const SFR_REL_PATH = "output/sfr.txt"
 
 """
-PHYSICAL_UNITS
-
 If physical units will be used throughout, instead of comoving units.
 """
 const PHYSICAL_UNITS = true
 
 """
-ILLUSTRIS_L_UNIT
-
 Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{Mpc}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_L_UNIT = 3.085678e24u"cm"
 
 """
-ILLUSTRIS_M_UNIT
-
 Internal unit of mass used in IllustrisTNG, equivalent to ``10^{10} \\, \\mathrm{M_\\odot}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_M_UNIT = 1.989e43u"g"
 
 """
-ILLUSTRIS_V_UNIT
-
 Internal unit of velocity used in IllustrisTNG, equivalent to ``1.0 \\, \\mathrm{km \\, s^{-1}}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
 const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
 
 """
-FILTER_R
-
 Radius of the sphere used in [`filterWithin`](@ref), and for area density calculation.
 """
 const FILTER_R = 25u"kpc"
 
 """
-AGE_RESOLUTION
-
 Stellar age limit for the SFR and sSFR calculations.
 """
 const AGE_RESOLUTION = 25u"Myr"
 
 """
-AGE_RESOLUTION_ρ
-
 Stellar age limit for the SFR area density calculation.
 """
 const AGE_RESOLUTION_ρ = 200u"Myr"
 
 """
-CRITICAL_DENSITY
-
 Critical density for Newtonian simulations, above which the gas particles enter the star formation routine.
 
 This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`
@@ -87,8 +65,6 @@ This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` 
 const CRITICAL_DENSITY = 1.033780605417362e7u"Msun*kpc^-3"
 
 @doc raw"""
-HUBBLE_CONSTANT
-
 Hubble constant in $\mathrm{Gyr^{-1}}$.
 
 This value corresponds to $H_0 = 0.102201 \, \mathrm{Gyr}^{-1} = 100 \, \mathrm{km} \, \mathrm{s}^{-1} \, \mathrm{Mpc}^{-1}$.
@@ -96,8 +72,6 @@ This value corresponds to $H_0 = 0.102201 \, \mathrm{Gyr}^{-1} = 100 \, \mathrm{
 const HUBBLE_CONSTANT = 0.102201
 
 """
-SOLAR_METALLICITY
-
 Solar metallicity, as used in Arepo.
 
 # References
@@ -109,8 +83,6 @@ const SOLAR_METALLICITY = 0.0127
 # Cell/particle types
 
 """
-FULL_PARTICLE_INDEX
-
 Code index for each type of cell/particle.
 
 !!! note
@@ -132,8 +104,6 @@ const FULL_PARTICLE_INDEX = Dict(
 )
 
 """
-DEFAULT_PARTICLE_INDEX
-
 Code index for each type of cell/particle.
 
 !!! note
@@ -154,15 +124,11 @@ const DEFAULT_PARTICLE_INDEX = Dict(
 )
 
 """
-PARTICLE_INDEX
-
 Current cell/particle index in use.
 """
 const PARTICLE_INDEX = FULL_PARTICLE_INDEX
 
 """
-PARTICLE_NAMES
-
 Human readable name corresponding to each type of cell/particle.
 """
 const PARTICLE_NAMES = Dict(
@@ -176,29 +142,21 @@ const PARTICLE_NAMES = Dict(
 )
 
 """
-INDEX_PARTICLE
-
 Type of cell/particle corresponding to each code index.
 """
 const INDEX_PARTICLE = Dict(n => symbol for (symbol, n) in PARTICLE_INDEX)
 
 """
-PARTICLE_TYPE
-
 Type of cell/particle corresponding to each internal code name (data group in the HDF5 output).
 """
 const PARTICLE_TYPE = Dict("PartType$n" => symbol for (symbol, n) in PARTICLE_INDEX)
 
 """
-PARTICLE_CODE_NAME
-
 Internal code name (data group in the HDF5 output) corresponding to each type of cell/particle.
 """
 const PARTICLE_CODE_NAME = Dict(symbol => "PartType$n" for (symbol, n) in PARTICLE_INDEX)
 
 """
-PASS_ALL
-
 Default filter dictionary that does not exclude any cells/particles.
 """
 const PASS_ALL = Dict(key => (:) for key in keys(PARTICLE_INDEX))
@@ -206,8 +164,6 @@ const PASS_ALL = Dict(key => (:) for key in keys(PARTICLE_INDEX))
 # Tracked elements
 
 """
-ELEMENT_INDEX
-
 Code index for each tracked element.
 """
 const ELEMENT_INDEX = Dict(
@@ -219,20 +175,16 @@ const ELEMENT_INDEX = Dict(
     :Ne    => 6,  # Neon
     :Mg    => 7,  # Magnesium
     :Si    => 8,  # Silicon
-    :Fe    => 9,  # Iron 
+    :Fe    => 9,  # Iron
     :Other => 10, # All other
 )
 
 """
-GAS_ABUNDANCE
-
 Symbol list for the gas abundance quantities.
 """
 const GAS_ABUNDANCE = [Symbol(element, "_gas_abundance") for element in keys(ELEMENT_INDEX)]
 
 """
-STELLAR_ABUNDANCE
-
 Symbol list for the stellar abundance quantities.
 """
 const STELLAR_ABUNDANCE = [Symbol(element, "_stellar_abundance") for element in keys(ELEMENT_INDEX)]
@@ -240,8 +192,6 @@ const STELLAR_ABUNDANCE = [Symbol(element, "_stellar_abundance") for element in 
 # Reference values from the literature
 
 @doc raw"""
-SOLAR_ABUNDANCE
-
 Solar abundances.
 
 They are defined as $12 + \log_{10}(N_\mathrm{X} / N_\mathrm{H})$, where $N_\mathrm{X}$ and $N_\mathrm{H}$ are the number densities of element $\mathrm{X}$ and hydrogen respectively.
@@ -259,12 +209,10 @@ const SOLAR_ABUNDANCE = Dict(
     :Ne => 7.93,  # Neon
     :Mg => 7.60,  # Magnesium
     :Si => 7.51,  # Silicon
-    :Fe => 7.50,  # Iron 
+    :Fe => 7.50,  # Iron
 )
 
 """
-ATOMIC_WEIGHTS
-
 Standard atomic weights.
 
 # References
@@ -280,12 +228,10 @@ const ATOMIC_WEIGHTS = Dict(
     :Ne => 20.180, # Neon
     :Mg => 24.305, # Magnesium
     :Si => 28.085, # Silicon
-    :Fe => 55.845, # Iron 
+    :Fe => 55.845, # Iron
 )
 
 """
-BIGIEL2008_DATA_PATH
-
 Path to the file with the fits for the molecular Kennicutt-Schmidt relation, taken from Bigiel et al. (2008).
 
 # References
@@ -295,8 +241,6 @@ F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC S
 const BIGIEL2008_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Bigiel2008.txt")
 
 """
-KS98_SLOPE
-
 Slope of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
 
 # References
@@ -306,8 +250,6 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 const KS98_SLOPE = 1.4
 
 """
-KS98_INTERCEPT
-
 Intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
 
 # References
@@ -317,8 +259,6 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 const KS98_INTERCEPT = 2.5e-4u"Msun*yr^-1*kpc^-2"
 
 """
-KS98_RHO_UNIT
-
 Unit of surface density of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
 
 # References
@@ -328,8 +268,6 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 const KS98_RHO_UNIT = u"Msun*pc^-2"
 
 """
-MOLLA2015_DATA_PATH
-
 Path to the file with the Milky Way profiles, taken from Mollá et al. (2015).
 
 # References
@@ -339,8 +277,6 @@ M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the in
 const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Mollá2015.csv")
 
 """
-FELDMANN2020_DATA_PATH
-
 Path to the file with the global galaxy properties, taken from Feldmann (2020).
 
 # References
@@ -350,8 +286,6 @@ R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*
 const FELDMANN2020_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Feldmann2020.csv")
 
 """
-P0
-
 Reference pressure for the molecular fraction-pressure relation, taken from Blitz et al. (2006).
 
 # References
@@ -363,22 +297,16 @@ const P0 = 2.0e4u"K*cm^-3" * Unitful.k
 # Type aliases
 
 """
-ColorType
-
 Color type.
 """
 const ColorType = Union{ColorTypes.RGB,Symbol}
 
 """
-LineStyleType
-
 Line style type.
 """
 const LineStyleType = Union{Tuple{String,Symbol},Nothing,String,Symbol}
 
 """
-IndexType
-
 Index type.
 """
 const IndexType = Union{
@@ -405,22 +333,16 @@ const IndexType = Union{
 # Makie.jl configuration
 
 """
-MARKERS
-
 List of marker types.
 """
 const MARKERS = [:ltriangle, :circle, :+, :diamond, :cross, :rtriangle, :star4, :rect, :x]
 
 """
-LINE_STYLES
-
 List of line styles.
 """
 const LINE_STYLES = [:solid, :dash, :dot, :dashdot, :dashdotdot, (".", :dense), ("-", :loose)]
 
 """
-THEME
-
 Global plot theme.
 """
 const THEME = Theme(
@@ -468,8 +390,6 @@ const THEME = Theme(
 # Structures
 
 """
-SnapshotHeader
-
 Data in the "Header" group of a HDF5 snapshot file.
 
 # Fields
@@ -505,8 +425,6 @@ Data in the "Header" group of a HDF5 snapshot file.
 end
 
 """
-GroupCatHeader
-
 Data in the "Header" group of a HDF5 group catalog file.
 
 # Fields
@@ -538,8 +456,6 @@ Data in the "Header" group of a HDF5 group catalog file.
 end
 
 """
-Simulation
-
 Metadata for a simulation.
 
 # Fields
@@ -571,8 +487,6 @@ struct Simulation
 end
 
 """
-Snapshot
-
 Metadata for a snapshot.
 
 # Fields
@@ -598,8 +512,6 @@ struct Snapshot
 end
 
 """
-GroupCatalog
-
 Metadata for a group catalog file.
 
 # Fields
@@ -613,8 +525,6 @@ struct GroupCatalog
 end
 
 """
-InternalUnits
-
 Unit conversion struct.
 
 # Fields
@@ -655,13 +565,13 @@ struct InternalUnits
 
     """
         InternalUnits(; <keyword arguments>)
-    
+
     Constructor for `InternalUnits`.
-    
+
     # Arguments
-    
+
       - `l_unit::Unitful.Length=ILLUSTRIS_L_UNIT`: Code parameter `UnitLength_in_cm`.
-      - `m_unit::Unitful.Mass=ILLUSTRIS_M_UNIT`: Code parameter `UnitMass_in_g`. 
+      - `m_unit::Unitful.Mass=ILLUSTRIS_M_UNIT`: Code parameter `UnitMass_in_g`.
       - `v_unit::Unitful.Velocity=ILLUSTRIS_V_UNIT`: Code parameter `UnitVelocity_in_cm_per_s`.
       - `a0::Float64=1.0`: Cosmological scale factor of the simulation.
       - `h0::Float64=1.0`: Hubble constant as "little h".
@@ -723,8 +633,6 @@ struct InternalUnits
 end
 
 """
-LinearGrid
-
 Linear grid (1D).
 
 # Fields
@@ -742,11 +650,11 @@ struct LinearGrid
 
     """
         LinearGrid(start::Number, stop::Number, n_bins::Int; <keyword arguments>)
-    
+
     Constructor for `LinearGrid`.
-    
+
     # Arguments
-    
+
       - `start::Number`: Initial value of the grid.
       - `stop::Number`: Final value of the grid.
       - `n_bins::Int`: Number of bins.
@@ -754,8 +662,8 @@ struct LinearGrid
     """
     function LinearGrid(start::Number, stop::Number, n_bins::Int; log::Bool=false)
 
-        # Example of a grid with 3 bins:  
-        #    
+        # Example of a grid with 3 bins:
+        #
         # +-----------------------------+-----------------------------+-----------------------------+
         # |   grid[1] -->|              |   grid[2] -->|              |   grid[3] -->|              |
         # +-----------------------------+-----------------------------+-----------------------------+
@@ -800,8 +708,6 @@ struct LinearGrid
 end
 
 """
-SquareGrid
-
 Square grid (2D).
 
 # Fields
@@ -825,15 +731,15 @@ struct SquareGrid
 
     """
         SquareGrid(
-            size::Number, 
+            size::Number,
             n_bins::Int;
             <keyword arguments>
         )
-    
+
     Constructor for `SquareGrid`.
-    
+
     # Arguments
-    
+
       - `size::Number`: Side length of the square grid.
       - `n_bins::Int`: Number of bins per dimesion of the grid.
       - `center::Vector{<:Number}=zeros(typeof(size), 3)`: 3D location of the center of the grid. The z axis is taken as the normal vector of the grid.
@@ -874,11 +780,11 @@ struct SquareGrid
 
         # Compute the position of each grid point
         @inbounds for i in eachindex(grid)
-            # The grid index `i` goes from top to bottom first, and then left to right, 
+            # The grid index `i` goes from top to bottom first, and then left to right,
             # starting at the top left of the grid
             i_x = ceil(Int, i / n_bins)
             i_y = mod1(i, n_bins) - 1
-            # The coordinates are cartesian, so `y` goes from bottom to top and `x` goes from left to right, 
+            # The coordinates are cartesian, so `y` goes from bottom to top and `x` goes from left to right,
             # starting at the bottom left of the grid
             grid[i] = (x_ticks[i_x], y_ticks[end - i_y])
         end
@@ -889,8 +795,6 @@ struct SquareGrid
 end
 
 """
-CircularGrid
-
 Circular grid (2D or 3D), formed by a series of concentric rings or spherical shells.
 
 # Fields
@@ -912,15 +816,15 @@ struct CircularGrid
 
     """
         CircularGrid(
-            radius::Number, 
+            radius::Number,
             n_bins::Int;
             <keyword arguments>
         )
-    
+
     Constructor for `CircularGrid`.
-    
+
     # Arguments
-    
+
       - `radius::Number`: Radius of the grid (equal to the last bin tick).
       - `n_bins::Int`: Number of bins.
       - `center::Vector{<:Number}=zeros(typeof(radius), 3)`: 3D location of the center of the grid. For the 2D grid, the grid is assumed to be in the xy plane.
@@ -937,8 +841,8 @@ struct CircularGrid
 
         # Example of a grid with 3 bins:
         #
-        # |<-----------------------------------------radius---------------------------------------->|    
-        #    
+        # |<-----------------------------------------radius---------------------------------------->|
+        #
         # +-----------+-------------------------+-------------------------+-------------------------+
         # |<--shift-->| grid[1] -->|            | grid[2] -->|            | grid[3] -->|            |
         # +-----------+-------------------------+-------------------------+-------------------------+
@@ -948,7 +852,7 @@ struct CircularGrid
         # +-----------+-------------------------+-------------------------+-------------------------+
 
         (
-            isPositive(radius) || 
+            isPositive(radius) ||
             throw(ArgumentError("CircularGrid: `radius` must be positive, \
             but I got radius = $(radius)"))
         )
@@ -963,7 +867,7 @@ struct CircularGrid
 
             # Length unit
             u_l = unit(radius)
-            
+
             log_shift = log10(ustrip(u_l, shift))
             log_radius = log10(ustrip(radius))
 
@@ -985,8 +889,6 @@ struct CircularGrid
 end
 
 """
-PlotParams
-
 Plotting parameters for a quantity.
 
 # Fields
@@ -1008,8 +910,6 @@ end
 # Quantities in the simulation
 
 """
-Qty
-
 Dimensional information about a physical quantity.
 
 # Fields
@@ -1025,8 +925,6 @@ struct Qty
 end
 
 """
-QUANTITIES
-
 Dictionary of dimensional properties for the quantities in the code.
 """
 const QUANTITIES = Dict(
