@@ -7,7 +7,7 @@
 ####################################################################################################
 #
 # A data analysis functions for snapshotPlot must take a dictionary with the following shape:
-# 
+#
 #   + :sim_data          -> ::Simulation (see the Simulation struct in ./src/constants.jl).
 #   + :snap_data         -> ::Snapshot (see the Snapshot struct in ./src/constants.jl).
 #   + :gc_data           -> ::GroupCatalog (see the GroupCatalog struct in ./src/constants.jl).
@@ -71,7 +71,7 @@ function daRotationCurve(
     R::Unitful.Length,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
-    # Compute the circular velocity and the stellar radial distances, in the order of the snapshot 
+    # Compute the circular velocity and the stellar radial distances, in the order of the snapshot
     r, vcirc = computeStellarVcirc(data_dict)
 
     # Only leave the data within a sphere of radius `R`
@@ -368,7 +368,7 @@ end
 
 """
     daStellarHistory(
-        data_dict::Dict; 
+        data_dict::Dict;
         <keyword arguments>
     )::Union{Tuple{Vector{<:Unitful.Time},Vector{<:Number}},Nothing}
 
@@ -618,11 +618,11 @@ function daDensity2DHistogram(
     if smooth
 
         # Spline kernel used in Arepo
-        # 
+        #
         # Monaghan, J. J., & Lattanzio, J. C. (1985). A refined particle method for astrophysical
-        # problems. Astronomy and Astrophysics, 149(1), 135–143. 
+        # problems. Astronomy and Astrophysics, 149(1), 135–143.
         # https://ui.adsabs.harvard.edu/abs/1985A&A...149..135M
-        # 
+        #
         # Springel, V. (2005). The cosmological simulation code gadget-2. Monthly Notices of the Royal
         # Astronomical Society, 364(4), 1105–1134. https://doi.org/10.1111/j.1365-2966.2005.09655.x
         kernel(q, h) = cubicSplineKernel(q, h)
@@ -685,8 +685,8 @@ end
 
 """
     daScatterDensity(
-        data_dict::Dict, 
-        x_quantity::Symbol, 
+        data_dict::Dict,
+        x_quantity::Symbol,
         y_quantity::Symbol,
         x_range::NTuple{2,<:Number},
         y_range::NTuple{2,<:Number},
@@ -1170,8 +1170,8 @@ end
 # Signature for the timeSeriesPlot function in ./src/pipelines.jl.
 ####################################################################################################
 #
-# A data analysis functions for timeSeriesPlot must take a Simulation struct, and return two 
-# vectors. It should return `nothing` if the input data has some problem that prevents computation 
+# A data analysis functions for timeSeriesPlot must take a Simulation struct, and return two
+# vectors. It should return `nothing` if the input data has some problem that prevents computation
 # (e.g. is empty).
 #
 # Expected signature:
@@ -1359,10 +1359,10 @@ function daEvolution(
         # Rotate the data
         rotateData!(data_dict, rotation)
 
-        # Compute the value for the x axis 
+        # Compute the value for the x axis
         x_axis[slice_index] = integrateQty(data_dict, x_quantity)
 
-        # Compute the value for the y axis 
+        # Compute the value for the y axis
         y_axis[slice_index] = integrateQty(data_dict, y_quantity)
 
     end
@@ -1388,7 +1388,6 @@ Compute the stellar mass or SFR evolution using the data in the `sfr.txt` file.
 # Arguments
 
   - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
-
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:scale_factor`  -> Scale factor.
@@ -1419,11 +1418,11 @@ function daSFRtxt(
 
     (
         !isempty(snapshot_paths) ||
-        throw(ArgumentError("daSFRtxt: I coudn't find any snapshots in $(sim_data.path), \
+        throw(ArgumentError("daSFRtxt: I couldn't find any snapshots in $(sim_data.path), \
         and I need at least one for unit conversion"))
     )
 
-    # Find the path to one snapshot 
+    # Find the path to one snapshot
     snapshot_path = first(snapshot_paths)
 
     # Read its header
@@ -1490,6 +1489,143 @@ function daSFRtxt(
 
         throw(ArgumentError("daSFRtxt: `y_quantity` can only be :stellar_mass or :sfr, \
         but I got :$(y_quantity)"))
+
+    end
+
+    return x_axis, y_axis
+
+end
+
+"""
+    daCPUtxt(
+        sim_data::Simulation,
+        target::String,
+        x_quantity::Symbol,
+        y_quantity::Symbol;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the evolution of a measured quantity in the `cpu.txt` file, for a given ´target´ process.
+
+# Arguments
+
+  - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
+  - `target::String`: Target process.
+  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+
+      + `:time_step`              -> Time step.
+      + `:physical_time`          -> Physical time since the Big Bang.
+      + `:clock_time_s`           -> Clock time duration of the time step in seconds.
+      + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
+      + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
+      + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+
+      + `:time_step`              -> Time step.
+      + `:physical_time`          -> Physical time since the Big Bang.
+      + `:clock_time_s`           -> Clock time duration of the time step in seconds.
+      + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
+      + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
+      + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+  - `warnings::Bool=true`: If a warning will be given when the target process is missing.
+
+# Returns
+
+  - A Tuple with two elements:
+
+      + A Vector with the time series of `x_quantity`.
+      + A Vector with the time series of `y_quantity`.
+"""
+function daCPUtxt(
+    sim_data::Simulation,
+    target::String,
+    x_quantity::Symbol,
+    y_quantity::Symbol;
+    warnings::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    snapshot_paths = filter(!ismissing, sim_data.table[!, 7])
+
+    (
+        !isempty(snapshot_paths) ||
+        throw(ArgumentError("daCPUtxt: I couldn't find any snapshots in $(sim_data.path), \
+        and I need at least one for unit conversion"))
+    )
+
+    # Find the path to one snapshot
+    snapshot_path = first(snapshot_paths)
+
+    # Read its header
+    header = readSnapHeader(snapshot_path)
+
+    # Read the data in the `sfr.txt` file
+    cpu_txt_data = readCpuFile(joinpath(sim_data.path, CPU_REL_PATH), [target]; warnings)[target]
+
+    if x_quantity == :time_step
+
+        x_axis = cpu_txt_data[:, 1]
+
+    elseif x_quantity == :physical_time
+
+        if sim_data.cosmological
+            x_axis = computeTime(cpu_txt_data[:, 2], header)
+        else
+            x_axis = cpu_txt_data[:, 2] .* internalUnits("CLKT", snapshot_path)
+        end
+
+    elseif x_quantity == :clock_time_s
+
+        x_axis = cpu_txt_data[:, 3] .* u"s"
+
+    elseif x_quantity == :clock_time_percent
+
+        x_axis = cpu_txt_data[:, 4]
+
+    elseif x_quantity == :cum_clock_time_s
+
+        x_axis = cpu_txt_data[:, 5] .* u"s"
+
+    elseif x_quantity == :cum_clock_time_percent
+
+        x_axis = cpu_txt_data[:, 6]
+
+    else
+
+        throw(ArgumentError("daCPUtxt: I don't recognize the x_quantity = :$(x_quantity)"))
+
+    end
+
+    if y_quantity == :time_step
+
+        y_axis = cpu_txt_data[:, 1]
+
+    elseif y_quantity == :physical_time
+
+        if sim_data.cosmological
+            y_axis = computeTime(cpu_txt_data[:, 2], header)
+        else
+            y_axis = cpu_txt_data[:, 2] .* internalUnits("CLKT", snapshot_path)
+        end
+
+    elseif y_quantity == :clock_time_s
+
+        y_axis = cpu_txt_data[:, 3] .* u"s"
+
+    elseif y_quantity == :clock_time_percent
+
+        y_axis = cpu_txt_data[:, 4]
+
+    elseif y_quantity == :cum_clock_time_s
+
+        y_axis = cpu_txt_data[:, 5] .* u"s"
+
+    elseif y_quantity == :cum_clock_time_percent
+
+        y_axis = cpu_txt_data[:, 6]
+
+    else
+
+        throw(ArgumentError("daCPUtxt: I don't recognize the y_quantity = :$(y_quantity)"))
 
     end
 

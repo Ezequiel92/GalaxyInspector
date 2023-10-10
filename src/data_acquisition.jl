@@ -31,7 +31,7 @@ function readGroupCatHeader(path::Union{String,Missing}; warnings::Bool=true)::G
     elseif isfile(path)
 
         (
-            HDF5.ishdf5(path) || 
+            HDF5.ishdf5(path) ||
             throw(ArgumentError("readGroupCatHeader: The file $(path) is not in the \
             HDF5 format, I don't know how to read it"))
         )
@@ -159,7 +159,7 @@ function readSnapHeader(path::String)::SnapshotHeader
         else
             m_unit = ILLUSTRIS_M_UNIT
         end
-        
+
         if "UnitVelocity_in_cm_per_s" ∈ attrs_present
             v_unit = read_attribute(h, "UnitVelocity_in_cm_per_s") * u"cm*s^-1"
         else
@@ -373,7 +373,7 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
         # Get the indices of the missing blocks
         idx_missing = map(x -> !blockPresent(x, group), blocks)
         (
-            !any(idx_missing) || 
+            !any(idx_missing) ||
             throw(ArgumentError("readTemperature: The blocks $(blocks[idx_missing]) \
             are missing, and I need them to compute the temperature"))
         )
@@ -494,7 +494,7 @@ function readGoupCatBlocks(
             else
 
                 (
-                    !warnings || 
+                    !warnings ||
                     @warn("readGoupCatBlocks: The group catalog type \
                     :$(type_symbol) in $(file_path) is missing")
                 )
@@ -582,7 +582,7 @@ function readSnapBlocks(
                 if isempty(hdf5_group)
 
                     (
-                        !warnings || 
+                        !warnings ||
                         @warn("readSnapBlocks: The cell/particle type \
                         :$(type_symbol) in $(file_path) is empty")
                     )
@@ -643,7 +643,7 @@ function readSnapBlocks(
                         else
 
                             (
-                                !warnings || 
+                                !warnings ||
                                 @warn("readSnapBlocks: The block $(block) for the \
                                 cell/particle type :$(type_symbol) in $(file_path) is missing")
                             )
@@ -659,7 +659,7 @@ function readSnapBlocks(
             else
 
                 (
-                    !warnings || 
+                    !warnings ||
                     @warn("readSnapBlocks: The cell/particle type \
                     :$(type_symbol) in $(file_path) is missing")
                 )
@@ -753,7 +753,7 @@ function readGroupCatalog(
             @inbounds for block in keys(data_blocks)
 
                 data = [
-                    data_in_file[type_symbol][block] for 
+                    data_in_file[type_symbol][block] for
                     data_in_file in data_in_files if !isempty(data_in_file[type_symbol][block])
                 ]
 
@@ -777,8 +777,8 @@ end
 
 """
     readSnapshot(
-        path::Union{String,Missing}, 
-        request::Dict{Symbol,Vector{String}}; 
+        path::Union{String,Missing},
+        request::Dict{Symbol,Vector{String}};
         <keyword arguments>
     )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
@@ -840,11 +840,11 @@ function readSnapshot(
             @inbounds for block in keys(data_blocks)
 
                 data = [
-                    data_in_file[type_symbol][block] for 
+                    data_in_file[type_symbol][block] for
                     data_in_file in data_in_files if !isempty(data_in_file[type_symbol][block])
                 ]
 
-                if isempty(data) 
+                if isempty(data)
                     qty_data[block] = Number[]
                 else
                     qty_data[block] = cat(data...; dims=ndims(first(data)))
@@ -890,7 +890,7 @@ end
 """
     readSfrFile(
         file_path::String,
-        snap_path::String; 
+        snap_path::String;
         <keyword arguments>
     )::Dict{Int32,VecOrMat{<:Number}}
 
@@ -927,12 +927,12 @@ function readSfrFile(
 
     # Check that the data in the file has the correct size
     (
-        n_cols <= 6 || 
+        n_cols <= 6 ||
         throw(ArgumentError("readSfrFile: I don't know how to handle more \
         than 6 columns in `sfr.txt`"))
     )
     (
-        !(warnings && n_cols < 6) || 
+        !(warnings && n_cols < 6) ||
         @warn("readSfrFile: I could only find $(n_cols) columns \
         in $(flie_path). I was expecting 6")
     )
@@ -946,8 +946,8 @@ end
 
 """
     readCpuFile(
-        file_path::String, 
-        targets::Vector{String}; 
+        file_path::String,
+        targets::Vector{String};
         <keyword arguments>
     )::Dict{String,Matrix{Float64}}
 
@@ -968,6 +968,8 @@ For each process in `targets` a matrix with all the CPU usage data is returned.
 
     `target process` -> matrix with columns:
 
+      + Time step.
+      + Simulation time (scale factor for cosmological simulations and physical time for non cosmological simulations).
       + Clock time in seconds.
       + Clock time as a percentage.
       + Cumulative clock time in seconds.
@@ -986,10 +988,12 @@ function readCpuFile(
     file_data = eachline(file_path)
 
     # Set up an auxiliary dictionary
-    data_aux = Dict(target => Vector{Matrix{Float64}}[] for target in targets)
+    data_aux = Dict(target => Matrix{Float64}[] for target in targets)
 
     # Clock time for each sync-point
     time = 0.0
+    # Time step
+    time_step = 0
 
     @inbounds for line in file_data
 
@@ -1005,6 +1009,7 @@ function readCpuFile(
         # Use "Step" lines to capture the clock time
         if title == "Step"
             time = parse(Float64, rstrip(columns[4], ','))
+            time_step = parse(Int, rstrip(columns[2], ','))
             continue
         end
 
@@ -1012,7 +1017,8 @@ function readCpuFile(
             push!(
                 data_aux[title],
                 [
-                    time;;                                    # Clock time for each sync-point
+                    time_step;;                               # Time step
+                    time;;                                    # Simulation time for each sync-point
                     parse(Float64, columns[2]);;              # Clock time in seconds
                     parse(Float64, rstrip(columns[3], '%'));; # Clock time as a percentage
                     parse(Float64, columns[4]);;              # Cumulative clock time in seconds
@@ -1095,7 +1101,7 @@ function getSnapshotPaths(simulation_path::String; warnings::Bool=true)::Dict{Sy
     if isempty(path_list)
 
         (
-            !warnings || 
+            !warnings ||
             @warn("getSnapshotPaths: I could not find any file named \
             $(SNAP_BASENAME)_*.hdf5 within $(simulation_path), or any of its subfolders")
         )
@@ -1159,7 +1165,7 @@ function getGroupCatPaths(simulation_path::String; warnings::Bool=true)::Dict{Sy
     if isempty(path_list)
 
         (
-            !warnings || 
+            !warnings ||
             @warn("getGroupCatPaths: I could not find any file named \
             $(GC_BASENAME)_*.hdf5 within $(simulation_path), or any of its subfolders")
         )

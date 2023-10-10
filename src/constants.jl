@@ -20,9 +20,14 @@ Relative path, within the simulation directory, to the `sfr.txt` file.
 const SFR_REL_PATH = "output/sfr.txt"
 
 """
+Relative path, within the simulation directory, to the `cpu.txt` file.
+"""
+const CPU_REL_PATH = "output/cpu.txt"
+
+"""
 If physical units will be used throughout, instead of comoving units.
 """
-const PHYSICAL_UNITS = true
+const PHYSICAL_UNITS = false
 
 """
 Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{Mpc}``.

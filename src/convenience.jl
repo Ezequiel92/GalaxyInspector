@@ -5,7 +5,7 @@
 """
     simulationReport(
         simulation_paths::Vector{String},
-        slice_n::Int; 
+        slice_n::Int;
         <keyword arguments>
     )::Nothing
 
@@ -106,7 +106,7 @@ function simulationReport(
 
         # Create the output file
         file = open(
-            joinpath(mkpath(output_path), "report-for-$(basename(simulation_path)).txt"), 
+            joinpath(mkpath(output_path), "report-for-$(basename(simulation_path)).txt"),
             "w",
         )
 
@@ -287,11 +287,11 @@ function simulationReport(
 
             h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
             h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
-            
+
             title = "Ionized mass:"
             title *= " "^(24 - length(title))
             println(
-                file, 
+                file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hii_mass, sigdigits=3)) \
                 ($(hii_percent)% of total gas mass)",
             )
@@ -299,7 +299,7 @@ function simulationReport(
             title = "Atomic mass:"
             title *= " "^(24 - length(title))
             println(
-                file, 
+                file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
                 ($(hi_percent)% of total gas mass)",
             )
@@ -307,7 +307,7 @@ function simulationReport(
             title = "Molecular mass:"
             title *= " "^(24 - length(title))
             println(
-                file, 
+                file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
                 ($(h2_percent)% of total gas mass)\n",
             )
@@ -389,11 +389,11 @@ function simulationReport(
 
             h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
             h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
-            
+
             title = "Ionized mass:"
             title *= " "^(24 - length(title))
             println(
-                file, 
+                file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hii_mass, sigdigits=3)) \
                 ($(hii_percent)% of total gas mass)",
             )
@@ -401,7 +401,7 @@ function simulationReport(
             title = "Atomic mass:"
             title *= " "^(24 - length(title))
             println(
-                file, 
+                file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
                 ($(hi_percent)% of total gas mass)",
             )
@@ -409,7 +409,7 @@ function simulationReport(
             title = "Molecular mass:"
             title *= " "^(24 - length(title))
             println(
-                file, 
+                file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
                 ($(h2_percent)% of total gas mass)\n",
             )
@@ -441,7 +441,7 @@ function simulationReport(
 
         # Translate the simulation box
         translateData!(data_dict, translation)
-    
+
         ############################################################################################
         # Print the normalized angular momentum of each component
         ############################################################################################
@@ -659,7 +659,7 @@ function simulationReport(
             ########################################################################################
 
             println(
-                file, 
+                file,
                 "\n\tCenter of mass:\n\n\t\t$(round.(ustrip.(u"Mpc", g_cm), sigdigits=6)) \
                 $(u"Mpc")\n",
             )
@@ -743,7 +743,7 @@ function simulationReport(
             ########################################################################################
 
             println(
-                file, 
+                file,
                 "\n\tCenter of mass:\n\n\t\t$(round.(ustrip.(u"Mpc", s_cm), sigdigits=6)) \
                 $(u"Mpc")\n",
             )
@@ -872,6 +872,107 @@ function sfrTXT(
 end
 
 """
+    cpuTXT(
+        simulation_paths::Vector{String},
+        target::String,
+        x_quantity::Symbol,
+        y_quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Plot a time series of the data in the `cpu.txt` file.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `target::String`: Target process.
+  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+
+      + `:time_step`              -> Time step.
+      + `:physical_time`          -> Physical time since the Big Bang.
+      + `:clock_time_s`           -> Clock time duration of the time step in seconds.
+      + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
+      + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
+      + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+
+      + `:time_step`              -> Time step.
+      + `:physical_time`          -> Physical time since the Big Bang.
+      + `:clock_time_s`           -> Clock time duration of the time step in seconds.
+      + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
+      + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
+      + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+  - `output_path::String="./"`: Path to the output folder.
+  - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+"""
+function cpuTXT(
+    simulation_paths::Vector{String},
+    target::String,
+    x_quantity::Symbol,
+    y_quantity::Symbol;
+    output_path::String="./",
+    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+)::Nothing
+
+    x_plot_params = plotParams(x_quantity)
+    y_plot_params = plotParams(y_quantity)
+
+    timeSeriesPlot(
+        simulation_paths,
+        [lines!];
+        pf_kwargs=[(;)],
+        # `timeSeriesPlot` configuration
+        output_path,
+        filename="$(y_quantity)-vs-$(x_quantity)",
+        output_format=".png",
+        warnings=true,
+        show_progress=true,
+        # Data manipulation options
+        slice=(:),
+        da_functions=[daCPUtxt],
+        da_args=[(target, x_quantity, y_quantity)],
+        da_kwargs=[(; warnings=true)],
+        post_processing=getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
+        x_unit=x_plot_params.unit,
+        y_unit=y_plot_params.unit,
+        x_exp_factor=0,
+        y_exp_factor=0,
+        x_trim=(-Inf, Inf),
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label=x_plot_params.axis_label,
+        yaxis_label=y_plot_params.axis_label,
+        xaxis_var_name=x_plot_params.var_name,
+        yaxis_var_name=y_plot_params.var_name,
+        xaxis_scale_func=identity,
+        yaxis_scale_func=identity,
+        xaxis_limits=(nothing, nothing),
+        yaxis_limits=(nothing, nothing),
+        # Plotting options
+        save_figure=true,
+        backup_results=false,
+        sim_labels,
+        title="",
+        pt_per_unit=0.75,
+        px_per_unit=2.0,
+        resolution=(1280, 800),
+        aspect=nothing,
+        series_colors=nothing,
+        series_markers=nothing,
+        series_linestyles=nothing,
+    )
+
+    return nothing
+
+end
+
+"""
     densityMap(
         simulation_paths::Vector{String},
         slice_n::Int;
@@ -928,7 +1029,7 @@ function densityMap(
     @inbounds for quantity in quantities
 
         filter_function, translation, rotation, request = selectFilter(
-            filter_mode, 
+            filter_mode,
             plotParams(quantity).request,
         )
 
@@ -1122,7 +1223,7 @@ function scatterPlot(
     y_plot_params = plotParams(y_quantity)
 
     filter_function, translation, rotation, request = selectFilter(
-        filter_mode, 
+        filter_mode,
         mergeRequests(x_plot_params.request, y_plot_params.request),
     )
 
@@ -1316,7 +1417,7 @@ function scatterDensityMap(
     y_plot_params = plotParams(y_quantity)
 
     filter_function, translation, rotation, request = selectFilter(
-        filter_mode, 
+        filter_mode,
         mergeRequests(x_plot_params.request, y_plot_params.request),
     )
 
@@ -1701,7 +1802,7 @@ function stellarHistory(
     y_plot_params = plotParams(quantity)
 
     filter_function, translation, rotation, request = selectFilter(
-        filter_mode, 
+        filter_mode,
         Dict(:stars => ["GAGE"]),
     )
 
@@ -2174,7 +2275,7 @@ function compareWithKennicuttBigiel(
     y_plot_params = plotParams(:sfr_area_density)
 
     filter_function, translation, rotation, request = selectFilter(
-        filter_mode, 
+        filter_mode,
         mergeRequests(x_plot_params.request, y_plot_params.request),
     )
 

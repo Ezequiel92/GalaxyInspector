@@ -69,9 +69,9 @@ end
 
 """
     getLabel(
-        label::AbstractString, 
-        factor::Int, 
-        unit::Unitful.Units; 
+        label::AbstractString,
+        factor::Int,
+        unit::Unitful.Units;
         <keyword arguments>
     )::AbstractString
 
@@ -720,15 +720,15 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
         rotation_matrix = computeGlobalAMRotationMatrix(data_dict)
     elseif rotation == :stellar_am
         rotation_matrix = computeAMRotationMatrix(
-            data_dict[:stars]["POS "], 
+            data_dict[:stars]["POS "],
             data_dict[:stars]["VEL "],
-            data_dict[:stars]["MASS"], 
+            data_dict[:stars]["MASS"],
         )
     elseif rotation == :stellar_pa
         rotation_matrix = computePARotationMatrix(
-            data_dict[:stars]["POS "], 
+            data_dict[:stars]["POS "],
             data_dict[:stars]["VEL "],
-            data_dict[:stars]["MASS"], 
+            data_dict[:stars]["MASS"],
         )
     else
         throw(ArgumentError("rotateData!: I don't recognize the rotation :$(rotation)"))
@@ -789,10 +789,10 @@ Select the plotting parameters for a given `quantity`.
       + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`      -> Distance of every gas cell to the origin. 
+      + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
       + `:stellar_xy_distance`      -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`          -> Projected distance of every gas cell to the origin. 
+      + `:gas_xy_distance`          -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_specific_am`      -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`          -> Norm of the gas specific angular momentum.
@@ -814,7 +814,7 @@ Select the plotting parameters for a given `quantity`.
 
       + `request::Dict{Symbol,Vector{String}}` -> Data request for [`readSnapshot`](@ref).
       + `var_name::AbstractString`             -> Name of the quantity for the plot axis.
-      + `exp_factor::Int`                    -> Numerical exponent to scale down the axis.
+      + `exp_factor::Int`                      -> Numerical exponent to scale down the axis.
       + `unit::Unitful.Units`                  -> Target unit for the axis.
       + `axis_label::AbstractString`           -> Label for the axis.
 """
@@ -1099,10 +1099,10 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :dm_xy_distance
 
         plot_params = PlotParams(;
-        request  = Dict(:halo => ["POS "]),
-        var_name = L"r_{xy}",
-        unit     = u"kpc",
-    )
+            request  = Dict(:halo => ["POS "]),
+            var_name = L"r_{xy}",
+            unit     = u"kpc",
+        )
 
     elseif quantity == :stellar_specific_am
 
@@ -1130,12 +1130,12 @@ function plotParams(quantity::Symbol)::PlotParams
 
     elseif quantity == :stellar_circularity
 
-        plot_params = PlotParams(; 
+        plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS "], 
-                :halo => ["MASS", "POS "], 
+                :gas        => ["MASS", "POS "],
+                :halo       => ["MASS", "POS "],
                 :black_hole => ["MASS", "POS "],
-                :stars => ["MASS", "POS ", "VEL "],
+                :stars      => ["MASS", "POS ", "VEL "],
             ),
             var_name = L"\epsilon",
         )
@@ -1144,9 +1144,9 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS "], 
-                :halo => ["MASS", "POS "], 
-                :stars => ["MASS", "POS "],
+                :gas        => ["MASS", "POS "],
+                :halo       => ["MASS", "POS "],
+                :stars      => ["MASS", "POS "],
                 :black_hole => ["MASS", "POS "],
             ),
             var_name = L"v_\mathrm{circ}",
@@ -1199,6 +1199,31 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :lookback_time
 
         plot_params = PlotParams(; var_name="lookback time", unit=u"Gyr")
+
+    elseif quantity == :time_step
+
+        plot_params = PlotParams(; var_name=L"\mathrm{Time \,\, steps}")
+
+    elseif quantity == :clock_time_s
+
+        plot_params = PlotParams(; var_name=L"\mathrm{Wall-clock \,\, time}", unit=u"s")
+
+    elseif quantity == :clock_time_percent
+
+        plot_params = PlotParams(; axis_label = L"\mathrm{Wall-clock \,\, time \,\, (%)}")
+
+    elseif quantity == :cum_clock_time_s
+
+        plot_params = PlotParams(;
+            var_name = L"\mathrm{Cumulative \,\, wallclock \,\, time}",
+            unit     = u"s",
+        )
+
+    elseif quantity == :cum_clock_time_percent
+
+        plot_params = PlotParams(;
+            axis_label = L"\mathrm{Cumulative \,\, wallclock \,\, time \,\, (%)}",
+        )
 
     else
 
@@ -1323,7 +1348,7 @@ end
         simulation_path::String,
         slice_n::Int,
         type_symbol::Symbol,
-        block::String; 
+        block::String;
         <keyword arguments>
     )::NTuple{2,<:Number}
 
@@ -1359,7 +1384,7 @@ function findQtyExtrema(
 )::NTuple{2,<:Number}
 
     (
-        isdir(simulation_path) || 
+        isdir(simulation_path) ||
         throw(ArgumentError("findQtyExtrema: $(simulation_path) does not exist as a directory"))
     )
 
@@ -1382,7 +1407,7 @@ function findQtyExtrema(
         snapshot_path = snapshot_row[1, :snapshot_paths]
 
         (
-            !ismissing(snapshot_path) || 
+            !ismissing(snapshot_path) ||
             throw(ArgumentError("findQtyExtrema: The snapshot number $(slice_n) seems \
             to be missing"))
 
@@ -1397,7 +1422,7 @@ function findQtyExtrema(
     snapshot_paths = filter!(!ismissing, snapshot_row[!, :snapshot_paths])
 
     (
-        !isempty(snapshot_paths) || 
+        !isempty(snapshot_paths) ||
         throw(ArgumentError("findQtyExtrema: I could not find any snapshots in $(simulation_path)"))
     )
 
@@ -1414,25 +1439,25 @@ The integrand of the integral that converts the scale factor into physical time:
 
 ```math
 \frac{1}{H\,\sqrt{\mathcal{E}}} \, ,
-``` 
+```
 
-where 
+where
 
 ```math
-\mathcal{E} = \Omega_\Lambda + (1 - \Omega_\Lambda - \Omega_m) \, a^{-2} + \Omega_m \, a^{-3} \, , 
+\mathcal{E} = \Omega_\Lambda + (1 - \Omega_\Lambda - \Omega_m) \, a^{-2} + \Omega_m \, a^{-3} \, ,
 ```
 ```math
 H = H_0 \, a \, .
 ```
 
-# Arguments 
+# Arguments
 
   - `a::Float64`: Scale factor.
   - `header::SnapshotHeader`: Header of the relevant snapshot file.
 
 # Returns
 
-  - The integrand evaluated at `a`, in $\mathrm{Gyr}$. 
+  - The integrand evaluated at `a`, in $\mathrm{Gyr}$.
 """
 function energyIntegrand(a::Float64, header::SnapshotHeader)::Float64
 
@@ -1457,7 +1482,7 @@ end
     computeProfile(
         positions::Matrix{<:Unitful.Length},
         quantity::Vector{<:Number},
-        grid::CircularGrid; 
+        grid::CircularGrid;
         <keyword arguments>
     )::Vector{<:Number}
 
@@ -1491,7 +1516,7 @@ function computeProfile(
 
     # Return a null profile if `quantity` is empty
     !isempty(quantity) || return fill(NaN, length(grid.grid))
-       
+
     # Compute the distances of the cells/particles to the center of the grid
     if flat
         distances = computeDistance(positions[1:2, :]; center=grid.center[1:2])
@@ -1508,7 +1533,7 @@ function computeProfile(
 
         quantity_histogram = histogram1D(distances, quantity, grid; total)
         norm_values_histogram = histogram1D(distances, norm_values, grid; total)
- 
+
         replace!(x -> iszero(x) ? oneunit(x) : x, norm_values_histogram)
 
         profile = quantity_histogram ./ norm_values_histogram
@@ -1543,7 +1568,7 @@ function findRealStars(path::String)::Vector{Bool}
     if isfile(path)
 
         (
-            HDF5.ishdf5(path) || 
+            HDF5.ishdf5(path) ||
             throw(ArgumentError("findRealStars: The file $(path) is not in the \
             HDF5 format, I don't know how to read it"))
         )
@@ -1595,8 +1620,8 @@ countStars(path::String)::Int = count(findRealStars(path))
 
 @doc raw"""
     computeTime(
-        scale_factors::Vector{Float64}, 
-        header::SnapshotHeader; 
+        scale_factors::Vector{Float64},
+        header::SnapshotHeader;
         <keyword arguments>
     )::Vector{<:Unitful.Time}
 
@@ -1617,12 +1642,12 @@ where
 # Arguments
 
   - `scale_factors::Vector{Float64}`: Scale factors.
-  - `header::SnapshotHeader`: A header of the simulation, containing the cosmological parameters. 
+  - `header::SnapshotHeader`: A header of the simulation, containing the cosmological parameters.
   - `a0::Float64=0.0`: Initial scale factor.
 
 # Returns
 
-  - A vector with the physical times.   
+  - A vector with the physical times.
 """
 function computeTime(
     scale_factors::Vector{<:Real},
@@ -1656,12 +1681,12 @@ where
 # Arguments
 
   - `a::Real`: Scale factor.
-  - `header::SnapshotHeader`: A header of the simulation, containing the cosmological parameters. 
+  - `header::SnapshotHeader`: A header of the simulation, containing the cosmological parameters.
   - `a0::Float64=0.0`: Initial scale factor.
 
 # Returns
 
-  - The physical time.   
+  - The physical time.
 """
 function computeTime(a::Real, header::SnapshotHeader; a0::Float64=0.0)::Unitful.Time
 
@@ -1764,7 +1789,7 @@ function computeTemperature(
     # For the total mass, take the mass of electrons as negligible
     μ = @. (1.0 + 4.0 * yHe) / (1.0 + yHe + electron_fraction)
 
-    # T = (adiabatic_index - 1) * internal_energy_per_unit_mass * 
+    # T = (adiabatic_index - 1) * internal_energy_per_unit_mass *
     #     (total_mass / total_number_of_particles) / boltzmann_constant
     return @. 0.6667 * internal_energy * μ * Unitful.mp / Unitful.k
 
@@ -1772,7 +1797,7 @@ end
 
 """
     computeDistance(
-        positions::Matrix{<:Number}; 
+        positions::Matrix{<:Number};
         <keyword arguments>
     )::Vector{<:Number}
 
@@ -1901,7 +1926,7 @@ end
 
 """
     computeInertiaTensor(
-        positions::Matrix{<:Unitful.Length}, 
+        positions::Matrix{<:Unitful.Length},
         masses::Vector{<:Unitful.Mass},
     )::Matrix{Float64}
 
@@ -1917,7 +1942,7 @@ Compute the inertia tensor of a group of cells/particles.
   - The inertia tensor.
 """
 function computeInertiaTensor(
-    positions::Matrix{<:Unitful.Length}, 
+    positions::Matrix{<:Unitful.Length},
     masses::Vector{<:Unitful.Mass},
 )::Matrix{Float64}
 
@@ -1956,12 +1981,12 @@ end
 
 """
     computeAMRotationMatrix(
-        positions::Matrix{<:Unitful.Length}, 
+        positions::Matrix{<:Unitful.Length},
         velocities::Matrix{<:Unitful.Velocity},
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will turn the total angular momentum into the z axis; when view as an active (alibi) trasformation. 
+Compute the rotation matrix that will turn the total angular momentum into the z axis; when view as an active (alibi) trasformation.
 
 # Arguments
 
@@ -1974,7 +1999,7 @@ Compute the rotation matrix that will turn the total angular momentum into the z
   - The rotation matrix.
 """
 function computeAMRotationMatrix(
-    positions::Matrix{<:Unitful.Length}, 
+    positions::Matrix{<:Unitful.Length},
     velocities::Matrix{<:Unitful.Velocity},
     masses::Vector{<:Unitful.Mass},
 )::Union{Matrix{Float64},UniformScaling{Bool}}
@@ -1990,19 +2015,19 @@ function computeAMRotationMatrix(
 
     # Angle of rotation
     θ = acos(L[3])
-        
+
     return Matrix{Float64}(AngleAxis(θ, n...))
 
 end
 
 """
     computePARotationMatrix(
-        positions::Matrix{<:Unitful.Length}, 
+        positions::Matrix{<:Unitful.Length},
         velocities::Matrix{<:Unitful.Velocity},
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will turn the pricipal axis into the new coordinate system; when view as an pasive (alias) trasformation. 
+Compute the rotation matrix that will turn the pricipal axis into the new coordinate system; when view as an pasive (alias) trasformation.
 
 # Arguments
 
@@ -2015,7 +2040,7 @@ Compute the rotation matrix that will turn the pricipal axis into the new coordi
   - The rotation matrix.
 """
 function computePARotationMatrix(
-    positions::Matrix{<:Unitful.Length}, 
+    positions::Matrix{<:Unitful.Length},
     velocities::Matrix{<:Unitful.Velocity},
     masses::Vector{<:Unitful.Mass},
 )::Union{Matrix{Float64},UniformScaling{Bool}}
@@ -2026,7 +2051,7 @@ function computePARotationMatrix(
     # Principal axis operator
     R = ustrip.(positions * positions')
 
-    # Reverse the order of the eigenvectors, making the last column the eigenvector 
+    # Reverse the order of the eigenvectors, making the last column the eigenvector
     # with the largest eigenvalue, which should correspond to the new z axis
     pa = eigvecs(R)[:, end:-1:1]
 
@@ -2043,7 +2068,7 @@ function computePARotationMatrix(
         rotation_matrix = Matrix{Float64}(pa')
     else
         # Rotate 180º around the y axis, so that the 3rd principal axis point roughly
-        # in the same direction as the total angular momentum 
+        # in the same direction as the total angular momentum
         rotation_matrix = [-1 0 0; 0 1 0; 0 0 -1] * Matrix{Float64}(pa')
     end
 
@@ -2054,7 +2079,7 @@ end
 """
     computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will turn the total angular momentum, of the whole system in `data`, into the z axis; when view as an active (alibi) trasformation. 
+Compute the rotation matrix that will turn the total angular momentum, of the whole system in `data`, into the z axis; when view as an active (alibi) trasformation.
 
 # Arguments
 
@@ -2089,13 +2114,13 @@ function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},U
     )
     velocities = hcat(
         [
-            data_dict[type_symbol]["VEL "] for 
+            data_dict[type_symbol]["VEL "] for
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["VEL "])
         ]...
     )
     masses = vcat(
         [
-            data_dict[type_symbol]["MASS"] for 
+            data_dict[type_symbol]["MASS"] for
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["MASS"])
         ]...
     )
@@ -2113,7 +2138,7 @@ end
 
 """
     computeAngularMomentum(
-        positions::Matrix{<:Unitful.Length}, 
+        positions::Matrix{<:Unitful.Length},
         velocities::Matrix{<:Unitful.Velocity},
         masses::Vector{<:Unitful.Mass},
     )::Vector{Vector{<:AngularMomentum}}
@@ -2147,7 +2172,7 @@ end
 
 """
     computeTotalAngularMomentum(
-        positions::Matrix{<:Unitful.Length}, 
+        positions::Matrix{<:Unitful.Length},
         velocities::Matrix{<:Unitful.Velocity},
         masses::Vector{<:Unitful.Mass};
         <keyword arguments>
@@ -2218,19 +2243,19 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
     # Concatenate the position, velocities, and masses of all the cells and particles in the system
     positions = hcat(
         [
-            data_dict[type_symbol]["POS "] for 
+            data_dict[type_symbol]["POS "] for
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["POS "])
         ]...
     )
     velocities = hcat(
         [
-            data_dict[type_symbol]["VEL "] for 
+            data_dict[type_symbol]["VEL "] for
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["VEL "])
         ]...
     )
     masses = vcat(
         [
-            data_dict[type_symbol]["MASS"] for 
+            data_dict[type_symbol]["MASS"] for
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["MASS"])
         ]...
     )
@@ -2250,22 +2275,22 @@ end
     computeSpinParameter(
         positions::Matrix{<:Unitful.Length},
         masses::Vector{<:Unitful.Mass},
-        velocities::Matrix{<:Unitful.Velocity}; 
+        velocities::Matrix{<:Unitful.Velocity};
         <keyword arguments>
     )::Float64
 
 Compute the spin parameter for a system of cells/particles, with respect to the origin.
 
-The spin parameter was originally defined by Peebles (1969) as, 
+The spin parameter was originally defined by Peebles (1969) as,
 
 ```math
 \lambda = \frac{J \, \sqrt{E}}{G \, M^{5/2}} \, ,
-``` 
+```
 
 where $J$ is the norm of the total angular momentum, $M$ the total mass, $G$ the gravitational constant, and
 
 ```math
-E = |E_P + E_k| \, , 
+E = |E_P + E_k| \, ,
 ```
 
 where $E_P$ is the total potencial energy and $E_k$ is the total kinetic energy (including thermal energy of the gas).
@@ -2274,12 +2299,12 @@ Due to the computational complexity of calculating $E_P$ for a large group of pa
 
 ```math
 \lambda = \frac{J}{\sqrt{2} \, M \, R \, V} \, ,
-``` 
+```
 
-where $J$ is the norm of the total angular momentum inside a sphere of radius $R$ containing mass $M$, and 
+where $J$ is the norm of the total angular momentum inside a sphere of radius $R$ containing mass $M$, and
 
 ```math
-V = \sqrt{\frac{G \, M}{R}} \, , 
+V = \sqrt{\frac{G \, M}{R}} \, ,
 ```
 
 is the circular velocity.
@@ -2298,9 +2323,9 @@ is the circular velocity.
 # References
 
 P. J. E. Peebles (1969). *Origin of the Angular Momentum of Galaxies*. Astrophysical Journal, **155**, 393. [doi:10.1086/149876](https://doi.org/10.1086/149876)
-  
+
 J. S. Bullock et al. (2001). *A Universal Angular Momentum Profile for Galactic Halos*. The Astrophysical Journal, **555(1)**, 240. [doi:10.1086/321477](https://doi.org/10.1086/321477)
-  
+
 J. Zjupa et al. (2017). *Angular momentum properties of haloes and their baryon content in the Illustris simulation*. Monthly Notices of the Royal Astronomical Society, **466(2)**, 1625–1647. [doi:10.1093/mnras/stw2945](https://doi.org/10.1093/mnras/stw2945)
 """
 function computeSpinParameter(
@@ -2311,7 +2336,7 @@ function computeSpinParameter(
 )::Float64
 
     (
-        !any(isempty, [positions, velocities, masses]) || 
+        !any(isempty, [positions, velocities, masses]) ||
         throw(ArgumentError("computeSpinParameter: The spin parameter of an empty dataset \
         is undefined"))
     )
@@ -2325,9 +2350,9 @@ function computeSpinParameter(
     # Compute the norm of the total angular momentum
     J = norm(
         computeTotalAngularMomentum(
-            positions[:, idx], 
-            velocities[:, idx], 
-            masses[idx]; 
+            positions[:, idx],
+            velocities[:, idx],
+            masses[idx];
             normal=false,
         )
     )
@@ -2369,19 +2394,19 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=FILTER_R)
     # Concatenate the position and masses of all the cells and particles in the system
     positions = hcat(
         [
-            data_dict[type_symbol]["POS "] for 
+            data_dict[type_symbol]["POS "] for
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["POS "])
         ]...
     )
     velocities = hcat(
         [
-            data_dict[type_symbol]["VEL "] for 
+            data_dict[type_symbol]["VEL "] for
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["VEL "])
         ]...
     )
     masses = vcat(
         [
-            data_dict[type_symbol]["MASS"] for 
+            data_dict[type_symbol]["MASS"] for
             type_symbol in type_symbols if !isempty(data_dict[type_symbol]["MASS"])
         ]...
     )
@@ -2448,12 +2473,12 @@ Compute the circular velocity of each stellar particle, with respect to the orig
 The circular velocity of a star is,
 
 ```math
-v_\mathrm{circ} = \sqrt{\frac{\mathrm{G} \, M(r)}{r}} \, , 
+v_\mathrm{circ} = \sqrt{\frac{\mathrm{G} \, M(r)}{r}} \, ,
 ```
 
 where $r$ is the radial distance of the star, and $M(r)$ is the total mass within a sphere of radius $r$.
 
-# Arguments 
+# Arguments
 
   - `data_dict::Dict`: A dictionary with the following shape:
 
@@ -2531,17 +2556,17 @@ The circularity of a star is,
 
 ```math
 \epsilon = j_z / j_\mathrm{circ} \, ,
-``` 
+```
 
 where $j_z$ is the $z$ component of its specific angular momentum, and $j_\mathrm{circ}$ is the specific angular momentum of a circular orbit,
 
 ```math
-j_\mathrm{circ} = r \, v_\mathrm{circ} = \sqrt{\mathrm{G} \, r \, M(r)} \, , 
+j_\mathrm{circ} = r \, v_\mathrm{circ} = \sqrt{\mathrm{G} \, r \, M(r)} \, ,
 ```
 
 where $r$ is the radial distance of the star, and $M(r)$ is the total mass within a sphere of radius $r$.
 
-# Arguments 
+# Arguments
 
   - `data_dict::Dict`: A dictionary with the following shape:
 
@@ -2559,7 +2584,7 @@ where $r$ is the radial distance of the star, and $M(r)$ is the total mass withi
 
 # Returns
 
-  - The circularity ``\epsilon`` of each star. 
+  - The circularity ``\epsilon`` of each star.
 """
 function computeStellarCircularity(data_dict::Dict)::Vector{Float64}
 
@@ -2577,7 +2602,7 @@ function computeStellarCircularity(data_dict::Dict)::Vector{Float64}
     rs, vcircs = computeStellarVcirc(data_dict)
 
     stellar_circularity = [
-        any(iszero, [r, vcirc]) ? 0.0 : ustrip(Unitful.NoUnits, jz / (r * vcirc)) for 
+        any(iszero, [r, vcirc]) ? 0.0 : ustrip(Unitful.NoUnits, jz / (r * vcirc)) for
         (jz, r, vcirc) in zip(jzs, rs, vcircs)
     ]
 
@@ -2662,7 +2687,7 @@ function computeElementMass(
 )::Vector{<:Unitful.Mass}
 
     (
-        element ∈ keys(ELEMENT_INDEX) || 
+        element ∈ keys(ELEMENT_INDEX) ||
         throw(ArgumentError("computeElementMass: :$(element) is not a tracked element, \
         the options are the keys of `ELEMENT_INDEX`, see `./src/constants.jl`"))
     )
@@ -2690,7 +2715,7 @@ end
     computeAbundance(
         data_dict::Dict,
         type_symbol::Symbol,
-        element::Symbol; 
+        element::Symbol;
         <keyword arguments>
     )::Float64
 
@@ -2730,7 +2755,7 @@ function computeGlobalAbundance(
     hydrogen_mass = sum(computeElementMass(data_dict, type_symbol, :H); init=0.0u"Msun")
 
     (
-        !iszero(hydrogen_mass) || 
+        !iszero(hydrogen_mass) ||
         throw(ArgumentError("computeElementMass: I got 0 for the mass of hydrogen, \
         which should not be possible"))
     )
@@ -2898,8 +2923,8 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
         fm = @. 1.0 / (1.0 + (P0 / dg["PRES"]))
 
-        # Use the fraction of neutral hydrogen that is not molecular according to the pressure relation, 
-        # unless that value is negative, in that case use 0 assuming all neutral hydrogen is molecular 
+        # Use the fraction of neutral hydrogen that is not molecular according to the pressure relation,
+        # unless that value is negative, in that case use 0 assuming all neutral hydrogen is molecular
         fa = setPositive(fn .- fm)
 
     end
@@ -2963,9 +2988,9 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
         fp = @. 1.0 / (1.0 + (P0 / dg["PRES"]))
 
-        # Use the fraction of molecular hydrogen according to the pressure relation, unless 
-        # that value is larger than the fraction of neutral hydrogen according to Arepo, 
-        # in that case use the neutral fraction assuming is all molecular hydrogen 
+        # Use the fraction of molecular hydrogen according to the pressure relation, unless
+        # that value is larger than the fraction of neutral hydrogen according to Arepo,
+        # in that case use the neutral fraction assuming is all molecular hydrogen
         fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
 
     end
@@ -3048,7 +3073,7 @@ end
 
 """
     function computeSFR(
-        data_dict::Dict; 
+        data_dict::Dict;
         <keyword arguments>
     )::Vector{<:Unitful.MassFlow}
 
@@ -3078,7 +3103,7 @@ For stellar particles younger that `age_resol`, the SFR is its mass divided by `
   - The star formation rate of each stellar particle.
 """
 function computeSFR(
-    data_dict::Dict; 
+    data_dict::Dict;
     age_resol::Unitful.Time=AGE_RESOLUTION,
 )::Vector{<:Unitful.MassFlow}
 
@@ -3315,9 +3340,9 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
             J = norm(computeTotalAngularMomentum(positions, velocities, masses; normal=false))
             integrated_qty = J / sum(masses)
         end
-    
+
     elseif quantity == :gas_specific_am
-    
+
         positions = data[:gas]["POS "]
         velocities = data[:gas]["VEL "]
         masses = data[:gas]["MASS"]
@@ -3328,9 +3353,9 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
             J = norm(computeTotalAngularMomentum(positions, velocities, masses; normal=false))
             integrated_qty = J / sum(masses)
         end
-    
+
     elseif quantity == :dm_specific_am
-    
+
         positions = data[:halo]["POS "]
         velocities = data[:halo]["VEL "]
         masses = data[:halo]["MASS"]
@@ -3428,10 +3453,10 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`      -> Distance of every gas cell to the origin. 
+      + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
       + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
       + `:stellar_xy_distance`      -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`          -> Projected distance of every gas cell to the origin. 
+      + `:gas_xy_distance`          -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
@@ -3656,12 +3681,12 @@ end
 
 """
     selectFilter(
-        filter_mode::Symbol, 
+        filter_mode::Symbol,
         request::Dict{Symbol,Vector{String}},
     )::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
 
-Select a filter function, and the corresponding translation and rotation for the simulation box. 
-    
+Select a filter function, and the corresponding translation and rotation for the simulation box.
+
 Creates a request dictionary, using `request` as a base, adding what is necessary for the filter function and corresponding transformations.
 
 # Arguments
@@ -3678,7 +3703,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 # Returns
 
   - A Tuple with four elements:
-    
+
       + The filter function.
       + Translation for the simulation box. The posibilities are:
 
@@ -3729,7 +3754,7 @@ function selectFilter(
                 ),
             ),
             Dict(
-                :group => ["G_Nsubs", "G_LenType", "G_Pos"], 
+                :group => ["G_Nsubs", "G_LenType", "G_Pos"],
                 :subhalo => ["S_LenType", "S_Pos"],
                 :stars => ["POS ", "MASS", "VEL "],
             ),
@@ -3750,7 +3775,7 @@ function selectFilter(
                 ),
             ),
             Dict(
-                :group => ["G_Nsubs", "G_LenType", "G_Pos"], 
+                :group => ["G_Nsubs", "G_LenType", "G_Pos"],
                 :subhalo => ["S_LenType", "S_Pos"],
                 :stars => ["POS ", "MASS", "VEL "],
             ),
@@ -3818,8 +3843,8 @@ end
 #      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
 #      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
 #      + ...
-#   - indices::Dict{Symbol,IndexType}: A dictionary with the following shape: 
-#     
+#   - indices::Dict{Symbol,IndexType}: A dictionary with the following shape:
+#
 #      + `cell/particle type` -> idxs::IndexType
 #      + `cell/particle type` -> idxs::IndexType
 #      + `cell/particle type` -> idxs::IndexType
@@ -4122,7 +4147,7 @@ function filterSubhalo(
         # Compute the subhalo absolute index
         subhalo_abs_idx = n_subs_floor + subhalo_rel_idx
 
-        # Compute the number of particles in the current halo, 
+        # Compute the number of particles in the current halo,
         # upto the last subhalo before `subhalo_rel_idx`
         if isone(subhalo_abs_idx)
             len_type_floor_in_halo = zeros(Int, size(s_len_type, 1))
@@ -4132,7 +4157,7 @@ function filterSubhalo(
             )
         end
 
-        # Compute the first and last index of the selected 
+        # Compute the first and last index of the selected
         # cells/particles (for each cell/particle type)
         first_idxs = len_type_floor .+ len_type_floor_in_halo .+ 1
         last_idxs  = first_idxs .+ s_len_type[:, subhalo_abs_idx] .- 1
@@ -4161,7 +4186,7 @@ function filterSubhalo(
 
             stars_first_idx = first_idx - n_wind_before
             stars_last_idx = last_idx - n_wind_before - n_wind_between
-            
+
             indices[type_symbol] = stars_first_idx:stars_last_idx
 
         else
