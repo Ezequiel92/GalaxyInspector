@@ -902,6 +902,7 @@ Plot a time series of the data in the `cpu.txt` file.
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
       + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
       + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+  - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="./"`: Path to the output folder.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
@@ -910,6 +911,7 @@ function cpuTXT(
     target::String,
     x_quantity::Symbol,
     y_quantity::Symbol;
+    smooth::Int=0,
     output_path::String="./",
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
@@ -923,7 +925,7 @@ function cpuTXT(
         pf_kwargs=[(;)],
         # `timeSeriesPlot` configuration
         output_path,
-        filename="$(y_quantity)-vs-$(x_quantity)",
+        filename="$(y_quantity)-vs-$(x_quantity)-for-$(target)",
         output_format=".png",
         warnings=true,
         show_progress=true,
@@ -931,7 +933,7 @@ function cpuTXT(
         slice=(:),
         da_functions=[daCPUtxt],
         da_args=[(target, x_quantity, y_quantity)],
-        da_kwargs=[(; warnings=true)],
+        da_kwargs=[(; smooth, warnings=true)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -958,7 +960,7 @@ function cpuTXT(
         save_figure=true,
         backup_results=false,
         sim_labels,
-        title="",
+        title=L"\mathrm{Process: \,\, %$(target)}",
         pt_per_unit=0.75,
         px_per_unit=2.0,
         resolution=(1280, 800),

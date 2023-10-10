@@ -1527,6 +1527,7 @@ Compute the evolution of a measured quantity in the `cpu.txt` file, for a given 
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
       + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
       + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+  - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `warnings::Bool=true`: If a warning will be given when the target process is missing.
 
 # Returns
@@ -1541,6 +1542,7 @@ function daCPUtxt(
     target::String,
     x_quantity::Symbol,
     y_quantity::Symbol;
+    smooth::Int=0,
     warnings::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
@@ -1627,6 +1629,11 @@ function daCPUtxt(
 
         throw(ArgumentError("daCPUtxt: I don't recognize the y_quantity = :$(y_quantity)"))
 
+    end
+
+    # Apply smoothing if required
+    if !iszero(smooth)
+        x_axis, y_axis = smoothWindow(x_axis, y_axis, smooth)
     end
 
     return x_axis, y_axis

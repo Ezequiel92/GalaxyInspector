@@ -1206,11 +1206,11 @@ function plotParams(quantity::Symbol)::PlotParams
 
     elseif quantity == :clock_time_s
 
-        plot_params = PlotParams(; var_name=L"\mathrm{Wall-clock \,\, time}", unit=u"s")
+        plot_params = PlotParams(; var_name=L"\mathrm{Wallclock \,\, time}", unit=u"s")
 
     elseif quantity == :clock_time_percent
 
-        plot_params = PlotParams(; axis_label = L"\mathrm{Wall-clock \,\, time \,\, (%)}")
+        plot_params = PlotParams(; axis_label = L"\mathrm{Wallclock \,\, time \,\, (%)}")
 
     elseif quantity == :cum_clock_time_s
 
