@@ -919,13 +919,15 @@ function cpuTXT(
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
 
+    safe_str_target = replace(target, "/" => "-", "_" => "-")
+
     timeSeriesPlot(
         simulation_paths,
         [lines!];
         pf_kwargs=[(;)],
         # `timeSeriesPlot` configuration
         output_path,
-        filename="$(y_quantity)-vs-$(x_quantity)-for-$(target)",
+        filename="$(y_quantity)-vs-$(x_quantity)-for-$(safe_str_target)",
         output_format=".png",
         warnings=true,
         show_progress=true,
@@ -960,7 +962,7 @@ function cpuTXT(
         save_figure=true,
         backup_results=false,
         sim_labels,
-        title=L"\mathrm{Process: \,\, %$(target)}",
+        title=L"\mathrm{Process: \,\, %$(safe_str_target)}",
         pt_per_unit=0.75,
         px_per_unit=2.0,
         resolution=(1280, 800),
