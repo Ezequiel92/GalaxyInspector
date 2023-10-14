@@ -657,7 +657,7 @@ end
 """
     rotateSystem(
         points::Matrix{<:Number},
-        rotation_matrix::Matrix{Float64},
+        rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}},
     )::Matrix{<:Number}
 
 Rotate a system of points using `rotation_matrix`.
@@ -665,13 +665,16 @@ Rotate a system of points using `rotation_matrix`.
 # Arguments
 
   - `points::Matrix{<:Number}`: Points to be rotated. Each column is a point and each row a dimension.
-  - `rotation_matrix::Matrix{Float64}`: Rotation matrix.
+  - `rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}}`: Rotation matrix.
 
 # Returns
 
   - Matrix with the rotated points.
 """
-function rotateSystem(points::Matrix{<:Number}, rotation_matrix::Matrix{Float64})::Matrix{<:Number}
+function rotateSystem(
+    points::Matrix{<:Number},
+    rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}},
+)::Matrix{<:Number}
 
     # Allocate memory
     rotated = similar(points)

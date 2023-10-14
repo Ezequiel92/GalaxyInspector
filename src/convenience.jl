@@ -955,7 +955,7 @@ function cpuTXT(
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
-        yaxis_scale_func=identity,
+        yaxis_scale_func=log10,
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting options
@@ -1011,6 +1011,7 @@ Plot a 2D histogram of the density.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
   - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
+  - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
 """
 function densityMap(
     simulation_paths::Vector{String},
@@ -1022,6 +1023,7 @@ function densityMap(
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
     smooth::Bool=false,
+    colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
 )::Nothing
 
     # Compute number of pixel per side
@@ -1029,6 +1031,8 @@ function densityMap(
 
     # Set up the grid
     grid = SquareGrid(box_size, resolution)
+
+    pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
 
     @inbounds for quantity in quantities
 
@@ -1051,7 +1055,7 @@ function densityMap(
                     [simulation_path],
                     request,
                     [heatmap!];
-                    pf_kwargs=[(;)],
+                    pf_kwargs,
                     # `snapshotPlot` configuration
                     output_path,
                     base_filename,

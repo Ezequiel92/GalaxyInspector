@@ -1505,7 +1505,7 @@ end
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
-Compute the evolution of a measured quantity in the `cpu.txt` file, for a given ´target´ process.
+Compute the evolution of a measured quantity in the `cpu.txt` file, for a given `target` process.
 
 # Arguments
 
