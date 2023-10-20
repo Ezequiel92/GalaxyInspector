@@ -71,6 +71,7 @@ export snapshotPlot
 export timeSeriesPlot
 
 # From `convenience.jl`
+export snapshotReport
 export simulationReport
 export sfrTXT
 export cpuTXT

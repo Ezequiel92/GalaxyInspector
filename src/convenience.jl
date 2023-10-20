@@ -3,13 +3,13 @@
 ####################################################################################################
 
 """
-    simulationReport(
+    snapshotReport(
         simulation_paths::Vector{String},
         slice_n::Int;
         <keyword arguments>
     )::Nothing
 
-Write a text file with information about a given snapshot and simulation.
+Write a text file with information about a given snapshot.
 
 # Arguments
 
@@ -27,7 +27,7 @@ Write a text file with information about a given snapshot and simulation.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1.
   - `warnings::Bool=true`: If a warning will be given when there is missing files.
 """
-function simulationReport(
+function snapshotReport(
     simulation_paths::Vector{String},
     slice_n::Int;
     output_path::String="./",
@@ -60,7 +60,7 @@ function simulationReport(
         # Check that after slicing there is one snapshot left
         (
             !isempty(snap_n) ||
-            throw(ArgumentError("simulationReport: There are no snapshots with `slice_n` = \
+            throw(ArgumentError("snapshotReport: There are no snapshots with `slice_n` = \
             $(slice_n), the contents of $(simulation_path) are: \n$(simulation_table)"))
         )
 
@@ -75,7 +75,7 @@ function simulationReport(
 
         (
             !ismissing(snapshot_path) ||
-            throw(ArgumentError("simulationReport: The snapshot $(snapshot_filename) is missing \
+            throw(ArgumentError("snapshotReport: The snapshot $(snapshot_filename) is missing \
             in $(simulation_path)"))
         )
 
@@ -92,10 +92,10 @@ function simulationReport(
         o_idx = snapshot_row[1, :ids]
 
         # Compute the number of snapshots in the folder
-        snapshot_length = length(filter(!ismissing, simulation_table[!, :snapshot_paths]))
+        snapshot_length = count(!ismissing, simulation_table[!, :snapshot_paths])
 
         # Compute the number of group catalog files in the folder
-        groupcat_length = length(filter(!ismissing, simulation_table[!, :groupcat_paths]))
+        groupcat_length = count(!ismissing, simulation_table[!, :groupcat_paths])
 
         # Get the snapshot header
         snapshot_header = readSnapHeader(snapshot_path)
@@ -105,17 +105,15 @@ function simulationReport(
         ############################################################################################
 
         # Create the output file
-        file = open(
-            joinpath(mkpath(output_path), "report-for-$(basename(simulation_path)).txt"),
-            "w",
-        )
+        filename = "$(SNAP_BASENAME)_$(lpad(snap_n, 3, "0"))-of-$(basename(simulation_path))"
+        file = open(joinpath(mkpath(output_path), "report-for-$(filename).txt"), "w")
 
         println(file, "#"^100)
         println(file, "\nSimulation name:  $(basename(simulation_path))")
         println(file, "Physical time:    $(physical_time) Gyr")
 
         if cosmological
-            # For cosmological simulations print the scale factor and redshift
+            # For cosmological simulations print the scale factor and the redshift
             scale_factor = round(snapshot_row[1, :scale_factors], digits=3)
             redshift = round(snapshot_row[1, :redshifts], digits=3)
 
@@ -204,7 +202,7 @@ function simulationReport(
 
             else
 
-                throw(ArgumentError("simulationReport: You asked for a filter base on the \
+                throw(ArgumentError("snapshotReport: You asked for a filter base on the \
                 halos/subhalos, but I could not find a valid group catalog file"))
 
             end
@@ -552,7 +550,7 @@ function simulationReport(
             n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
             (
                 0 < halo_idx <= n_groups_total ||
-                throw(ArgumentError("simulationReport: There is only $(n_groups_total) FoF \
+                throw(ArgumentError("snapshotReport: There is only $(n_groups_total) FoF \
                 goups in $(simulation_path), so `halo_idx` = $(halo_idx) is outside of bounds"))
             )
 
@@ -578,7 +576,7 @@ function simulationReport(
             n_subfinds = g_n_subs[halo_idx]
             (
                 subhalo_rel_idx <= n_subfinds ||
-                throw(ArgumentError("simulationReport: There is only $(n_subfinds) subhalos \
+                throw(ArgumentError("snapshotReport: There is only $(n_subfinds) subhalos \
                 for the FoF group $(halo_idx) in $(simulation_path), so `subhalo_rel_idx` \
                 = $(subhalo_rel_idx) is outside of bounds"))
             )
@@ -614,6 +612,9 @@ function simulationReport(
             ########################################################################################
 
             println(file, "#"^100)
+            println(file, "NOTE: Stellar particle counts include wind particles from here on out!")
+            println(file, "#"^100)
+
             println(file, "\nHalo $(lpad(halo_idx - 1, 3, "0")) properties:\n")
 
             ########################################################################################
@@ -780,6 +781,324 @@ function simulationReport(
 end
 
 """
+    snapshotReport(
+        simulation_paths::Vector{String};
+        <keyword arguments>
+    )::Nothing
+
+Write a text file with information about a given simulation
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be printed for each simulation.
+  - `output_path::String="./"`: Path to the output folder.
+  - `warnings::Bool=true`: If a warning will be given when there is missing files.
+"""
+function simulationReport(
+    simulation_paths::Vector{String};
+    output_path::String="./",
+    warnings::Bool=true,
+)::Nothing
+
+    @inbounds for simulation_path in simulation_paths
+
+        # Make a dataframe with the following columns:
+        #   - 1. DataFrame index
+        #   - 2. Number in the file name
+        #   - 3. Scale factor
+        #   - 4. Redshift
+        #   - 5. Physical time
+        #   - 6. Lookback time
+        #   - 7. Snapshot path
+        #   - 8. Group catalog path
+        simulation_table = makeSimulationTable(simulation_path)
+
+        # Load the snapshot paths
+        snapshot_paths = simulation_table[!, :snapshot_paths]
+        # Compute the number of snapshots in the folder
+        snapshot_n = count(!ismissing, simulation_table[!, :snapshot_paths])
+
+        # Check that there is at least one snapshot
+        (
+            !iszero(snapshot_n) ||
+            throw(ArgumentError("simulationReport: There are no snapshots in $(simulation_path)"))
+        )
+
+        # Load the group catalog paths
+        groupcat_paths = simulation_table[!, :groupcat_paths]
+        # Compute the number of group catalog files in the folder
+        groupcat_n = count(!ismissing, simulation_table[!, :groupcat_paths])
+
+        # Check if the simulation is cosmological
+        cosmological = isCosmological(first(skipmissing(snapshot_paths)))
+
+        ############################################################################################
+        # Print the report header
+        ############################################################################################
+
+        # Create the output file
+        file = open(
+            joinpath(mkpath(output_path), "report-for-$(basename(simulation_path)).txt"),
+            "w",
+        )
+
+        println(file, "#"^100)
+        println(file, "\nSimulation name:  $(basename(simulation_path))")
+
+        if cosmological
+            println(file, "Cosmological:     Yes")
+        else
+            println(file, "Cosmological:     No")
+        end
+
+        if PHYSICAL_UNITS
+            println(file, "Units:            Physical\n")
+        else
+            println(file, "Units:            Comoving\n")
+        end
+
+        println(file, "#"^100)
+        println(file, "\nNumber of snapshots:       $(snapshot_n)")
+        println(file, "Number of group catalogs:  $(groupcat_n)")
+
+        if snapshot_n > 1
+
+            min_pt, max_pt = round.(
+                ustrip.(u"Gyr", extrema(simulation_table[!, :physical_times])),
+                digits=2,
+            )
+            min_a, max_a = round.(extrema(simulation_table[!, :scale_factors]), digits=3)
+            min_z, max_z = round.(extrema(simulation_table[!, :redshifts]), digits=3)
+
+            println(file, "Physical time range:       $(min_pt) - $(max_pt) Gyr")
+            println(file, "Scale factor range:        $(min_a) - $(max_a)")
+            println(file, "Redshift range:            $(max_z) - $(min_z)\n")
+
+        else
+
+            pt = round.(ustrip.(u"Gyr", extrema(simulation_table[1, :physical_times])), digits=2)
+            a = round.(extrema(simulation_table[1, :scale_factors]), digits=3)
+            z = round.(extrema(simulation_table[1, :redshifts]), digits=3)
+
+            println(file, "Physical time:             $(pt) Gyr")
+            println(file, "Scale factor:              $(a)")
+            println(file, "Redshift:                  $(z)\n")
+
+        end
+
+        ############################################################################################
+        # First stars
+        ############################################################################################
+
+        # Compute the number of real stars in each snapshot
+        number_of_stars = [countStars(path) for path in snapshot_paths]
+
+        # Find the first snapshot with stars
+        first_star_idx = findfirst(!iszero, number_of_stars)
+
+        # Find the corresponding row
+        snapshot_row = simulation_table[first_star_idx, :]
+
+        snapshot_path = snapshot_row[:snapshot_paths]
+        groupcat_path = snapshot_row[:groupcat_paths]
+
+        # Select the physical time since the Big Bang
+        physical_time = round(ustrip(u"Gyr", snapshot_row[:physical_times]), digits=2)
+
+        println(file, "#"^100)
+        println(file, "First snapshot with star formation:")
+        println(file, "#"^100)
+
+        println(file, "\n\tSnapshot:         $(basename(snapshot_path))")
+        println(file, "\tPhysical time:    $(physical_time) Gyr")
+
+        if cosmological
+            # For cosmological simulations print the scale factor and the redshift
+            scale_factor = round(snapshot_row[:scale_factors], digits=3)
+            redshift = round(snapshot_row[:redshifts], digits=3)
+
+            println(file, "\tScale factor:     $(scale_factor)")
+            println(file, "\tRedshift:         $(redshift)")
+        end
+
+        println(file, "\tNumber of stars:  $(number_of_stars[first_star_idx])")
+
+        if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
+
+            # Get the snapshot header
+            snapshot_header = readSnapHeader(snapshot_path)
+
+            # Get the group catalog header
+            groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+
+            # Read the number of halos
+            n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
+
+            # Subfind request
+            request = Dict(:subhalo => ["S_LenType", "S_CM", "S_Pos"])
+
+            # Read the necessary data
+            gc_data = readGroupCatalog(groupcat_path, snapshot_path, request; warnings)
+
+            # Load the necessary data
+            s_cm       = gc_data[:subhalo]["S_CM"][:, 1]
+            s_pos      = gc_data[:subhalo]["S_Pos"][:, 1]
+            s_len_type = gc_data[:subhalo]["S_LenType"][:, 1]
+
+            # Select the filter function and request dictionary
+            filter_function, _, _, request = selectFilter(:subhalo, Dict(:stars => ["MASS"]))
+
+            # Create a metadata dictionary
+            metadata = Dict(
+                :snap_data => Snapshot(
+                    snapshot_path,
+                    1,
+                    1,
+                    0.0u"yr",
+                    0.0u"yr",
+                    0.0,
+                    0.0,
+                    snapshot_header,
+                ),
+                :gc_data => GroupCatalog(groupcat_path, groupcat_header),
+            )
+
+            # Create the data dictionary
+            data_dict = merge(
+                metadata,
+                readSnapshot(snapshot_path, request; warnings),
+                readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+            )
+
+            # Filter cell/particles
+            filterData!(data_dict; filter_function)
+
+            println(file, "\tNumber of halos:  $(n_groups_total)")
+
+            println(file, "\n\tMain subhalo properties:")
+
+            println(
+                file,
+                "\n\t\tNumber of stellar particles:  $(length(data_dict[:stars]["MASS"]))\n",
+            )
+
+            println(
+                file,
+                "\t\tCenter of mass:\n\n\t\t\t$(round.(ustrip.(u"Mpc", s_cm), sigdigits=6)) \
+                $(u"Mpc")\n",
+            )
+
+            println(
+                file,
+                "\t\tPosition of the particle with the minimum gravitational potential energy: \
+                \n\n\t\t\t$(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
+            )
+
+            separation = sqrt(sum((s_cm - s_pos).^2))
+            println(
+                file,
+                "\t\tSeparation between the minimum potencial and the global CM: \
+                \n\n\t\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
+            )
+
+        else
+            println(file, "\tThere is no subfind information for this snapshot!\n")
+        end
+
+        ############################################################################################
+        # First subhalos
+        ############################################################################################
+
+        # Find the first snapshot with halos
+        first_subfind_idx = findfirst(x -> !ismissing(x) && isSubfindActive(x), groupcat_paths)
+
+        # Find the corresponding row
+        snapshot_row = simulation_table[first_subfind_idx, :]
+
+        snapshot_path = snapshot_row[:snapshot_paths]
+        groupcat_path = snapshot_row[:groupcat_paths]
+
+        # Select the physical time since the Big Bang
+        physical_time = round(ustrip(u"Gyr", snapshot_row[:physical_times]), digits=2)
+
+        # Read the number of halos
+        n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
+
+        # Subfind request
+        request = Dict(:subhalo => ["S_LenType", "S_CM", "S_Pos"])
+
+        # Read the necessary data
+        gc_data = readGroupCatalog(groupcat_path, snapshot_path, request; warnings)
+
+        # Load the necessary data
+        s_cm       = gc_data[:subhalo]["S_CM"][:, 1]
+        s_pos      = gc_data[:subhalo]["S_Pos"][:, 1]
+        s_len_type = gc_data[:subhalo]["S_LenType"][:, 1]
+
+        println(file, "#"^100)
+        println(file, "First snapshot with subfind information:")
+        println(file, "#"^100)
+
+        println(
+            file,
+            "\n\tSnapshot:         $(basename(snapshot_path))",
+        )
+
+        println(file, "\tPhysical time:    $(physical_time) Gyr")
+
+        if cosmological
+            # For cosmological simulations print the scale factor and the redshift
+            scale_factor = round(snapshot_row[:scale_factors], digits=3)
+            redshift = round(snapshot_row[:redshifts], digits=3)
+
+            println(file, "\tScale factor:     $(scale_factor)")
+            println(file, "\tRedshift:         $(redshift)")
+        end
+
+        println(file, "\tNumber of halos:  $(n_groups_total)")
+
+        println(file, "\n\tMain subhalo properties:")
+
+        println(
+            file,
+            "\n\t\tCenter of mass:\n\n\t\t\t$(round.(ustrip.(u"Mpc", s_cm), sigdigits=6)) \
+            $(u"Mpc")\n",
+        )
+
+        println(
+            file,
+            "\t\tPosition of the particle with the minimum gravitational potential energy: \
+            \n\n\t\t\t$(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
+        )
+
+        separation = sqrt(sum((s_cm - s_pos).^2))
+        println(
+            file,
+            "\t\tSeparation between the minimum potencial and the global CM: \
+            \n\n\t\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
+        )
+
+        println(file, "#"^100)
+        println(file, "NOTE: Stellar particle counts include wind particles!")
+        println(file, "#"^100)
+
+        println(file, "\n\t\tCell/particle number:\n")
+        for (i, len) in enumerate(s_len_type)
+
+            component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
+            println(file, "\t\t\t$(component):$(" "^(22 - length(component))) $(len)")
+
+        end
+
+        close(file)
+
+    end
+
+    return nothing
+
+end
+
+"""
     sfrTXT(
         simulation_paths::Vector{String},
         x_quantity::Symbol,
@@ -904,6 +1223,8 @@ Plot a time series of the data in the `cpu.txt` file.
       + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
   - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.
+  - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`. This option does not affect histograms.
   - `output_path::String="./"`: Path to the output folder.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
@@ -914,6 +1235,8 @@ function cpuTXT(
     y_quantity::Symbol;
     smooth::Int=0,
     yscale::Function=identity,
+    x_trim::NTuple{2,<:Real}=(-Inf, Inf),
+    y_trim::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
@@ -945,8 +1268,8 @@ function cpuTXT(
         y_unit=y_plot_params.unit,
         x_exp_factor=0,
         y_exp_factor=0,
-        x_trim=(-Inf, Inf),
-        y_trim=(-Inf, Inf),
+        x_trim,
+        y_trim,
         x_edges=false,
         y_edges=false,
         x_func=identity,
@@ -1742,6 +2065,120 @@ function rotationCurve(
         yaxis_label=y_plot_params.axis_label,
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name=y_plot_params.var_name,
+        xaxis_scale_func=identity,
+        yaxis_scale_func=identity,
+        xaxis_limits=(nothing, nothing),
+        yaxis_limits=(nothing, nothing),
+        # Plotting and animation options
+        save_figures=true,
+        backup_results=false,
+        sim_labels,
+        title=:physical_time,
+        pt_per_unit=0.75,
+        px_per_unit=2.0,
+        resolution=(1280, 800),
+        aspect=nothing,
+        series_colors=nothing,
+        series_markers=nothing,
+        series_linestyles=nothing,
+        # Animation options
+        animation=false,
+        animation_filename="animation.mp4",
+        framerate=10,
+    )
+
+    return nothing
+
+end
+
+"""
+    densityProfile(
+        simulation_paths::Vector{String},
+        slice_n::Int,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+ Plot a density profile.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `quantity::Symbol`: Quantity for the y axis. The options are:
+
+      + `:stellar_area_density`     -> Stellar area mass density, for a radius of `FILTER_R`.
+      + `:gas_area_density`         -> Gas area mass density, for a radius of `FILTER_R`.
+      + `:molecular_area_density`   -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:atomic_area_density`      -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:ionized_area_density`     -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:neutral_area_density`     -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:sfr_area_density`         -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Plot every cell/particle within the simulation box.
+      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+  - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+"""
+function densityProfile(
+    simulation_paths::Vector{String},
+    slice_n::Int,
+    quantity::Symbol;
+    output_path::String="./",
+    filter_mode::Symbol=:all,
+    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+)::Nothing
+
+    plot_params = plotParams(quantity)
+    request = addRequest(plot_params.request, Dict(:gas => ["VEL "], :stars => ["VEL "]))
+    filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
+
+    grid = CircularGrid(FILTER_R, 140)
+
+    # Draw the figures with CairoMakie
+    snapshotPlot(
+        simulation_paths,
+        request,
+        [lines!];
+        pf_kwargs=[(;)],
+        # `snapshotPlot` configuration
+        output_path,
+        base_filename="$(quantity)-profile",
+        output_format=".png",
+        warnings=true,
+        show_progress=false,
+        # Data manipulation options
+        slice=slice_n,
+        filter_function,
+        da_functions=[daDensityProfile],
+        da_args=[(grid, quantity)],
+        da_kwargs=[(;)],
+        post_processing=getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
+        transform_box=true,
+        translation,
+        rotation,
+        smooth=0,
+        x_unit=u"kpc",
+        y_unit=plot_params.unit,
+        x_exp_factor=0,
+        y_exp_factor=0,
+        x_trim=(-Inf, Inf),
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label="auto_label",
+        yaxis_label=plot_params.axis_label,
+        xaxis_var_name=L"r",
+        yaxis_var_name=plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,
         xaxis_limits=(nothing, nothing),

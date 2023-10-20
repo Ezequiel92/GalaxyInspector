@@ -367,6 +367,128 @@ function daMolla2015(
 end
 
 """
+    daDensityProfile(
+        data_dict::Dict,
+        grid::CircularGrid,
+        quantity::Symbol,
+    )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:SurfaceDensity}},Nothing}
+
+Compute a density profile.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+  - `grid::CircularGrid`: Circular grid.
+  - `quantity::Symbol`: Quantity for the y axis. The options are:
+
+      + `:stellar_area_density`     -> Stellar area mass density, for a radius of `FILTER_R`.
+      + `:gas_area_density`         -> Gas area mass density, for a radius of `FILTER_R`.
+      + `:molecular_area_density`   -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:atomic_area_density`      -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:ionized_area_density`     -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:neutral_area_density`     -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:sfr_area_density`         -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the position of each ring.
+      + A vector with the `quantity` area density of each ring.
+
+    It returns `nothing` if any of the necessary quantities are missing.
+"""
+function daDensityProfile(
+    data_dict::Dict,
+    grid::CircularGrid,
+    quantity::Symbol,
+)::Union{Tuple{Vector{<:Unitful.Length},Vector{<:SurfaceDensity}},Nothing}
+
+    if quantity == :stellar_area_density
+
+        positions = data_dict[:stars]["POS "]
+        masses = data_dict[:stars]["MASS"]
+        norm_values = Number[]
+        f = identity
+        density = true
+
+    elseif quantity == :gas_area_density
+
+        positions = data_dict[:gas]["POS "]
+        masses = data_dict[:gas]["MASS"]
+        norm_values = Number[]
+        f = identity
+        density = true
+
+    elseif quantity == :molecular_area_density
+
+        positions = data_dict[:gas]["POS "]
+        masses = computeMolecularMass(data_dict)
+        norm_values = Number[]
+        f = identity
+        density = true
+
+    elseif quantity == :atomic_area_density
+
+        positions = data_dict[:gas]["POS "]
+        masses = computeAtomicMass(data_dict)
+        norm_values = Number[]
+        f = identity
+        density = true
+
+    elseif quantity == :ionized_area_density
+
+        positions = data_dict[:gas]["POS "]
+        masses = computeIonizedMass(data_dict)
+        norm_values = Number[]
+        f = identity
+        density = true
+
+    elseif quantity == :neutral_area_density
+
+        positions = data_dict[:gas]["POS "]
+        masses = computeNeutralMass(data_dict)
+        norm_values = Number[]
+        f = identity
+        density = true
+
+    elseif quantity == :sfr_area_density
+
+        positions = data_dict[:stars]["POS "]
+        masses = computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ)
+        norm_values = Number[]
+        f = identity
+        density = true
+
+    else
+
+        throw(ArgumentError("daDensityProfile: I don't recognize the quantity :$(quantity)"))
+
+    end
+
+    # Return `nothing` if any of the necessary quantities are missing
+    !any(isempty, [positions, masses]) || return nothing
+
+    density_profile = f(computeProfile(positions, masses, grid; norm_values, total=true, density))
+
+    return grid.grid, density_profile
+
+end
+
+"""
     daStellarHistory(
         data_dict::Dict;
         <keyword arguments>
