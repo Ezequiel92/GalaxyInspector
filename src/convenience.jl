@@ -903,6 +903,7 @@ Plot a time series of the data in the `cpu.txt` file.
       + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
       + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
   - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `output_path::String="./"`: Path to the output folder.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
@@ -912,6 +913,7 @@ function cpuTXT(
     x_quantity::Symbol,
     y_quantity::Symbol;
     smooth::Int=0,
+    yscale::Function=identity,
     output_path::String="./",
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
@@ -955,7 +957,7 @@ function cpuTXT(
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
-        yaxis_scale_func=log10,
+        yaxis_scale_func=yscale,
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting options
