@@ -166,6 +166,11 @@ Default filter dictionary that does not exclude any cells/particles.
 """
 const PASS_ALL = Dict(key => (:) for key in keys(PARTICLE_INDEX))
 
+"""
+Filter out every cell/particle.
+"""
+const PASS_NONE = Dict(key => Int[] for key in keys(PARTICLE_INDEX))
+
 # Tracked elements
 
 """

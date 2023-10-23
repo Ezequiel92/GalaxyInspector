@@ -473,6 +473,11 @@ Read the position of the potencial minimum for a given halo or subhalo.
 """
 function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
+    # If there are no subfind data, return the origin
+    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
+        return zeros(typeof(1.0u"kpc"), 3)
+    end
+
     halo_idx, subhalo_rel_idx = subfind_idx
 
     # Load the necessary data
@@ -4101,6 +4106,11 @@ function filterSubhalo(
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
 )::Dict{Symbol,IndexType}
+
+    # If there are no subfind data, filter out every cell/particle
+    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
+        return PASS_NONE
+    end
 
     # Load the necessary data
     g_n_subs = data_dict[:group]["G_Nsubs"]
