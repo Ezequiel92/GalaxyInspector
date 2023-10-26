@@ -723,23 +723,37 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
     # Compute the rotation matrix
     if rotation == :zero
+
         return nothing
+
     elseif rotation == :global_am
+
         rotation_matrix = computeGlobalAMRotationMatrix(data_dict)
+
     elseif rotation == :stellar_am
-        rotation_matrix = computeAMRotationMatrix(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["VEL "],
-            data_dict[:stars]["MASS"],
-        )
+
+        !isempty(data_dict[:stars]["MASS"]) || return nothing
+
+            rotation_matrix = computeAMRotationMatrix(
+                data_dict[:stars]["POS "],
+                data_dict[:stars]["VEL "],
+                data_dict[:stars]["MASS"],
+            )
+
     elseif rotation == :stellar_pa
+
+        !isempty(data_dict[:stars]["MASS"]) || return nothing
+
         rotation_matrix = computePARotationMatrix(
             data_dict[:stars]["POS "],
             data_dict[:stars]["VEL "],
             data_dict[:stars]["MASS"],
         )
+
     else
+
         throw(ArgumentError("rotateData!: I don't recognize the rotation :$(rotation)"))
+
     end
 
     @inbounds for type_symbol in snapshotTypes(data_dict)
@@ -771,6 +785,10 @@ Select the plotting parameters for a given `quantity`.
       + `:gas_mass`                 -> Gas mass.
       + `:dm_mass`                  -> Dark matter mass.
       + `:bh_mass`                  -> Black hole mass.
+      + `:stellar_number`         -> Number of stellar particles.
+      + `:gas_number`             -> Number of gas cells.
+      + `:dm_number`              -> Number of dark matter particles.
+      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
@@ -861,6 +879,34 @@ function plotParams(quantity::Symbol)::PlotParams
             request    = Dict(:black_hole => ["MASS", "POS "]),
             var_name   = L"M_\mathrm{BH}",
             unit       = u"Msun",
+        )
+
+    elseif quantity == :stellar_number
+
+        plot_params = PlotParams(;
+            request    = Dict(:stars => ["MASS", "POS "]),
+            var_name   = L"\mathrm{Number \,\, of \,\, stellar \,\, particles}",
+        )
+
+    elseif quantity == :gas_number
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "POS "]),
+            var_name   = L"\mathrm{Number \,\, of \,\, gas \,\, cells}",
+        )
+
+    elseif quantity == :dm_number
+
+        plot_params = PlotParams(;
+            request    = Dict(:halo => ["MASS", "POS "]),
+            var_name   = L"\mathrm{Number \,\, of \,\, dark \,\, matter \,\, particles}",
+        )
+
+    elseif quantity == :bh_number
+
+        plot_params = PlotParams(;
+            request    = Dict(:black_hole => ["MASS", "POS "]),
+            var_name   = L"\mathrm{Number \,\, of \,\, black \,\, hole \,\, particles}",
         )
 
     elseif quantity == :molecular_mass
@@ -2069,18 +2115,14 @@ function computePARotationMatrix(
     # 3rd principal axis ≡ new z axis
     pa_z = pa[:, 3]
 
-    # Angle between the total angular momentum and the thrid pricipal component
+    # Rotate the principal axis to align the thid component with the angular momentum
     θ = acos(L ⋅ pa_z)
+    n = cross(pa_z, L)
+    aligned_pa = AngleAxis(θ, n...) * pa
 
-    if θ <= (π * 0.5)
-        rotation_matrix = Matrix{Float64}(pa')
-    else
-        # Rotate 180º around the y axis, so that the 3rd principal axis point roughly
-        # in the same direction as the total angular momentum
-        rotation_matrix = [-1 0 0; 0 1 0; 0 0 -1] * Matrix{Float64}(pa')
-    end
+    rotation_matrix = aligned_pa'
 
-    return rotation_matrix
+    return Matrix{Float64}(rotation_matrix)
 
 end
 
@@ -3158,7 +3200,11 @@ Compute an integrated quantity for the whole system in `data`.
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
       + `:dm_mass`                -> Dark matter mass.
-      + `:bh_mass`                  -> Black hole mass.
+      + `:bh_mass`                -> Black hole mass.
+      + `:stellar_number`         -> Number of stellar particles.
+      + `:gas_number`             -> Number of gas cells.
+      + `:dm_number`              -> Number of dark matter particles.
+      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
@@ -3209,6 +3255,22 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
     elseif quantity == :bh_mass
 
         integrated_qty = sum(data[:black_hole]["MASS"]; init=0.0u"Msun")
+
+    elseif quantity == :stellar_number
+
+        integrated_qty = length(data[:stars]["MASS"])
+
+    elseif quantity == :gas_number
+
+        integrated_qty = length(data[:gas]["MASS"])
+
+    elseif quantity == :dm_number
+
+        integrated_qty = length(data[:halo]["MASS"])
+
+    elseif quantity == :bh_number
+
+        integrated_qty = length(data[:black_hole]["MASS"])
 
     elseif quantity == :molecular_mass
 

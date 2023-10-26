@@ -125,9 +125,9 @@ function snapshotReport(
         end
 
         if PHYSICAL_UNITS
-            println(file, "Units:            Physical\n")
+            println(file, "Report units:     Physical\n")
         else
-            println(file, "Units:            Comoving\n")
+            println(file, "Report units:     Comoving\n")
         end
 
         println(file, "#"^100)
@@ -611,9 +611,9 @@ function snapshotReport(
             # Print the halo properties
             ########################################################################################
 
-            println(file, "#"^100)
+            println(file, "#"^71)
             println(file, "NOTE: Stellar particle counts include wind particles from here on out!")
-            println(file, "#"^100)
+            println(file, "#"^71)
 
             println(file, "\nHalo $(lpad(halo_idx - 1, 3, "0")) properties:\n")
 
@@ -781,7 +781,7 @@ function snapshotReport(
 end
 
 """
-    snapshotReport(
+    simulationReport(
         simulation_paths::Vector{String};
         <keyword arguments>
     )::Nothing
@@ -813,8 +813,6 @@ function simulationReport(
         #   - 8. Group catalog path
         simulation_table = makeSimulationTable(simulation_path)
 
-        # Load the snapshot paths
-        snapshot_paths = simulation_table[!, :snapshot_paths]
         # Compute the number of snapshots in the folder
         snapshot_n = count(!ismissing, simulation_table[!, :snapshot_paths])
 
@@ -824,13 +822,11 @@ function simulationReport(
             throw(ArgumentError("simulationReport: There are no snapshots in $(simulation_path)"))
         )
 
-        # Load the group catalog paths
-        groupcat_paths = simulation_table[!, :groupcat_paths]
         # Compute the number of group catalog files in the folder
         groupcat_n = count(!ismissing, simulation_table[!, :groupcat_paths])
 
         # Check if the simulation is cosmological
-        cosmological = isCosmological(first(skipmissing(snapshot_paths)))
+        cosmological = isCosmological(first(skipmissing(simulation_table[!, :snapshot_paths])))
 
         ############################################################################################
         # Print the report header
@@ -852,241 +848,291 @@ function simulationReport(
         end
 
         if PHYSICAL_UNITS
-            println(file, "Units:            Physical\n")
+            println(file, "Report units:     Physical\n")
         else
-            println(file, "Units:            Comoving\n")
+            println(file, "Report units:     Comoving\n")
         end
 
         println(file, "#"^100)
         println(file, "\nNumber of snapshots:       $(snapshot_n)")
-        println(file, "Number of group catalogs:  $(groupcat_n)")
+        println(file, "Number of group catalogs:  $(groupcat_n)\n")
 
+        # Print the simulation time ranges
         if snapshot_n > 1
 
             min_pt, max_pt = round.(
                 ustrip.(u"Gyr", extrema(simulation_table[!, :physical_times])),
                 digits=2,
             )
-            min_a, max_a = round.(extrema(simulation_table[!, :scale_factors]), digits=3)
-            min_z, max_z = round.(extrema(simulation_table[!, :redshifts]), digits=3)
 
             println(file, "Physical time range:       $(min_pt) - $(max_pt) Gyr")
-            println(file, "Scale factor range:        $(min_a) - $(max_a)")
-            println(file, "Redshift range:            $(max_z) - $(min_z)\n")
+
+            if cosmological
+
+                # For cosmological simulations print the scale factor and the redshift
+                min_a, max_a = round.(extrema(simulation_table[!, :scale_factors]), digits=3)
+                min_z, max_z = round.(extrema(simulation_table[!, :redshifts]), digits=3)
+
+                println(file, "Scale factor range:        $(min_a) - $(max_a)")
+                println(file, "Redshift range:            $(max_z) - $(min_z)\n")
+
+            end
 
         else
 
             pt = round.(ustrip.(u"Gyr", extrema(simulation_table[1, :physical_times])), digits=2)
-            a = round.(extrema(simulation_table[1, :scale_factors]), digits=3)
-            z = round.(extrema(simulation_table[1, :redshifts]), digits=3)
+
 
             println(file, "Physical time:             $(pt) Gyr")
-            println(file, "Scale factor:              $(a)")
-            println(file, "Redshift:                  $(z)\n")
+
+            if cosmological
+
+                # For cosmological simulations print the scale factor and the redshift
+                a = round.(extrema(simulation_table[1, :scale_factors]), digits=3)
+                z = round.(extrema(simulation_table[1, :redshifts]), digits=3)
+
+                println(file, "Scale factor:              $(a)")
+                println(file, "Redshift:                  $(z)\n")
+
+            end
 
         end
 
-        ############################################################################################
-        # First stars
-        ############################################################################################
+        # Set flags to print only the first instance of each condition
+        first_star_flag            = false
+        first_subhalo_flag         = false
+        first_star_in_subhalo_flag = false
 
-        # Compute the number of real stars in each snapshot
-        number_of_stars = [countStars(path) for path in snapshot_paths]
+        for snapshot_row in eachrow(simulation_table)
 
-        # Find the first snapshot with stars
-        first_star_idx = findfirst(!iszero, number_of_stars)
+            snapshot_path = snapshot_row[:snapshot_paths]
 
-        # Find the corresponding row
-        snapshot_row = simulation_table[first_star_idx, :]
+            # Skip this row if there is no snapshot
+            !ismissing(snapshot_path) || continue
 
-        snapshot_path = snapshot_row[:snapshot_paths]
-        groupcat_path = snapshot_row[:groupcat_paths]
-
-        # Select the physical time since the Big Bang
-        physical_time = round(ustrip(u"Gyr", snapshot_row[:physical_times]), digits=2)
-
-        println(file, "#"^100)
-        println(file, "First snapshot with star formation:")
-        println(file, "#"^100)
-
-        println(file, "\n\tSnapshot:         $(basename(snapshot_path))")
-        println(file, "\tPhysical time:    $(physical_time) Gyr")
-
-        if cosmological
-            # For cosmological simulations print the scale factor and the redshift
-            scale_factor = round(snapshot_row[:scale_factors], digits=3)
-            redshift = round(snapshot_row[:redshifts], digits=3)
-
-            println(file, "\tScale factor:     $(scale_factor)")
-            println(file, "\tRedshift:         $(redshift)")
-        end
-
-        println(file, "\tNumber of stars:  $(number_of_stars[first_star_idx])")
-
-        if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
-
-            # Get the snapshot header
+            # Read the snapshot header
             snapshot_header = readSnapHeader(snapshot_path)
 
-            # Get the group catalog header
-            groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+            # Read the group catalog path
+            groupcat_path = snapshot_row[:groupcat_paths]
 
-            # Read the number of halos
-            n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
+            # Read the different time ticks
+            physical_time = round(ustrip(u"Gyr", snapshot_row[:physical_times]), digits=2)
+            if cosmological
+                # For cosmological simulations read the scale factor and the redshift
+                scale_factor = round(snapshot_row[:scale_factors], digits=3)
+                redshift = round(snapshot_row[:redshifts], digits=3)
+            end
 
-            # Subfind request
-            request = Dict(:subhalo => ["S_LenType", "S_CM", "S_Pos"])
+            # Read how many stars there are in this snapshot
+            star_number = countStars(snapshot_path)
 
-            # Read the necessary data
-            gc_data = readGroupCatalog(groupcat_path, snapshot_path, request; warnings)
+            # Check if there is subfind information in the group catalog file
+            subfind_active = !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
 
-            # Load the necessary data
-            s_cm       = gc_data[:subhalo]["S_CM"][:, 1]
-            s_pos      = gc_data[:subhalo]["S_Pos"][:, 1]
-            s_len_type = gc_data[:subhalo]["S_LenType"][:, 1]
+            if subfind_active
 
-            # Select the filter function and request dictionary
-            filter_function, _, _, request = selectFilter(:subhalo, Dict(:stars => ["MASS"]))
+                # Read the group catalog header
+                groupcat_header = readGroupCatHeader(groupcat_path; warnings)
 
-            # Create a metadata dictionary
-            metadata = Dict(
-                :snap_data => Snapshot(
-                    snapshot_path,
-                    1,
-                    1,
-                    0.0u"yr",
-                    0.0u"yr",
-                    0.0,
-                    0.0,
-                    snapshot_header,
-                ),
-                :gc_data => GroupCatalog(groupcat_path, groupcat_header),
-            )
+                # Read the number of halos
+                n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
 
-            # Create the data dictionary
-            data_dict = merge(
-                metadata,
-                readSnapshot(snapshot_path, request; warnings),
-                readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
-            )
+                # Make the subfind request
+                request = Dict(:subhalo => ["S_LenType", "S_CM", "S_Pos"])
 
-            # Filter cell/particles
-            filterData!(data_dict; filter_function)
+                # Read the necessary data
+                gc_data = readGroupCatalog(groupcat_path, snapshot_path, request; warnings)
 
-            println(file, "\tNumber of halos:  $(n_groups_total)")
+                # Load the necessary data
+                s_cm       = gc_data[:subhalo]["S_CM"][:, 1]
+                s_pos      = gc_data[:subhalo]["S_Pos"][:, 1]
+                s_len_type = gc_data[:subhalo]["S_LenType"][:, 1]
 
-            println(file, "\n\tMain subhalo properties:")
+                # Select the filter function and request dictionary
+                filter_function, _, _, request = selectFilter(:subhalo, Dict(:stars => ["MASS"]))
 
-            println(
-                file,
-                "\n\t\tNumber of stellar particles:  $(length(data_dict[:stars]["MASS"]))\n",
-            )
+                # Create a metadata dictionary
+                metadata = Dict(
+                    :snap_data => Snapshot(
+                        snapshot_path,
+                        1,
+                        1,
+                        0.0u"yr",
+                        0.0u"yr",
+                        0.0,
+                        0.0,
+                        snapshot_header,
+                    ),
+                    :gc_data => GroupCatalog(groupcat_path, groupcat_header),
+                )
 
-            println(
-                file,
-                "\t\tCenter of mass:\n\n\t\t\t$(round.(ustrip.(u"Mpc", s_cm), sigdigits=6)) \
-                $(u"Mpc")\n",
-            )
+                # Create the data dictionary
+                data_dict = merge(
+                    metadata,
+                    readSnapshot(snapshot_path, request; warnings),
+                    readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+                )
 
-            println(
-                file,
-                "\t\tPosition of the particle with the minimum gravitational potential energy: \
-                \n\n\t\t\t$(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
-            )
+                filterData!(data_dict; filter_function)
 
-            separation = sqrt(sum((s_cm - s_pos).^2))
-            println(
-                file,
-                "\t\tSeparation between the minimum potencial and the global CM: \
-                \n\n\t\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
-            )
+                # Compute the number of stars in the main subhalo
+                stellar_n_subhalo = length(data_dict[:stars]["MASS"])
 
-        else
-            println(file, "\tThere is no subfind information for this snapshot!\n")
-        end
+            end
 
-        ############################################################################################
-        # First subhalos
-        ############################################################################################
+            ########################################################################################
+            # First stars
+            ########################################################################################
 
-        # Find the first snapshot with halos
-        first_subfind_idx = findfirst(x -> !ismissing(x) && isSubfindActive(x), groupcat_paths)
+            if star_number > 0 && !first_star_flag
 
-        # Find the corresponding row
-        snapshot_row = simulation_table[first_subfind_idx, :]
+                println(file, "#"^100)
+                println(file, "First snapshot with star formation:")
+                println(file, "#"^100)
 
-        snapshot_path = snapshot_row[:snapshot_paths]
-        groupcat_path = snapshot_row[:groupcat_paths]
+                println(file, "\n\tSnapshot:         $(basename(snapshot_path))")
+                println(file, "\tPhysical time:    $(physical_time) Gyr")
 
-        # Select the physical time since the Big Bang
-        physical_time = round(ustrip(u"Gyr", snapshot_row[:physical_times]), digits=2)
+                if cosmological
+                    # For cosmological simulations print the scale factor and the redshift
+                    println(file, "\tScale factor:     $(scale_factor)")
+                    println(file, "\tRedshift:         $(redshift)")
+                end
 
-        # Read the number of halos
-        n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
+                println(file, "\tNumber of stars:  $(star_number)")
 
-        # Subfind request
-        request = Dict(:subhalo => ["S_LenType", "S_CM", "S_Pos"])
+                if subfind_active
 
-        # Read the necessary data
-        gc_data = readGroupCatalog(groupcat_path, snapshot_path, request; warnings)
+                    println(file, "\tNumber of halos:  $(n_groups_total)")
 
-        # Load the necessary data
-        s_cm       = gc_data[:subhalo]["S_CM"][:, 1]
-        s_pos      = gc_data[:subhalo]["S_Pos"][:, 1]
-        s_len_type = gc_data[:subhalo]["S_LenType"][:, 1]
+                    println(file, "\n\tMain subhalo properties:")
 
-        println(file, "#"^100)
-        println(file, "First snapshot with subfind information:")
-        println(file, "#"^100)
+                    println(file, "\n\t\tNumber of stellar particles:  $(stellar_n_subhalo)\n")
 
-        println(
-            file,
-            "\n\tSnapshot:         $(basename(snapshot_path))",
-        )
+                    println(
+                        file,
+                        "\t\tCenter of mass:\n\n\t\t\t\
+                        $(round.(ustrip.(u"Mpc", s_cm), sigdigits=6)) $(u"Mpc")\n",
+                    )
 
-        println(file, "\tPhysical time:    $(physical_time) Gyr")
+                    println(
+                        file,
+                        "\t\tPosition of the particle with the minimum gravitational potential \
+                        energy: \n\n\t\t\t\
+                        $(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
+                    )
 
-        if cosmological
-            # For cosmological simulations print the scale factor and the redshift
-            scale_factor = round(snapshot_row[:scale_factors], digits=3)
-            redshift = round(snapshot_row[:redshifts], digits=3)
+                    separation = sqrt(sum((s_cm - s_pos).^2))
+                    println(
+                        file,
+                        "\t\tSeparation between the minimum potencial and the global CM: \
+                        \n\n\t\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
+                    )
 
-            println(file, "\tScale factor:     $(scale_factor)")
-            println(file, "\tRedshift:         $(redshift)")
-        end
+                else
+                    println(file, "\n\tThere is no subfind information for this snapshot!\n")
+                end
 
-        println(file, "\tNumber of halos:  $(n_groups_total)")
+                first_star_flag = true
 
-        println(file, "\n\tMain subhalo properties:")
+            end
 
-        println(
-            file,
-            "\n\t\tCenter of mass:\n\n\t\t\t$(round.(ustrip.(u"Mpc", s_cm), sigdigits=6)) \
-            $(u"Mpc")\n",
-        )
+            ########################################################################################
+            # First subhalos
+            ########################################################################################
 
-        println(
-            file,
-            "\t\tPosition of the particle with the minimum gravitational potential energy: \
-            \n\n\t\t\t$(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
-        )
+            if subfind_active && !first_subhalo_flag
 
-        separation = sqrt(sum((s_cm - s_pos).^2))
-        println(
-            file,
-            "\t\tSeparation between the minimum potencial and the global CM: \
-            \n\n\t\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
-        )
+                # Read the number of halos
+                n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
 
-        println(file, "#"^100)
-        println(file, "NOTE: Stellar particle counts include wind particles!")
-        println(file, "#"^100)
+                println(file, "#"^100)
+                println(file, "First snapshot with subfind information:")
+                println(file, "#"^100)
 
-        println(file, "\n\t\tCell/particle number:\n")
-        for (i, len) in enumerate(s_len_type)
+                println(
+                    file,
+                    "\n\tSnapshot:         $(basename(snapshot_path))",
+                )
 
-            component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
-            println(file, "\t\t\t$(component):$(" "^(22 - length(component))) $(len)")
+                println(file, "\tPhysical time:    $(physical_time) Gyr")
+
+                if cosmological
+                    # For cosmological simulations print the scale factor and the redshift
+                    println(file, "\tScale factor:     $(scale_factor)")
+                    println(file, "\tRedshift:         $(redshift)")
+                end
+
+                println(file, "\tNumber of halos:  $(n_groups_total)")
+
+                println(file, "\n\tMain subhalo properties:")
+
+                println(
+                    file,
+                    "\n\t\tCenter of mass:\n\n\t\t\t$(round.(ustrip.(u"Mpc", s_cm), sigdigits=6)) \
+                    $(u"Mpc")\n",
+                )
+
+                println(
+                    file,
+                    "\t\tPosition of the particle with the minimum gravitational potential energy: \
+                    \n\n\t\t\t$(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
+                )
+
+                separation = sqrt(sum((s_cm - s_pos).^2))
+                println(
+                    file,
+                    "\t\tSeparation between the minimum potencial and the global CM: \
+                    \n\n\t\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
+                )
+
+                println(file, "#"^55)
+                println(file, "NOTE: Stellar particle counts include wind particles!")
+                println(file, "#"^55)
+
+                println(file, "\n\t\tCell/particle number:\n")
+
+                for (i, len) in enumerate(s_len_type)
+                    component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
+                    println(file, "\t\t\t$(component):$(" "^(22 - length(component))) $(len)")
+                end
+
+                println(file)
+
+                first_subhalo_flag = true
+
+            end
+
+            ########################################################################################
+            # First stars in the main subhalo
+            ########################################################################################
+
+            if subfind_active && !first_star_in_subhalo_flag && stellar_n_subhalo > 0
+
+                println(file, "#"^100)
+                println(file, "First snapshot with star formation in the main subhalo:")
+                println(file, "#"^100)
+
+                println(file, "\n\tSnapshot:         $(basename(snapshot_path))")
+                println(file, "\tPhysical time:    $(physical_time) Gyr")
+
+                if cosmological
+                    # For cosmological simulations print the scale factor and the redshift
+                    println(file, "\tScale factor:     $(scale_factor)")
+                    println(file, "\tRedshift:         $(redshift)")
+                end
+
+                println(file, "\tNumber of stars:  $(stellar_n_subhalo)\n")
+
+                first_star_in_subhalo_flag = true
+
+            end
+
+            # End the loop when all the conditions have been met
+            if first_star_flag && first_subhalo_flag && first_star_in_subhalo_flag
+                break
+            end
 
         end
 
@@ -1845,6 +1891,10 @@ Plot a time series.
       + `:gas_mass`               -> Gas mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
+      + `:stellar_number`         -> Number of stellar particles.
+      + `:gas_number`             -> Number of gas cells.
+      + `:dm_number`              -> Number of dark matter particles.
+      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
@@ -1879,6 +1929,10 @@ Plot a time series.
       + `:gas_mass`               -> Gas mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
+      + `:stellar_number`         -> Number of stellar particles.
+      + `:gas_number`             -> Number of gas cells.
+      + `:dm_number`              -> Number of dark matter particles.
+      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
@@ -2107,13 +2161,13 @@ end
   - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_area_density`     -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`         -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density`   -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`      -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`     -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`     -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`         -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`     -> Stellar area mass density, up to a radius of `FILTER_R`.
+      + `:gas_area_density`         -> Gas area mass density, up to a radius of `FILTER_R`.
+      + `:molecular_area_density`   -> Molecular hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:atomic_area_density`      -> Atomic hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:ionized_area_density`     -> Ionized hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:neutral_area_density`     -> Neutral hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:sfr_area_density`         -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
@@ -2137,7 +2191,7 @@ function densityProfile(
     request = addRequest(plot_params.request, Dict(:gas => ["VEL "], :stars => ["VEL "]))
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
-    grid = CircularGrid(FILTER_R, 140)
+    grid = CircularGrid(FILTER_R, 100)
 
     # Draw the figures with CairoMakie
     snapshotPlot(
