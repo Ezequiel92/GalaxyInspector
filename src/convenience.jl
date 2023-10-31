@@ -2168,6 +2168,7 @@ end
       + `:ionized_area_density`     -> Ionized hydrogen area mass density, up to a radius of `FILTER_R`.
       + `:neutral_area_density`     -> Neutral hydrogen area mass density, up to a radius of `FILTER_R`.
       + `:sfr_area_density`         -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+  - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
@@ -2182,6 +2183,7 @@ function densityProfile(
     simulation_paths::Vector{String},
     slice_n::Int,
     quantity::Symbol;
+    yscale::Function=identity,
     output_path::String="./",
     filter_mode::Symbol=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
@@ -2234,7 +2236,7 @@ function densityProfile(
         xaxis_var_name=L"r",
         yaxis_var_name=plot_params.var_name,
         xaxis_scale_func=identity,
-        yaxis_scale_func=identity,
+        yaxis_scale_func=yscale,
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting and animation options
