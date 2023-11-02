@@ -6,7 +6,7 @@
     snapshotPlot(
         simulation_paths::Vector{String},
         request::Dict{Symbol,Vector{String}},
-        plot_functions::Vector{<:Function}; 
+        plot_functions::Vector{<:Function};
         <keyword arguments>
     )::Nothing
 
@@ -207,7 +207,7 @@ function snapshotPlot(
     framerate::Int=15,
 )::Nothing
 
-    # Create the output folder if it doesn't exist 
+    # Create the output folder if it doesn't exist
     mkpath(output_path)
 
     # Compute the number of simulations
@@ -341,7 +341,14 @@ function snapshotPlot(
             snapshot_row = filter(:numbers => ==(snapshot_number), simulation_table)
 
             # Skip if this snapshot does not exist for the current simulation
-            !isempty(snapshot_row) || continue
+            if isempty(snapshot_row)
+                (
+                    !warnings ||
+                    @warn("snapshotPlot: The snapshot $(snapshot_number) is missing in simulation \
+                    $(simulation_paths[simulation_index])")
+                )
+                continue
+            end
 
             ########################################################################################
             # Compute the metadata for the current snapshot and simulation.
@@ -375,7 +382,7 @@ function snapshotPlot(
                     readSnapHeader(snapshot_path),
                 ),
                 :gc_data => GroupCatalog(
-                    groupcat_path, 
+                    groupcat_path,
                     readGroupCatHeader(groupcat_path; warnings),
                 ),
             )
@@ -542,14 +549,14 @@ function snapshotPlot(
 
             end
 
-            # If, in the current snapshot and for any simulation, filtering the data targeting a 
+            # If, in the current snapshot and for any simulation, filtering the data targeting a
             # nonlinear scale would leave no data points, the scale will revert to `identity`
             x_flag || (xscale_flag = false)
             y_flag || (yscale_flag = false)
 
             if backup_results
 
-                # Save data in a JLD2 file  
+                # Save data in a JLD2 file
                 if isnothing(sim_labels)
                     sim_name = "simulation_$(lpad(string(simulation_index), 3, "0"))"
                 else
@@ -722,7 +729,7 @@ end
 """
     timeSeriesPlot(
         simulation_paths::Vector{String},
-        plot_functions::Vector{<:Function}; 
+        plot_functions::Vector{<:Function};
         <keyword arguments>
     )::Tuple{Makie.Axis,Figure}
 
@@ -856,7 +863,7 @@ function timeSeriesPlot(
     series_linestyles::Union{Vector{<:LineStyleType},Nothing}=nothing,
 )::Tuple{Makie.Axis,Figure}
 
-    # Create the output folder if it doesn't exist 
+    # Create the output folder if it doesn't exist
     mkpath(output_path)
 
     # Compute the number of simulations
@@ -897,11 +904,11 @@ function timeSeriesPlot(
 
     # Create the axes
     axes = Makie.Axis(
-        figure[1, 1]; 
-        limits=(xaxis_limits, yaxis_limits), 
-        xlabel, 
-        ylabel, 
-        aspect, 
+        figure[1, 1];
+        limits=(xaxis_limits, yaxis_limits),
+        xlabel,
+        ylabel,
+        aspect,
         title,
     )
 
@@ -1014,14 +1021,14 @@ function timeSeriesPlot(
         axis_data[1] = x_func(axis_data[1])
         axis_data[2] = y_func(axis_data[2])
 
-        # If, for any simulation, filtering the data targeting a nonlinear scale 
+        # If, for any simulation, filtering the data targeting a nonlinear scale
         # would leave no data points, the scale will revert to `identity`
         x_flag || (xscale_flag = false)
         y_flag || (yscale_flag = false)
 
         if backup_results
 
-            # Save data in a JLD2 file  
+            # Save data in a JLD2 file
             if isnothing(sim_labels)
                 sim_name = "simulation-$(lpad(string(simulation_index), 3, "0"))"
             else
