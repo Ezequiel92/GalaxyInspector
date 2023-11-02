@@ -344,8 +344,8 @@ function snapshotPlot(
             if isempty(snapshot_row)
                 (
                     !warnings ||
-                    @warn("snapshotPlot: The snapshot $(snapshot_number) is missing in simulation \
-                    $(simulation_paths[simulation_index])")
+                    @warn("snapshotPlot: The snapshot $(SNAP_BASENAME)_$(snapshot_number).hdf5 \
+                    is missing in simulation $(simulation_paths[simulation_index])")
                 )
                 continue
             end
