@@ -1350,7 +1350,7 @@ end
 """
     densityMap(
         simulation_paths::Vector{String},
-        slice_n::Int;
+        slice_n::IndexType;
         <keyword arguments>
     )::Nothing
 
@@ -1359,7 +1359,7 @@ Plot a 2D histogram of the density.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::IndexType`: Slice of the simulations, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
 
       + `:stellar_mass`   -> Stellar mass.
@@ -1382,11 +1382,12 @@ Plot a 2D histogram of the density.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
   - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
+  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used. This option is ignore if `slice_n` = 0.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
 """
 function densityMap(
     simulation_paths::Vector{String},
-    slice_n::Int;
+    slice_n::IndexType;
     quantities::Vector{Symbol}=[:gas_mass],
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -1394,6 +1395,7 @@ function densityMap(
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
     smooth::Bool=false,
+    latex::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
 )::Nothing
 
@@ -1466,8 +1468,8 @@ function densityMap(
                     xaxis_limits=(nothing, nothing),
                     yaxis_limits=(nothing, nothing),
                     # Plotting options
-                    save_figures=!iszero(slice_n),
-                    backup_results=false,
+                    save_figures=!latex&&!iszero(slice_n),
+                    backup_results=latex&&!iszero(slice_n),
                     sim_labels=nothing,
                     title=:physical_time,
                     pt_per_unit=0.75,
@@ -1482,6 +1484,52 @@ function densityMap(
                     animation_filename="$(base_filename).mp4",
                     framerate=5,
                 )
+
+                if latex
+                    jld2_file = joinpath(output_path, base_filename * ".jld2")
+
+                    jldopen(jld2_file, "r") do file
+
+                        for key in keys(file)
+
+                            # Load and sanitize the results
+                            x, y, z = file["$(key)/simulation_001"]
+                            min_z = minimum(filter(!isnan, z))
+                            clean_z = replace(z, NaN => min_z)
+
+                            # Construct the axis labels
+                            xlabel = L"%$(string(projection_plane)[1]) \, / \, \mathrm{kpc}"
+                            ylabel = L"%$(string(projection_plane)[2]) \, / \, \mathrm{kpc}"
+
+                            # Draw the figure with PGFPlotsX
+                            plot = @pgf TikzDocument(
+                                TikzPicture(
+                                    PGFPlotsX.Axis(
+                                        {
+                                            view=(0, 90),
+                                            "axis equal image",
+                                            "colormap/thermal",
+                                            xlabel=xlabel,
+                                            ylabel=ylabel,
+                                            "/pgf/number format/1000 sep = {}",
+                                            "tick label style={font=\\large}",
+                                            "label style={font=\\large}",
+                                        },
+                                        Plot3({surf, shader="flat"}, Coordinates(x, y, clean_z)),
+                                    ),
+                                );
+                                preamble=["\\usepgfplotslibrary{colormaps}"],
+                            )
+
+                            pgfsave(joinpath(output_path, "$(key).png"), plot, dpi=600)
+
+                        end
+
+                    end
+
+                    # Delete auxiliary JLD2 file
+                    rm(jld2_file, force=true)
+                end
 
             end
 

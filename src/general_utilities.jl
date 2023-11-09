@@ -117,6 +117,11 @@ isPositive(x::AbstractArray)::Bool = all(isPositive, x)
 isPositive(x...)::Bool = all(isPositive, x)
 
 """
+Extension of `Base.iszero` to compeare [`IndexType`](@ref) with interger 0.
+"""
+Base.iszero(x::IndexType)::Bool = x == 0
+
+"""
 Extension of `Base.isempty` to check for empty [LaTeXStrings](https://github.com/JuliaStrings/LaTeXStrings.jl).
 """
 Base.isempty(l_str::LaTeXString)::Bool = l_str == L""
@@ -132,8 +137,28 @@ Always returns an empty vector, for any type and number of arguments.
 getEmpty(x...; y...)::Vector = []
 
 """
+    joinImages(paths::Vector{String}; <keyword arguments>)::Nothing
+
+Join several images horizontally, and save the result as a new image.
+
+# Arguments
+
+  - `paths::Vector{String}`: Paths to the images.
+  - `output_path::String="./"`: Path to the output folder.
+"""
+function joinImages(paths::Vector{String}; output_path::String="./")::Nothing
+
+    new_image = hcat([load(path) for path in paths]...)
+
+    save(joinpath(output_path, "joined_image.png"), new_image)
+
+    return nothing
+
+end
+
+"""
     rangeCut!(
-        data::Vector{<:Number},  
+        data::Vector{<:Number},
         range::Tuple{<:Number,<:Number};
         <keyword arguments>
     )::Bool
@@ -185,8 +210,8 @@ end
 
 """
     rangeCut!(
-        m_data::Vector{<:Number}, 
-        s_data::Vector, 
+        m_data::Vector{<:Number},
+        s_data::Vector,
         range::Tuple{<:Number,<:Number};
         <keyword arguments>
     )::Bool
@@ -257,7 +282,7 @@ end
 """
     sanitizeData!(
         data::Vector{<:Number};
-        <keyword arguments> 
+        <keyword arguments>
     )::NTuple{2,Bool}
 
 Do the following transformations over `data`, in order:
@@ -344,7 +369,7 @@ end
     sanitizeData!(
         x_data::Vector{<:Number},
         y_data::Vector{<:Number};
-        <keyword arguments> 
+        <keyword arguments>
     )::NTuple{4,Bool}
 
 Do the following transformations over `x_data` and `y_data`, in order:
@@ -478,8 +503,8 @@ end
 
 """
     scaledBins(
-        values::Vector{<:Number}, 
-        n_bins::Int; 
+        values::Vector{<:Number},
+        n_bins::Int;
         <keyword arguments>
     )::Vector{Float64}
 
@@ -1327,7 +1352,7 @@ function absCoor(
 end
 
 """
-    cleanPlot!(figure::Makie.Figure)::Nothing 
+    cleanPlot!(figure::Makie.Figure)::Nothing
 
 Delete all the legends of a figure and empty all its axes.
 
@@ -1421,7 +1446,7 @@ M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and 
 function cubicSplineKernel(q::Real, h::Number)::Number
 
     (
-        isPositive(q, h) || 
+        isPositive(q, h) ||
         throw(DomainError("cubicSplineKernel: `q` and `h` must be positive, \
         but I got `q` = $q and `h` = $h"))
     )
