@@ -137,20 +137,31 @@ Always returns an empty vector, for any type and number of arguments.
 getEmpty(x...; y...)::Vector = []
 
 """
-    joinImages(paths::Vector{String}; <keyword arguments>)::Nothing
+    hvcatImages(
+        blocks_per_row::Int,
+        paths::Vector{String};
+        <keyword arguments>,
+    )::Nothing
 
-Join several images horizontally, and save the result as a new image.
+Join several images vertically and horizontally
+
+The elements will fill the rows and columns starting at the top left, going from left to right and from top to bottom.
 
 # Arguments
 
+  - `blocks_per_row::Int`: Number of columns.
   - `paths::Vector{String}`: Paths to the images.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="./joined_image.png"`: Path to the output image.
 """
-function joinImages(paths::Vector{String}; output_path::String="./")::Nothing
+function hvcatImages(
+    blocks_per_row::Int,
+    paths::Vector{String};
+    output_path::String="./joined_image.png",
+)::Nothing
 
-    new_image = hcat([load(path) for path in paths]...)
+    new_image = hvcat(blocks_per_row, [load(path) for path in paths]...)
 
-    save(joinpath(output_path, "joined_image.png"), new_image)
+    save(output_path, new_image)
 
     return nothing
 

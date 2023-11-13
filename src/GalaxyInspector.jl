@@ -14,16 +14,17 @@
 module GalaxyInspector
 
 using LinearAlgebra, Statistics
-using CairoMakie,
+using CSV,
+    CairoMakie,
     ColorSchemes,
     Colors,
-    CSV,
     DataFrames,
     DelimitedFiles,
     FileIO,
     GLM,
     Glob,
     HDF5,
+    Images,
     JLD2,
     LaTeXStrings,
     Measurements,
