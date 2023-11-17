@@ -623,7 +623,7 @@ function histogram1D(
     histogram = zeros(eltype(values), n_bins)
     counts = zeros(Int, n_bins)
 
-    # Compute the histogram, ignoring NaNs and positions outside the grid range
+    # Compute the histogram; ignoring NaNs and positions outside the grid range
     @inbounds for (position, value) in zip(positions, values)
 
         if isnan(position) || isnan(value)
@@ -715,7 +715,7 @@ function histogram1D(
     histogram = zeros(eltype(values), n_bins)
     counts = zeros(Int, n_bins)
 
-    # Compute the histogram, ignoring NaNs and positions outside the range of the edges
+    # Compute the histogram; ignoring NaNs and positions outside of range
     @inbounds for (position, value) in zip(positions, values)
 
         if isnan(position) || isnan(value)
@@ -797,7 +797,7 @@ function histogram1D(
     # Allocate memory
     histogram = zeros(Int, n_bins)
 
-    # Compute the histogram, ignoring NaNs and positions outside the grid range
+    # Compute the histogram; ignoring NaNs and positions outside the grid range
     @inbounds for position in positions
 
         if isnan(position)
@@ -846,7 +846,7 @@ function histogram1D(positions::Vector{<:Number}, edges::Vector{<:Number})::Vect
     # Allocate memory
     histogram = zeros(Int, n_bins)
 
-    # Compute the histogram, ignoring NaNs and positions outside the range of the edges
+    # Compute the histogram; ignoring NaNs and positions outside of range
     @inbounds for position in positions
 
         if isnan(position)

@@ -2555,6 +2555,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:sfr`            -> The star formation rate of the last `AGE_RESOLUTION`.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
+  - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
@@ -2574,6 +2575,7 @@ function compareWithFeldmann2020(
     x_quantity::Symbol,
     y_quantity::Symbol;
     slice::IndexType=(:),
+    scatter::Bool=false,
     output_path::String="./",
     filter_mode::Symbol=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
@@ -2599,7 +2601,7 @@ function compareWithFeldmann2020(
         da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=true)],
         post_processing=ppFeldmann2020!,
         pp_args=(x_quantity, y_quantity),
-        pp_kwargs=(;),
+        pp_kwargs=(; scatter),
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=0,

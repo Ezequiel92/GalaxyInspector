@@ -2,7 +2,7 @@
 # Post-processing functions.
 ####################################################################################################
 #
-# A post-processing function must take a Makie figure, add something to it, and return how to label 
+# A post-processing function must take a Makie figure, add something to it, and return how to label
 # the additions (or `nothing` when no new labels should be drawn).
 #
 # Expected signature:
@@ -13,14 +13,14 @@
 #
 #   - figure::Makie.Figure
 #   - marker::LegendElement
-#   - label::String
+#   - label::AbstractString
 #
 ####################################################################################################
 
 """
     ppVerticalFlags!(
         figure::Makie.Figure,
-        positions::Vector{<:Real}; 
+        positions::Vector{<:Real};
         <keyword arguments>
     )::Nothing
 
@@ -68,7 +68,7 @@ end
 """
     ppHorizontalFlags!(
         figure::Makie.Figure,
-        positions::Vector{<:Real}; 
+        positions::Vector{<:Real};
         <keyword arguments>
     )::Nothing
 
@@ -161,11 +161,11 @@ end
 
 @doc raw"""
     ppFitLine!(
-        figure::Makie.Figure; 
+        figure::Makie.Figure;
         <keyword arguments>
-    )::Union{Tuple{Vector{<:LegendElement},Vector{String}},Nothing}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
-Draw a linear fit for the data in `figure`. 
+Draw a linear fit for the data in `figure`.
 
 An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ and $b$, will be positioned in the upper right corner of the plot.
 
@@ -175,7 +175,7 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
   - `error_formating::Symbol=:std_error`: Error format for the annotation. The options are:
 
       + `:std_error`     -> mean ± standard_error.
-      + `:conf_interval` -> mean ± max(upper$_{95\%}$ - mean, mean - lower$_{95\%}$). 
+      + `:conf_interval` -> mean ± max(upper$_{95\%}$ - mean, mean - lower$_{95\%}$).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `warnings::Bool=true`: If a warning will be raised when there are no points to fit.
@@ -183,7 +183,7 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
 # Returns
 
   - A tuple with the elements for the legend:
-    
+
       + A `LineElement` to be used as the marker.
       + The label string.
 """
@@ -193,7 +193,7 @@ function ppFitLine!(
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
     warnings::Bool=true,
-)::Union{Tuple{Vector{<:LegendElement},Vector{String}},Nothing}
+)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -272,9 +272,9 @@ end
 
 """
     ppKennicutt1998!(
-        figure::Makie.Figure; 
+        figure::Makie.Figure;
         <keyword arguments>
-    )::Union{Tuple{Vector{<:LegendElement},Vector{String}},Nothing}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
 Draw a line plot with the fit for the KS relation in Kennicutt (1998).
 
@@ -307,7 +307,7 @@ function ppKennicutt1998!(
     y_log::Bool=true,
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
-)::Union{Tuple{Vector{<:LegendElement},Vector{String}},Nothing}
+)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -343,9 +343,9 @@ end
 """
     ppBigiel2008!(
         figure::Makie.Figure,
-        quantity::Symbol; 
+        quantity::Symbol;
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{String}}
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
 Draw a line plot with the fit for the KS relation in Bigiel et al. (2008).
 
@@ -383,7 +383,7 @@ function ppBigiel2008!(
     y_log::Bool=true,
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
-)::Tuple{Vector{<:LegendElement},Vector{String}}
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -446,7 +446,7 @@ end
         figure::Makie.Figure,
         quantity::Symbol,
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{String}}
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
 Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015).
 
@@ -481,7 +481,7 @@ function ppMolla2015!(
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
     error_bars::Bool=true,
-)::Tuple{Vector{<:LegendElement},Vector{String}}
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
     # Read the file with the compiled data
     data = CSV.read(
@@ -550,9 +550,9 @@ end
         x_quantity::Symbol,
         y_quantity::Symbol;
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{String}}
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
-Draw a scatter plot with the experimental data of the xGASS and xCOLD GASS collaborations, processed by Feldmann (2020). 
+Draw a line, or scatter, plot using the experimental data from the xGASS and xCOLD GASS collaborations, processed by Feldmann (2020).
 
 # Arguments
 
@@ -569,8 +569,8 @@ Draw a scatter plot with the experimental data of the xGASS and xCOLD GASS colla
       + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:sfr`            -> The star formation rate.
-  - `color::ColorType=:red`: Color of the markers.
-  - `marker::Symbol=:circle`: Style of marker.
+  - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
+  - `marker::Symbol=:circle`: Style of marker. Only relevant if `scatter` = true.
 
 # Returns
 
@@ -587,44 +587,195 @@ function ppFeldmann2020!(
     figure::Makie.Figure,
     x_quantity::Symbol,
     y_quantity::Symbol;
-    color::ColorType=:red,
+    scatter::Bool=false,
     marker::Symbol=:circle,
-)::Tuple{Vector{<:LegendElement},Vector{String}}
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
-    # Read the file with the processed data
+    # Read the CSV file with the raw data
     data = CSV.read(FELDMANN2020_DATA_PATH, DataFrame, comment="#")
 
     # Select the quantity for the x axis
     if x_quantity == :stellar_mass
-        x_data = 10 .^ data[!, "lgMstar"]
+
+        x_data = exp10.(data[!, "lgMstar"])
+
     elseif x_quantity == :molecular_mass
+
         x_data = data[!, "MH2"]
+
     elseif x_quantity == :atomic_mass
+
         x_data = data[!, "MHI"]
+
     elseif x_quantity == :sfr
+
         x_data = data[!, "SFR"]
+
     else
+
         throw(ArgumentError("ppFeldmann2020!: `x_quantity` can only be :stellar_mass, \
         :molecular_mass, :atomic_mass, or :sfr, but I got :$(x_quantity)"))
+
     end
 
-    # Select the quantity for the y axis
+    # Select the quantity for the y axix; with its uncertainty
     if y_quantity == :stellar_mass
-        y_data = 10 .^ data[!, "lgMstar"]
+
+        # Compute the mean "error" for the stellar mass
+        err_low = data[!, "lgMstar"] .- data[!, "lgMstar_p16"]
+        err_high = data[!, "lgMstar_p84"] .- data[!, "lgMstar"]
+        err_mean = @. (err_low + err_high) / 2.0
+
+        y_data = exp10.(data[!, "lgMstar"] .+ err_mean)
+
     elseif y_quantity == :molecular_mass
-        y_data = data[!, "MH2"]
+
+        y_data = data[!, "MH2"] .± data[!, "e_MH2"]
+
     elseif y_quantity == :atomic_mass
-        y_data = data[!, "MHI"]
+
+        y_data = data[!, "MHI"] .± data[!, "e_MHI"]
+
     elseif y_quantity == :sfr
-        y_data = data[!, "SFR"]
+
+        y_data = data[!, "SFR"] .± data[!, "e_SFR"]
+
     else
+
         throw(ArgumentError("ppFeldmann2020!: `y_quantity` can only be :stellar_mass, \
         :molecular_mass, :atomic_mass, or :sfr, but I got :$(x_quantity)"))
+
     end
 
-    # Plot the selected values
-    scatter!(figure.current_axis.x, x_data, y_data; color, marker, markersize=8)
+    if scatter
+        y_mean_values = Measurements.value.(y_data)
 
-    return [MarkerElement(; color, marker)], ["Feldmann (2020)"]
+        # Plot the selected values as a scatter plot
+        scatter!(figure.current_axis.x, x_data, y_mean_values; color=:red, marker, markersize=8)
+
+        return [MarkerElement(; color=:red, marker)], ["Feldmann (2020)"]
+    end
+
+    # Get the scaling of each axis
+    x_scaling = xscale(figure)
+    y_scaling = yscale(figure)
+
+    # Scale the raw data
+    scaled_xs = x_scaling.(x_data)
+    scaled_ys = y_scaling.(y_data)
+
+    # Set up the grid
+    x_min, x_max = extrema(skipmissing(scaled_xs))
+    grid         = CircularGrid(x_max, 30; shift=x_min)
+    n_bins       = length(grid.grid)
+    bin_width    = (x_max - x_min) / n_bins
+
+    # Allocate memory for the histogram of indexes
+    histogram = Vector{Int}[Vector{Int}[] for _ in 1:n_bins]
+
+    # Compute the histogram; ignoring missings and values outside the grid range
+    @inbounds for (x_idx, x_value) in pairs(scaled_xs)
+
+        if ismissing(x_value)
+            continue
+        elseif x_value < x_min || x_max < x_value
+            continue
+        elseif x_value == x_min
+            hist_idx = 1
+        elseif x_value == x_max
+            hist_idx = n_bins
+        else
+            hist_idx = ceil(Int, (x_value - x_min) / bin_width)
+        end
+
+        push!(histogram[hist_idx], x_idx)
+
+    end
+
+    ################################################################################################
+    # Values for the y axis
+    ################################################################################################
+
+    # Allocate memory
+    y_axis = Vector{Union{Measurement{Float64},Missing}}(undef, n_bins)
+
+    @inbounds for (i, hist_idxs) in pairs(histogram)
+
+        # For each bin select the corresponding y measurements
+        binned_y_measurements = skipmissing(scaled_ys[hist_idxs])
+
+        if isempty(binned_y_measurements)
+
+            y_axis[i] = missing
+
+        else
+
+            # Compute the weighted mean of all the y measurements in this bin
+            weighted_mean = weightedmean(binned_y_measurements)
+
+            # Compute the y mean
+            y_mean = Measurements.value(weighted_mean)
+
+            # Compute y uncertainty
+            spread = std(Measurements.value.(binned_y_measurements); corrected=false)
+            stderr = Measurements.uncertainty(weighted_mean)
+            y_err  = sqrt(spread^2 + stderr^2)
+
+            y_axis[i] = y_mean ± y_err
+
+        end
+
+    end
+
+    # Find the empty bins
+    missing_idxs = map(ismissing, y_axis)
+
+    # Delete the empty bins
+    deleteat!(y_axis, missing_idxs)
+
+    ################################################################################################
+    # Values for the x axis
+    ################################################################################################
+
+    x_axis = Makie.inverse_transform(x_scaling).(grid.grid)
+
+    # Delete the empty bins
+    deleteat!(x_axis, missing_idxs)
+
+    ################################################################################################
+    # Plots
+    ################################################################################################
+
+    y_axis_value       = Measurements.value.(y_axis)
+    y_axis_uncertainty = Measurements.uncertainty.(y_axis)
+
+    # Plot the mean line
+    lines!(
+        figure.current_axis.x,
+        x_axis,
+        Makie.inverse_transform(y_scaling).(y_axis_value);
+        color=(:red, 0.35),
+    )
+
+    # Construct the 1σ band
+    yupper_1σ = Makie.inverse_transform(y_scaling).(y_axis_value .+ y_axis_uncertainty)
+    ylower_1σ = Makie.inverse_transform(y_scaling).(y_axis_value .- y_axis_uncertainty)
+    # Plot the 1σ band
+    band!(figure.current_axis.x, x_axis, ylower_1σ, yupper_1σ; color=(:red, 0.15))
+
+    # Construct the 2σ upper band
+    high_band_2σ = Makie.inverse_transform(y_scaling).(y_axis_value .+ 2 * y_axis_uncertainty)
+    # Plot the 2σ upper band
+    band!(figure.current_axis.x, x_axis, yupper_1σ, high_band_2σ; color=(:orange, 0.15))
+
+    # Construct the 2σ lower band
+    low_band_2σ = Makie.inverse_transform(y_scaling).(y_axis_value .- 2 * y_axis_uncertainty)
+    # Plot the 2σ lower band
+    band!(figure.current_axis.x, x_axis, low_band_2σ, ylower_1σ; color=(:orange, 0.15))
+
+    return (
+        [PolyElement(; color=(:red, 0.25)), PolyElement(; color=(:orange, 0.25))],
+        [L"\mathrm{Feldmann \,\, (2020)} \,\, 1σ", L"\mathrm{Feldmann \,\, (2020)} \,\, 2σ"],
+    )
 
 end
