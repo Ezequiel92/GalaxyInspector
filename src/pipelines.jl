@@ -130,7 +130,7 @@ Some of the features are:
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
-  - `resolution::NTuple{2,Int}=(1000, 750)`: Resolution of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
+  - `size::NTuple{2,Int}=(1000, 750)`: Size of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
   - `aspect::Union{DataAspect,AxisAspect,Nothing}=nothing`: Aspect ratio of the figures. The options are:
 
       + `nothing`       -> Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
@@ -196,7 +196,7 @@ function snapshotPlot(
     title::Union{Symbol,<:AbstractString}="",
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
-    resolution::NTuple{2,Int}=(1000, 750),
+    size::NTuple{2,Int}=(1000, 750),
     aspect::Union{DataAspect,AxisAspect,Nothing}=nothing,
     series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
     series_markers::Union{Vector{Symbol},Nothing}=nothing,
@@ -247,7 +247,7 @@ function snapshotPlot(
     set_theme!(THEME)
 
     # Create the figure
-    figure = Figure(; resolution)
+    figure = Figure(; size)
 
     # Create a list of distinguishable colors for the different simulations,
     # only relevant for `scatter!`, `lines!`, and `scatterlines!` plots
@@ -798,7 +798,7 @@ Some of the features are:
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
-  - `resolution::NTuple{2,Int}=(1000, 750)`: Resolution of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
+  - `size::NTuple{2,Int}=(1000, 750)`: Size of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
   - `aspect::Union{DataAspect,AxisAspect,Nothing}=nothing`: Aspect ratio of the figures. The options are:
 
       + `nothing`       -> Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
@@ -856,7 +856,7 @@ function timeSeriesPlot(
     title::AbstractString="",
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
-    resolution::NTuple{2,Int}=(1000, 750),
+    size::NTuple{2,Int}=(1000, 750),
     aspect::Union{DataAspect,AxisAspect,Nothing}=nothing,
     series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
     series_markers::Union{Vector{Symbol},Nothing}=nothing,
@@ -877,7 +877,7 @@ function timeSeriesPlot(
     set_theme!(THEME)
 
     # Create the figure
-    figure = Figure(; resolution)
+    figure = Figure(; size)
 
     # Create a list of distinguishable colors for the different simulations
     if isnothing(series_colors)
