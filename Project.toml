@@ -1,3 +1,7 @@
+name = "GalaxyInspector"
+uuid = "990b1489-e520-4e93-b9dc-df8612ec7e1d"
+authors = ["Ezequiel Lozano <elozano@df.uba.ar>"]
+
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
