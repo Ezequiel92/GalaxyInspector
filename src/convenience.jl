@@ -1382,6 +1382,7 @@ Plot a 2D histogram of the density.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
   - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
+  - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
   - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used. This option is ignore if `slice_n` = 0.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
 """
@@ -1395,6 +1396,7 @@ function densityMap(
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
     smooth::Bool=false,
+    annotation::String="",
     latex::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
 )::Nothing
@@ -1441,9 +1443,9 @@ function densityMap(
                     da_functions=[daDensity2DHistogram],
                     da_args=[(grid, quantity)],
                     da_kwargs=[(; projection_plane, smooth, neighbors=32)],
-                    post_processing=getNothing,
-                    pp_args=(),
-                    pp_kwargs=(;),
+                    post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
+                    pp_args=(annotation,),
+                    pp_kwargs=(; color=:white),
                     transform_box=true,
                     translation,
                     rotation,
@@ -1485,7 +1487,7 @@ function densityMap(
                     framerate=5,
                 )
 
-                if latex
+                if latex && !iszero(slice_n)
                     jld2_file = joinpath(output_path, base_filename * ".jld2")
 
                     jldopen(jld2_file, "r") do file
@@ -1516,6 +1518,13 @@ function densityMap(
                                             "label style={font=\\large}",
                                         },
                                         Plot3({surf, shader="flat"}, Coordinates(x, y, clean_z)),
+                                        [
+                                            raw"\node[text=white]",
+                                            {anchor="north west"},
+                                            " at ",
+                                            Coordinate(x[1], y[end]),
+                                            "{$(annotation)};",
+                                        ]
                                     ),
                                 );
                                 preamble=["\\usepgfplotslibrary{colormaps}"],
@@ -2337,6 +2346,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function stellarHistory(
@@ -2346,6 +2356,7 @@ function stellarHistory(
     n_bins::Int=20,
     output_path::String="./",
     filter_mode::Symbol=:all,
+    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -2402,8 +2413,8 @@ function stellarHistory(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting and animation options
-        save_figures=true,
-        backup_results=false,
+        save_figures=!latex,
+        backup_results=latex,
         sim_labels,
         title=:physical_time,
         pt_per_unit=0.75,
@@ -2418,6 +2429,76 @@ function stellarHistory(
         animation_filename="animation.mp4",
         framerate=10,
     )
+
+    if latex
+        jld2_file = joinpath(output_path, "$(quantity)-stellar-history.jld2")
+
+        jldopen(jld2_file, "r") do file
+
+            # Add color library
+            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
+
+            # Construct the axis labels
+            xlabel = LaTeXString(
+                replace(
+                    x_plot_params.axis_label,
+                    "auto_label" => getLabel(
+                        x_plot_params.var_name,
+                        x_plot_params.exp_factor,
+                        x_plot_params.unit,
+                    ),
+                ),
+            )
+            ylabel = LaTeXString(
+                replace(
+                    y_plot_params.axis_label,
+                    "auto_label" => getLabel(
+                        y_plot_params.var_name,
+                        y_plot_params.exp_factor,
+                        y_plot_params.unit,
+                    ),
+                ),
+            )
+
+            # Draw the figures with PGFPlotsX
+            axis = @pgf PGFPlotsX.Axis({
+                xlabel=xlabel,
+                ylabel=ylabel,
+                xmode="normal",
+                ymode="log",
+                "/pgf/number format/1000 sep={}",
+                "legend cell align={left}",
+                "grid=major",
+                "cycle list/Set1",
+                "width=0.7\\textwidth",
+                "height=0.5\\textwidth",
+                "scale only axis",
+                legend_style = {
+                    at=Coordinate(0.75, 0.4),
+                    anchor="north",
+                    legend_columns=1,
+                    draw="none",
+                    font="\\scriptsize",
+                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                },
+            })
+
+            @pgf for sim_name in sim_labels
+                x, y = file["$(keys(file)[1])/$(sim_name)"]
+                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                push!(axis, plot)
+            end
+
+            # Add the legends
+            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
+
+            pgfsave(joinpath(output_path, "$(quantity)-stellar-history.png"), axis, dpi=600)
+
+        end
+
+        # Delete auxiliary JLD2 file
+        rm(jld2_file, force=true)
+    end
 
     return nothing
 

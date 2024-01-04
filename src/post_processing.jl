@@ -116,7 +116,7 @@ end
 """
     ppCross!(
         figure::Makie.Figure,
-        cross_point::Tuple{<:Real,<:Real},
+        cross_point::Tuple{<:Real,<:Real};
         <keyword arguments>
     )::Nothing
 
@@ -154,6 +154,52 @@ function ppCross!(
     else
         !warnings || @warn("ppCross!: The horizontal line lies outside the plot range")
     end
+
+    return nothing
+
+end
+
+"""
+    ppAnnotation!(
+        figure::Makie.Figure,
+        text::String;
+        <keyword arguments>,
+    )::Nothing
+
+Add an annotation to the plot.
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure to be drawn over.
+  - `text::String`: Text to be written.
+  - `color::ColorType=:black`: Color of the text.
+  - `rel_pos::Union{NTuple{2,Real},Nothing}=nothing`: Relative position for the top left corner of the text box within the plot. If set to `nothing`, the text will be printed at the top left corner of the plot.
+"""
+function ppAnnotation!(
+    figure::Makie.Figure,
+    text::String;
+    color::ColorType=:black,
+    rel_pos::Union{NTuple{2,Real},Nothing}=nothing,
+)::Nothing
+
+    if isnothing(rel_pos)
+        pos = absCoor(figure, 0.03, 0.98)
+    else
+        if rel_pos[1] < 0.0 || rel_pos[2] < 0.0 || 1.0 < rel_pos[1] || 1.0 < rel_pos[2]
+            throw(ArgumentError("ppAnnotation!: `rel_pos` should be between 0 and 1"))
+        else
+            pos = absCoor(figure, rel_pos...)
+        end
+    end
+
+    text!(
+        figure.current_axis.x,
+        pos[1],
+        pos[2];
+        text,
+        color,
+        align=(:left, :top),
+    )
 
     return nothing
 

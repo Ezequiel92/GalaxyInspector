@@ -386,7 +386,7 @@ const THEME = Theme(
         linewidth=5,
         markersize=30,
     ),
-    Text=(fontsize=26,),
+    Text=(fontsize=30,),
     Lines=(linewidth=3,),
     VLines=(linewidth=3,),
     HLines=(linewidth=3,),
