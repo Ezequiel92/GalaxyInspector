@@ -140,7 +140,7 @@ getEmpty(x...; y...)::Vector = []
     hvcatImages(
         blocks_per_row::Int,
         paths::Vector{String};
-        <keyword arguments>,
+        <keyword arguments>
     )::Nothing
 
 Join several images vertically and horizontally

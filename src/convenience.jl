@@ -166,7 +166,7 @@ function snapshotReport(
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
                 Dict(:gas => ["NHP ", "NH  ", "PRES", "FRAC"]),
-            )
+            ),
         )
 
         # Read the necessary snapshot data
@@ -555,7 +555,15 @@ function snapshotReport(
             )
 
             request = Dict(
-                :subhalo => ["S_Mass", "S_MassType", "S_LenType", "S_CM", "S_Pos", "S_HalfmassRad"],
+                :subhalo => [
+                    "S_Mass",
+                    "S_MassType",
+                    "S_LenType",
+                    "S_CM",
+                    "S_Pos",
+                    "S_HalfmassRad",
+
+                ],
                 :group => [
                     "G_Mass",
                     "G_MassType",
@@ -638,7 +646,7 @@ function snapshotReport(
 
                 type_symbol = INDEX_PARTICLE[i - 1]
 
-                if type_symbol ==:stars
+                if type_symbol == :stars
                     component = "Stellar/Wind particles"
                 else
                     component = PARTICLE_NAMES[type_symbol]
@@ -671,7 +679,7 @@ function snapshotReport(
                 \n\n\t\t$(round.(ustrip.(u"Mpc", g_pos), sigdigits=6)) $(u"Mpc")\n",
             )
 
-            separation = sqrt(sum((g_cm - g_pos).^2))
+            separation = sqrt(sum((g_cm - g_pos) .^ 2))
             println(
                 file,
                 "\tSeparation between the minimum potencial and the global CM: \
@@ -722,7 +730,7 @@ function snapshotReport(
 
                 type_symbol = INDEX_PARTICLE[i - 1]
 
-                if type_symbol ==:stars
+                if type_symbol == :stars
                     component = "Stellar/Wind particles"
                 else
                     component = PARTICLE_NAMES[type_symbol]
@@ -755,7 +763,7 @@ function snapshotReport(
                 \n\n\t\t$(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
             )
 
-            separation = sqrt(sum((s_cm - s_pos).^2))
+            separation = sqrt(sum((s_cm - s_pos) .^ 2))
             println(
                 file,
                 "\tSeparation between the minimum potencial and the global CM: \
@@ -1023,7 +1031,7 @@ function simulationReport(
                         $(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
                     )
 
-                    separation = sqrt(sum((s_cm - s_pos).^2))
+                    separation = sqrt(sum((s_cm - s_pos) .^ 2))
                     println(
                         file,
                         "\t\tSeparation between the minimum potencial and the global CM: \
@@ -1051,10 +1059,7 @@ function simulationReport(
                 println(file, "First snapshot with subfind information:")
                 println(file, "#"^100)
 
-                println(
-                    file,
-                    "\n\tSnapshot:         $(basename(snapshot_path))",
-                )
+                println(file, "\n\tSnapshot:         $(basename(snapshot_path))")
 
                 println(file, "\tPhysical time:    $(physical_time) Gyr")
 
@@ -1080,7 +1085,7 @@ function simulationReport(
                     \n\n\t\t\t$(round.(ustrip.(u"Mpc", s_pos), sigdigits=6)) $(u"Mpc")\n",
                 )
 
-                separation = sqrt(sum((s_cm - s_pos).^2))
+                separation = sqrt(sum((s_cm - s_pos) .^ 2))
                 println(
                     file,
                     "\t\tSeparation between the minimum potencial and the global CM: \
@@ -1157,6 +1162,7 @@ Plot a time series of the data in the `sfr.txt` file.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1470,8 +1476,8 @@ function densityMap(
                     xaxis_limits=(nothing, nothing),
                     yaxis_limits=(nothing, nothing),
                     # Plotting options
-                    save_figures=!latex&&!iszero(slice_n),
-                    backup_results=latex&&!iszero(slice_n),
+                    save_figures=!latex && !iszero(slice_n),
+                    backup_results=latex && !iszero(slice_n),
                     sim_labels=nothing,
                     title=:physical_time,
                     pt_per_unit=0.75,
@@ -1508,23 +1514,23 @@ function densityMap(
                                 TikzPicture(
                                     PGFPlotsX.Axis(
                                         {
-                                            view=(0, 90),
+                                            view = (0, 90),
                                             "axis equal image",
                                             "colormap/thermal",
-                                            xlabel=xlabel,
-                                            ylabel=ylabel,
+                                            xlabel = xlabel,
+                                            ylabel = ylabel,
                                             "/pgf/number format/1000 sep = {}",
                                             "tick label style={font=\\large}",
                                             "label style={font=\\large}",
                                         },
-                                        Plot3({surf, shader="flat"}, Coordinates(x, y, clean_z)),
+                                        Plot3({surf, shader = "flat"}, Coordinates(x, y, clean_z)),
                                         [
                                             raw"\node[text=white]",
-                                            {anchor="north west"},
+                                            {anchor = "north west"},
                                             " at ",
                                             Coordinate(x[1], y[end]),
                                             "{$(annotation)};",
-                                        ]
+                                        ],
                                     ),
                                 );
                                 preamble=["\\usepgfplotslibrary{colormaps}"],
@@ -2210,7 +2216,7 @@ end
         <keyword arguments>
     )::Nothing
 
- Plot a density profile.
+Plot a density profile.
 
 # Arguments
 
@@ -2234,6 +2240,7 @@ end
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function densityProfile(
@@ -2243,6 +2250,7 @@ function densityProfile(
     yscale::Function=identity,
     output_path::String="./",
     filter_mode::Symbol=:all,
+    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -2297,8 +2305,8 @@ function densityProfile(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting and animation options
-        save_figures=true,
-        backup_results=false,
+        save_figures=!latex,
+        backup_results=latex,
         sim_labels,
         title=:physical_time,
         pt_per_unit=0.75,
@@ -2313,6 +2321,83 @@ function densityProfile(
         animation_filename="animation.mp4",
         framerate=10,
     )
+
+    if latex
+        jld2_file = joinpath(output_path, "$(quantity)-profile.jld2")
+
+        jldopen(jld2_file, "r") do file
+
+            # Add color library
+            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
+
+            # Construct the axis labels
+            xlabel = getLabel(L"r", 0, u"kpc")
+            ylabel = LaTeXString(
+                replace(
+                    plot_params.axis_label,
+                    "auto_label" => getLabel(plot_params.var_name, 0, plot_params.unit),
+                ),
+            )
+
+            # Select y axis scaling for the PGFPlotsX plot
+            if yscale == log
+                ymode = "log"
+                log_basis_y = "exp(1)"
+            elseif yscale == log10
+                ymode = "log"
+                log_basis_y = "10"
+            else
+                (
+                    yscale == identity ||
+                    @warn("densityProfile: PGFPlotsX can only draw axis with linear or \\
+                    logarithmic scaling")
+                )
+                ymode = "normal"
+                log_basis_y = ""
+            end
+
+            # Draw the figures with PGFPlotsX
+            axis = @pgf PGFPlotsX.Axis({
+                xlabel = xlabel,
+                ylabel = ylabel,
+                xmode = "normal",
+                ymode = "log",
+                "log basis y" = log_basis_y,
+                "/pgf/number format/1000 sep={}",
+                "legend cell align={left}",
+                "grid=major",
+                "cycle list/Set1",
+                "width=0.7\\textwidth",
+                "height=0.5\\textwidth",
+                "scale only axis",
+                legend_style = {
+                    at = Coordinate(0.75, 0.95),
+                    anchor = "north",
+                    legend_columns = 1,
+                    draw = "none",
+                    font = "\\scriptsize",
+                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                },
+            })
+
+            filename = keys(file)[1]
+
+            @pgf for sim_name in sim_labels
+                x, y = file["$(filename)/$(sim_name)"]
+                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                push!(axis, plot)
+            end
+
+            # Add the legends
+            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
+
+            pgfsave(joinpath(output_path, "$(filename).png"), axis, dpi=600)
+
+        end
+
+        # Delete auxiliary JLD2 file
+        rm(jld2_file, force=true)
+    end
 
     return nothing
 
@@ -2462,10 +2547,10 @@ function stellarHistory(
 
             # Draw the figures with PGFPlotsX
             axis = @pgf PGFPlotsX.Axis({
-                xlabel=xlabel,
-                ylabel=ylabel,
-                xmode="normal",
-                ymode="log",
+                xlabel = xlabel,
+                ylabel = ylabel,
+                xmode = "normal",
+                ymode = "log",
                 "/pgf/number format/1000 sep={}",
                 "legend cell align={left}",
                 "grid=major",
@@ -2474,17 +2559,19 @@ function stellarHistory(
                 "height=0.5\\textwidth",
                 "scale only axis",
                 legend_style = {
-                    at=Coordinate(0.75, 0.4),
-                    anchor="north",
-                    legend_columns=1,
-                    draw="none",
-                    font="\\scriptsize",
+                    at = Coordinate(0.75, 0.4),
+                    anchor = "north",
+                    legend_columns = 1,
+                    draw = "none",
+                    font = "\\scriptsize",
                     "/tikz/every even column/.append style={column sep=0.3cm}",
                 },
             })
 
+            filename = keys(file)[1]
+
             @pgf for sim_name in sim_labels
-                x, y = file["$(keys(file)[1])/$(sim_name)"]
+                x, y = file["$(filename)/$(sim_name)"]
                 plot = PlotInc({no_marks, thick}, Coordinates(x, y))
                 push!(axis, plot)
             end
@@ -2492,7 +2579,7 @@ function stellarHistory(
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(quantity)-stellar-history.png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(filename).png"), axis, dpi=600)
 
         end
 
@@ -2527,6 +2614,7 @@ Plot a histogram of the stellar circularity.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function stellarCircularity(
@@ -2536,6 +2624,7 @@ function stellarCircularity(
     n_bins::Int=60,
     output_path::String="./",
     filter_mode::Symbol=:all,
+    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -2589,8 +2678,8 @@ function stellarCircularity(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting and animation options
-        save_figures=true,
-        backup_results=false,
+        save_figures=!latex,
+        backup_results=latex,
         sim_labels,
         title=:physical_time,
         pt_per_unit=0.75,
@@ -2605,6 +2694,67 @@ function stellarCircularity(
         animation_filename="animation.mp4",
         framerate=10,
     )
+
+    if latex
+        jld2_file = joinpath(output_path, "circularity_histogram.jld2")
+
+        jldopen(jld2_file, "r") do file
+
+            # Add color library
+            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
+
+            # Construct the axis labels
+            xlabel = LaTeXString(
+                replace(
+                    plot_params.axis_label,
+                    "auto_label" => getLabel(
+                        plot_params.var_name,
+                        plot_params.exp_factor,
+                        plot_params.unit,
+                    ),
+                ),
+            )
+            ylabel = getLabel(L"\mathrm{Normalized \,\, counts}", 0, Unitful.NoUnits)
+
+            # Draw the figures with PGFPlotsX
+            axis = @pgf PGFPlotsX.Axis({
+                xlabel = xlabel,
+                ylabel = ylabel,
+                "/pgf/number format/1000 sep={}",
+                "legend cell align={left}",
+                "grid=major",
+                "cycle list/Set1",
+                "width=0.7\\textwidth",
+                "height=0.7\\textwidth",
+                "scale only axis",
+                legend_style = {
+                    at = Coordinate(0.25, 0.95),
+                    anchor = "north",
+                    legend_columns = 1,
+                    draw = "none",
+                    font = "\\scriptsize",
+                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                },
+            },)
+
+            filename = keys(file)[1]
+
+            @pgf for sim_name in sim_labels
+                x, y = file["$(filename)/$(sim_name)"]
+                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                push!(axis, plot)
+            end
+
+            # Add the legends
+            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
+
+            pgfsave(joinpath(output_path, "$(filename).png"), axis, dpi=600)
+
+        end
+
+        # Delete auxiliary JLD2 file
+        rm(jld2_file, force=true)
+    end
 
     return nothing
 
