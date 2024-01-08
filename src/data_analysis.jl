@@ -421,57 +421,36 @@ function daDensityProfile(
 
         positions = data_dict[:stars]["POS "]
         masses = data_dict[:stars]["MASS"]
-        norm_values = Number[]
-        f = identity
-        density = true
 
     elseif quantity == :gas_area_density
 
         positions = data_dict[:gas]["POS "]
         masses = data_dict[:gas]["MASS"]
-        norm_values = Number[]
-        f = identity
-        density = true
 
     elseif quantity == :molecular_area_density
 
         positions = data_dict[:gas]["POS "]
         masses = computeMolecularMass(data_dict)
-        norm_values = Number[]
-        f = identity
-        density = true
 
     elseif quantity == :atomic_area_density
 
         positions = data_dict[:gas]["POS "]
         masses = computeAtomicMass(data_dict)
-        norm_values = Number[]
-        f = identity
-        density = true
 
     elseif quantity == :ionized_area_density
 
         positions = data_dict[:gas]["POS "]
         masses = computeIonizedMass(data_dict)
-        norm_values = Number[]
-        f = identity
-        density = true
 
     elseif quantity == :neutral_area_density
 
         positions = data_dict[:gas]["POS "]
         masses = computeNeutralMass(data_dict)
-        norm_values = Number[]
-        f = identity
-        density = true
 
     elseif quantity == :sfr_area_density
 
         positions = data_dict[:stars]["POS "]
         masses = computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ)
-        norm_values = Number[]
-        f = identity
-        density = true
 
     else
 
@@ -482,7 +461,16 @@ function daDensityProfile(
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [positions, masses]) || return nothing
 
-    density_profile = f(computeProfile(positions, masses, grid; norm_values, total=true, density))
+    density_profile = computeProfile(
+        positions,
+        masses,
+        grid;
+        norm_values=Number[],
+        flat=true,
+        total=true,
+        cumulative=false,
+        density=true,
+    )
 
     return grid.grid, density_profile
 

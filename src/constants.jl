@@ -1065,3 +1065,21 @@ const QUANTITIES = Dict(
     "S_VmaxRad"                      => Qty("SubhaloVmaxRad", Unitful.𝐋, :internal),
     "S_WindMass"                     => Qty("SubhaloWindMass", Unitful.𝐌, :internal),
 )
+
+"""
+Dictionary with the subhalo numbers for the different Hestia simulations.
+"""
+const HESTIA_SUBHALOS = Dict(
+    "Hestia17-11" => Dict(
+        :subhalo_number_MW  => 1,
+        :subhalo_number_M31 => 0,
+    ),
+    "Hestia09-18" => Dict(
+        :subhalo_number_MW  => 3911,
+        :subhalo_number_M31 => 2608,
+    ),
+    "Hestia37-11" => Dict(
+        :subhalo_number_MW  => 920,
+        :subhalo_number_M31 => 0,
+    ),
+)
