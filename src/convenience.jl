@@ -23,6 +23,7 @@ Write a text file with information about a given snapshot.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1.
   - `warnings::Bool=true`: If a warning will be given when there is missing files.
@@ -170,7 +171,7 @@ function snapshotReport(
         )
 
         # Read the necessary snapshot data
-        if filter_mode ∈ [:halo, :subhalo, :stellar_subhalo]
+        if filter_mode ∈ [:halo, :subhalo, :stellar_subhalo, :all_subhalo]
 
             # Check that the group catalog data is available
             if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
@@ -1384,6 +1385,7 @@ Plot a 2D histogram of the density.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
@@ -1651,6 +1653,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
 """
 function scatterPlot(
     simulation_paths::Vector{String},
@@ -1841,7 +1844,8 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:halo`            -> Plot only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo
+      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
 """
 function scatterDensityMap(
     simulation_paths::Vector{String},
@@ -2032,6 +2036,7 @@ Plot a time series.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function timeSeries(
@@ -2124,6 +2129,7 @@ Plot the galaxy rotation curve of a set of simulations.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function rotationCurve(
@@ -2240,6 +2246,7 @@ Plot a density profile.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
@@ -2431,6 +2438,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
@@ -2614,6 +2622,7 @@ Plot a histogram of the stellar circularity.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
@@ -2795,6 +2804,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 
 # References
@@ -2901,6 +2911,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 
 # References
@@ -3018,6 +3029,7 @@ Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 
 # References
@@ -3165,6 +3177,7 @@ Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (19
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 
 # References

@@ -714,10 +714,11 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
       + ...
   - `rotation::Symbol`: Type of rotation. The options are:
 
-      + `:zero`       -> No rotation is appplied.
-      + `:global_am`  -> Sets the angular momentum of the whole system as the new z axis.
-      + `:stellar_am` -> Sets the stellar angular momentum as the new z axis.
-      + `:stellar_pa` -> Sets the stellar principal axis as the new coordinate system.
+      + `:zero`               -> No rotation is appplied.
+      + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
+      + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
+      + `:stellar_pa`         -> Sets the stellar principal axis as the new coordinate system.
+      + `:stellar_subhalo_pa` -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
 """
 function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
@@ -748,6 +749,20 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
             data_dict[:stars]["POS "],
             data_dict[:stars]["VEL "],
             data_dict[:stars]["MASS"],
+        )
+
+    elseif rotation == :stellar_subhalo_pa
+
+        data = deepcopy(data_dict)
+
+        filterData!(data, filter_function=dd -> filterSubhalo(dd; halo_idx=1, subhalo_rel_idx=1))
+
+        !isempty(data[:stars]["MASS"]) || return nothing
+
+        rotation_matrix = computePARotationMatrix(
+            data[:stars]["POS "],
+            data[:stars]["VEL "],
+            data[:stars]["MASS"],
         )
 
     else
@@ -3768,6 +3783,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `request::Dict{Symbol,Vector{String}}`: Base request dictionary, nothing will be deleted from it.
 
 # Returns
@@ -3783,9 +3799,10 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
           + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
       + Rotation for the simulation box. The posibilities are:
 
-          + `:global_am`  -> Sets the angular momentum of the whole system as the new z axis.
-          + `:stellar_am` -> Sets the stellar angular momentum as the new z axis.
-          + `:stellar_pa` -> Sets the stellar principal axis as the new coordinate system.
+          + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
+          + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
+          + `:stellar_pa`         -> Sets the stellar principal axis as the new coordinate system.
+          + `:stellar_subhalo_pa` -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
       + New request dictionary.
 
 """
@@ -3804,7 +3821,9 @@ function selectFilter(
         new_request = mergeRequests(
             addRequest(
                 request,
-                Dict(type_symbol => ["POS ", "MASS"] for type_symbol in keys(PARTICLE_INDEX)),
+                Dict(
+                    type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)
+                ),
             ),
             Dict(:stars => ["POS ", "MASS", "VEL "]),
         )
@@ -3841,7 +3860,7 @@ function selectFilter(
             addRequest(
                 request,
                 Dict(
-                    type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)
+                    type_symbol => ["POS ", "MASS"] for type_symbol in keys(PARTICLE_INDEX)
                 ),
             ),
             Dict(
@@ -3875,10 +3894,31 @@ function selectFilter(
             Dict(:group => ["G_Nsubs", "G_LenType"], :subhalo => ["S_LenType"]),
         )
 
+    elseif filter_mode == :all_subhalo
+
+        # Plot every cell/particle centered around the main subhalo
+        filter_function = filterNothing
+        translation = (1, 1)
+        rotation = :stellar_subhalo_pa
+
+        new_request = mergeRequests(
+            addRequest(
+                request,
+                Dict(
+                    type_symbol => ["POS ", "MASS"] for type_symbol in keys(PARTICLE_INDEX)
+                ),
+            ),
+            Dict(
+                :group => ["G_Nsubs", "G_LenType", "G_Pos"],
+                :subhalo => ["S_LenType", "S_Pos"],
+                :stars => ["POS ", "MASS", "VEL "],
+            ),
+        )
+
     else
 
         throw(ArgumentError("selectFilter: `filter_mode` can only be :all, :halo, :subhalo, \
-        :stellar_subhalo, or :sphere, but I got :$(filter_mode)"))
+        :stellar_subhalo, :all_subhalo, or :sphere, but I got :$(filter_mode)"))
 
     end
 
