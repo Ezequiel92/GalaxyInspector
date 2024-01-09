@@ -660,39 +660,6 @@ function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}
 end
 
 """
-    rotateSystem(
-        points::Matrix{<:Number},
-        rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}},
-    )::Matrix{<:Number}
-
-Rotate a system of points using `rotation_matrix`.
-
-# Arguments
-
-  - `points::Matrix{<:Number}`: Points to be rotated. Each column is a point and each row a dimension.
-  - `rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}}`: Rotation matrix.
-
-# Returns
-
-  - Matrix with the rotated points.
-"""
-function rotateSystem(
-    points::Matrix{<:Number},
-    rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}},
-)::Matrix{<:Number}
-
-    # Allocate memory
-    rotated = similar(points)
-
-    @inbounds for i in 1:size(points, 2)
-        rotated[:, i] .= rotation_matrix * points[:, i]
-    end
-
-    return rotated
-
-end
-
-"""
     rotateData!(data_dict::Dict, axis_type::Symbol)::Nothing
 
 Rotate the positions and velocities of the cells/particles in `data_dict`.
@@ -776,7 +743,7 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
         @inbounds for (block, data) in data_dict[type_symbol]
 
             @inbounds if block ∈ ["POS ", "VEL "] && !isempty(data)
-                data_dict[type_symbol][block] = rotateSystem(data, rotation_matrix)
+                data_dict[type_symbol][block] = rotation_matrix * data
             end
 
         end
@@ -2136,6 +2103,10 @@ function computePARotationMatrix(
     aligned_pa = AngleAxis(θ, n...) * pa
 
     rotation_matrix = aligned_pa'
+
+    if det(rotation_matrix) < 0.0
+        rotation_matrix = AngleAxis(π, 1.0, 0.0, 0.0) * rotation_matrix
+    end
 
     return Matrix{Float64}(rotation_matrix)
 

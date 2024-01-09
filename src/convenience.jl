@@ -1434,6 +1434,10 @@ function densityMap(
                 # Construct the file name
                 base_filename = "$(sim_name)-$(quantity)-$(projection_plane)-density_map"
 
+                ####################################################################################
+                # Plot with Makie.jl
+                ####################################################################################
+
                 snapshotPlot(
                     [simulation_path],
                     request,
@@ -1495,57 +1499,65 @@ function densityMap(
                     framerate=5,
                 )
 
+                ####################################################################################
+                # Plot with PGFPlotsX.jl
+                ####################################################################################
+
                 if latex && !iszero(slice_n)
-                    jld2_file = joinpath(output_path, base_filename * ".jld2")
+
+                    jld2_file = joinpath(output_path, "$(base_filename).jld2")
 
                     jldopen(jld2_file, "r") do file
 
-                        for key in keys(file)
+                        # Add color library
+                        push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usepgfplotslibrary{colormaps}")
 
-                            # Load and sanitize the results
-                            x, y, z = file["$(key)/simulation_001"]
-                            min_z = minimum(filter(!isnan, z))
-                            clean_z = replace(z, NaN => min_z)
+                        group = keys(file)[1]
+                        dataset = keys(file[group])[1]
 
-                            # Construct the axis labels
-                            xlabel = L"%$(string(projection_plane)[1]) \, / \, \mathrm{kpc}"
-                            ylabel = L"%$(string(projection_plane)[2]) \, / \, \mathrm{kpc}"
+                        # Load and sanitize the results
+                        x, y, z = file[group][dataset]
+                        min_z = minimum(filter(!isnan, z))
+                        no_nan_z = replace(z, NaN => min_z)
 
-                            # Draw the figure with PGFPlotsX
-                            plot = @pgf TikzDocument(
-                                TikzPicture(
-                                    PGFPlotsX.Axis(
-                                        {
-                                            view = (0, 90),
-                                            "axis equal image",
-                                            "colormap/thermal",
-                                            xlabel = xlabel,
-                                            ylabel = ylabel,
-                                            "/pgf/number format/1000 sep = {}",
-                                            "tick label style={font=\\large}",
-                                            "label style={font=\\large}",
-                                        },
-                                        Plot3({surf, shader = "flat"}, Coordinates(x, y, clean_z)),
-                                        [
-                                            raw"\node[text=white]",
-                                            {anchor = "north west"},
-                                            " at ",
-                                            Coordinate(x[1], y[end]),
-                                            "{$(annotation)};",
-                                        ],
-                                    ),
-                                );
-                                preamble=["\\usepgfplotslibrary{colormaps}"],
-                            )
+                        # Construct the axis labels
+                        xlabel = getLabel(string(projection_plane)[1:1], 0, u"kpc")
+                        ylabel = getLabel(string(projection_plane)[2:2], 0, u"kpc")
 
-                            pgfsave(joinpath(output_path, "$(key).png"), plot, dpi=600)
+                        plot = @pgf TikzDocument(
+                            TikzPicture(
+                                PGFPlotsX.Axis(
+                                    {
+                                        view = (0, 90),
+                                        xlabel = xlabel,
+                                        ylabel = ylabel,
+                                        "axis equal image",
+                                        "colormap/thermal",
+                                        "/pgf/number format/1000 sep = {}",
+                                        "tick label style={font=\\large}",
+                                        "label style={font=\\large}",
+                                    },
+                                    Plot3({surf, shader = "flat"}, Coordinates(x, y, no_nan_z)),
+                                    [
+                                        raw"\node[text=white]",
+                                        {anchor = "north west"},
+                                        " at ",
+                                        Coordinate(x[1], y[end]),
+                                        "{$(annotation)};",
+                                    ],
+                                ),
+                            );
+                            # # Add color library
+                            # preamble=["\\usepgfplotslibrary{colormaps}"],
+                        )
 
-                        end
+                        pgfsave(joinpath(output_path, "$(group).png"), plot, dpi=600)
 
                     end
 
                     # Delete auxiliary JLD2 file
                     rm(jld2_file, force=true)
+
                 end
 
             end
@@ -2237,6 +2249,10 @@ Plot a density profile.
       + `:ionized_area_density`     -> Ionized hydrogen area mass density, up to a radius of `FILTER_R`.
       + `:neutral_area_density`     -> Neutral hydrogen area mass density, up to a radius of `FILTER_R`.
       + `:sfr_area_density`         -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+  - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
+  - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
+  - `cumulative::Bool=false`: If the profile will be accumulated or not.
+  - `density::Bool=true`: If the profile will be of the density of `quantity`.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
@@ -2254,6 +2270,10 @@ function densityProfile(
     simulation_paths::Vector{String},
     slice_n::Int,
     quantity::Symbol;
+    flat::Bool=true,
+    total::Bool=true,
+    cumulative::Bool=false,
+    density::Bool=true,
     yscale::Function=identity,
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -2266,6 +2286,10 @@ function densityProfile(
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
     grid = CircularGrid(FILTER_R, 100)
+
+    ################################################################################################
+    # Plot with Makie.jl
+    ################################################################################################
 
     # Draw the figures with CairoMakie
     snapshotPlot(
@@ -2284,7 +2308,7 @@ function densityProfile(
         filter_function,
         da_functions=[daDensityProfile],
         da_args=[(grid, quantity)],
-        da_kwargs=[(;)],
+        da_kwargs=[(; flat, total, cumulative, density)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -2329,7 +2353,12 @@ function densityProfile(
         framerate=10,
     )
 
+    ################################################################################################
+    # Plot with PGFPlotsX.jl
+    ################################################################################################
+
     if latex
+
         jld2_file = joinpath(output_path, "$(quantity)-profile.jld2")
 
         jldopen(jld2_file, "r") do file
@@ -2346,7 +2375,7 @@ function densityProfile(
                 ),
             )
 
-            # Select y axis scaling for the PGFPlotsX plot
+            # Select y axis scaling
             if yscale == log
                 ymode = "log"
                 log_basis_y = "exp(1)"
@@ -2363,7 +2392,6 @@ function densityProfile(
                 log_basis_y = ""
             end
 
-            # Draw the figures with PGFPlotsX
             axis = @pgf PGFPlotsX.Axis({
                 xlabel = xlabel,
                 ylabel = ylabel,
@@ -2387,10 +2415,10 @@ function densityProfile(
                 },
             })
 
-            filename = keys(file)[1]
+            group = keys(file)[1]
 
             @pgf for sim_name in sim_labels
-                x, y = file["$(filename)/$(sim_name)"]
+                x, y = file["$(group)/$(sim_name)"]
                 plot = PlotInc({no_marks, thick}, Coordinates(x, y))
                 push!(axis, plot)
             end
@@ -2398,12 +2426,13 @@ function densityProfile(
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(filename).png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
 
         end
 
         # Delete auxiliary JLD2 file
         rm(jld2_file, force=true)
+
     end
 
     return nothing
@@ -2460,6 +2489,10 @@ function stellarHistory(
         filter_mode,
         Dict(:stars => ["GAGE"]),
     )
+
+    ################################################################################################
+    # Plot with Makie.jl
+    ################################################################################################
 
     # Draw the figures with CairoMakie
     snapshotPlot(
@@ -2523,7 +2556,12 @@ function stellarHistory(
         framerate=10,
     )
 
+    ################################################################################################
+    # Plot with PGFPlotsX.jl
+    ################################################################################################
+
     if latex
+
         jld2_file = joinpath(output_path, "$(quantity)-stellar-history.jld2")
 
         jldopen(jld2_file, "r") do file
@@ -2576,10 +2614,10 @@ function stellarHistory(
                 },
             })
 
-            filename = keys(file)[1]
+            group = keys(file)[1]
 
             @pgf for sim_name in sim_labels
-                x, y = file["$(filename)/$(sim_name)"]
+                x, y = file["$(group)/$(sim_name)"]
                 plot = PlotInc({no_marks, thick}, Coordinates(x, y))
                 push!(axis, plot)
             end
@@ -2587,12 +2625,13 @@ function stellarHistory(
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(filename).png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
 
         end
 
         # Delete auxiliary JLD2 file
         rm(jld2_file, force=true)
+
     end
 
     return nothing
@@ -2642,6 +2681,10 @@ function stellarCircularity(
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
     grid = LinearGrid(range..., n_bins)
+
+    ################################################################################################
+    # Plot with Makie.jl
+    ################################################################################################
 
     snapshotPlot(
         simulation_paths,
@@ -2704,7 +2747,12 @@ function stellarCircularity(
         framerate=10,
     )
 
+    ################################################################################################
+    # Plot with PGFPlotsX.jl
+    ################################################################################################
+
     if latex
+
         jld2_file = joinpath(output_path, "circularity_histogram.jld2")
 
         jldopen(jld2_file, "r") do file
@@ -2746,10 +2794,10 @@ function stellarCircularity(
                 },
             },)
 
-            filename = keys(file)[1]
+            group = keys(file)[1]
 
             @pgf for sim_name in sim_labels
-                x, y = file["$(filename)/$(sim_name)"]
+                x, y = file["$(group)/$(sim_name)"]
                 plot = PlotInc({no_marks, thick}, Coordinates(x, y))
                 push!(axis, plot)
             end
@@ -2757,12 +2805,13 @@ function stellarCircularity(
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(filename).png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
 
         end
 
         # Delete auxiliary JLD2 file
         rm(jld2_file, force=true)
+
     end
 
     return nothing

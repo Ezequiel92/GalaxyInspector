@@ -370,7 +370,8 @@ end
     daDensityProfile(
         data_dict::Dict,
         grid::CircularGrid,
-        quantity::Symbol,
+        quantity::Symbol;
+        <keyword arguments>
     )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:SurfaceDensity}},Nothing}
 
 Compute a density profile.
@@ -401,6 +402,10 @@ Compute a density profile.
       + `:ionized_area_density`     -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
       + `:neutral_area_density`     -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
       + `:sfr_area_density`         -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+  - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
+  - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
+  - `cumulative::Bool=false`: If the profile will be accumulated or not.
+  - `density::Bool=true`: If the profile will be of the density of `quantity`.
 
 # Returns
 
@@ -414,7 +419,11 @@ Compute a density profile.
 function daDensityProfile(
     data_dict::Dict,
     grid::CircularGrid,
-    quantity::Symbol,
+    quantity::Symbol;
+    flat::Bool=true,
+    total::Bool=true,
+    cumulative::Bool=false,
+    density::Bool=true,
 )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:SurfaceDensity}},Nothing}
 
     if quantity == :stellar_area_density
@@ -466,10 +475,10 @@ function daDensityProfile(
         masses,
         grid;
         norm_values=Number[],
-        flat=true,
-        total=true,
-        cumulative=false,
-        density=true,
+        flat,
+        total,
+        cumulative,
+        density,
     )
 
     return grid.grid, density_profile
