@@ -2105,7 +2105,12 @@ function computePARotationMatrix(
     rotation_matrix = aligned_pa'
 
     if det(rotation_matrix) < 0.0
-        rotation_matrix = AngleAxis(π, 1.0, 0.0, 0.0) * rotation_matrix
+        # If the determinant is < 0.0, that means that the principal axis that were chosen as the
+        # x and y directions in the rotation matrix form a left-handed cartesian reference system
+        # (x × y = -z). When applying this as a rotation the z axis will be inverted. So, we swap
+        # the x and y axis to construct a right-handed cartesian reference system (x × y = z) and
+        # produce the correct rotation.
+        rotation_matrix[1, :], rotation_matrix[2, :] = rotation_matrix[2, :], rotation_matrix[1, :]
     end
 
     return Matrix{Float64}(rotation_matrix)
