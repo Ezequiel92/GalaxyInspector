@@ -1175,6 +1175,7 @@ Plot a time series of the data in the `sfr.txt` file.
       + `:stellar_mass` -> Stellar mass.
       + `:sfr`          -> The star formation rate.
   - `output_path::String="./"`: Path to the output folder.
+  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function sfrTXT(
@@ -1182,11 +1183,16 @@ function sfrTXT(
     x_quantity::Symbol,
     y_quantity::Symbol;
     output_path::String="./",
+    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
+
+    ################################################################################################
+    # Plot with Makie.jl
+    ################################################################################################
 
     timeSeriesPlot(
         simulation_paths,
@@ -1226,8 +1232,8 @@ function sfrTXT(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting options
-        save_figure=true,
-        backup_results=false,
+        save_figures=!latex,
+        backup_results=latex,
         sim_labels,
         title="",
         pt_per_unit=0.75,
@@ -1238,6 +1244,76 @@ function sfrTXT(
         series_markers=nothing,
         series_linestyles=nothing,
     )
+
+    ################################################################################################
+    # Plot with PGFPlotsX.jl
+    ################################################################################################
+
+    if latex
+
+        jld2_file = joinpath(output_path, "$(y_quantity)-vs-$(x_quantity).jld2")
+
+        jldopen(jld2_file, "r") do file
+
+            # Add color library
+            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
+
+            # Construct the axis labels
+            xlabel = LaTeXString(
+                replace(
+                    x_plot_params.axis_label,
+                    "auto_label" => getLabel(x_plot_params.var_name, 0, x_plot_params.unit),
+                ),
+            )
+            ylabel = LaTeXString(
+                replace(
+                    y_plot_params.axis_label,
+                    "auto_label" => getLabel(y_plot_params.var_name, 0, y_plot_params.unit),
+                ),
+            )
+
+            axis = @pgf PGFPlotsX.Axis({
+                xlabel = xlabel,
+                ylabel = ylabel,
+                xmode = "normal",
+                ymode = "log",
+                "log basis y=10",
+                "/pgf/number format/1000 sep={}",
+                "legend cell align={left}",
+                "grid=major",
+                "cycle list/Set1",
+                "width=0.7\\textwidth",
+                "height=0.5\\textwidth",
+                "scale only axis",
+                legend_style = {
+                    at = Coordinate(0.75, 0.95),
+                    anchor = "north",
+                    legend_columns = 1,
+                    draw = "none",
+                    font = "\\scriptsize",
+                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                },
+            })
+
+            group = keys(file)[1]
+
+            @pgf for sim_name in sim_labels
+                x, y = file["$(group)/$(sim_name)"]
+                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                push!(axis, plot)
+            end
+
+            # Add the legends
+            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
+
+            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
+
+        end
+
+        # Delete auxiliary JLD2 file
+        rm(jld2_file, force=true)
+
+    end
 
     return nothing
 
@@ -1337,7 +1413,7 @@ function cpuTXT(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting options
-        save_figure=true,
+        save_figures=true,
         backup_results=false,
         sim_labels,
         title=L"\mathrm{Process: \,\, %$(safe_str_target)}",
@@ -2049,6 +2125,7 @@ Plot a time series.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function timeSeries(
@@ -2058,11 +2135,16 @@ function timeSeries(
     slice::IndexType=(:),
     output_path::String="./",
     filter_mode::Symbol=:all,
+    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
+
+    ################################################################################################
+    # Plot with Makie.jl
+    ################################################################################################
 
     timeSeriesPlot(
         simulation_paths,
@@ -2102,8 +2184,8 @@ function timeSeries(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting options
-        save_figure=true,
-        backup_results=false,
+        save_figures=!latex,
+        backup_results=latex,
         sim_labels,
         title="",
         pt_per_unit=0.75,
@@ -2114,6 +2196,81 @@ function timeSeries(
         series_markers=nothing,
         series_linestyles=nothing,
     )
+
+    ################################################################################################
+    # Plot with PGFPlotsX.jl
+    ################################################################################################
+
+    if latex
+
+        jld2_file = joinpath(output_path, "$(y_quantity)-vs-$(x_quantity).jld2")
+
+        jldopen(jld2_file, "r") do file
+
+            # Add color library
+            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
+
+            # Construct the axis labels
+            xlabel = LaTeXString(
+                replace(
+                    x_plot_params.axis_label,
+                    "auto_label" => getLabel(
+                        x_plot_params.var_name,
+                        x_plot_params.exp_factor,
+                        x_plot_params.unit,
+                    ),
+                ),
+            )
+            ylabel = LaTeXString(
+                replace(
+                    y_plot_params.axis_label,
+                    "auto_label" => getLabel(
+                        y_plot_params.var_name,
+                        y_plot_params.exp_factor,
+                        y_plot_params.unit,
+                    ),
+                ),
+            )
+
+            axis = @pgf PGFPlotsX.Axis({
+                xlabel = xlabel,
+                ylabel = ylabel,
+                "/pgf/number format/1000 sep={}",
+                "legend cell align={left}",
+                "grid=major",
+                "cycle list/Set1",
+                "width=0.7\\textwidth",
+                "height=0.5\\textwidth",
+                "scale only axis",
+                legend_style = {
+                    at = Coordinate(0.75, 0.95),
+                    anchor = "north",
+                    legend_columns = 1,
+                    draw = "none",
+                    font = "\\scriptsize",
+                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                },
+            })
+
+            group = keys(file)[1]
+
+            @pgf for sim_name in sim_labels
+                x, y = file["$(group)/$(sim_name)"]
+                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                push!(axis, plot)
+            end
+
+            # Add the legends
+            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
+
+            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
+
+        end
+
+        # Delete auxiliary JLD2 file
+        rm(jld2_file, force=true)
+
+    end
 
     return nothing
 
@@ -2142,6 +2299,7 @@ Plot the galaxy rotation curve of a set of simulations.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function rotationCurve(
@@ -2150,6 +2308,7 @@ function rotationCurve(
     radius::Unitful.Length=FILTER_R,
     output_path::String="./",
     filter_mode::Symbol=:all,
+    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -2205,8 +2364,8 @@ function rotationCurve(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting and animation options
-        save_figures=true,
-        backup_results=false,
+        save_figures=!latex,
+        backup_results=latex,
         sim_labels,
         title=:physical_time,
         pt_per_unit=0.75,
@@ -2221,6 +2380,81 @@ function rotationCurve(
         animation_filename="animation.mp4",
         framerate=10,
     )
+
+    ################################################################################################
+    # Plot with PGFPlotsX.jl
+    ################################################################################################
+
+    if latex
+
+        jld2_file = joinpath(output_path, "rotation_curve.jld2")
+
+        jldopen(jld2_file, "r") do file
+
+            # Add color library
+            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
+
+            # Construct the axis labels
+            xlabel = LaTeXString(
+                replace(
+                    x_plot_params.axis_label,
+                    "auto_label" => getLabel(
+                        x_plot_params.var_name,
+                        x_plot_params.exp_factor,
+                        x_plot_params.unit,
+                    ),
+                ),
+            )
+            ylabel = LaTeXString(
+                replace(
+                    y_plot_params.axis_label,
+                    "auto_label" => getLabel(
+                        y_plot_params.var_name,
+                        y_plot_params.exp_factor,
+                        y_plot_params.unit,
+                    ),
+                ),
+            )
+
+            axis = @pgf PGFPlotsX.Axis({
+                xlabel = xlabel,
+                ylabel = ylabel,
+                "/pgf/number format/1000 sep={}",
+                "legend cell align={left}",
+                "grid=major",
+                "cycle list/Set1",
+                "width=0.7\\textwidth",
+                "height=0.5\\textwidth",
+                "scale only axis",
+                legend_style = {
+                    at = Coordinate(0.75, 0.95),
+                    anchor = "north",
+                    legend_columns = 1,
+                    draw = "none",
+                    font = "\\scriptsize",
+                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                },
+            })
+
+            group = keys(file)[1]
+
+            @pgf for sim_name in sim_labels
+                x, y = file["$(group)/$(sim_name)"]
+                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                push!(axis, plot)
+            end
+
+            # Add the legends
+            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
+
+            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
+
+        end
+
+        # Delete auxiliary JLD2 file
+        rm(jld2_file, force=true)
+
+    end
 
     return nothing
 
@@ -2912,7 +3146,7 @@ function compareWithFeldmann2020(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting options
-        save_figure=true,
+        save_figures=true,
         backup_results=false,
         sim_labels,
         title="",
@@ -3307,7 +3541,7 @@ function compareWithKennicuttBigiel(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting options
-        save_figure=true,
+        save_figures=true,
         backup_results=false,
         sim_labels,
         title="",

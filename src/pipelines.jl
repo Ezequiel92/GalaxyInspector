@@ -793,7 +793,7 @@ Some of the features are:
 
 ### Plotting options
 
-  - `save_figure::Bool=true`: If the plot will be saved as an image.
+  - `save_figures::Bool=true`: If the plot will be saved as an image.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
@@ -851,7 +851,7 @@ function timeSeriesPlot(
     xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
     yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
     # Plotting options
-    save_figure::Bool=true,
+    save_figures::Bool=true,
     backup_results::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=nothing,
     title::AbstractString="",
@@ -1043,7 +1043,7 @@ function timeSeriesPlot(
 
         end
 
-        if save_figure
+        if save_figures
             # Draw the plot
             plot_function(axes, axis_data...; color, marker, linestyle, pf_kwarg...)
         end
@@ -1058,7 +1058,7 @@ function timeSeriesPlot(
         for every snapshot")
     end
 
-    if save_figure
+    if save_figures
 
         # Set the scale of the axes
         axes.xscale = (xscale_flag ? xaxis_scale_func : identity)
