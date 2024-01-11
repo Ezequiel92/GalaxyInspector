@@ -787,10 +787,14 @@ function daDensity2DHistogram(
     else
 
         # Compute the 2D histogram
-        total = histogram2D(pos_2D, masses, grid)
+        total = histogram2D(pos_2D, masses, grid; empty_nan=false)
         density = total ./ grid.bin_area
 
     end
+
+    # Set empty bins to NaN
+    nan = NaN * unit(first(density))
+    replace!(x -> iszero(x) ? nan : x, density)
 
     # Apply log10 to enhance the contrast
     values = log10.(ustrip.(ρ_unit, density))
@@ -1534,6 +1538,7 @@ Compute the stellar mass or SFR evolution using the data in the `sfr.txt` file.
 
       + `:stellar_mass` -> Stellar mass.
       + `:sfr`          -> The star formation rate.
+  - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `warnings::Bool=true`: If a warning will be given when trying to use the scale factor or the redshift in the x axis for a non-cosmological simulation.
 
 # Returns
@@ -1547,6 +1552,7 @@ function daSFRtxt(
     sim_data::Simulation,
     x_quantity::Symbol,
     y_quantity::Symbol;
+    smooth::Int=0,
     warnings::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
@@ -1626,6 +1632,11 @@ function daSFRtxt(
         throw(ArgumentError("daSFRtxt: `y_quantity` can only be :stellar_mass or :sfr, \
         but I got :$(y_quantity)"))
 
+    end
+
+    # Apply smoothing if required
+    if !iszero(smooth)
+        x_axis, y_axis = smoothWindow(x_axis, y_axis, smooth)
     end
 
     return x_axis, y_axis

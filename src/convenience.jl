@@ -1174,6 +1174,7 @@ Plot a time series of the data in the `sfr.txt` file.
 
       + `:stellar_mass` -> Stellar mass.
       + `:sfr`          -> The star formation rate.
+  - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="./"`: Path to the output folder.
   - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
@@ -1182,6 +1183,7 @@ function sfrTXT(
     simulation_paths::Vector{String},
     x_quantity::Symbol,
     y_quantity::Symbol;
+    smooth::Int=0,
     output_path::String="./",
     latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
@@ -1208,7 +1210,7 @@ function sfrTXT(
         slice=(:),
         da_functions=[daSFRtxt],
         da_args=[(x_quantity, y_quantity)],
-        da_kwargs=[(; warnings=true)],
+        da_kwargs=[(; smooth, warnings=true)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -1228,7 +1230,7 @@ function sfrTXT(
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
-        yaxis_scale_func=log10,
+        yaxis_scale_func=identity,
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting options
@@ -1275,25 +1277,31 @@ function sfrTXT(
             axis = @pgf PGFPlotsX.Axis({
                 xlabel = xlabel,
                 ylabel = ylabel,
-                xmode = "normal",
-                ymode = "log",
-                "log basis y=10",
                 "/pgf/number format/1000 sep={}",
                 "legend cell align={left}",
                 "grid=major",
                 "cycle list/Set1",
-                "width=0.7\\textwidth",
+                "cycle multiindex* list={
+                    linestyles*\\nextlist
+                    Set1\\nextlist
+                }",
+                "width=0.8\\textwidth",
                 "height=0.5\\textwidth",
                 "scale only axis",
                 legend_style = {
-                    at = Coordinate(0.75, 0.95),
+                    at = Coordinate(0.5, -0.17),
                     anchor = "north",
-                    legend_columns = 1,
+                    legend_columns = 2,
                     draw = "none",
-                    font = "\\scriptsize",
                     "/tikz/every even column/.append style={column sep=0.3cm}",
                 },
             })
+
+            "cycle multiindex* list={
+                mark list*\nextlist
+                Set1-5\nextlist
+            }"
+
 
             group = keys(file)[1]
 
@@ -1612,6 +1620,9 @@ function densityMap(
                                         "/pgf/number format/1000 sep = {}",
                                         "tick label style={font=\\large}",
                                         "label style={font=\\large}",
+                                        "mesh/cols" = resolution,
+                                        "mesh/rows" = resolution,
+                                        # "mesh/check=false",
                                     },
                                     Plot3({surf, shader = "flat"}, Coordinates(x, y, no_nan_z)),
                                     [
@@ -1623,8 +1634,6 @@ function densityMap(
                                     ],
                                 ),
                             );
-                            # # Add color library
-                            # preamble=["\\usepgfplotslibrary{colormaps}"],
                         )
 
                         pgfsave(joinpath(output_path, "$(group).png"), plot, dpi=600)
@@ -2239,15 +2248,18 @@ function timeSeries(
                 "legend cell align={left}",
                 "grid=major",
                 "cycle list/Set1",
-                "width=0.7\\textwidth",
+                "cycle multiindex* list={
+                    linestyles*\\nextlist
+                    Set1\\nextlist
+                }",
+                "width=0.8\\textwidth",
                 "height=0.5\\textwidth",
                 "scale only axis",
                 legend_style = {
-                    at = Coordinate(0.75, 0.95),
+                    at = Coordinate(0.5, -0.17),
                     anchor = "north",
-                    legend_columns = 1,
+                    legend_columns = 2,
                     draw = "none",
-                    font = "\\scriptsize",
                     "/tikz/every even column/.append style={column sep=0.3cm}",
                 },
             })
@@ -2343,7 +2355,7 @@ function rotationCurve(
         transform_box=true,
         translation,
         rotation,
-        smooth=0,
+        smooth=200,
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
@@ -2423,15 +2435,18 @@ function rotationCurve(
                 "legend cell align={left}",
                 "grid=major",
                 "cycle list/Set1",
-                "width=0.7\\textwidth",
+                "cycle multiindex* list={
+                    linestyles*\\nextlist
+                    Set1\\nextlist
+                }",
+                "width=0.8\\textwidth",
                 "height=0.5\\textwidth",
                 "scale only axis",
                 legend_style = {
-                    at = Coordinate(0.75, 0.95),
+                    at = Coordinate(0.5, -0.17),
                     anchor = "north",
-                    legend_columns = 1,
+                    legend_columns = 2,
                     draw = "none",
-                    font = "\\scriptsize",
                     "/tikz/every even column/.append style={column sep=0.3cm}",
                 },
             })
@@ -2636,15 +2651,18 @@ function densityProfile(
                 "legend cell align={left}",
                 "grid=major",
                 "cycle list/Set1",
-                "width=0.7\\textwidth",
+                "cycle multiindex* list={
+                    linestyles*\\nextlist
+                    Set1\\nextlist
+                }",
+                "width=0.8\\textwidth",
                 "height=0.5\\textwidth",
                 "scale only axis",
                 legend_style = {
-                    at = Coordinate(0.75, 0.95),
+                    at = Coordinate(0.5, -0.17),
                     anchor = "north",
-                    legend_columns = 1,
+                    legend_columns = 2,
                     draw = "none",
-                    font = "\\scriptsize",
                     "/tikz/every even column/.append style={column sep=0.3cm}",
                 },
             })
@@ -2835,15 +2853,18 @@ function stellarHistory(
                 "legend cell align={left}",
                 "grid=major",
                 "cycle list/Set1",
-                "width=0.7\\textwidth",
+                "cycle multiindex* list={
+                    linestyles*\\nextlist
+                    Set1\\nextlist
+                }",
+                "width=0.8\\textwidth",
                 "height=0.5\\textwidth",
                 "scale only axis",
                 legend_style = {
-                    at = Coordinate(0.75, 0.4),
+                    at = Coordinate(0.5, -0.17),
                     anchor = "north",
-                    legend_columns = 1,
+                    legend_columns = 2,
                     draw = "none",
-                    font = "\\scriptsize",
                     "/tikz/every even column/.append style={column sep=0.3cm}",
                 },
             })
@@ -3015,15 +3036,18 @@ function stellarCircularity(
                 "legend cell align={left}",
                 "grid=major",
                 "cycle list/Set1",
-                "width=0.7\\textwidth",
-                "height=0.7\\textwidth",
+                "cycle multiindex* list={
+                    linestyles*\\nextlist
+                    Set1\\nextlist
+                }",
+                "width=0.8\\textwidth",
+                "height=0.8\\textwidth",
                 "scale only axis",
                 legend_style = {
-                    at = Coordinate(0.25, 0.95),
+                    at = Coordinate(0.5, -0.17),
                     anchor = "north",
-                    legend_columns = 1,
+                    legend_columns = 2,
                     draw = "none",
-                    font = "\\scriptsize",
                     "/tikz/every even column/.append style={column sep=0.3cm}",
                 },
             },)
