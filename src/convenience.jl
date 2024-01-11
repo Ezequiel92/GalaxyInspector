@@ -1348,16 +1348,16 @@ Plot a time series of the data in the `cpu.txt` file.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:clock_time_s`           -> Clock time duration of the time step in seconds.
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
-      + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
-      + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+      + `:tot_clock_time_s`       -> Total clock time in seconds.
+      + `:tot_clock_time_percent` -> Total clock time as a percentage.
   - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
 
       + `:time_step`              -> Time step.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:clock_time_s`           -> Clock time duration of the time step in seconds.
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
-      + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
-      + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+      + `:tot_clock_time_s`       -> Total clock time in seconds.
+      + `:tot_clock_time_percent` -> Total clock time as a percentage.
   - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.

@@ -1664,16 +1664,16 @@ Compute the evolution of a measured quantity in the `cpu.txt` file, for a given 
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:clock_time_s`           -> Clock time duration of the time step in seconds.
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
-      + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
-      + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+      + `:tot_clock_time_s`       -> Total clock time in seconds.
+      + `:tot_clock_time_percent` -> Total clock time as a percentage.
   - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
 
       + `:time_step`              -> Time step.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:clock_time_s`           -> Clock time duration of the time step in seconds.
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
-      + `:cum_clock_time_s`       -> Cumulative clock time in seconds.
-      + `:cum_clock_time_percent` -> Cumulative clock time as a percentage.
+      + `:tot_clock_time_s`       -> Total clock time in seconds.
+      + `:tot_clock_time_percent` -> Total clock time as a percentage.
   - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `warnings::Bool=true`: If a warning will be given when the target process is missing.
 
@@ -1730,11 +1730,11 @@ function daCPUtxt(
 
         x_axis = cpu_txt_data[:, 4]
 
-    elseif x_quantity == :cum_clock_time_s
+    elseif x_quantity == :tot_clock_time_s
 
         x_axis = cpu_txt_data[:, 5] .* u"s"
 
-    elseif x_quantity == :cum_clock_time_percent
+    elseif x_quantity == :tot_clock_time_percent
 
         x_axis = cpu_txt_data[:, 6]
 
@@ -1764,11 +1764,11 @@ function daCPUtxt(
 
         y_axis = cpu_txt_data[:, 4]
 
-    elseif y_quantity == :cum_clock_time_s
+    elseif y_quantity == :tot_clock_time_s
 
         y_axis = cpu_txt_data[:, 5] .* u"s"
 
-    elseif y_quantity == :cum_clock_time_percent
+    elseif y_quantity == :tot_clock_time_percent
 
         y_axis = cpu_txt_data[:, 6]
 

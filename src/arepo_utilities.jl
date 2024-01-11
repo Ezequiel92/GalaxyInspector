@@ -1248,14 +1248,14 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(; axis_label = L"\mathrm{Wallclock \,\, time \,\, (%)}")
 
-    elseif quantity == :cum_clock_time_s
+    elseif quantity == :tot_clock_time_s
 
         plot_params = PlotParams(;
             var_name = L"\mathrm{Cumulative \,\, wallclock \,\, time}",
             unit     = u"s",
         )
 
-    elseif quantity == :cum_clock_time_percent
+    elseif quantity == :tot_clock_time_percent
 
         plot_params = PlotParams(;
             axis_label = L"\mathrm{Cumulative \,\, wallclock \,\, time \,\, (%)}",

@@ -972,8 +972,8 @@ For each process in `targets` a matrix with all the CPU usage data is returned.
       + Simulation time (scale factor for cosmological simulations and physical time for non cosmological simulations).
       + Clock time in seconds.
       + Clock time as a percentage.
-      + Cumulative clock time in seconds.
-      + Cumulative clock time as a percentage.
+      + Total clock time in seconds.
+      + Total clock time as a percentage.
 """
 function readCpuFile(
     file_path::String,
@@ -1021,8 +1021,8 @@ function readCpuFile(
                     time;;                                    # Simulation time for each sync-point
                     parse(Float64, columns[2]);;              # Clock time in seconds
                     parse(Float64, rstrip(columns[3], '%'));; # Clock time as a percentage
-                    parse(Float64, columns[4]);;              # Cumulative clock time in seconds
-                    parse(Float64, rstrip(columns[5], '%'))   # Cumulative clock time as a percentage
+                    parse(Float64, columns[4]);;              # Total clock time in seconds
+                    parse(Float64, rstrip(columns[5], '%'))   # Total clock time as a percentage
                 ],
             )
         end
