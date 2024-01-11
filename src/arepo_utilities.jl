@@ -903,7 +903,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :atomic_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP "]),
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES"]),
             var_name   = L"M_\mathrm{HI}",
             exp_factor = 10,
             unit       = u"Msun",
