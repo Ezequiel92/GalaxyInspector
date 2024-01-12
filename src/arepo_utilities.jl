@@ -300,10 +300,10 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
         elseif dimensions == Unitful.𝐋
 
             # From internal units to kpc
-            if PHYSICAL_UNITS
-                return IU.x_cosmo
-            else
+            if !PHYSICAL_UNITS && cosmological
                 return IU.x_comoving
+            else
+                return IU.x_cosmo
             end
 
         elseif dimensions == Unitful.𝐓

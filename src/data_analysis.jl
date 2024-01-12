@@ -674,6 +674,7 @@ Compute a 2D density histogram.
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If the results will be smooth out using the [`cubicSplineKernel`](@ref) kernel.
   - `neighbors::Int=32`: Number of neighbors for the 2D smoothing (only relevant if `smooth` = true).
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
 
 # Returns
 
@@ -690,6 +691,7 @@ function daDensity2DHistogram(
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
     neighbors::Int=32,
+    print_range::Bool=false,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
     # Set the cell/particle type
@@ -792,12 +794,20 @@ function daDensity2DHistogram(
 
     end
 
-    # Set empty bins to NaN
+    # Set 0 bins to NaN
     nan = NaN * unit(first(density))
     replace!(x -> iszero(x) ? nan : x, density)
 
     # Apply log10 to enhance the contrast
     values = log10.(ustrip.(ρ_unit, density))
+
+    if print_range
+        # Print the density range
+        @info(
+            "For the quantity :$(quantity) the density range in the $(projection_plane) plane is: \
+            \nlog₁₀(ρ / $(ρ_unit)) = $(extrema(filter(!isnan, values)))\n"
+        )
+    end
 
     # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured
     z_axis = reverse!(transpose(values), dims=2)

@@ -125,10 +125,10 @@ function snapshotReport(
             println(file, "Cosmological:     No")
         end
 
-        if PHYSICAL_UNITS
-            println(file, "Report units:     Physical\n")
-        else
+        if !PHYSICAL_UNITS && cosmological
             println(file, "Report units:     Comoving\n")
+        else
+            println(file, "Report units:     Physical\n")
         end
 
         println(file, "#"^100)
@@ -856,10 +856,10 @@ function simulationReport(
             println(file, "Cosmological:     No")
         end
 
-        if PHYSICAL_UNITS
-            println(file, "Report units:     Physical\n")
-        else
+        if !PHYSICAL_UNITS && cosmological
             println(file, "Report units:     Comoving\n")
+        else
+            println(file, "Report units:     Physical\n")
         end
 
         println(file, "#"^100)
@@ -883,14 +883,15 @@ function simulationReport(
                 min_z, max_z = round.(extrema(simulation_table[!, :redshifts]), digits=3)
 
                 println(file, "Scale factor range:        $(min_a) - $(max_a)")
-                println(file, "Redshift range:            $(max_z) - $(min_z)\n")
+                println(file, "Redshift range:            $(max_z) - $(min_z)")
 
             end
+
+            println(file,)
 
         else
 
             pt = round.(ustrip.(u"Gyr", extrema(simulation_table[1, :physical_times])), digits=2)
-
 
             println(file, "Physical time:             $(pt) Gyr")
 
@@ -901,9 +902,11 @@ function simulationReport(
                 z = round.(extrema(simulation_table[1, :redshifts]), digits=3)
 
                 println(file, "Scale factor:              $(a)")
-                println(file, "Redshift:                  $(z)\n")
+                println(file, "Redshift:                  $(z)")
 
             end
+
+            println(file,)
 
         end
 
@@ -997,8 +1000,7 @@ function simulationReport(
             if star_number > 0 && !first_star_flag
 
                 println(file, "#"^100)
-                println(file, "First snapshot with star formation:")
-                println(file, "#"^100)
+                println(file, "\nFirst snapshot with star formation:")
 
                 println(file, "\n\tSnapshot:         $(basename(snapshot_path))")
                 println(file, "\tPhysical time:    $(physical_time) Gyr")
@@ -1040,7 +1042,9 @@ function simulationReport(
                     )
 
                 else
-                    println(file, "\n\tThere is no subfind information for this snapshot!\n")
+                    println(file, "\n" * "#"^51)
+                    println(file, "There is no subfind information for this snapshot!")
+                    println(file, "#"^51 * "\n")
                 end
 
                 first_star_flag = true
@@ -1057,8 +1061,7 @@ function simulationReport(
                 n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
 
                 println(file, "#"^100)
-                println(file, "First snapshot with subfind information:")
-                println(file, "#"^100)
+                println(file, "\nFirst snapshot with subfind information:")
 
                 println(file, "\n\tSnapshot:         $(basename(snapshot_path))")
 
@@ -1097,11 +1100,11 @@ function simulationReport(
                 println(file, "NOTE: Stellar particle counts include wind particles!")
                 println(file, "#"^55)
 
-                println(file, "\n\t\tCell/particle number:\n")
+                println(file, "\n\tCell/particle number:\n")
 
                 for (i, len) in enumerate(s_len_type)
                     component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
-                    println(file, "\t\t\t$(component):$(" "^(22 - length(component))) $(len)")
+                    println(file, "\t\t$(component):$(" "^(22 - length(component))) $(len)")
                 end
 
                 println(file)
@@ -1117,8 +1120,7 @@ function simulationReport(
             if subfind_active && !first_star_in_subhalo_flag && stellar_n_subhalo > 0
 
                 println(file, "#"^100)
-                println(file, "First snapshot with star formation in the main subhalo:")
-                println(file, "#"^100)
+                println(file, "\nFirst snapshot with star formation in the main subhalo:")
 
                 println(file, "\n\tSnapshot:         $(basename(snapshot_path))")
                 println(file, "\tPhysical time:    $(physical_time) Gyr")
@@ -1474,6 +1476,7 @@ Plot a 2D histogram of the density.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
   - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
   - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used. This option is ignore if `slice_n` = 0.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
@@ -1488,6 +1491,7 @@ function densityMap(
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
     smooth::Bool=false,
+    print_range::Bool=false,
     annotation::String="",
     latex::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
@@ -1498,6 +1502,17 @@ function densityMap(
 
     # Set up the grid
     grid = SquareGrid(box_size, resolution)
+
+    if isnothing(colorrange)
+        # The range for the z axis is set by the data
+        pf_kwargs = [(;)]
+        zmin = zmax = ""
+    else
+        # Set a range for the z axis manually
+        pf_kwargs = [(; colorrange)]
+        zmin = colorrange[1]
+        zmax = colorrange[2]
+    end
 
     pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
 
@@ -1538,7 +1553,7 @@ function densityMap(
                     filter_function,
                     da_functions=[daDensity2DHistogram],
                     da_args=[(grid, quantity)],
-                    da_kwargs=[(; projection_plane, smooth, neighbors=32)],
+                    da_kwargs=[(; projection_plane, smooth, neighbors=32, print_range)],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
                     pp_kwargs=(; color=:white),
@@ -1615,6 +1630,8 @@ function densityMap(
                                         view = (0, 90),
                                         xlabel = xlabel,
                                         ylabel = ylabel,
+                                        zmin = zmin,
+                                        zmax = zmax,
                                         "axis equal image",
                                         "colormap/thermal",
                                         "/pgf/number format/1000 sep = {}",
@@ -1622,7 +1639,6 @@ function densityMap(
                                         "label style={font=\\large}",
                                         "mesh/cols" = resolution,
                                         "mesh/rows" = resolution,
-                                        # "mesh/check=false",
                                     },
                                     Plot3({surf, shader = "flat"}, Coordinates(x, y, no_nan_z)),
                                     [
@@ -2268,7 +2284,7 @@ function timeSeries(
 
             @pgf for sim_name in sim_labels
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
                 push!(axis, plot)
             end
 
@@ -2355,7 +2371,7 @@ function rotationCurve(
         transform_box=true,
         translation,
         rotation,
-        smooth=200,
+        smooth=150,
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
@@ -2454,9 +2470,17 @@ function rotationCurve(
             group = keys(file)[1]
 
             @pgf for sim_name in sim_labels
+
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+
+                # Delete NaNs
+                idxs = map(isnan, x) .|| map(isnan, y)
+                deleteat!(x, idxs)
+                deleteat!(y, idxs)
+
+                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
                 push!(axis, plot)
+
             end
 
             # Add the legends
@@ -2671,7 +2695,7 @@ function densityProfile(
 
             @pgf for sim_name in sim_labels
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
                 push!(axis, plot)
             end
 
@@ -2873,7 +2897,7 @@ function stellarHistory(
 
             @pgf for sim_name in sim_labels
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
                 push!(axis, plot)
             end
 
@@ -3056,7 +3080,7 @@ function stellarCircularity(
 
             @pgf for sim_name in sim_labels
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
                 push!(axis, plot)
             end
 
