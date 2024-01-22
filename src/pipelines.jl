@@ -131,7 +131,7 @@ Some of the features are:
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
-  - `size::NTuple{2,Int}=(1000, 750)`: Size of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
+  - `size::NTuple{2,Int}=(1280, 800)`: Size of the figures in points (≈ 0.353 mm). For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
   - `aspect::Union{DataAspect,AxisAspect,Nothing}=nothing`: Aspect ratio of the figures. The options are:
 
       + `nothing`       -> Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
@@ -197,7 +197,7 @@ function snapshotPlot(
     title::Union{Symbol,<:AbstractString}="",
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
-    size::NTuple{2,Int}=(1000, 750),
+    size::NTuple{2,Int}=(1280, 800),
     aspect::Union{DataAspect,AxisAspect,Nothing}=nothing,
     series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
     series_markers::Union{Vector{Symbol},Nothing}=nothing,
@@ -245,7 +245,7 @@ function snapshotPlot(
     ################################################################################################
 
     # Apply the global theme defined in `./src/constants.jl`
-    set_theme!(THEME)
+    set_theme!(merge(theme_latexfonts(), THEME))
 
     # Create the figure
     figure = Figure(; size)
@@ -666,8 +666,7 @@ function snapshotPlot(
                     end
                 end
 
-                nbanks = Int(ceil(length(sim_labels) * 0.3333))
-                Makie.Legend(figure[2, 1][1, 1], legend_element, sim_labels; nbanks)
+                Makie.Legend(figure[1, 1][1, 1], legend_element, sim_labels)
 
             end
 
@@ -676,12 +675,10 @@ function snapshotPlot(
 
             # Add the post processing legend
             if !isnothing(pp_legend)
-                nbanks = Int(ceil(length(pp_legend) * 0.3333))
                 Makie.Legend(
-                    figure[2, 1][!isnothing(sim_labels) ? 2 : 1, 1],
+                    figure[1, 1][!isnothing(sim_labels) ? 2 : 1, 1],
                     pp_legend[1],
-                    pp_legend[2];
-                    nbanks,
+                    pp_legend[2],
                 )
             end
 
@@ -799,7 +796,7 @@ Some of the features are:
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
-  - `size::NTuple{2,Int}=(1000, 750)`: Size of the figures in points. For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
+  - `size::NTuple{2,Int}=(1280, 800)`: Size of the figures in points (≈ 0.353 mm). For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
   - `aspect::Union{DataAspect,AxisAspect,Nothing}=nothing`: Aspect ratio of the figures. The options are:
 
       + `nothing`       -> Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
@@ -857,7 +854,7 @@ function timeSeriesPlot(
     title::AbstractString="",
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
-    size::NTuple{2,Int}=(1000, 750),
+    size::NTuple{2,Int}=(1280, 800),
     aspect::Union{DataAspect,AxisAspect,Nothing}=nothing,
     series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
     series_markers::Union{Vector{Symbol},Nothing}=nothing,
@@ -875,7 +872,7 @@ function timeSeriesPlot(
     ################################################################################################
 
     # Apply the global theme defined in `./src/constants.jl`
-    set_theme!(THEME)
+    set_theme!(merge(theme_latexfonts(), THEME))
 
     # Create the figure
     figure = Figure(; size)
@@ -1089,8 +1086,7 @@ function timeSeriesPlot(
                 end
             end
 
-            nbanks = Int(ceil(length(sim_labels) * 0.3333))
-            Makie.Legend(figure[2, 1][1, 1], legend_element, sim_labels; nbanks)
+            Makie.Legend(figure[1, 1][1, 1], legend_element, sim_labels)
 
         end
 
@@ -1099,12 +1095,10 @@ function timeSeriesPlot(
 
         # Add the post processing legend
         if !isnothing(pp_legend)
-            nbanks = Int(ceil(length(pp_legend) * 0.3333))
             Makie.Legend(
-                figure[2, 1][!isnothing(sim_labels) ? 2 : 1, 1],
+                figure[1, 1][!isnothing(sim_labels) ? 2 : 1, 1],
                 pp_legend[1],
-                pp_legend[2];
-                nbanks,
+                pp_legend[2],
             )
         end
 

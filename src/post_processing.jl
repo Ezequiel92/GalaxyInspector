@@ -183,7 +183,7 @@ function ppAnnotation!(
 )::Nothing
 
     if isnothing(rel_pos)
-        pos = absCoor(figure, 0.03, 0.98)
+        pos = absCoor(figure, 0.03, 0.1)
     else
         if rel_pos[1] < 0.0 || rel_pos[2] < 0.0 || 1.0 < rel_pos[1] || 1.0 < rel_pos[2]
             throw(ArgumentError("ppAnnotation!: The values in `rel_pos` should be between 0 and 1"))
@@ -192,7 +192,16 @@ function ppAnnotation!(
         end
     end
 
-    text!(figure.current_axis.x, pos[1], pos[2]; text, color, align=(:left, :top))
+    text!(
+        figure.current_axis.x,
+        pos[1],
+        pos[2];
+        text,
+        color,
+        align=(:left, :top),
+        fontsize=40,
+        font=:bold,
+    )
 
     return nothing
 
@@ -485,7 +494,7 @@ end
         figure::Makie.Figure,
         quantity::Symbol,
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}}
 
 Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015).
 
@@ -520,7 +529,7 @@ function ppMolla2015!(
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
     error_bars::Bool=true,
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+)::Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}}
 
     # Read the file with the compiled data
     data = CSV.read(
@@ -572,14 +581,22 @@ function ppMolla2015!(
     y_uncertainties = Measurements.uncertainty.(y_data)
 
     # Plot the mean values
-    scatterlines!(figure.current_axis.x, x_values, y_values; color, linestyle)
+    scatterlines!(figure.current_axis.x, x_values, y_values; color, linestyle, marker=:utriangle)
 
     if error_bars
         # Plot the error bars
         errorbars!(figure.current_axis.x, x_values, y_values, y_uncertainties; color)
     end
 
-    return ([LineElement(; color, linestyle)], ["Mollá et al. (2015)"])
+    return (
+        [
+            [
+                LineElement(; color, linestyle, linepoints=[Point2f(0.0, 0.5), Point2f(1.0, 0.5)]),
+                MarkerElement(; color, marker=:utriangle),
+            ],
+        ],
+        ["Mollá et al. (2015)"],
+    )
 
 end
 
@@ -609,7 +626,6 @@ Draw a line, or scatter, plot using the experimental data from the xGASS and xCO
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:sfr`            -> The star formation rate.
   - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
-  - `marker::Symbol=:circle`: Style of marker. Only relevant if `scatter` = true.
 
 # Returns
 
@@ -627,7 +643,6 @@ function ppFeldmann2020!(
     x_quantity::Symbol,
     y_quantity::Symbol;
     scatter::Bool=false,
-    marker::Symbol=:circle,
 )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
     # Read the CSV file with the raw data
@@ -690,9 +705,16 @@ function ppFeldmann2020!(
         y_mean_values = Measurements.value.(y_data)
 
         # Plot the selected values as a scatter plot
-        scatter!(figure.current_axis.x, x_data, y_mean_values; color=:red, marker, markersize=8)
+        scatter!(
+            figure.current_axis.x,
+            x_data,
+            y_mean_values;
+            color=:red,
+            marker=:star4,
+            markersize=12,
+        )
 
-        return [MarkerElement(; color=:red, marker)], ["Feldmann (2020)"]
+        return [MarkerElement(; color=:red, marker=:star4)], ["Feldmann (2020)"]
     end
 
     # Get the scaling of each axis
@@ -793,7 +815,7 @@ function ppFeldmann2020!(
         figure.current_axis.x,
         x_axis,
         Makie.inverse_transform(y_scaling).(y_axis_value);
-        color=(:red, 0.35),
+        color=(:red, 0.4),
     )
 
     # Construct the 1σ band
@@ -813,7 +835,7 @@ function ppFeldmann2020!(
     band!(figure.current_axis.x, x_axis, low_band_2σ, ylower_1σ; color=(:orange, 0.15))
 
     return (
-        [PolyElement(; color=(:red, 0.25)), PolyElement(; color=(:orange, 0.25))],
+        [PolyElement(; color=(:red, 0.3)), PolyElement(; color=(:orange, 0.3))],
         [L"\mathrm{Feldmann \,\, (2020)} \,\, 1σ", L"\mathrm{Feldmann \,\, (2020)} \,\, 2σ"],
     )
 

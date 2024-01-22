@@ -367,14 +367,14 @@ function daMolla2015(
 end
 
 """
-    daDensityProfile(
+    daProfile(
         data_dict::Dict,
         grid::CircularGrid,
         quantity::Symbol;
         <keyword arguments>
-    )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:SurfaceDensity}},Nothing}
+    )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
 
-Compute a density profile.
+Compute a profile.
 
 # Arguments
 
@@ -391,17 +391,19 @@ Compute a density profile.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `grid::CircularGrid`: Circular grid.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_area_density`     -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`         -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density`   -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`      -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`     -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`     -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`         -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_vcirc`          -> Stellar circular velocity, upto a radius of `FILTER_R`.
+      + `:stellar_vradial`        -> Stellar radial speed, upto a radius of `FILTER_R`.
+      + `:stellar_vtangential`    -> Stellar tangential speed, upto a radius of `FILTER_R`.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
@@ -416,7 +418,7 @@ Compute a density profile.
 
     It returns `nothing` if any of the necessary quantities are missing.
 """
-function daDensityProfile(
+function daProfile(
     data_dict::Dict,
     grid::CircularGrid,
     quantity::Symbol;
@@ -424,55 +426,70 @@ function daDensityProfile(
     total::Bool=true,
     cumulative::Bool=false,
     density::Bool=true,
-)::Union{Tuple{Vector{<:Unitful.Length},Vector{<:SurfaceDensity}},Nothing}
+)::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
 
     if quantity == :stellar_area_density
 
         positions = data_dict[:stars]["POS "]
-        masses = data_dict[:stars]["MASS"]
+        values = data_dict[:stars]["MASS"]
 
     elseif quantity == :gas_area_density
 
         positions = data_dict[:gas]["POS "]
-        masses = data_dict[:gas]["MASS"]
+        values = data_dict[:gas]["MASS"]
 
     elseif quantity == :molecular_area_density
 
         positions = data_dict[:gas]["POS "]
-        masses = computeMolecularMass(data_dict)
+        values = computeMolecularMass(data_dict)
 
     elseif quantity == :atomic_area_density
 
         positions = data_dict[:gas]["POS "]
-        masses = computeAtomicMass(data_dict)
+        values = computeAtomicMass(data_dict)
 
     elseif quantity == :ionized_area_density
 
         positions = data_dict[:gas]["POS "]
-        masses = computeIonizedMass(data_dict)
+        values = computeIonizedMass(data_dict)
 
     elseif quantity == :neutral_area_density
 
         positions = data_dict[:gas]["POS "]
-        masses = computeNeutralMass(data_dict)
+        values = computeNeutralMass(data_dict)
 
     elseif quantity == :sfr_area_density
 
         positions = data_dict[:stars]["POS "]
-        masses = computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ)
+        values = computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ)
+
+    elseif quantity == :stellar_vradial
+
+        positions = data_dict[:stars]["POS "]
+        values = computeStellarVpolar(data_dict, :radial)
+
+    elseif quantity == :stellar_vtangential
+
+        positions = data_dict[:stars]["POS "]
+        values = computeStellarVpolar(data_dict, :tangential)
+
+    elseif quantity == :stellar_vzstar
+
+        positions = data_dict[:stars]["POS "]
+        values = computeStellarVpolar(data_dict, :zstar)
 
     else
 
-        throw(ArgumentError("daDensityProfile: I don't recognize the quantity :$(quantity)"))
+        throw(ArgumentError("daProfile: I don't recognize the quantity :$(quantity)"))
 
     end
 
     # Return `nothing` if any of the necessary quantities are missing
-    !any(isempty, [positions, masses]) || return nothing
+    !any(isempty, [positions, values]) || return nothing
 
-    density_profile = computeProfile(
+    profile = computeProfile(
         positions,
-        masses,
+        values,
         grid;
         norm_values=Number[],
         flat,
@@ -481,7 +498,7 @@ function daDensityProfile(
         density,
     )
 
-    return grid.grid, density_profile
+    return grid.grid, profile
 
 end
 
@@ -659,7 +676,6 @@ Compute a 2D density histogram.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `grid::SquareGrid`: Square grid.
   - `quantity::Symbol`: For which quantity the density will be calculated. The possibilities are:
 
@@ -794,7 +810,7 @@ function daDensity2DHistogram(
 
     end
 
-    # Set 0 bins to NaN
+    # Set 0 bins to NaN to add contrast with the minimum value different from 0
     nan = NaN * unit(first(density))
     replace!(x -> iszero(x) ? nan : x, density)
 
@@ -804,8 +820,11 @@ function daDensity2DHistogram(
     if print_range
         # Print the density range
         @info(
-            "For the quantity :$(quantity) the density range in the $(projection_plane) plane is: \
-            \nlog₁₀(ρ / $(ρ_unit)) = $(extrema(filter(!isnan, values)))\n"
+            "\nDensity range \
+            \n  Simulation: $(basename(data_dict[:sim_data].path)) \
+            \n  Quantity:   $(quantity) \
+            \n  Plane:      $(projection_plane) \
+            \nlog₁₀(ρ / $(ρ_unit)) = $(extrema(filter(!isnan, values)))\n\n"
         )
     end
 
@@ -820,11 +839,9 @@ end
     daScatterDensity(
         data_dict::Dict,
         x_quantity::Symbol,
-        y_quantity::Symbol,
-        x_range::NTuple{2,<:Number},
-        y_range::NTuple{2,<:Number},
-        n_bins::Int,
-    )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Int}}
+        y_quantity::Symbol;
+        <keyword arguments>
+    )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
 Compute a 2D histogram.
 
@@ -843,7 +860,6 @@ Compute a 2D histogram.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`             -> Stellar mass.
@@ -876,6 +892,9 @@ Compute a 2D histogram.
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
@@ -912,13 +931,16 @@ Compute a 2D histogram.
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-  - `x_range::NTuple{2,<:Number}`: x axis range for the histogram grid.
-  - `y_range::NTuple{2,<:Number}`: y axis range for the histogram grid.
-  - `n_bins::Int`: Number of bins per side of the grid.
+  - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
+  - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
+  - `n_bins::Int=100`: Number of bins per side of the grid.
 
 # Returns
 
@@ -931,11 +953,11 @@ Compute a 2D histogram.
 function daScatterDensity(
     data_dict::Dict,
     x_quantity::Symbol,
-    y_quantity::Symbol,
-    x_range::NTuple{2,<:Number},
-    y_range::NTuple{2,<:Number},
-    n_bins::Int,
-)::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Int}}
+    y_quantity::Symbol;
+    x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    n_bins::Int=100,
+)::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
     # Compute the values of the quantities for the x and y axis
     x_values = scatterQty(data_dict, x_quantity)
@@ -946,6 +968,16 @@ function daScatterDensity(
         throw(ArgumentError("daScatterDensity: :$(x_quantity) and :$(y_quantity) \
         are incompatible quantities, they should be from the same type of cell/particle"))
     )
+
+    # If there is no range specified, use the extrema of the x values
+    if isnothing(x_range)
+        x_range = extrema(x_values)
+    end
+
+    # If there is no range specified, use the extrema of the y values
+    if isnothing(y_range)
+        y_range = extrema(y_values)
+    end
 
     # Compute the bin half width for each axis
     x_bin_h_width = 0.5 * (x_range[2] - x_range[1]) / n_bins
@@ -961,14 +993,18 @@ function daScatterDensity(
     end
 
     # Compute the 2D histogram
-    counts = histogram2D(
+    counts = Float64.(histogram2D(
         permutedims(hcat(x_values, y_values), (2, 1)),
         collect(range(x_range[1], x_range[2]; length=n_bins + 1)),
         collect(range(y_range[1], y_range[2]; length=n_bins + 1)),
-    )
+    ))
 
-    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured
-    z_axis = reverse!(transpose(counts), dims=2)
+    # Set 0 bins to NaN to add contrast with the minimum value different from 0
+    replace!(x -> iszero(x) ? NaN : x, counts)
+
+    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured,
+    # and log10 is used to enhance the contrast
+    z_axis = reverse!(transpose(log10.(counts)), dims=2)
 
     return x_axis, y_axis, z_axis
 
@@ -1205,7 +1241,6 @@ Compute two quantities for every cell/particle in the simulation.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`             -> Stellar mass.
@@ -1238,6 +1273,9 @@ Compute two quantities for every cell/particle in the simulation.
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
@@ -1274,6 +1312,9 @@ Compute two quantities for every cell/particle in the simulation.
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.

@@ -1255,7 +1255,8 @@ function smoothWindow(
     smooth_x_data = histogram1D(positions, x_data, grid; total=false)
     smooth_y_data = histogram1D(positions, y_data, grid; total=false)
 
-    return filter!(!iszero, smooth_x_data), filter!(!iszero, smooth_y_data)
+    # Remove empty bins
+    return filter!(!isnan, smooth_x_data), filter!(!isnan, smooth_y_data)
 
 end
 

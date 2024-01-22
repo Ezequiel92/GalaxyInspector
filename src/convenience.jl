@@ -1165,7 +1165,6 @@ Plot a time series of the data in the `sfr.txt` file.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1205,7 +1204,7 @@ function sfrTXT(
         # `timeSeriesPlot` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=true,
         # Data manipulation options
@@ -1240,9 +1239,14 @@ function sfrTXT(
         backup_results=latex,
         sim_labels,
         title="",
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
@@ -1259,7 +1263,7 @@ function sfrTXT(
 
         jldopen(jld2_file, "r") do file
 
-            # Add color library
+            # Add the colormap library
             push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
 
             # Construct the axis labels
@@ -1280,43 +1284,38 @@ function sfrTXT(
                 xlabel = xlabel,
                 ylabel = ylabel,
                 "/pgf/number format/1000 sep={}",
-                "legend cell align={left}",
-                "grid=major",
                 "cycle list/Set1",
                 "cycle multiindex* list={
                     linestyles*\\nextlist
                     Set1\\nextlist
                 }",
-                "width=0.8\\textwidth",
-                "height=0.5\\textwidth",
-                "scale only axis",
+                "width=17cm",
+                "height=10cm",
+                "font=\\Large",
                 legend_style = {
                     at = Coordinate(0.5, -0.17),
                     anchor = "north",
                     legend_columns = 2,
                     draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                    "/tikz/every even column/.append style={column sep=0.2cm}",
                 },
             })
-
-            "cycle multiindex* list={
-                mark list*\nextlist
-                Set1-5\nextlist
-            }"
-
 
             group = keys(file)[1]
 
             @pgf for sim_name in sim_labels
+
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, thick}, Coordinates(x, y))
+
+                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
                 push!(axis, plot)
+
             end
 
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(group).pdf"), axis)
 
         end
 
@@ -1392,7 +1391,7 @@ function cpuTXT(
         # `timeSeriesPlot` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)-for-$(safe_str_target)",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=true,
         # Data manipulation options
@@ -1427,9 +1426,14 @@ function cpuTXT(
         backup_results=false,
         sim_labels,
         title=L"\mathrm{Process: \,\, %$(safe_str_target)}",
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
@@ -1533,10 +1537,6 @@ function densityMap(
                 # Construct the file name
                 base_filename = "$(sim_name)-$(quantity)-$(projection_plane)-density_map"
 
-                ####################################################################################
-                # Plot with Makie.jl
-                ####################################################################################
-
                 snapshotPlot(
                     [simulation_path],
                     request,
@@ -1553,10 +1553,10 @@ function densityMap(
                     filter_function,
                     da_functions=[daDensity2DHistogram],
                     da_args=[(grid, quantity)],
-                    da_kwargs=[(; projection_plane, smooth, neighbors=32, print_range)],
+                    da_kwargs=[(; projection_plane, smooth, print_range)],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
-                    pp_kwargs=(; color=:white),
+                    pp_kwargs=(; color=:blue),
                     transform_box=true,
                     translation,
                     rotation,
@@ -1584,10 +1584,15 @@ function densityMap(
                     save_figures=!latex && !iszero(slice_n),
                     backup_results=latex && !iszero(slice_n),
                     sim_labels=nothing,
-                    title=:physical_time,
-                    pt_per_unit=0.75,
-                    px_per_unit=2.0,
-                    size=(1000, 1000),
+                    title="",
+                    ##############################################################
+                    # One-column-wide plot:
+                    # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+                    # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+                    ##############################################################
+                    pt_per_unit=0.28346,
+                    px_per_unit=1.0,
+                    size=(880, 880),
                     aspect=AxisAspect(1),
                     series_colors=nothing,
                     series_markers=nothing,
@@ -1597,69 +1602,6 @@ function densityMap(
                     animation_filename="$(base_filename).mp4",
                     framerate=5,
                 )
-
-                ####################################################################################
-                # Plot with PGFPlotsX.jl
-                ####################################################################################
-
-                if latex && !iszero(slice_n)
-
-                    jld2_file = joinpath(output_path, "$(base_filename).jld2")
-
-                    jldopen(jld2_file, "r") do file
-
-                        # Add color library
-                        push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usepgfplotslibrary{colormaps}")
-
-                        group = keys(file)[1]
-                        dataset = keys(file[group])[1]
-
-                        # Load and sanitize the results
-                        x, y, z = file[group][dataset]
-                        min_z = minimum(filter(!isnan, z))
-                        no_nan_z = replace(z, NaN => min_z)
-
-                        # Construct the axis labels
-                        xlabel = getLabel(string(projection_plane)[1:1], 0, u"kpc")
-                        ylabel = getLabel(string(projection_plane)[2:2], 0, u"kpc")
-
-                        plot = @pgf TikzDocument(
-                            TikzPicture(
-                                PGFPlotsX.Axis(
-                                    {
-                                        view = (0, 90),
-                                        xlabel = xlabel,
-                                        ylabel = ylabel,
-                                        zmin = zmin,
-                                        zmax = zmax,
-                                        "axis equal image",
-                                        "colormap/thermal",
-                                        "/pgf/number format/1000 sep = {}",
-                                        "tick label style={font=\\large}",
-                                        "label style={font=\\large}",
-                                        "mesh/cols" = resolution,
-                                        "mesh/rows" = resolution,
-                                    },
-                                    Plot3({surf, shader = "flat"}, Coordinates(x, y, no_nan_z)),
-                                    [
-                                        raw"\node[text=white]",
-                                        {anchor = "north west"},
-                                        " at ",
-                                        Coordinate(x[1], y[end]),
-                                        "{$(annotation)};",
-                                    ],
-                                ),
-                            );
-                        )
-
-                        pgfsave(joinpath(output_path, "$(group).png"), plot, dpi=600)
-
-                    end
-
-                    # Delete auxiliary JLD2 file
-                    rm(jld2_file, force=true)
-
-                end
 
             end
 
@@ -1718,6 +1660,9 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
@@ -1754,6 +1699,9 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
@@ -1794,11 +1742,11 @@ function scatterPlot(
             [simulation_path],
             request,
             [scatter!];
-            pf_kwargs=[(; markersize=1)],
+            pf_kwargs=[(; markersize=2)],
             # `snapshotPlot` configuration
             output_path,
             base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
-            output_format=".png",
+            output_format=".pdf",
             warnings=true,
             show_progress=false,
             # Data manipulation options
@@ -1837,10 +1785,15 @@ function scatterPlot(
             save_figures=true,
             backup_results=false,
             sim_labels=nothing,
-            title=:physical_time,
-            pt_per_unit=0.75,
-            px_per_unit=2.0,
-            size=(1280, 800),
+            title="",
+            ################################################################
+            # Two-column-wide plot:
+            # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+            # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+            ################################################################
+            pt_per_unit=0.28346,
+            px_per_unit=1.0,
+            size=(1700, 1000),
             aspect=nothing,
             series_colors=nothing,
             series_markers=nothing,
@@ -1862,10 +1815,7 @@ end
         simulation_paths::Vector{String},
         slice_n::Int,
         x_quantity::Symbol,
-        y_quantity::Symbol,
-        x_range::NTuple{2, <:Number},
-        y_range::NTuple{2, <:Number},
-        n_bins::Int;
+        y_quantity::Symbol;
         <keyword arguments>
     )::Nothing
 
@@ -1907,6 +1857,9 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
@@ -1943,13 +1896,16 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-  - `x_range::NTuple{2,<:Number}`: x axis range.
-  - `y_range::NTuple{2,<:Number}`: y axis range.
-  - `n_bins::Int`: Number of bins per side of the square grid.
+  - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
+  - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
+  - `n_bins::Int=100`: Number of bins per side of the square grid.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
@@ -1964,10 +1920,10 @@ function scatterDensityMap(
     simulation_paths::Vector{String},
     slice_n::Int,
     x_quantity::Symbol,
-    y_quantity::Symbol,
-    x_range::NTuple{2,<:Number},
-    y_range::NTuple{2,<:Number},
-    n_bins::Int;
+    y_quantity::Symbol;
+    x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    n_bins::Int=100,
     output_path::String="./",
     filter_mode::Symbol=:all,
 )::Nothing
@@ -1993,15 +1949,15 @@ function scatterDensityMap(
             # `snapshotPlot` configuration
             output_path,
             base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
-            output_format=".png",
+            output_format=".pdf",
             warnings=true,
             show_progress=false,
             # Data manipulation options
             slice=slice_n,
             filter_function,
             da_functions=[daScatterDensity],
-            da_args=[(x_quantity, y_quantity, x_range, y_range, n_bins)],
-            da_kwargs=[(;)],
+            da_args=[(x_quantity, y_quantity)],
+            da_kwargs=[(; x_range, y_range, n_bins)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -2032,11 +1988,16 @@ function scatterDensityMap(
             save_figures=true,
             backup_results=false,
             sim_labels=nothing,
-            title=:physical_time,
-            pt_per_unit=0.75,
-            px_per_unit=2.0,
-            size=(1280, 800),
-            aspect=nothing,
+            title="",
+            ##############################################################
+            # One-column-wide plot:
+            # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+            # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+            ##############################################################
+            pt_per_unit=0.28346,
+            px_per_unit=1.0,
+            size=(880, 880),
+            aspect=AxisAspect(1),
             series_colors=nothing,
             series_markers=nothing,
             series_linestyles=nothing,
@@ -2173,12 +2134,12 @@ function timeSeries(
 
     timeSeriesPlot(
         simulation_paths,
-        [scatterlines!];
+        [lines!];
         pf_kwargs=[(;)],
         # `timeSeriesPlot` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=true,
         # Data manipulation options
@@ -2213,9 +2174,14 @@ function timeSeries(
         backup_results=latex,
         sim_labels,
         title="",
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
@@ -2232,7 +2198,7 @@ function timeSeries(
 
         jldopen(jld2_file, "r") do file
 
-            # Add color library
+            # Add the colormap library
             push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
 
             # Construct the axis labels
@@ -2261,37 +2227,38 @@ function timeSeries(
                 xlabel = xlabel,
                 ylabel = ylabel,
                 "/pgf/number format/1000 sep={}",
-                "legend cell align={left}",
-                "grid=major",
                 "cycle list/Set1",
                 "cycle multiindex* list={
                     linestyles*\\nextlist
                     Set1\\nextlist
                 }",
-                "width=0.8\\textwidth",
-                "height=0.5\\textwidth",
-                "scale only axis",
+                "width=17cm",
+                "height=10cm",
+                "font=\\Large",
                 legend_style = {
                     at = Coordinate(0.5, -0.17),
                     anchor = "north",
                     legend_columns = 2,
                     draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                    "/tikz/every even column/.append style={column sep=0.2cm}",
                 },
             })
 
             group = keys(file)[1]
 
             @pgf for sim_name in sim_labels
+
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
+
+                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
                 push!(axis, plot)
+
             end
 
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(group).pdf"), axis)
 
         end
 
@@ -2356,7 +2323,7 @@ function rotationCurve(
         # `snapshotPlot` configuration
         output_path,
         base_filename="rotation_curve",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=false,
         # Data manipulation options
@@ -2371,7 +2338,7 @@ function rotationCurve(
         transform_box=true,
         translation,
         rotation,
-        smooth=150,
+        smooth=round(Int64, 4.0 * ustrip(u"kpc", radius)),
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
@@ -2395,10 +2362,15 @@ function rotationCurve(
         save_figures=!latex,
         backup_results=latex,
         sim_labels,
-        title=:physical_time,
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        title="",
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
@@ -2419,7 +2391,7 @@ function rotationCurve(
 
         jldopen(jld2_file, "r") do file
 
-            # Add color library
+            # Add the colormap library
             push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
 
             # Construct the axis labels
@@ -2448,22 +2420,20 @@ function rotationCurve(
                 xlabel = xlabel,
                 ylabel = ylabel,
                 "/pgf/number format/1000 sep={}",
-                "legend cell align={left}",
-                "grid=major",
                 "cycle list/Set1",
                 "cycle multiindex* list={
                     linestyles*\\nextlist
                     Set1\\nextlist
                 }",
-                "width=0.8\\textwidth",
-                "height=0.5\\textwidth",
-                "scale only axis",
+                "width=17cm",
+                "height=10cm",
+                "font=\\Large",
                 legend_style = {
                     at = Coordinate(0.5, -0.17),
                     anchor = "north",
                     legend_columns = 2,
                     draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                    "/tikz/every even column/.append style={column sep=0.2cm}",
                 },
             })
 
@@ -2473,12 +2443,7 @@ function rotationCurve(
 
                 x, y = file["$(group)/$(sim_name)"]
 
-                # Delete NaNs
-                idxs = map(isnan, x) .|| map(isnan, y)
-                deleteat!(x, idxs)
-                deleteat!(y, idxs)
-
-                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
+                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
                 push!(axis, plot)
 
             end
@@ -2486,7 +2451,7 @@ function rotationCurve(
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(group).pdf"), axis)
 
         end
 
@@ -2515,17 +2480,14 @@ Plot a density profile.
   - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_area_density`     -> Stellar area mass density, up to a radius of `FILTER_R`.
-      + `:gas_area_density`         -> Gas area mass density, up to a radius of `FILTER_R`.
-      + `:molecular_area_density`   -> Molecular hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:atomic_area_density`      -> Atomic hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:ionized_area_density`     -> Ionized hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:neutral_area_density`     -> Neutral hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:sfr_area_density`         -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
-  - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
-  - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
+      + `:stellar_area_density`    -> Stellar area mass density, up to a radius of `FILTER_R`.
+      + `:gas_area_density`        -> Gas area mass density, up to a radius of `FILTER_R`.
+      + `:molecular_area_density`  -> Molecular hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:atomic_area_density`     -> Atomic hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:ionized_area_density`    -> Ionized hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:neutral_area_density`    -> Neutral hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:sfr_area_density`        -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
-  - `density::Bool=true`: If the profile will be of the density of `quantity`.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
@@ -2543,10 +2505,7 @@ function densityProfile(
     simulation_paths::Vector{String},
     slice_n::Int,
     quantity::Symbol;
-    flat::Bool=true,
-    total::Bool=true,
     cumulative::Bool=false,
-    density::Bool=true,
     yscale::Function=identity,
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -2555,7 +2514,6 @@ function densityProfile(
 )::Nothing
 
     plot_params = plotParams(quantity)
-    request = addRequest(plot_params.request, Dict(:gas => ["VEL "], :stars => ["VEL "]))
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
     grid = CircularGrid(FILTER_R, 100)
@@ -2573,15 +2531,15 @@ function densityProfile(
         # `snapshotPlot` configuration
         output_path,
         base_filename="$(quantity)-profile",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=false,
         # Data manipulation options
         slice=slice_n,
         filter_function,
-        da_functions=[daDensityProfile],
+        da_functions=[daProfile],
         da_args=[(grid, quantity)],
-        da_kwargs=[(; flat, total, cumulative, density)],
+        da_kwargs=[(; cumulative)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -2612,10 +2570,15 @@ function densityProfile(
         save_figures=!latex,
         backup_results=latex,
         sim_labels,
-        title=:physical_time,
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        title="",
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
@@ -2636,7 +2599,7 @@ function densityProfile(
 
         jldopen(jld2_file, "r") do file
 
-            # Add color library
+            # Add the colormap library
             push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
 
             # Construct the axis labels
@@ -2668,41 +2631,42 @@ function densityProfile(
             axis = @pgf PGFPlotsX.Axis({
                 xlabel = xlabel,
                 ylabel = ylabel,
-                xmode = "normal",
-                ymode = "log",
+                ymode = ymode,
+                xmin = -0.5,
                 "log basis y" = log_basis_y,
                 "/pgf/number format/1000 sep={}",
-                "legend cell align={left}",
-                "grid=major",
                 "cycle list/Set1",
                 "cycle multiindex* list={
                     linestyles*\\nextlist
                     Set1\\nextlist
                 }",
-                "width=0.8\\textwidth",
-                "height=0.5\\textwidth",
-                "scale only axis",
+                "width=17cm",
+                "height=10cm",
+                "font=\\Large",
                 legend_style = {
                     at = Coordinate(0.5, -0.17),
                     anchor = "north",
                     legend_columns = 2,
                     draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                    "/tikz/every even column/.append style={column sep=0.2cm}",
                 },
             })
 
             group = keys(file)[1]
 
             @pgf for sim_name in sim_labels
+
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
+
+                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
                 push!(axis, plot)
+
             end
 
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(group).pdf"), axis, dpi=600)
 
         end
 
@@ -2714,6 +2678,262 @@ function densityProfile(
     return nothing
 
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+    velocityProfile(
+        simulation_paths::Vector{String},
+        slice_n::Int,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Plot a density profile.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `component::Symbol`: Which component will be calculated. The options are:
+
+      + `:stellar_vradial`     -> Stellar radial speed (``v_r``).
+      + `:stellar_vtangential` -> Stellar tangential speed (``v_\\theta``).
+      + `:stellar_vzstar`      -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+  - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Plot every cell/particle within the simulation box.
+      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
+  - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+"""
+function velocityProfile(
+    simulation_paths::Vector{String},
+    slice_n::Int,
+    component::Symbol;
+    yscale::Function=identity,
+    output_path::String="./",
+    filter_mode::Symbol=:all,
+    latex::Bool=false,
+    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+)::Nothing
+
+    plot_params = plotParams(component)
+    filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
+
+    grid = CircularGrid(FILTER_R, 25)
+
+    ################################################################################################
+    # Plot with Makie.jl
+    ################################################################################################
+
+    # Draw the figures with CairoMakie
+    snapshotPlot(
+        simulation_paths,
+        request,
+        [scatterlines!];
+        pf_kwargs=[(;)],
+        # `snapshotPlot` configuration
+        output_path,
+        base_filename="$(component)-profile",
+        output_format=".pdf",
+        warnings=true,
+        show_progress=false,
+        # Data manipulation options
+        slice=slice_n,
+        filter_function,
+        da_functions=[daProfile],
+        da_args=[(grid, component)],
+        da_kwargs=[(; flat=true, total=false, cumulative=false, density=false)],
+        post_processing=getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
+        transform_box=true,
+        translation,
+        rotation,
+        smooth=0,
+        x_unit=u"kpc",
+        y_unit=plot_params.unit,
+        x_exp_factor=0,
+        y_exp_factor=0,
+        x_trim=(-Inf, Inf),
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label="auto_label",
+        yaxis_label=plot_params.axis_label,
+        xaxis_var_name=L"r",
+        yaxis_var_name=plot_params.var_name,
+        xaxis_scale_func=identity,
+        yaxis_scale_func=yscale,
+        xaxis_limits=(nothing, nothing),
+        yaxis_limits=(nothing, nothing),
+        # Plotting and animation options
+        save_figures=!latex,
+        backup_results=latex,
+        sim_labels,
+        title="",
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
+        aspect=nothing,
+        series_colors=nothing,
+        series_markers=nothing,
+        series_linestyles=nothing,
+        # Animation options
+        animation=false,
+        animation_filename="animation.mp4",
+        framerate=10,
+    )
+
+    ################################################################################################
+    # Plot with PGFPlotsX.jl
+    ################################################################################################
+
+    if latex
+
+        jld2_file = joinpath(output_path, "$(component)-profile.jld2")
+
+        jldopen(jld2_file, "r") do file
+
+            # Add the colormap library
+            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
+
+            # Construct the axis labels
+            xlabel = getLabel(L"r", 0, u"kpc")
+            ylabel = LaTeXString(
+                replace(
+                    plot_params.axis_label,
+                    "auto_label" => getLabel(plot_params.var_name, 0, plot_params.unit),
+                ),
+            )
+
+            # Select y axis scaling
+            if yscale == log
+                ymode = "log"
+                log_basis_y = "exp(1)"
+            elseif yscale == log10
+                ymode = "log"
+                log_basis_y = "10"
+            else
+                (
+                    yscale == identity ||
+                    @warn("densityProfile: PGFPlotsX can only draw axis with linear or \\
+                    logarithmic scaling")
+                )
+                ymode = "normal"
+                log_basis_y = ""
+            end
+
+            axis = @pgf PGFPlotsX.Axis({
+                xlabel = xlabel,
+                ylabel = ylabel,
+                ymode = ymode,
+                xmin = -0.5,
+                "log basis y" = log_basis_y,
+                "/pgf/number format/1000 sep={}",
+                "cycle list/Set1",
+                "cycle multiindex* list={
+                    linestyles*\\nextlist
+                    Set1\\nextlist
+                }",
+                "width=17cm",
+                "height=10cm",
+                "font=\\Large",
+                legend_style = {
+                    at = Coordinate(0.5, -0.17),
+                    anchor = "north",
+                    legend_columns = 2,
+                    draw = "none",
+                    "/tikz/every even column/.append style={column sep=0.2cm}",
+                },
+            })
+
+            group = keys(file)[1]
+
+            @pgf for sim_name in sim_labels
+
+                x, y = file["$(group)/$(sim_name)"]
+
+                plot = PlotInc({"ultra thick"}, Coordinates(x, y))
+                push!(axis, plot)
+
+            end
+
+            # Add the legends
+            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
+
+            pgfsave(joinpath(output_path, "$(group).pdf"), axis, dpi=600)
+
+        end
+
+        # Delete auxiliary JLD2 file
+        rm(jld2_file, force=true)
+
+    end
+
+    return nothing
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 """
     stellarHistory(
@@ -2774,12 +2994,12 @@ function stellarHistory(
     snapshotPlot(
         simulation_paths,
         request,
-        [scatterlines!];
+        [lines!];
         pf_kwargs=[(;)],
         # `snapshotPlot` configuration
         output_path,
         base_filename="$(quantity)-stellar-history",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=false,
         # Data manipulation options
@@ -2818,10 +3038,15 @@ function stellarHistory(
         save_figures=!latex,
         backup_results=latex,
         sim_labels,
-        title=:physical_time,
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        title="",
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
@@ -2842,7 +3067,7 @@ function stellarHistory(
 
         jldopen(jld2_file, "r") do file
 
-            # Add color library
+            # Add the colormap library
             push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
 
             # Construct the axis labels
@@ -2871,40 +3096,40 @@ function stellarHistory(
             axis = @pgf PGFPlotsX.Axis({
                 xlabel = xlabel,
                 ylabel = ylabel,
-                xmode = "normal",
                 ymode = "log",
                 "/pgf/number format/1000 sep={}",
-                "legend cell align={left}",
-                "grid=major",
                 "cycle list/Set1",
                 "cycle multiindex* list={
                     linestyles*\\nextlist
                     Set1\\nextlist
                 }",
-                "width=0.8\\textwidth",
-                "height=0.5\\textwidth",
-                "scale only axis",
+                "width=17cm",
+                "height=10cm",
+                "font=\\Large",
                 legend_style = {
                     at = Coordinate(0.5, -0.17),
                     anchor = "north",
                     legend_columns = 2,
                     draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                    "/tikz/every even column/.append style={column sep=0.2cm}",
                 },
             })
 
             group = keys(file)[1]
 
             @pgf for sim_name in sim_labels
+
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
+
+                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
                 push!(axis, plot)
+
             end
 
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(group).pdf"), axis, dpi=600)
 
         end
 
@@ -2973,7 +3198,7 @@ function stellarCircularity(
         # `snapshotPlot` configuration
         output_path,
         base_filename="circularity_histogram",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=false,
         # Data manipulation options
@@ -3012,10 +3237,15 @@ function stellarCircularity(
         save_figures=!latex,
         backup_results=latex,
         sim_labels,
-        title=:physical_time,
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1000, 1000),
+        title="",
+        ##############################################################
+        # One-column-wide plot:
+        # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+        # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+        ##############################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(880, 880),
         aspect=AxisAspect(1),
         series_colors=nothing,
         series_markers=nothing,
@@ -3036,7 +3266,7 @@ function stellarCircularity(
 
         jldopen(jld2_file, "r") do file
 
-            # Add color library
+            # Add the colormap library
             push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
 
             # Construct the axis labels
@@ -3057,37 +3287,38 @@ function stellarCircularity(
                 xlabel = xlabel,
                 ylabel = ylabel,
                 "/pgf/number format/1000 sep={}",
-                "legend cell align={left}",
-                "grid=major",
                 "cycle list/Set1",
                 "cycle multiindex* list={
                     linestyles*\\nextlist
                     Set1\\nextlist
                 }",
-                "width=0.8\\textwidth",
-                "height=0.8\\textwidth",
-                "scale only axis",
+                "width=8.8cm",
+                "height=8.8cm",
+                "font=\\Large",
                 legend_style = {
                     at = Coordinate(0.5, -0.17),
                     anchor = "north",
                     legend_columns = 2,
                     draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.3cm}",
+                    "/tikz/every even column/.append style={column sep=0.2cm}",
                 },
             },)
 
             group = keys(file)[1]
 
             @pgf for sim_name in sim_labels
+
                 x, y = file["$(group)/$(sim_name)"]
-                plot = PlotInc({no_marks, "very thick"}, Coordinates(x, y))
+
+                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
                 push!(axis, plot)
+
             end
 
             # Add the legends
             push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
 
-            pgfsave(joinpath(output_path, "$(group).png"), axis, dpi=600)
+            pgfsave(joinpath(output_path, "$(group).pdf"), axis, dpi=600)
 
         end
 
@@ -3158,12 +3389,12 @@ function compareWithFeldmann2020(
 
     timeSeriesPlot(
         simulation_paths,
-        [scatterlines!];
-        pf_kwargs=[(; markersize=14)],
+        [scatter!];
+        pf_kwargs=[(;)],
         # `timeSeriesPlot` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)-with-Feldmann2020",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=true,
         # Data manipulation options
@@ -3198,9 +3429,14 @@ function compareWithFeldmann2020(
         backup_results=false,
         sim_labels,
         title="",
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
@@ -3269,11 +3505,11 @@ function compareWithMolla2015(
         simulation_paths,
         request,
         [scatterlines!];
-        pf_kwargs=[(; markersize=15)],
+        pf_kwargs=[(;)],
         # `snapshotPlot` configuration
         output_path,
         base_filename="$(quantity)-profile-with-Molla2015",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=false,
         # Data manipulation options
@@ -3312,10 +3548,15 @@ function compareWithMolla2015(
         save_figures=true,
         backup_results=false,
         sim_labels,
-        title=:physical_time,
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        title="",
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
@@ -3410,11 +3651,11 @@ function compareWithKennicuttBigiel(
         simulation_paths,
         request,
         [scatter!];
-        pf_kwargs=[(; markersize=15)],
+        pf_kwargs=[(;)],
         # `snapshotPlot` configuration
         output_path,
         base_filename="sfr_area_density-vs-$(quantity)-with-$(filename)",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=false,
         # Data manipulation options
@@ -3460,10 +3701,15 @@ function compareWithKennicuttBigiel(
         save_figures=true,
         backup_results=false,
         sim_labels,
-        title=:physical_time,
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        title="",
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
@@ -3547,11 +3793,11 @@ function compareWithKennicuttBigiel(
     timeSeriesPlot(
         simulation_paths,
         [scatter!];
-        pf_kwargs=[(; markersize=15)],
+        pf_kwargs=[(;)],
         # `timeSeriesPlot` configuration
         output_path,
         filename="sfr_area_density-vs-$(quantity)-with-$(filename)",
-        output_format=".png",
+        output_format=".pdf",
         warnings=true,
         show_progress=true,
         # Data manipulation options
@@ -3593,9 +3839,14 @@ function compareWithKennicuttBigiel(
         backup_results=false,
         sim_labels,
         title="",
-        pt_per_unit=0.75,
-        px_per_unit=2.0,
-        size=(1280, 800),
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
         aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,

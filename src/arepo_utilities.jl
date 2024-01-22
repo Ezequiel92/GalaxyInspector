@@ -103,7 +103,7 @@ function getLabel(
         return latex ? L"%$label" : label
     end
 
-    return latex ? L"%$label $/$ %$unit_label" : "$label / $unit_label"
+    return latex ? L"%$label [%$unit_label]" : "$label [$unit_label]"
 
 end
 
@@ -807,6 +807,9 @@ Select the plotting parameters for a given `quantity`.
       + `:dm_specific_am`           -> Norm of the dark matter specific angular momentum.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
@@ -831,7 +834,7 @@ function plotParams(quantity::Symbol)::PlotParams
     if quantity == :stellar_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:stars => ["MASS", "POS "]),
+            request    = Dict(:stars => ["MASS", "POS ", "SOFT"]),
             var_name   = L"M_\star",
             exp_factor = 10,
             unit       = u"Msun",
@@ -840,7 +843,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :gas_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS "]),
+            request    = Dict(:gas => ["MASS", "POS ", "RHO "]),
             var_name   = L"M_\mathrm{gas}",
             exp_factor = 10,
             unit       = u"Msun",
@@ -849,7 +852,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :dm_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:halo => ["MASS", "POS "]),
+            request    = Dict(:halo => ["MASS", "POS ", "SOFT"]),
             var_name   = L"M_\mathrm{DM}",
             exp_factor = 10,
             unit       = u"Msun",
@@ -858,44 +861,44 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :bh_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:black_hole => ["MASS", "POS "]),
-            var_name   = L"M_\mathrm{BH}",
-            unit       = u"Msun",
+            request  = Dict(:black_hole => ["MASS", "POS ", "SOFT"]),
+            var_name = L"M_\mathrm{BH}",
+            unit     = u"Msun",
         )
 
     elseif quantity == :stellar_number
 
         plot_params = PlotParams(;
-            request    = Dict(:stars => ["MASS", "POS "]),
-            var_name   = L"\mathrm{Number \,\, of \,\, stellar \,\, particles}",
+            request  = Dict(:stars => ["MASS", "POS "]),
+            var_name = L"\mathrm{Number \,\, of \,\, stellar \,\, particles}",
         )
 
     elseif quantity == :gas_number
 
         plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS "]),
-            var_name   = L"\mathrm{Number \,\, of \,\, gas \,\, cells}",
+            request  = Dict(:gas => ["MASS", "POS "]),
+            var_name = L"\mathrm{Number \,\, of \,\, gas \,\, cells}",
         )
 
     elseif quantity == :dm_number
 
         plot_params = PlotParams(;
-            request    = Dict(:halo => ["MASS", "POS "]),
-            var_name   = L"\mathrm{Number \,\, of \,\, dark \,\, matter \,\, particles}",
+            request  = Dict(:halo => ["MASS", "POS "]),
+            var_name = L"\mathrm{Number \,\, of \,\, DM \,\, particles}",
         )
 
     elseif quantity == :bh_number
 
         plot_params = PlotParams(;
-            request    = Dict(:black_hole => ["MASS", "POS "]),
-            var_name   = L"\mathrm{Number \,\, of \,\, black \,\, hole \,\, particles}",
+            request  = Dict(:black_hole => ["MASS", "POS "]),
+            var_name = L"\mathrm{Number \,\, of \,\, BH \,\, particles}",
         )
 
     elseif quantity == :molecular_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES"]),
-            var_name   = L"M_\mathrm{H_2}",
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO "]),
+            var_name   = L"M_\mathrm{H2}",
             exp_factor = 10,
             unit       = u"Msun",
         )
@@ -903,7 +906,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :atomic_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES"]),
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO "]),
             var_name   = L"M_\mathrm{HI}",
             exp_factor = 10,
             unit       = u"Msun",
@@ -912,7 +915,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :ionized_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP "]),
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO "]),
             var_name   = L"M_\mathrm{HII}",
             exp_factor = 10,
             unit       = u"Msun",
@@ -921,8 +924,8 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :neutral_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP "]),
-            var_name   = L"M_\mathrm{H_2 + HI}",
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO "]),
+            var_name   = L"M_\mathrm{H2 + HI}",
             exp_factor = 10,
             unit       = u"Msun",
         )
@@ -937,7 +940,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :atomic_fraction
 
         plot_params = PlotParams(;
-            request  = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP "]),
+            request  = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES"]),
             var_name = L"f_\mathrm{HI}",
         )
 
@@ -960,7 +963,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:gas => ["MASS", "POS ", "RHO "]),
-            var_name = L"ρ_\mathrm{gas}",
+            var_name = L"\rho_\mathrm{gas}",
             unit     = u"Msun*kpc^-3",
         )
 
@@ -983,7 +986,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :atomic_number_density
 
         plot_params = PlotParams(;
-            request  = Dict(:gas => ["MASS", "POS ", "RHO ", "FRAC", "NH  ", "NHP "]),
+            request  = Dict(:gas => ["MASS", "POS ", "RHO ", "FRAC", "NH  ", "NHP ", "PRES"]),
             var_name = L"n_\mathrm{HI}",
             unit     = u"cm^-3",
         )
@@ -1031,7 +1034,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :atomic_area_density
 
         plot_params = PlotParams(;
-            request  = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP "]),
+            request  = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES"]),
             var_name = L"\Sigma_\mathrm{HI}",
             unit     = u"Msun*pc^-2",
         )
@@ -1170,8 +1173,8 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas        => ["MASS", "POS "],
                 :halo       => ["MASS", "POS "],
-                :black_hole => ["MASS", "POS "],
                 :stars      => ["MASS", "POS ", "VEL "],
+                :black_hole => ["MASS", "POS "],
             ),
             var_name = L"\epsilon",
         )
@@ -1189,11 +1192,35 @@ function plotParams(quantity::Symbol)::PlotParams
             unit     = u"km*s^-1",
         )
 
+    elseif quantity == :stellar_vradial
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["POS ", "VEL "]),
+            var_name = L"v_r",
+            unit     = u"km*s^-1",
+        )
+
+    elseif quantity == :stellar_vtangential
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["POS ", "VEL "]),
+            var_name = L"v_\theta",
+            unit     = u"km*s^-1",
+        )
+
+    elseif quantity == :stellar_vzstar
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["POS ", "VEL "]),
+            var_name = L"v_z \,\, \mathrm{sign}(z)",
+            unit     = u"km*s^-1",
+        )
+
     elseif quantity == :stellar_age
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["GAGE"]),
-            var_name = L"\mathrm{stellar \,\, age}",
+            var_name = L"\mathrm{Stellar \,\, age}",
             unit     = u"Myr",
         )
 
@@ -1201,7 +1228,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
-            var_name = L"\mathrm{SFR}",
+            var_name = L"SFR",
             unit     = u"Msun*yr^-1",
         )
 
@@ -1209,7 +1236,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
-            var_name = L"\mathrm{sSFR}",
+            var_name = L"sSFR",
             unit     = u"yr^-1",
         )
 
@@ -1222,31 +1249,48 @@ function plotParams(quantity::Symbol)::PlotParams
 
     elseif quantity == :scale_factor
 
-        plot_params = PlotParams(; var_name="a")
+        plot_params = PlotParams(;
+            var_name = L"a",
+        )
 
     elseif quantity == :redshift
 
-        plot_params = PlotParams(; var_name="z")
+        plot_params = PlotParams(;
+            var_name = L"z",
+        )
 
     elseif quantity == :physical_time
 
-        plot_params = PlotParams(; var_name="t", unit=u"Gyr")
+        plot_params = PlotParams(;
+            var_name = L"t",
+            unit = u"Gyr",
+        )
 
     elseif quantity == :lookback_time
 
-        plot_params = PlotParams(; var_name="lookback time", unit=u"Gyr")
+        plot_params = PlotParams(;
+            var_name = L"\mathrm{Lookback \,\, time}",
+            unit     = u"Gyr",
+        )
 
     elseif quantity == :time_step
 
-        plot_params = PlotParams(; var_name=L"\mathrm{Time \,\, steps}")
+        plot_params = PlotParams(;
+            var_name = L"\mathrm{Number \,\, of \,\, time \,\, steps}",
+        )
 
     elseif quantity == :clock_time_s
 
-        plot_params = PlotParams(; var_name=L"\mathrm{Wallclock \,\, time}", unit=u"s")
+        plot_params = PlotParams(;
+            var_name = L"\mathrm{Wallclock \,\, time}",
+            unit     = u"s",
+        )
 
     elseif quantity == :clock_time_percent
 
-        plot_params = PlotParams(; axis_label = L"\mathrm{Wallclock \,\, time \,\, (%)}")
+        plot_params = PlotParams(;
+            axis_label = L"\mathrm{Wallclock \,\, time \, [\%]}",
+        )
 
     elseif quantity == :tot_clock_time_s
 
@@ -1258,7 +1302,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :tot_clock_time_percent
 
         plot_params = PlotParams(;
-            axis_label = L"\mathrm{Cumulative \,\, wallclock \,\, time \,\, (%)}",
+            axis_label = L"\mathrm{Cumulative \,\, wallclock \,\, time \, [\%]}",
         )
 
     else
@@ -2595,6 +2639,93 @@ function computeStellarCircularity(data_dict::Dict)::Vector{Float64}
 
 end
 
+@doc raw"""
+    computeStellarVpolar(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Velocity}
+
+Compute the cylindrical components of the velocity, ``\\mathbf{\\vec{v}} = v_r \, \\mathbf{e_r} + v_\\theta \, \\mathbf{e_\theta} + v_z \, \\mathbf{e_z}``.
+
+The speed in the radial direction expressed in Cartesian coordinates is
+
+```math
+v_r = \frac{x \, v_x + y \, v_z}{\sqrt(x^2 + y^2)} \, ,
+```
+
+in the tangential direction is
+
+```math
+v_r = \frac{x \, v_y - y \, v_x}{\sqrt(x^2 + y^2)} \, ,
+```
+
+and the speed in the z direction will be computes as
+
+```math
+v^*_z = v_z \, \sign(z) \, ,
+```
+
+in order to distinguish between inflows (``v^*_z < 0``) and outflows (``v^*_z > 0``).
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `component::Symbol`: Which component will be calculated. The options are:
+
+      + `:radial`     -> Stellar radial speed (``v_r``).
+      + `:tangential` -> Stellar tangential speed (``v_\\theta``).
+      + `:zstar`      -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+
+# Returns
+
+  - The chosen cylindricall component of the velocity.
+"""
+function computeStellarVpolar(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Velocity}
+
+    # Load the necessary data
+    positions = data_dict[:stars]["POS "]
+    velocities = data_dict[:stars]["VEL "]
+
+    x = positions[1, :]
+    y = positions[2, :]
+    z = positions[3, :]
+
+    vx = velocities[1, :]
+    vy = velocities[2, :]
+    vz = velocities[3, :]
+
+    if component == :radial
+
+        vp = @. (x * vx + y * vy) / sqrt(x * x + y * y)
+
+    elseif component == :tangential
+
+        vp = @. (x * vy - y * vx) / sqrt(x * x + y * y)
+
+    elseif component == :zstar
+
+        vp = @. vz * sign(z)
+
+    else
+
+        throw(ArgumentError("computeStellarVpolar: `component` can only be :radial, :tangential \
+        or :zstar, but I got :$(component)"))
+
+    end
+
+    return vp
+
+end
+
 """
     computeMetalMass(data_dict::Dict, type_symbol::Symbol)::Vector{<:Unitful.Mass}
 
@@ -3465,6 +3596,9 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
       + `:stellar_circularity`      -> Stellar circularity.
       + `:stellar_vcirc`            -> Stellar circular velocity.
+      + `:stellar_vradial`          -> Stellar radial speed.
+      + `:stellar_vtangential`      -> Stellar tangential speed.
+      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`              -> Stellar age.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
@@ -3653,6 +3787,18 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :stellar_vcirc
 
         _, scatter_qty = computeStellarVcirc(data_dict)
+
+    elseif quantity == :stellar_vradial
+
+        scatter_qty = computeStellarVpolar(data_dict, :radial)
+
+    elseif quantity == :stellar_vtangential
+
+        scatter_qty = computeStellarVpolar(data_dict, :tangential)
+
+    elseif quantity == :stellar_vzstar
+
+        scatter_qty = computeStellarVpolar(data_dict, :zstar)
 
     elseif quantity == :stellar_age
 

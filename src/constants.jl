@@ -345,7 +345,7 @@ const IndexType = Union{
 """
 List of marker types.
 """
-const MARKERS = [:ltriangle, :circle, :+, :diamond, :cross, :rtriangle, :star4, :rect, :x]
+const MARKERS = [:circle, :rect, :diamond, :hexagon, :cross, :xcross, :pentagon]
 
 """
 List of line styles.
@@ -356,45 +356,57 @@ const LINE_STYLES = [:solid, :dash, :dot, :dashdot, :dashdotdot]
 Global plot theme.
 """
 const THEME = Theme(
+    ####################################
+    # 42 unit * 0.28346 pt/unit = 12 pt
+    ####################################
+    fontsize=42,
+    figure_padding=(1, 35, 10, 10),
     Axis=(
-        alignmode=Outside(10),
-        xlabelpadding=10.0,
-        ylabelpadding=10.0,
-        xlabelsize=40,
-        ylabelsize=40,
-        xticklabelsize=30,
-        yticklabelsize=30,
-        xminorgridvisible=true,
+        xlabelpadding=15.0,
+        ylabelpadding=15.0,
+        xgridvisible=false,
+        ygridvisible=false,
         xminorticksvisible=true,
-        yminorgridvisible=true,
         yminorticksvisible=true,
-        xminortickalign=1,
-        yminortickalign=1,
-        xtickalign=1,
-        ytickalign=1,
-        titlesize=40,
+        xticklabelpad=10,
+        yticklabelpad=10,
+        xminortickalign=0,
+        yminortickalign=0,
+        xminorticks=IntervalsBetween(5),
+        yminorticks=IntervalsBetween(5),
+        xticks=LinearTicks(5),
+        yticks=LinearTicks(5),
+        xtickalign=0,
+        ytickalign=0,
     ),
     Legend=(
-        orientation=:horizontal,
-        labelsize=30,
-        framevisible=false,
-        tellheight=true,
+        tellheight=false,
         tellwidth=false,
-        margin=(0, 0, -10, -15),
-        patchsize=(35, 35),
-        patchlabelgap=8,
+        margin=(15, 15, 10, 10),
+        halign=:right,
+        valign=:bottom,
+        framevisible=false,
+        labelsize=30,
         linewidth=5,
-        markersize=30,
+        linepoints=[Point2f(-0.1, 0.5), Point2f(0.9, 0.5)],
+        polypoints=[
+            Point2f(0.15, 0.15),
+            Point2f(0.85, 0.15),
+            Point2f(0.85, 0.85),
+            Point2f(0.15, 0.85),
+        ],
+        colgap=25,
+        markersize=28,
+        patchsize=(50, 50),
+        nbanks=3,
     ),
-    Text=(fontsize=30,),
-    Lines=(linewidth=3,),
+    Lines=(linewidth=5,),
     VLines=(linewidth=3,),
     HLines=(linewidth=3,),
-    ScatterLines=(linewidth=3, markersize=10),
-    Scatter=(markersize=10,),
+    ScatterLines=(linewidth=5, markersize=22),
+    Scatter=(markersize=22,),
     Errorbars=(whiskerwidth=10,),
-    Hist=(strokewidth=1, strokecolor=:black, patchcolor=:red),
-    Heatmap=(colormap=:linear_bmy_10_95_c78_n256, nan_color=:black),
+    Heatmap=(colormap=:linear_kry_5_95_c72_n256, nan_color=:grey75),
 )
 
 # Structures

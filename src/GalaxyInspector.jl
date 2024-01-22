@@ -82,6 +82,7 @@ export scatterDensityMap
 export timeSeries
 export rotationCurve
 export densityProfile
+export velocityProfile
 export stellarHistory
 export stellarCircularity
 export compareWithFeldmann2020
