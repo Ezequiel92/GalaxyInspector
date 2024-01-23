@@ -689,7 +689,8 @@ Compute a 2D density histogram.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If the results will be smooth out using the [`cubicSplineKernel`](@ref) kernel.
-  - `neighbors::Int=32`: Number of neighbors for the 2D smoothing (only relevant if `smooth` = true).
+  - `neighbors::Int=18`: Number of neighbors for the 2D smoothing (only relevant if `smooth` = true). The default value comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
+  - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
 
 # Returns
@@ -706,7 +707,8 @@ function daDensity2DHistogram(
     quantity::Symbol;
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
-    neighbors::Int=32,
+    neighbors::Int=18,
+    smoothing_length::Union{Unitful.Length,Nothing}=nothing,
     print_range::Bool=false,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
@@ -777,17 +779,27 @@ function daDensity2DHistogram(
         # Find nearest neighbors
         n_idxs, n_dists = knn(kdtree, physical_grid, neighbors)
 
-        # Compute the smoothing lengths
-        if "SOFT" ∈ keys(data_dict[type_symbol])
-            smoothing_lengths = data_dict[type_symbol]["SOFT"]
-        elseif "RHO " ∈ keys(data_dict[type_symbol])
-            densities = data_dict[type_symbol]["RHO "]
-            masses = data_dict[type_symbol]["MASS"]
-            smoothing_lengths = [cbrt(m / (1.333 * π * ρ)) for (m, ρ) in zip(masses, densities)]
-        else
-            throw(ArgumentError("daDensity2DHistogram: Neither the \"SOFT\" or \"RHO \" blocks \
-            where present for the cell/particle type :$(type_symbol), and I need one of them to \
-            smooth out the density histogram"))
+        if isnothing(smoothing_length)
+
+            # Compute the smoothing lengths
+            if "SOFT" ∈ keys(data_dict[type_symbol])
+
+                smoothing_length = mean(data_dict[type_symbol]["SOFT"])
+
+            elseif "RHO " ∈ keys(data_dict[type_symbol])
+
+                densities = data_dict[type_symbol]["RHO "]
+                masses = data_dict[type_symbol]["MASS"]
+                smoothing_length = mean(
+                    cbrt(m / (1.333 * π * ρ)) for (m, ρ) in zip(masses, densities)
+                )
+
+            else
+                throw(ArgumentError("daDensity2DHistogram: Neither the \"SOFT\" or \"RHO \" blocks \
+                where present for the cell/particle type :$(type_symbol), and I need one of them \
+                to smooth out the density histogram"))
+            end
+
         end
 
         # Compute the density in each bin
@@ -795,9 +807,9 @@ function daDensity2DHistogram(
             n_idx = n_idxs[i]
             n_dist = n_dists[i]
 
-            hs = ustrip.(u"kpc", smoothing_lengths[n_idx])
-            qs = n_dist ./ hs
-            ws = kernel.(qs, hs) * u"kpc^-2"
+            h = ustrip(u"kpc", smoothing_length)
+            qs = n_dist / h
+            ws = kernel.(qs, h) * u"kpc^-2"
 
             density[i] = sum(masses[n_idx] .* ws; init=zero(1.0 * ρ_unit))
         end

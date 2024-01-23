@@ -1480,6 +1480,7 @@ Plot a 2D histogram of the density.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
   - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
+  - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
   - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used. This option is ignore if `slice_n` = 0.
@@ -1495,6 +1496,7 @@ function densityMap(
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
     smooth::Bool=false,
+    smoothing_length::Union{Unitful.Length,Nothing}=nothing,
     print_range::Bool=false,
     annotation::String="",
     latex::Bool=false,
@@ -1553,7 +1555,7 @@ function densityMap(
                     filter_function,
                     da_functions=[daDensity2DHistogram],
                     da_args=[(grid, quantity)],
-                    da_kwargs=[(; projection_plane, smooth, print_range)],
+                    da_kwargs=[(; projection_plane, smooth, smoothing_length, print_range)],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
                     pp_kwargs=(; color=:blue),
