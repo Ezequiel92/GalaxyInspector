@@ -183,7 +183,7 @@ function ppAnnotation!(
 )::Nothing
 
     if isnothing(rel_pos)
-        pos = absCoor(figure, 0.03, 0.1)
+        pos = absCoor(figure, 0.03, 0.15)
     else
         if rel_pos[1] < 0.0 || rel_pos[2] < 0.0 || 1.0 < rel_pos[1] || 1.0 < rel_pos[2]
             throw(ArgumentError("ppAnnotation!: The values in `rel_pos` should be between 0 and 1"))

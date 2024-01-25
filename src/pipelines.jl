@@ -129,6 +129,7 @@ Some of the features are:
       + `:lookback_time` -> Physical time left to reach the last snapshot.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `colorbar::Bool=false`: If a colorbar will be added to heatmaps. Only relevant for when `plot_functions` is `heatmap!`.
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
   - `size::NTuple{2,Int}=(1280, 800)`: Size of the figures in points (≈ 0.353 mm). For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
@@ -195,6 +196,7 @@ function snapshotPlot(
     backup_results::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
+    colorbar::Bool=false,
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
     size::NTuple{2,Int}=(1280, 800),
@@ -573,7 +575,21 @@ function snapshotPlot(
 
             if animation || save_figures
                 # Draw the plot
-                plot_function(axes, axis_data...; color, marker, linestyle, pf_kwarg...)
+                pf = plot_function(axes, axis_data...; color, marker, linestyle, pf_kwarg...)
+            end
+
+            if plot_function isa typeof(heatmap!) && colorbar
+                # Compute the colorbar ticks
+                colorrange = pf.attributes.calculated_colors.val.colorrange.val
+                min_c = round(colorrange[1], RoundUp; digits=1)
+                max_c = round(colorrange[2], RoundDown; digits=1)
+                ticks = round.(range(min_c, max_c, 5); digits=1)
+
+                # For heatmaps add a colorbar
+                Colorbar(figure[1, 2], pf; ticks)
+
+                # Adjust its height
+                rowsize!(figure.layout, 1, Makie.Fixed(pixelarea(axes.scene)[].widths[2]))
             end
 
         end

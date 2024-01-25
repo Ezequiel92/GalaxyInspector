@@ -362,22 +362,26 @@ const THEME = Theme(
     fontsize=42,
     figure_padding=(1, 35, 10, 10),
     Axis=(
-        xlabelpadding=15.0,
-        ylabelpadding=15.0,
+        xlabelpadding=15,
+        ylabelpadding=15,
         xgridvisible=false,
         ygridvisible=false,
-        xminorticksvisible=true,
-        yminorticksvisible=true,
+        #TODO
+        # xticks=LinearTicks(5),
+        # yticks=LinearTicks(5),
+        #TODO
+        xtickalign=0,
+        ytickalign=0,
+        xticksize=7,
+        yticksize=7,
         xticklabelpad=10,
         yticklabelpad=10,
+        xminorticksvisible=true,
+        yminorticksvisible=true,
         xminortickalign=0,
         yminortickalign=0,
         xminorticks=IntervalsBetween(5),
         yminorticks=IntervalsBetween(5),
-        xticks=LinearTicks(5),
-        yticks=LinearTicks(5),
-        xtickalign=0,
-        ytickalign=0,
     ),
     Legend=(
         tellheight=false,
@@ -407,6 +411,7 @@ const THEME = Theme(
     Scatter=(markersize=22,),
     Errorbars=(whiskerwidth=10,),
     Heatmap=(colormap=:linear_kry_5_95_c72_n256, nan_color=:grey75),
+    Colorbar=(width=25, ticklabelpad=10, minorticksvisible=true, ticksize=7),
 )
 
 # Structures
@@ -1078,6 +1083,7 @@ const QUANTITIES = Dict(
     "S_WindMass"                     => Qty("SubhaloWindMass", Unitful.𝐌, :internal),
 )
 
+#TODO
 """
 Dictionary with the subhalo numbers for the different Hestia simulations.
 """
@@ -1095,3 +1101,4 @@ const HESTIA_SUBHALOS = Dict(
         :subhalo_number_M31 => 0,
     ),
 )
+#TODO

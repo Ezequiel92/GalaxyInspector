@@ -495,8 +495,6 @@ function snapshotReport(
         # Print the maximum and minimum values of each parameter of the ODEs
         ############################################################################################
 
-        println(file, "\tExtrema of the ODEs ICs and parameters:\n")
-
         quantities = ["ODIT", "ACIT", "DTIM", "TAUS", "RHOC", "PARZ", "ETAD", "ETAI", "PARR"]
         names = [
             "integration time",
@@ -520,6 +518,10 @@ function snapshotReport(
             Unitful.NoUnits,
             Unitful.NoUnits,
         ]
+
+        if any(blockPresent.(:gas, quantities, snapshot_path))
+            println(file, "\tExtrema of the ODEs ICs and parameters:\n")
+        end
 
         for (quantity, unit, name) in zip(quantities, units, names)
 
@@ -1587,14 +1589,15 @@ function densityMap(
                     backup_results=latex && !iszero(slice_n),
                     sim_labels=nothing,
                     title="",
+                    colorbar=true,
                     ##############################################################
                     # One-column-wide plot:
                     # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-                    # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+                    # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
                     ##############################################################
                     pt_per_unit=0.28346,
                     px_per_unit=1.0,
-                    size=(880, 880),
+                    size=(880, 800),
                     aspect=AxisAspect(1),
                     series_colors=nothing,
                     series_markers=nothing,
@@ -1788,6 +1791,7 @@ function scatterPlot(
             backup_results=false,
             sim_labels=nothing,
             title="",
+            colorbar=false,
             ################################################################
             # Two-column-wide plot:
             # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -1991,6 +1995,7 @@ function scatterDensityMap(
             backup_results=false,
             sim_labels=nothing,
             title="",
+            colorbar=false,
             ##############################################################
             # One-column-wide plot:
             # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
@@ -2365,6 +2370,7 @@ function rotationCurve(
         backup_results=latex,
         sim_labels,
         title="",
+        colorbar=false,
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -2573,6 +2579,7 @@ function densityProfile(
         backup_results=latex,
         sim_labels,
         title="",
+        colorbar=false,
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -2681,22 +2688,6 @@ function densityProfile(
 
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 """
     velocityProfile(
         simulation_paths::Vector{String},
@@ -2798,6 +2789,7 @@ function velocityProfile(
         backup_results=latex,
         sim_labels,
         title="",
+        colorbar=false,
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -2906,37 +2898,6 @@ function velocityProfile(
 
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 """
     stellarHistory(
         simulation_paths::Vector{String},
@@ -3041,6 +3002,7 @@ function stellarHistory(
         backup_results=latex,
         sim_labels,
         title="",
+        colorbar=false,
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -3240,6 +3202,7 @@ function stellarCircularity(
         backup_results=latex,
         sim_labels,
         title="",
+        colorbar=false,
         ##############################################################
         # One-column-wide plot:
         # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
@@ -3551,6 +3514,7 @@ function compareWithMolla2015(
         backup_results=false,
         sim_labels,
         title="",
+        colorbar=false,
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -3704,6 +3668,7 @@ function compareWithKennicuttBigiel(
         backup_results=false,
         sim_labels,
         title="",
+        colorbar=false,
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
