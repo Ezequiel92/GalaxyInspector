@@ -30,10 +30,10 @@ If physical units will be used throughout, instead of comoving units.
 const PHYSICAL_UNITS = false
 
 """
-Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{Mpc}``.
+Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{kpc}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
-const ILLUSTRIS_L_UNIT = 3.085678e24u"cm"
+const ILLUSTRIS_L_UNIT = 3.085678e21u"cm"
 
 """
 Internal unit of mass used in IllustrisTNG, equivalent to ``10^{10} \\, \\mathrm{M_\\odot}``.
@@ -100,10 +100,10 @@ See for example Gadget2 [User's Guide](https://wwwmpa.mpa-garching.mpg.de/gadget
 """
 const FULL_PARTICLE_INDEX = Dict(
     :gas        => 0,
-    :halo       => 1,
-    :disk       => 2, # Low resolution cells
-    :bulge      => 3, # Low resolution cells
-    :stars      => 4,
+    :halo       => 1, # High resolution dark matter
+    :disk       => 2, # Intermediate resolution dark matter
+    :bulge      => 3, # Low resolution dark matter
+    :stars      => 4, # Star particles and wind particles
     :black_hole => 5,
     :tracer     => 6,
 )
@@ -138,11 +138,11 @@ Human readable name corresponding to each type of cell/particle.
 """
 const PARTICLE_NAMES = Dict(
     :gas        => "Gas cells",
-    :halo       => "Dark matter particles",
-    :disk       => "Low resolution cells",
-    :bulge      => "Low resolution cells",
+    :halo       => "High resolution dark matter particles",
+    :disk       => "Intermediate resolution dark matter particles",
+    :bulge      => "Low resolution dark matter particles",
     :stars      => "Stellar particles",
-    :black_hole => "Black holes",
+    :black_hole => "Black hole particles",
     :tracer     => "Tracer particles",
 )
 
