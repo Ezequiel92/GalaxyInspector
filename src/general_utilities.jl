@@ -1474,31 +1474,3 @@ function cubicSplineKernel(q::Real, h::Number)::Number
     end
 
 end
-
-#TODO
-"""
-    introspect(var)::Nothing
-
-See the content and structure of a given variable
-"""
-function introspect(var)::Nothing
-
-    type = typeof(var)
-    field_names = fieldnames(type)
-
-    println("Value:\n")
-    println("$var\n")
-    println("Type:\n")
-    println("$type\n")
-
-    if isempty(field_names)
-        println("The variable isn't a struct.");
-    else
-        println("Structure:\n");
-        println(DataFrame(name = [field_names...], type = [fieldtypes(type)...]))
-    end
-
-    return nothing
-
-end
-#TODO

@@ -366,10 +366,6 @@ const THEME = Theme(
         ylabelpadding=15,
         xgridvisible=false,
         ygridvisible=false,
-        #TODO
-        # xticks=LinearTicks(5),
-        # yticks=LinearTicks(5),
-        #TODO
         xtickalign=0,
         ytickalign=0,
         xticksize=7,
@@ -1083,9 +1079,8 @@ const QUANTITIES = Dict(
     "S_WindMass"                     => Qty("SubhaloWindMass", Unitful.𝐌, :internal),
 )
 
-#TODO
 """
-Dictionary with the subhalo numbers for the different Hestia simulations.
+Dictionary with the subhalo numbers for the MW and M31 in Hestia simulations.
 """
 const HESTIA_SUBHALOS = Dict(
     "Hestia17-11" => Dict(
@@ -1101,4 +1096,3 @@ const HESTIA_SUBHALOS = Dict(
         :subhalo_number_M31 => 0,
     ),
 )
-#TODO

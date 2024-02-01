@@ -107,7 +107,6 @@ Compute the gas mass and SFR surface densities, used in the Kennicutt-Schmidt la
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `grid::CircularGrid`: Circular grid.
 
 # Returns
@@ -175,7 +174,6 @@ Compute the (molecular or neutral) gas mass and SFR surface densities, used in t
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `grid::CircularGrid`: Circular grid.
   - `quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
@@ -258,7 +256,6 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `grid::CircularGrid`: Circular grid.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
@@ -525,7 +522,6 @@ Compute the evolution of a given stellar `quantity` using the stellar ages at a 
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `quantity::Symbol=:sfr`: Which quantity will be calculated. The options are:
 
       + `:sfr`          -> The star formation rate.
@@ -617,7 +613,6 @@ Compute a histogram of the stellar circularity, normalized to the maximum number
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `grid::LinearGrid`: Linear grid.
 
 # Returns
@@ -1056,7 +1051,6 @@ Compute a 2D mean velocity field.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `grid::SquareGrid`: Square grid.
   - `type_symbol::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
@@ -1134,7 +1128,6 @@ Compute two global quantities of the simulation.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`           -> Stellar mass.
@@ -1393,7 +1386,6 @@ Compute the time series of two quantities.
 # Arguments
 
   - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
-
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`           -> Stellar mass.

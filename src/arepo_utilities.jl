@@ -86,7 +86,7 @@ Construct an axis label.
 
 # Returns
 
-  - The `LaTeXString` or `String`: "`label` / 10^`factor` `unit`". If `label` is "", an empty string is returned. The `factor` term only appears if `factor` != 0, the unit term only appears if `unit` != `Unitful.NoUnits`, and the division only appears if there are a factor and/or a unit term.
+  - The `LaTeXString` or `String`: "`label` [10^`factor` `unit`]". If `label` is "", an empty string is returned. The `factor` term only appears if `factor` != 0, the unit term only appears if `unit` != `Unitful.NoUnits`, and the brackets only appears if there are a factor and/or a unit term.
 """
 function getLabel(
     label::AbstractString,
@@ -2140,19 +2140,20 @@ function computePARotationMatrix(
     # 3rd principal axis ≡ new z axis
     pa_z = pa[:, 3]
 
-    # Rotate the principal axis to align the thid component with the angular momentum
+    # Rotate the principal axis as to align the thid component with the angular momentum
     θ = acos(L ⋅ pa_z)
     n = cross(pa_z, L)
     aligned_pa = AngleAxis(θ, n...) * pa
 
+    # The rotation matrix is made from the principal axis as rows
     rotation_matrix = aligned_pa'
 
     if det(rotation_matrix) < 0.0
-        # If the determinant is < 0.0, that means that the principal axis that were chosen as the
-        # x and y directions in the rotation matrix form a left-handed cartesian reference system
-        # (x × y = -z). When applying this as a rotation the z axis will be inverted. So, we swap
-        # the x and y axis to construct a right-handed cartesian reference system (x × y = z) and
-        # produce the correct rotation.
+        # If the determinant is < 0, that means that the chosen principal axis for the x and y
+        # directions form a left-handed cartesian reference system (x × y = -z). When applying
+        # this as a rotation, the z axis will be flipped. So, in this case we swap the x and y
+        # axis to get a right-handed cartesian reference system (x × y = z) and generate the
+        # correct rotation
         rotation_matrix[1, :], rotation_matrix[2, :] = rotation_matrix[2, :], rotation_matrix[1, :]
     end
 
@@ -2713,14 +2714,17 @@ function computeStellarVpolar(data_dict::Dict, component::Symbol)::Vector{<:Unit
 
     if component == :radial
 
+        # Compute the radial component
         vp = @. (x * vx + y * vy) / sqrt(x * x + y * y)
 
     elseif component == :tangential
 
+        # Compute the tangential component
         vp = @. (x * vy - y * vx) / sqrt(x * x + y * y)
 
     elseif component == :zstar
 
+        # Compute the z component
         vp = @. vz * sign(z)
 
     else
