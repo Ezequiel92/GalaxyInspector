@@ -129,6 +129,7 @@ Some of the features are:
       + `:lookback_time` -> Physical time left to reach the last snapshot.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `legend_kwarg::NamedTuple=(;)`: Keyword arguments for the legends.
   - `colorbar::Bool=false`: If a colorbar will be added to heatmaps. Only relevant for when `plot_functions` is `heatmap!`.
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
@@ -196,6 +197,7 @@ function snapshotPlot(
     backup_results::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
+    legend_kwarg::NamedTuple=(;),
     colorbar::Bool=false,
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
@@ -682,7 +684,7 @@ function snapshotPlot(
                     end
                 end
 
-                Makie.Legend(figure[1, 1][1, 1], legend_element, sim_labels)
+                Makie.Legend(figure[1, 1][1, 1], legend_element, sim_labels; legend_kwarg...)
 
             end
 
@@ -694,7 +696,8 @@ function snapshotPlot(
                 Makie.Legend(
                     figure[1, 1][!isnothing(sim_labels) ? 2 : 1, 1],
                     pp_legend[1],
-                    pp_legend[2],
+                    pp_legend[2];
+                    legend_kwarg...,
                 )
             end
 
@@ -810,6 +813,7 @@ Some of the features are:
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
+  - `legend_kwarg::NamedTuple=(;)`: Keyword arguments for the legends.
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
   - `size::NTuple{2,Int}=(1280, 800)`: Size of the figures in points (≈ 0.353 mm). For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
@@ -868,6 +872,7 @@ function timeSeriesPlot(
     backup_results::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=nothing,
     title::AbstractString="",
+    legend_kwarg::NamedTuple=(;),
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
     size::NTuple{2,Int}=(1280, 800),
@@ -1102,7 +1107,7 @@ function timeSeriesPlot(
                 end
             end
 
-            Makie.Legend(figure[1, 1][1, 1], legend_element, sim_labels)
+            Makie.Legend(figure[1, 1][1, 1], legend_element, sim_labels; legend_kwarg...)
 
         end
 
@@ -1114,7 +1119,8 @@ function timeSeriesPlot(
             Makie.Legend(
                 figure[1, 1][!isnothing(sim_labels) ? 2 : 1, 1],
                 pp_legend[1],
-                pp_legend[2],
+                pp_legend[2];
+                legend_kwarg...,
             )
         end
 

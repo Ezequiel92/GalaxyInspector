@@ -1241,6 +1241,7 @@ function sfrTXT(
         backup_results=latex,
         sim_labels,
         title="",
+        legend_kwarg=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -1428,6 +1429,7 @@ function cpuTXT(
         backup_results=false,
         sim_labels,
         title=L"\mathrm{Process: \,\, %$(safe_str_target)}",
+        legend_kwarg=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -1589,6 +1591,7 @@ function densityMap(
                     backup_results=latex && !iszero(slice_n),
                     sim_labels=nothing,
                     title="",
+                    legend_kwarg=(;),
                     colorbar=true,
                     ##############################################################
                     # One-column-wide plot:
@@ -1791,6 +1794,7 @@ function scatterPlot(
             backup_results=false,
             sim_labels=nothing,
             title="",
+            legend_kwarg=(;),
             colorbar=false,
             ################################################################
             # Two-column-wide plot:
@@ -1995,6 +1999,7 @@ function scatterDensityMap(
             backup_results=false,
             sim_labels=nothing,
             title="",
+            legend_kwarg=(;),
             colorbar=false,
             ##############################################################
             # One-column-wide plot:
@@ -2180,6 +2185,7 @@ function timeSeries(
         save_figures=!latex,
         backup_results=latex,
         sim_labels,
+        legend_kwarg=(;),
         title="",
         ################################################################
         # Two-column-wide plot:
@@ -2370,6 +2376,7 @@ function rotationCurve(
         backup_results=latex,
         sim_labels,
         title="",
+        legend_kwarg=(;),
         colorbar=false,
         ################################################################
         # Two-column-wide plot:
@@ -2579,6 +2586,7 @@ function densityProfile(
         backup_results=latex,
         sim_labels,
         title="",
+        legend_kwarg=(; valign=:top),
         colorbar=false,
         ################################################################
         # Two-column-wide plot:
@@ -2789,6 +2797,7 @@ function velocityProfile(
         backup_results=latex,
         sim_labels,
         title="",
+        legend_kwarg=(;),
         colorbar=false,
         ################################################################
         # Two-column-wide plot:
@@ -3002,6 +3011,7 @@ function stellarHistory(
         backup_results=latex,
         sim_labels,
         title="",
+        legend_kwarg=(;),
         colorbar=false,
         ################################################################
         # Two-column-wide plot:
@@ -3202,6 +3212,7 @@ function stellarCircularity(
         backup_results=latex,
         sim_labels,
         title="",
+        legend_kwarg=(; rowgap=-10, halign=:left, valign=:top, nbanks=1, labelsize=20),
         colorbar=false,
         ##############################################################
         # One-column-wide plot:
@@ -3394,6 +3405,7 @@ function compareWithFeldmann2020(
         backup_results=false,
         sim_labels,
         title="",
+        legend_kwarg=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -3514,6 +3526,7 @@ function compareWithMolla2015(
         backup_results=false,
         sim_labels,
         title="",
+        legend_kwarg=(;),
         colorbar=false,
         ################################################################
         # Two-column-wide plot:
@@ -3668,6 +3681,7 @@ function compareWithKennicuttBigiel(
         backup_results=false,
         sim_labels,
         title="",
+        legend_kwarg=(;),
         colorbar=false,
         ################################################################
         # Two-column-wide plot:
@@ -3806,6 +3820,7 @@ function compareWithKennicuttBigiel(
         backup_results=false,
         sim_labels,
         title="",
+        legend_kwarg=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm

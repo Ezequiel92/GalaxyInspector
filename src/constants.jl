@@ -25,7 +25,7 @@ Relative path, within the simulation directory, to the `cpu.txt` file.
 const CPU_REL_PATH = "output/cpu.txt"
 
 """
-If physical units will be used throughout, instead of comoving units.
+If physical lengths will be used throughout, instead of comoving lengths.
 """
 const PHYSICAL_UNITS = false
 
@@ -383,11 +383,15 @@ const THEME = Theme(
         tellheight=false,
         tellwidth=false,
         margin=(15, 15, 10, 10),
+        framevisible=false,
+        colgap=25,
         halign=:right,
         valign=:bottom,
-        framevisible=false,
+        nbanks=3,
         labelsize=30,
         linewidth=5,
+        markersize=28,
+        patchsize=(50, 50),
         linepoints=[Point2f(-0.1, 0.5), Point2f(0.9, 0.5)],
         polypoints=[
             Point2f(0.15, 0.15),
@@ -395,10 +399,6 @@ const THEME = Theme(
             Point2f(0.85, 0.85),
             Point2f(0.15, 0.85),
         ],
-        colgap=25,
-        markersize=28,
-        patchsize=(50, 50),
-        nbanks=3,
     ),
     Lines=(linewidth=5,),
     VLines=(linewidth=3,),
