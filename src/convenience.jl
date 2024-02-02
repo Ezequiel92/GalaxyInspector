@@ -1486,6 +1486,12 @@ Plot a 2D histogram of the density.
   - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
   - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
   - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used. This option is ignore if `slice_n` = 0.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
@@ -1502,6 +1508,7 @@ function densityMap(
     smooth::Bool=false,
     smoothing_length::Union{Unitful.Length,Nothing}=nothing,
     print_range::Bool=false,
+    title::Union{Symbol,<:AbstractString}="",
     annotation::String="",
     latex::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
@@ -1590,7 +1597,7 @@ function densityMap(
                     save_figures=!latex && !iszero(slice_n),
                     backup_results=latex && !iszero(slice_n),
                     sim_labels=nothing,
-                    title="",
+                    title,
                     legend_kwarg=(;),
                     colorbar=true,
                     ##############################################################
