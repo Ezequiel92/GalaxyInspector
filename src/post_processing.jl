@@ -494,7 +494,7 @@ end
         figure::Makie.Figure,
         quantity::Symbol,
         <keyword arguments>
-    )::Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}}
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
 Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015).
 
@@ -516,7 +516,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
 
   - A tuple with the elements for the legend:
 
-      + A `LineElement` to be used as the marker.
+      + A `MarkerElement` to be used as the marker.
       + The label string.
 
 # References
@@ -529,7 +529,7 @@ function ppMolla2015!(
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
     error_bars::Bool=true,
-)::Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}}
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
     # Read the file with the compiled data
     data = CSV.read(
@@ -588,15 +588,7 @@ function ppMolla2015!(
         errorbars!(figure.current_axis.x, x_values, y_values, y_uncertainties; color)
     end
 
-    return (
-        [
-            [
-                LineElement(; color, linestyle, linepoints=[Point2f(0.0, 0.5), Point2f(1.0, 0.5)]),
-                MarkerElement(; color, marker=:utriangle),
-            ],
-        ],
-        ["Mollá et al. (2015)"],
-    )
+    return ([MarkerElement(; color, marker=:utriangle)], ["Mollá et al. (2015)"])
 
 end
 

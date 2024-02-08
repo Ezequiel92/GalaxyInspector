@@ -235,13 +235,13 @@ function snapshotReport(
             total_count += count
 
             title = "$(PARTICLE_NAMES[component]):"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
 
             println(file, "\t\t$(title)$(count)")
 
         end
 
-        println(file, "\n\t\tTotal count:            $(total_count)\n")
+        println(file, "\n\t\tTotal count:             $(total_count)\n")
 
         ############################################################################################
         # Print the total mass of each component
@@ -257,7 +257,7 @@ function snapshotReport(
             total_mass += mass
 
             title = "$(PARTICLE_NAMES[component]):"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
 
             println(file, "\t\t$(title)$(round(typeof(1.0u"Msun"), mass, sigdigits=3))")
 
@@ -265,7 +265,7 @@ function snapshotReport(
 
         println(
             file,
-            "\n\t\tTotal mass:             $(round(typeof(1.0u"Msun"), total_mass, sigdigits=3))\n",
+            "\n\t\tTotal mass:              $(round(typeof(1.0u"Msun"), total_mass, sigdigits=3))\n",
         )
 
         ############################################################################################
@@ -288,7 +288,7 @@ function snapshotReport(
             h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
 
             title = "Ionized mass:"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hii_mass, sigdigits=3)) \
@@ -296,7 +296,7 @@ function snapshotReport(
             )
 
             title = "Atomic mass:"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
@@ -304,7 +304,7 @@ function snapshotReport(
             )
 
             title = "Molecular mass:"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
@@ -335,7 +335,7 @@ function snapshotReport(
             count = length(data_dict[component]["MASS"])
 
             title = "$(PARTICLE_NAMES[component]):"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
 
             total_count += count
 
@@ -343,7 +343,7 @@ function snapshotReport(
 
         end
 
-        println(file, "\n\t\tTotal count:            $(total_count)\n")
+        println(file, "\n\t\tTotal count:             $(total_count)\n")
 
         ############################################################################################
         # Print the mass of each component
@@ -359,7 +359,7 @@ function snapshotReport(
             total_mass += mass
 
             title = "$(PARTICLE_NAMES[component]):"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
 
             println(file, "\t\t$(title)$(round(typeof(1.0u"Msun"), mass, sigdigits=3))")
 
@@ -367,7 +367,7 @@ function snapshotReport(
 
         println(
             file,
-            "\n\t\tTotal mass:             $(round(typeof(1.0u"Msun"), total_mass, sigdigits=3))\n",
+            "\n\t\tTotal mass:              $(round(typeof(1.0u"Msun"), total_mass, sigdigits=3))\n",
         )
 
         ############################################################################################
@@ -390,7 +390,7 @@ function snapshotReport(
             h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
 
             title = "Ionized mass:"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hii_mass, sigdigits=3)) \
@@ -398,7 +398,7 @@ function snapshotReport(
             )
 
             title = "Atomic mass:"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
@@ -406,7 +406,7 @@ function snapshotReport(
             )
 
             title = "Molecular mass:"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
@@ -428,15 +428,15 @@ function snapshotReport(
             cm = computeCenterOfMass(data_dict[component]["POS "], data_dict[component]["MASS"])
 
             title = "$(PARTICLE_NAMES[component]):"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
 
             println(file, "\t\t$(title)$(round.(ustrip.(u"Mpc", cm), sigdigits=6)) $(u"Mpc")")
-            println(file, "\t\tDistance to global CM:  $(sqrt(sum((global_cm - cm).^2)))\n")
+            println(file, "\t\tDistance to global CM:   $(sqrt(sum((global_cm - cm).^2)))\n")
 
         end
 
         global_cm = round.(ustrip.(u"Mpc", global_cm), sigdigits=6)
-        println(file, "\t\tGlobal center of mass:  $(global_cm) $(u"Mpc")\n")
+        println(file, "\t\tGlobal center of mass:   $(global_cm) $(u"Mpc")\n")
 
         # Translate the simulation box
         translateData!(data_dict, translation)
@@ -456,7 +456,7 @@ function snapshotReport(
             )
 
             title = "$(PARTICLE_NAMES[component]):"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
 
             println(file, "\t\t$(title)$(round.(L, sigdigits=3))")
 
@@ -481,7 +481,7 @@ function snapshotReport(
             )
 
             title = "$(PARTICLE_NAMES[component]):"
-            title *= " "^(24 - length(title))
+            title *= " "^(25 - length(title))
 
             println(file, "\t\t$(title)$(round.(λ, sigdigits=3))")
 
@@ -489,7 +489,7 @@ function snapshotReport(
 
         global_λ = round.(computeGlobalSpinParameter(data_dict), sigdigits=3)
 
-        println(file, "\n\t\tTotal spin parameter:   $(global_λ)\n")
+        println(file, "\n\t\tTotal spin parameter:    $(global_λ)\n")
 
         ############################################################################################
         # Print the maximum and minimum values of each parameter of the ODEs

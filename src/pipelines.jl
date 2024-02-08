@@ -659,9 +659,14 @@ function snapshotPlot(
 
             end
 
-            # Add a legend to the plot
-            if !isnothing(sim_labels)
+            # Apply the post processing function
+            pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
+            legend_elements = Vector{Makie.LegendElement}[]
+            legend_labels = Vector{AbstractString}[]
+
+            if !isnothing(sim_labels)
+                # Add the main legend
                 (
                     length(sim_labels) == n_simulations ||
                     throw(ArgumentError("snapshotPlot: The arguments `simulation_paths` and \
@@ -684,19 +689,26 @@ function snapshotPlot(
                     end
                 end
 
-                Makie.Legend(figure[1, 1][1, 1], legend_element, sim_labels; legend_kwarg...)
+                push!(legend_elements, legend_element)
+                push!(legend_labels, sim_labels)
 
             end
 
-            # Apply the post processing function
-            pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
-
-            # Add the post processing legend
             if !isnothing(pp_legend)
+                # Add the post processing legend
+                push!(legend_elements, pp_legend[1])
+                push!(legend_labels, pp_legend[2])
+            end
+
+            if !any(isempty.([legend_elements, legend_labels]))
+                #TODO
+                titles = fill("", length(legend_elements))
+                # Add a legend to the plot
                 Makie.Legend(
-                    figure[1, 1][!isnothing(sim_labels) ? 2 : 1, 1],
-                    pp_legend[1],
-                    pp_legend[2];
+                    figure[1, 1],
+                    legend_elements,
+                    legend_labels,
+                    titles;
                     legend_kwarg...,
                 )
             end
@@ -1082,9 +1094,14 @@ function timeSeriesPlot(
         axes.xscale = (xscale_flag ? xaxis_scale_func : identity)
         axes.yscale = (yscale_flag ? yaxis_scale_func : identity)
 
-        # Add a legend to the plot
-        if !isnothing(sim_labels)
+        # Apply the post processing function
+        pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
+        legend_elements = Vector{Makie.LegendElement}[]
+        legend_labels = Vector{AbstractString}[]
+
+        if !isnothing(sim_labels)
+            # Add the main legend
             (
                 length(sim_labels) == n_simulations ||
                 throw(ArgumentError("timeSeriesPlot: The arguments `simulation_paths` and \
@@ -1107,19 +1124,26 @@ function timeSeriesPlot(
                 end
             end
 
-            Makie.Legend(figure[1, 1][1, 1], legend_element, sim_labels; legend_kwarg...)
+            push!(legend_elements, legend_element)
+            push!(legend_labels, sim_labels)
 
         end
 
-        # Apply the post processing function
-        pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
-
-        # Add the post processing legend
         if !isnothing(pp_legend)
+            # Add the post processing legend
+            push!(legend_elements, pp_legend[1])
+            push!(legend_labels, pp_legend[2])
+        end
+
+        if !any(isempty.([legend_elements, legend_labels]))
+            #TODO
+            titles = fill("", length(legend_elements))
+            # Add a legend to the plot
             Makie.Legend(
-                figure[1, 1][!isnothing(sim_labels) ? 2 : 1, 1],
-                pp_legend[1],
-                pp_legend[2];
+                figure[1, 1],
+                legend_elements,
+                legend_labels,
+                titles;
                 legend_kwarg...,
             )
         end
