@@ -2377,7 +2377,7 @@ function rotationCurve(
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,
         xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
+        yaxis_limits=(0.0, nothing),
         # Plotting and animation options
         save_figures=!latex,
         backup_results=latex,
