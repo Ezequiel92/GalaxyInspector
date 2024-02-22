@@ -723,7 +723,7 @@ function ppFeldmann2020!(
     n_bins       = length(grid.grid)
     bin_width    = (x_max - x_min) / n_bins
 
-    # Allocate memory for the histogram of indexes
+    # Allocate memory for the histogram of indices
     histogram = Vector{Int}[Vector{Int}[] for _ in 1:n_bins]
 
     # Compute the histogram; ignoring missings and values outside the grid range

@@ -117,14 +117,28 @@ isPositive(x::AbstractArray)::Bool = all(isPositive, x)
 isPositive(x...)::Bool = all(isPositive, x)
 
 """
-Extension of `Base.iszero` to compeare [`IndexType`](@ref) with interger 0.
+New method for `Base.iszero` to compare [`IndexType`](@ref) with 0 as an interger.
 """
 Base.iszero(x::IndexType)::Bool = x == 0
 
 """
-Extension of `Base.isempty` to check for empty [LaTeXStrings](https://github.com/JuliaStrings/LaTeXStrings.jl).
+New method for `Base.isempty` to check for empty [LaTeXStrings](https://github.com/JuliaStrings/LaTeXStrings.jl).
 """
 Base.isempty(l_str::LaTeXString)::Bool = l_str == L""
+
+"""
+New methods for `Base.intersect` to use with the `Colon` type.
+"""
+Base.intersect(a1::Colon, a2::IndexType)::IndexType = a2
+Base.intersect(a1::IndexType, a2::Colon)::IndexType = a1
+Base.intersect(a1::Colon, a2::Colon)::Colon = (:)
+
+"""
+New methods for `Base.intersect` to use with the `Vector{Bool}` type.
+"""
+Base.intersect(a1::Vector{Bool}, a2::IndexType)::Vector{Int64} = findall(a1) ∩ a2
+Base.intersect(a1::IndexType, a2::Vector{Bool})::Vector{Int64} = a1 ∩ findall(a2)
+Base.intersect(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .&& a2)
 
 """
 Always returns `nothing`, for any type and number of arguments.

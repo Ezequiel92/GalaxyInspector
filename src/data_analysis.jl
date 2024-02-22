@@ -1226,7 +1226,8 @@ end
     daScatterGalaxy(
         data_dict::Dict,
         x_quantity::Symbol,
-        y_quantity::Symbol,
+        y_quantity::Symbol;
+        <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
 Compute two quantities for every cell/particle in the simulation.
@@ -1324,6 +1325,32 @@ Compute two quantities for every cell/particle in the simulation.
       + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+      `filter_function(data_dict) -> indices`
+
+      where
+
+        + `data_dict::Dict`: A dictionary with the following shape:
+
+            * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+            * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+            * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * ...
+            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * ...
+
+        + `indices::Dict`: A dictionary with the following shape:
+
+            * `cell/particle type` -> idxs::IndexType
+            * `cell/particle type` -> idxs::IndexType
+            * `cell/particle type` -> idxs::IndexType
+            * ...
 
 # Returns
 
@@ -1335,11 +1362,14 @@ Compute two quantities for every cell/particle in the simulation.
 function daScatterGalaxy(
     data_dict::Dict,
     x_quantity::Symbol,
-    y_quantity::Symbol,
+    y_quantity::Symbol;
+    filter_function::Function=filterNothing,
 )::NTuple{2,Vector{<:Number}}
 
-    x_axis = scatterQty(data_dict, x_quantity)
-    y_axis = scatterQty(data_dict, y_quantity)
+    data = filterData(data_dict; filter_function)
+
+    x_axis = scatterQty(data, x_quantity)
+    y_axis = scatterQty(data, y_quantity)
 
     idx = sortperm(x_axis)
 

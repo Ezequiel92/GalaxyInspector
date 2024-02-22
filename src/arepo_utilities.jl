@@ -453,6 +453,80 @@ function filterData!(data_dict::Dict; filter_function::Function=filterNothing)::
 end
 
 """
+    filterData(data_dict::Dict; <keyword arguments>)::Dict
+
+Returna filtered copy of `data_dict` using the indices provided by `filter_function`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+          * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+          * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+          * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+          * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+          * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+          * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+          * ...
+          * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+          * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+          * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+          * ...
+
+      + `indices::Dict`: A dictionary with the following shape:
+
+          * `cell/particle type` -> idxs::IndexType
+          * `cell/particle type` -> idxs::IndexType
+          * `cell/particle type` -> idxs::IndexType
+          * ...
+
+# Returns
+
+  - The filtered data.
+"""
+function filterData(data_dict::Dict; filter_function::Function=filterNothing)::Dict
+
+    data_dict_copy = deepcopy(data_dict)
+
+    # Compute the filter dictionary
+    indices = filter_function(data_dict_copy)
+
+    @inbounds for type_symbol in snapshotTypes(data_dict_copy)
+
+        idxs = indices[type_symbol]
+
+        @inbounds for (block, data) in data_dict_copy[type_symbol]
+            @inbounds if !isempty(data)
+                data_dict_copy[type_symbol][block] = collect(selectdim(data, ndims(data), idxs))
+            end
+        end
+
+    end
+
+    return data_dict_copy
+
+end
+
+"""
     computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
 Read the position of the potencial minimum for a given halo or subhalo.
@@ -4187,17 +4261,22 @@ Filter out gas cells and stellar particles with metallicity outside the range [`
 """
 function filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Symbol,IndexType}
 
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
     @inbounds for type_symbol in snapshotTypes(data_dict)
 
         @inbounds if type_symbol == :gas
-            indices[type_symbol] = map(x -> l_Z <= x <= h_Z, data[:gas]["GZ  "])
+            indices[type_symbol] = map(x -> l_Z <= x <= h_Z, data_dict[:gas]["GZ  "])
         elseif type_symbol == :stars
-            indices[type_symbol] = map(x -> l_Z <= x <= h_Z, data[:stars]["GZ2 "])
+            indices[type_symbol] = map(x -> l_Z <= x <= h_Z, data_dict[:stars]["GZ2 "])
         else
             indices[type_symbol] = (:)
         end
 
     end
+
+    return indices
 
 end
 
@@ -4235,6 +4314,9 @@ Filter out stellar particles with circularity outside the range [`l_ϵ`, `h_ϵ`]
 """
 function filterCircularity(data_dict::Dict, l_ϵ::Float64, h_ϵ::Float64)::Dict{Symbol,IndexType}
 
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
     @inbounds for type_symbol in snapshotTypes(data_dict)
 
         @inbounds if type_symbol == :stars
@@ -4245,6 +4327,8 @@ function filterCircularity(data_dict::Dict, l_ϵ::Float64, h_ϵ::Float64)::Dict{
         end
 
     end
+
+    return indices
 
 end
 
@@ -4390,6 +4474,70 @@ function filterSubhalo(
 
         end
 
+    end
+
+    return indices
+
+end
+
+"""
+    filterZinSubhalo(
+        data_dict::Dict,
+        l_Z::Float64,
+        h_Z::Float64;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out gas cells and stellar particles with metallicity outside the range [`l_Z`, `h_Z`], and every cell/particle that does not belong to a given halo and subhalo.
+
+# Arguments
+
+  - `data::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `l_Z::Float64`: Minimum metallicity.
+  - `h_Z::Float64`: Maximum metallicity.
+  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterZinSubhalo(
+    data_dict::Dict,
+    l_Z::Float64,
+    h_Z::Float64;
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+)::Dict{Symbol,IndexType}
+
+    # Find indices to filter by halo and subhalo
+    subhalo_idxs = filterSubhalo(data_dict; halo_idx, subhalo_rel_idx)
+
+    # Find indices to filter by metallicity
+    metallicity_idxs = filterMetallicity(data_dict, l_Z, h_Z)
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+        indices[type_symbol] = subhalo_idxs[type_symbol] ∩ metallicity_idxs[type_symbol]
     end
 
     return indices

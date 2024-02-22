@@ -100,8 +100,8 @@ Some of the features are:
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the y axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
   - `x_exp_factor::Int=0`: Numerical exponent to scale down the x axis, e.g. if `x_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
   - `y_exp_factor::Int=0`: Numerical exponent to scale down the y axis, e.g. if `y_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
-  - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.
-  - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`. This option does not affect histograms.
+  - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`, in the units given by `x_unit`.
+  - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`, in the units given by `y_unit`. This option does not affect histograms.
   - `x_edges::Bool=false`: Set it to `true` if you want to keep the borders of `x_trim`.
   - `y_edges::Bool=false`: Set it to `true` if you want to keep the borders of `y_trim`.
   - `x_func::Function=identity`: Function to be applied to the values of the x axis. It must be a pure function with the signature `x_func(x_values::Vector{Float64})::Vector{Float64}`. The output must have the same length as the input. This function will be applied regardless of units and possible domain problems (use `x_trim` to solve incompatibilities), and that it will not be reflected in the automatic labeling.
@@ -569,7 +569,7 @@ function snapshotPlot(
                 end
 
                 jldopen(joinpath(output_path, base_filename * ".jld2"), "a+"; compress=true) do f
-                    address = "$(base_filename)-$(SNAP_BASENAME)_$(snapshot_number)/$sim_name"
+                    address = "$(base_filename)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                     f[address] = axis_data
                 end
 
@@ -801,8 +801,8 @@ Some of the features are:
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the y axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
   - `x_exp_factor::Int=0`: Numerical exponent to scale down the x axis, e.g. if `x_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
   - `y_exp_factor::Int=0`: Numerical exponent to scale down the y axis, e.g. if `y_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
-  - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.
-  - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`.
+  - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`, in the units given by `x_unit`.
+  - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`, in the units given by `y_unit`.
   - `x_edges::Bool=false`: Set it to `true` if you want to keep the borders of `x_trim`.
   - `y_edges::Bool=false`: Set it to `true` if you want to keep the borders of `y_trim`.
   - `x_func::Function=identity`: Function to be applied to the values of the x axis. It must be a pure function with the signature `x_func(x_values::Vector{Float64})::Vector{Float64}`. The output must have the same length as the input. This function will be applied regardless of units and possible domain problems (use `x_trim` to solve incompatibilities), and that it will not be reflected in the automatic labeling.
