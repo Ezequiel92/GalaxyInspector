@@ -253,17 +253,21 @@ function ppFitLine!(
 
     sort!(points; by=x -> x[1])
 
+    # Get the scaling of each axis
+    x_scaling = xscale(figure)
+    y_scaling = yscale(figure)
+
     ################################################################################################
     # Linear fit
     ################################################################################################
 
     # Get the x coordinates of the points
-    x_points = Float64[point[1] for point in points]
+    x_points = x_scaling.(Float64[point[1] for point in points])
 
     # Get the y coordinates of the points
-    y_points = Float64[point[2] for point in points]
+    y_points = y_scaling.(Float64[point[2] for point in points])
 
-    # Compute the linear fit
+    # Compute the linear fit in scaled (e.g. log10) space
     X = [ones(length(x_points)) x_points]
     linear_model = lm(X, y_points)
 
@@ -272,14 +276,12 @@ function ppFitLine!(
     intercept_mean = coeff[1]
     slope_mean = coeff[2]
 
+    # Revert to unscaled values
+    x_line = Makie.inverse_transform(x_scaling).(x_points)
+    y_line = Makie.inverse_transform(y_scaling).(x_points .* slope_mean .+ intercept_mean)
+
     # Plot the linear fit
-    lines!(
-        figure.current_axis.x,
-        x_points,
-        x_points .* slope_mean .+ intercept_mean;
-        color,
-        linestyle,
-    )
+    lines!(figure.current_axis.x, x_line, y_line; color, linestyle)
 
     ################################################################################################
     # Annotation
@@ -310,8 +312,9 @@ function ppFitLine!(
     # Draw the annotation
     text!(
         figure.current_axis.x,
-        [absCoor(figure, 0.63, 0.93), absCoor(figure, 0.63, 0.88), absCoor(figure, 0.63, 0.83)];
+        [absCoor(figure, 0.5, 0.93), absCoor(figure, 0.5, 0.88), absCoor(figure, 0.5, 0.83)];
         text=[L"y = a \, x + b", L"a = %$slope \pm %$δslope", L"b = %$intercept \pm %$δintercept"],
+        align=(:center, :bottom),
     )
 
     return [LineElement(; color, linestyle)], ["Linear fit"]
@@ -365,6 +368,7 @@ function ppKennicutt1998!(
         return nothing
     end
 
+    # Get the x coordinates of the points
     x_points = sort!(Float64[point[1] for point in points])
 
     # Compute the area density of gas
@@ -441,6 +445,7 @@ function ppBigiel2008!(
         return nothing
     end
 
+    # Get the x coordinates of the points
     x_points = sort!(Float64[point[1] for point in points])
 
     # Read the file with the fit data

@@ -78,7 +78,7 @@ export sfrTXT
 export cpuTXT
 export densityMap
 export scatterPlot
-export atomicMolecularTransitionPlot
+export atomicToMolecularTransition
 export scatterDensityMap
 export timeSeries
 export rotationCurve
@@ -89,5 +89,6 @@ export stellarCircularity
 export compareWithFeldmann2020
 export compareWithMolla2015
 export compareWithKennicuttBigiel
+export fitKennicuttBigielLaw
 
 end

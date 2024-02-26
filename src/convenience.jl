@@ -1241,7 +1241,7 @@ function sfrTXT(
         backup_results=latex,
         sim_labels,
         title="",
-        legend_kwarg=(;),
+        legend_kwarg=(; valign=:top),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -1429,7 +1429,7 @@ function cpuTXT(
         backup_results=false,
         sim_labels,
         title=L"\mathrm{Process: \,\, %$(safe_str_target)}",
-        legend_kwarg=(;),
+        legend_kwarg=(; halign=:left, valign=:top),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -1828,7 +1828,7 @@ function scatterPlot(
 end
 
 """
-    atomicMolecularTransitionPlot(
+    atomicToMolecularTransition(
         simulation_paths::Vector{String},
         slice_n::Int,
         ranges::Vector{<:Tuple{<:Real,<:Real}};
@@ -1846,7 +1846,7 @@ Plot the atomic gas to molecular gas transition as a scatter plot, for a set of 
   - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
   - `output_path::String="./"`: Path to the output folder.
 """
-function atomicMolecularTransitionPlot(
+function atomicToMolecularTransition(
     simulation_paths::Vector{String},
     slice_n::Int,
     ranges::Vector{<:Tuple{<:Real,<:Real}};
@@ -1858,7 +1858,7 @@ function atomicMolecularTransitionPlot(
     # Set some plotting parameters
     x_quantity = :atomic_number_density
     y_quantity = :molecular_fraction
-    x_trim     = (1.0, Inf)
+    x_trim     = (-Inf, Inf)
     da_kwargs  = [
         (;
             filter_function=data_dict -> filterZinSubhalo(
@@ -1937,7 +1937,7 @@ function atomicMolecularTransitionPlot(
             backup_results=false,
             sim_labels,
             title="",
-            legend_kwarg=(;nbanks=1, valign=:top),
+            legend_kwarg=(; nbanks=1, valign=:top),
             colorbar=false,
             ################################################################
             # Two-column-wide plot:
@@ -3976,6 +3976,146 @@ function compareWithKennicuttBigiel(
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
+    )
+
+    return nothing
+
+end
+
+"""
+    fitKennicuttBigielLaw(
+        simulation_paths::Vector{String},
+        slice_n::Int;
+        <keyword arguments>
+    )::Nothing
+
+Plot the resolved Kennicutt-Schmidt relation with its linear fit.
+
+!!! note
+
+    This method plots the KS relation using cylindrical bins at a fix moment in time.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::Union{Colon,UnitRange{<:Integer},StepRange{<:Integer,<:Integer},Vector{<:Integer}}`: Slice of the simulation, i.e. which snapshots will be read. It can be a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
+  - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
+
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
+  - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Plot every cell/particle within the simulation box.
+      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+  - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+
+# References
+
+R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+"""
+function fitKennicuttBigielLaw(
+    simulation_paths::Vector{String},
+    slice_n::Int;
+    quantity::Symbol=:molecular_area_density,
+    x_range::NTuple{2,<:Real}=(-Inf, Inf),
+    output_path::String="./",
+    filter_mode::Symbol=:all,
+    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+)::Nothing
+
+    grid = CircularGrid(FILTER_R, 20)
+
+    if quantity == :gas_area_density
+        da_functions = [daKennicuttSchmidt]
+        da_args = [(grid,)]
+    else
+        da_functions = [daKennicuttSchmidtLaw]
+        da_args = [(grid, quantity)]
+    end
+
+    x_plot_params = plotParams(quantity)
+    y_plot_params = plotParams(:sfr_area_density)
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(x_plot_params.request, y_plot_params.request),
+    )
+
+    snapshotPlot(
+        simulation_paths,
+        request,
+        [scatter!];
+        pf_kwargs=[(;)],
+        # `snapshotPlot` configuration
+        output_path,
+        base_filename="sfr_area_density-vs-$(quantity)-with-linear-fit",
+        output_format=".pdf",
+        warnings=true,
+        show_progress=false,
+        # Data manipulation options
+        slice=slice_n,
+        filter_function,
+        da_functions,
+        da_args,
+        da_kwargs=[(;)],
+        post_processing=ppFitLine!,
+        pp_args=(),
+        pp_kwargs=(;),
+        transform_box=true,
+        translation,
+        rotation,
+        smooth=0,
+        x_unit=x_plot_params.unit,
+        y_unit=y_plot_params.unit,
+        x_exp_factor=0,
+        y_exp_factor=0,
+        x_trim=x_range,
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label=x_plot_params.axis_label,
+        yaxis_label=y_plot_params.axis_label,
+        xaxis_var_name=x_plot_params.var_name,
+        yaxis_var_name=y_plot_params.var_name,
+        xaxis_scale_func=log10,
+        yaxis_scale_func=log10,
+        xaxis_limits=(nothing, nothing),
+        yaxis_limits=(nothing, nothing),
+        # Plotting and animation options
+        save_figures=true,
+        backup_results=false,
+        sim_labels,
+        title="",
+        legend_kwarg=(;),
+        colorbar=false,
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
+        aspect=nothing,
+        series_colors=nothing,
+        series_markers=nothing,
+        series_linestyles=nothing,
+        # Animation options
+        animation=false,
+        animation_filename="animation.mp4",
+        framerate=10,
     )
 
     return nothing
