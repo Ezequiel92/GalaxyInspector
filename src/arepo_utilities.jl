@@ -2628,7 +2628,7 @@ function computeStellarVcirc(
     rs = computeDistance(data_dict[:stars]["POS "])
 
     # Check for missing data
-    !isempty(rs) || return Unitful.Velocity[]
+    !isempty(rs) || return rs, Unitful.Velocity[]
 
     type_symbols = filter!(
         ts -> !isempty(data_dict[ts]["POS "]),
