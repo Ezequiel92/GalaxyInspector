@@ -78,7 +78,8 @@ export sfrTXT
 export cpuTXT
 export densityMap
 export scatterPlot
-export atomicToMolecularTransition
+export atomicToMolecularTransitionHeatmap
+export atomicToMolecularTransitionScatter
 export scatterDensityMap
 export timeSeries
 export rotationCurve

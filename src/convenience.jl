@@ -1828,7 +1828,140 @@ function scatterPlot(
 end
 
 """
-    atomicToMolecularTransition(
+    atomicToMolecularTransitionHeatmap(
+        simulation_paths::Vector{String},
+        slice_n::Int,
+        ranges::Vector{<:Tuple{<:Real,<:Real}};
+        <keyword arguments>
+    )::Nothing
+
+Plot the atomic gas to molecular gas transition as a heatmap, for a set of metallicity ranges.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `ranges::Vector{<:Tuple{<:Real,<:Real}}`: Metallicity ranges. On figure per range will be produced.
+  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+  - `output_path::String="./"`: Path to the output folder.
+"""
+function atomicToMolecularTransitionHeatmap(
+    simulation_paths::Vector{String},
+    slice_n::Int,
+    ranges::Vector{<:Tuple{<:Real,<:Real}};
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+    output_path::String="./",
+)::Nothing
+
+    # Set some plotting parameters
+    x_quantity = :atomic_number_density
+    y_quantity = :molecular_fraction
+
+    x_plot_params = plotParams(x_quantity)
+    y_plot_params = plotParams(y_quantity)
+
+    _, translation, rotation, request = selectFilter(
+        :subhalo,
+        mergeRequests(
+            x_plot_params.request,
+            y_plot_params.request,
+            Dict(:gas => ["GZ  "], :stars => ["GZ2 "]),
+        ),
+    )
+
+    @inbounds for simulation_path in simulation_paths
+
+        # Get the simulation name as a string
+        sim_name = basename(simulation_path)
+
+        for range in ranges
+
+            snapshotPlot(
+                fill(simulation_path, length(ranges)),
+                request,
+                [heatmap!];
+                pf_kwargs=[(;)],
+                # `snapshotPlot` configuration
+                output_path,
+                base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)-$(range[1])-Z-$(range[2])",
+                output_format=".pdf",
+                warnings=true,
+                show_progress=false,
+                # Data manipulation options
+                slice=slice_n,
+                filter_function=data_dict -> filterZinSubhalo(
+                    data_dict,
+                    range[1],
+                    range[2];
+                    halo_idx,
+                    subhalo_rel_idx,
+                ),
+                da_functions=[daScatterDensity],
+                da_args=[(x_quantity, y_quantity)],
+                da_kwargs=[(; x_log=x_plot_params.unit)],
+                post_processing=getNothing,
+                pp_args=(),
+                pp_kwargs=(;),
+                transform_box=true,
+                translation,
+                rotation,
+                smooth=0,
+                x_unit=Unitful.NoUnits,
+                y_unit=y_plot_params.unit,
+                x_exp_factor=x_plot_params.exp_factor,
+                y_exp_factor=y_plot_params.exp_factor,
+                x_trim=(-Inf, Inf),
+                y_trim=(-Inf, Inf),
+                x_edges=false,
+                y_edges=false,
+                x_func=identity,
+                y_func=identity,
+                # Axes options
+                xaxis_label=L"$\log_{10}($auto_label $[\mathrm{cm}^{-3}])$",
+                yaxis_label=y_plot_params.axis_label,
+                xaxis_var_name=x_plot_params.var_name,
+                yaxis_var_name=y_plot_params.var_name,
+                xaxis_scale_func=identity,
+                yaxis_scale_func=identity,
+                xaxis_limits=(nothing, nothing),
+                yaxis_limits=(nothing, nothing),
+                # Plotting and animation options
+                save_figures=true,
+                backup_results=false,
+                sim_labels=nothing,
+                title=L"%$(range[1]) \, < \, Z \, < \, %$(range[2])",
+                legend_kwarg=(; nbanks=1, valign=:top),
+                colorbar=false,
+                ##############################################################
+                # One-column-wide plot:
+                # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+                # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
+                ##############################################################
+                pt_per_unit=0.28346,
+                px_per_unit=1.0,
+                size=(880, 800),
+                aspect=AxisAspect(1),
+                series_colors=nothing,
+                series_markers=nothing,
+                series_linestyles=nothing,
+                # Animation options
+                animation=false,
+                animation_filename="animation.mp4",
+                framerate=10,
+            )
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
+    atomicToMolecularTransitionScatter(
         simulation_paths::Vector{String},
         slice_n::Int,
         ranges::Vector{<:Tuple{<:Real,<:Real}};
@@ -1846,7 +1979,7 @@ Plot the atomic gas to molecular gas transition as a scatter plot, for a set of 
   - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
   - `output_path::String="./"`: Path to the output folder.
 """
-function atomicToMolecularTransition(
+function atomicToMolecularTransitionScatter(
     simulation_paths::Vector{String},
     slice_n::Int,
     ranges::Vector{<:Tuple{<:Real,<:Real}};
@@ -1858,7 +1991,6 @@ function atomicToMolecularTransition(
     # Set some plotting parameters
     x_quantity = :atomic_number_density
     y_quantity = :molecular_fraction
-    x_trim     = (-Inf, Inf)
     da_kwargs  = [
         (;
             filter_function=data_dict -> filterZinSubhalo(
@@ -1917,7 +2049,7 @@ function atomicToMolecularTransition(
             y_unit=y_plot_params.unit,
             x_exp_factor=x_plot_params.exp_factor,
             y_exp_factor=y_plot_params.exp_factor,
-            x_trim,
+            x_trim=(-Inf, Inf),
             y_trim=(-Inf, Inf),
             x_edges=false,
             y_edges=false,
@@ -1937,17 +2069,17 @@ function atomicToMolecularTransition(
             backup_results=false,
             sim_labels,
             title="",
-            legend_kwarg=(; nbanks=1, valign=:top),
+            legend_kwarg=(; nbanks=1, valign=:top, halign=:left),
             colorbar=false,
-            ################################################################
-            # Two-column-wide plot:
-            # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-            # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-            ################################################################
+            ##############################################################
+            # One-column-wide plot:
+            # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+            # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
+            ##############################################################
             pt_per_unit=0.28346,
             px_per_unit=1.0,
-            size=(1700, 1000),
-            aspect=nothing,
+            size=(880, 800),
+            aspect=AxisAspect(1),
             series_colors=nothing,
             series_markers=nothing,
             series_linestyles=nothing,

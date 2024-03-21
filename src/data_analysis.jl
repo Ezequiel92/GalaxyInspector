@@ -947,6 +947,8 @@ Compute a 2D histogram.
       + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
+  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Set to the desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Set to the desired unit of `y_quantity`, if you want to use log10(`y_quantity`) for the y axis.
   - `n_bins::Int=100`: Number of bins per side of the grid.
 
 # Returns
@@ -963,6 +965,8 @@ function daScatterDensity(
     y_quantity::Symbol;
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    x_log::Union{Unitful.Units,Nothing}=nothing,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
     n_bins::Int=100,
 )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
@@ -970,10 +974,22 @@ function daScatterDensity(
     x_values = scatterQty(data_dict, x_quantity)
     y_values = scatterQty(data_dict, y_quantity)
 
+    if !isnothing(x_log)
+        null_x_idxs = findall(iszero, x_values)
+        x_values = log10.(deleteat!(ustrip.(x_log, x_values), null_x_idxs))
+        y_values = deleteat!(y_values, null_x_idxs)
+    end
+
+    if !isnothing(y_log)
+        null_y_idxs = findall(iszero, y_values)
+        x_values = deleteat!(x_values, null_y_idxs)
+        y_values = log10.(deleteat!(ustrip.(y_log, y_values), null_y_idxs))
+    end
+
     (
         length(x_values) == length(y_values) ||
-        throw(ArgumentError("daScatterDensity: :$(x_quantity) and :$(y_quantity) \
-        are incompatible quantities, they should be from the same type of cell/particle"))
+        throw(ArgumentError("daScatterDensity: I found a diferent number of values for  \
+        :$(x_quantity) and :$(y_quantity). They should be the same"))
     )
 
     # If there is no range specified, use the extrema of the x values
