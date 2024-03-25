@@ -1520,17 +1520,6 @@ function densityMap(
     # Set up the grid
     grid = SquareGrid(box_size, resolution)
 
-    if isnothing(colorrange)
-        # The range for the z axis is set by the data
-        pf_kwargs = [(;)]
-        zmin = zmax = ""
-    else
-        # Set a range for the z axis manually
-        pf_kwargs = [(; colorrange)]
-        zmin = colorrange[1]
-        zmax = colorrange[2]
-    end
-
     pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
 
     @inbounds for quantity in quantities
@@ -2279,11 +2268,11 @@ function scatterDensityMap(
             ##############################################################
             # One-column-wide plot:
             # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-            # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+            # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
             ##############################################################
             pt_per_unit=0.28346,
             px_per_unit=1.0,
-            size=(880, 880),
+            size=(880, 800),
             aspect=AxisAspect(1),
             series_colors=nothing,
             series_markers=nothing,
@@ -3492,11 +3481,11 @@ function stellarCircularity(
         ##############################################################
         # One-column-wide plot:
         # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-        # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+        # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
         ##############################################################
         pt_per_unit=0.28346,
         px_per_unit=1.0,
-        size=(880, 880),
+        size=(880, 800),
         aspect=AxisAspect(1),
         series_colors=nothing,
         series_markers=nothing,
