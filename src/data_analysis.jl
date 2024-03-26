@@ -869,82 +869,84 @@ Compute a 2D histogram.
       + ...
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
-      + `:stellar_mass`             -> Stellar mass.
-      + `:gas_mass`                 -> Gas mass.
-      + `:dm_mass`                  -> Dark matter mass.
-      + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`         -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`         -> Gas mass fraction of neutral hydrogen.
-      + `:gas_mass_density`         -> Gas mass density.
-      + `:gas_number_density`       -> Gas number density.
-      + `:molecular_number_density` -> Molecular hydrogen number density.
-      + `:atomic_number_density`    -> Atomic hydrogen number density.
-      + `:ionized_number_density`   -> Ionized hydrogen number density.
-      + `:neutral_number_density`   -> Neutral hydrogen number density.
-      + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`      -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`          -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
-      + `:stellar_circularity`      -> Stellar circularity.
-      + `:stellar_vcirc`            -> Stellar circular velocity.
-      + `:stellar_vradial`          -> Stellar radial speed.
-      + `:stellar_vtangential`      -> Stellar tangential speed.
-      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
-      + `:stellar_age`              -> Stellar age.
-      + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
 
-      + `:stellar_mass`             -> Stellar mass.
-      + `:gas_mass`                 -> Gas mass.
-      + `:dm_mass`                  -> Dark matter mass.
-      + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`         -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`         -> Gas mass fraction of neutral hydrogen.
-      + `:gas_mass_density`         -> Gas mass density.
-      + `:gas_number_density`       -> Gas number density.
-      + `:molecular_number_density` -> Molecular hydrogen number density.
-      + `:atomic_number_density`    -> Atomic hydrogen number density.
-      + `:ionized_number_density`   -> Ionized hydrogen number density.
-      + `:neutral_number_density`   -> Neutral hydrogen number density.
-      + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`      -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`          -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
-      + `:stellar_circularity`      -> Stellar circularity.
-      + `:stellar_vcirc`            -> Stellar circular velocity.
-      + `:stellar_vradial`          -> Stellar radial speed.
-      + `:stellar_vtangential`      -> Stellar tangential speed.
-      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
-      + `:stellar_age`              -> Stellar age.
-      + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Set to the desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
@@ -1265,82 +1267,84 @@ Compute two quantities for every cell/particle in the simulation.
       + ...
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
-      + `:stellar_mass`             -> Stellar mass.
-      + `:gas_mass`                 -> Gas mass.
-      + `:dm_mass`                  -> Dark matter mass.
-      + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`         -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`         -> Gas mass fraction of neutral hydrogen.
-      + `:gas_mass_density`         -> Gas mass density.
-      + `:gas_number_density`       -> Gas number density.
-      + `:molecular_number_density` -> Molecular hydrogen number density.
-      + `:atomic_number_density`    -> Atomic hydrogen number density.
-      + `:ionized_number_density`   -> Ionized hydrogen number density.
-      + `:neutral_number_density`   -> Neutral hydrogen number density.
-      + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`      -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`          -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
-      + `:stellar_circularity`      -> Stellar circularity.
-      + `:stellar_vcirc`            -> Stellar circular velocity.
-      + `:stellar_vradial`          -> Stellar radial speed.
-      + `:stellar_vtangential`      -> Stellar tangential speed.
-      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
-      + `:stellar_age`              -> Stellar age.
-      + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
 
-      + `:stellar_mass`             -> Stellar mass.
-      + `:gas_mass`                 -> Gas mass.
-      + `:dm_mass`                  -> Dark matter mass.
-      + `:bh_mass`                  -> Black hole mass.
-      + `:molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`              -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`             -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`             -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`       -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`          -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`         -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`         -> Gas mass fraction of neutral hydrogen.
-      + `:gas_mass_density`         -> Gas mass density.
-      + `:gas_number_density`       -> Gas number density.
-      + `:molecular_number_density` -> Molecular hydrogen number density.
-      + `:atomic_number_density`    -> Atomic hydrogen number density.
-      + `:ionized_number_density`   -> Ionized hydrogen number density.
-      + `:neutral_number_density`   -> Neutral hydrogen number density.
-      + `:gas_metallicity`          -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`      -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`          -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`      -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`  -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`      -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`       -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`      -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`          -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`           -> Projected distance of every dark matter particle to the origin.
-      + `:stellar_circularity`      -> Stellar circularity.
-      + `:stellar_vcirc`            -> Stellar circular velocity.
-      + `:stellar_vradial`          -> Stellar radial speed.
-      + `:stellar_vtangential`      -> Stellar tangential speed.
-      + `:stellar_vzstar`           -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
-      + `:stellar_age`              -> Stellar age.
-      + `:sfr`                      -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`              -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `filter_function::Function=filterNothing`: A functions with the signature:
 
       `filter_function(data_dict) -> indices`

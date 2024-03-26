@@ -63,11 +63,11 @@ Stellar age limit for the SFR area density calculation.
 const AGE_RESOLUTION_ρ = 200u"Myr"
 
 """
-Critical density for Newtonian simulations, above which the gas particles enter the star formation routine.
+Threshold density, above which the gas particles enter the star formation routine.
 
 This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`
 """
-const CRITICAL_DENSITY = 1.033780605417362e7u"Msun*kpc^-3"
+const THRESHOLD_DENSITY = 1.033780605417362e7u"Msun*kpc^-3"
 
 @doc raw"""
 Hubble constant in $\mathrm{Gyr^{-1}}$.
