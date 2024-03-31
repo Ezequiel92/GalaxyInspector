@@ -312,12 +312,16 @@ function ppFitLine!(
     # Draw the annotation
     text!(
         figure.current_axis.x,
-        [absCoor(figure, 0.5, 0.93), absCoor(figure, 0.5, 0.88), absCoor(figure, 0.5, 0.83)];
+        [absCoor(figure, 0.81, 0.11), absCoor(figure, 0.81, 0.06), absCoor(figure, 0.81, 0.01)];
         text=[L"y = a \, x + b", L"a = %$slope \pm %$δslope", L"b = %$intercept \pm %$δintercept"],
-        align=(:center, :bottom),
+        align=(:left, :bottom),
+        fontsize=30,
+        color,
     )
 
-    return [LineElement(; color, linestyle)], ["Linear fit"]
+    return nothing
+
+    # return [LineElement(; color, linestyle)], ["Linear fit"]
 
 end
 

@@ -1547,7 +1547,7 @@ function densityMap(
                     # `snapshotPlot` configuration
                     output_path,
                     base_filename,
-                    output_format=".png",
+                    output_format=".pdf",
                     warnings=true,
                     show_progress=iszero(slice_n),
                     # Data manipulation options
@@ -1592,11 +1592,11 @@ function densityMap(
                     ##############################################################
                     # One-column-wide plot:
                     # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-                    # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
+                    # height = 730 unit * 0.28346 pt/unit * 0.35278 mm/pt = 73 mm
                     ##############################################################
                     pt_per_unit=0.28346,
                     px_per_unit=1.0,
-                    size=(880, 800),
+                    size=(880, 730),
                     aspect=AxisAspect(1),
                     series_colors=nothing,
                     series_markers=nothing,
@@ -1928,11 +1928,11 @@ function atomicToMolecularTransitionHeatmap(
                 ##############################################################
                 # One-column-wide plot:
                 # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-                # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
+                # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
                 ##############################################################
                 pt_per_unit=0.28346,
                 px_per_unit=1.0,
-                size=(880, 800),
+                size=(880, 880),
                 aspect=AxisAspect(1),
                 series_colors=nothing,
                 series_markers=nothing,
@@ -2060,16 +2060,16 @@ function atomicToMolecularTransitionScatter(
             backup_results=false,
             sim_labels,
             title="",
-            legend_kwarg=(; nbanks=1, valign=:top, halign=:left),
+            legend_kwarg=(; nbanks=1, valign=:top, halign=:left, labelsize=20, rowgap=-5, markersize=20),
             colorbar=false,
             ##############################################################
             # One-column-wide plot:
             # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-            # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
+            # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
             ##############################################################
             pt_per_unit=0.28346,
             px_per_unit=1.0,
-            size=(880, 800),
+            size=(880, 880),
             aspect=AxisAspect(1),
             series_colors=nothing,
             series_markers=nothing,
@@ -2272,11 +2272,11 @@ function scatterDensityMap(
             ##############################################################
             # One-column-wide plot:
             # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-            # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
+            # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
             ##############################################################
             pt_per_unit=0.28346,
             px_per_unit=1.0,
-            size=(880, 800),
+            size=(880, 880),
             aspect=AxisAspect(1),
             series_colors=nothing,
             series_markers=nothing,
@@ -2644,7 +2644,7 @@ function rotationCurve(
         backup_results=latex,
         sim_labels,
         title="",
-        legend_kwarg=(;),
+        legend_kwarg=(; nbanks=2),
         colorbar=false,
         ################################################################
         # Two-column-wide plot:
@@ -2757,6 +2757,10 @@ end
 
 Plot a density profile.
 
+!!! note
+
+    This method plots one quantity for several simulations in one figure.
+
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
@@ -2781,7 +2785,6 @@ Plot a density profile.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function densityProfile(
@@ -2792,7 +2795,6 @@ function densityProfile(
     yscale::Function=identity,
     output_path::String="./",
     filter_mode::Symbol=:all,
-    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -2850,8 +2852,8 @@ function densityProfile(
         xaxis_limits=(nothing, nothing),
         yaxis_limits=(nothing, nothing),
         # Plotting and animation options
-        save_figures=!latex,
-        backup_results=latex,
+        save_figures=true,
+        backup_results=false,
         sim_labels,
         title="",
         legend_kwarg=(; valign=:top),
@@ -2874,91 +2876,140 @@ function densityProfile(
         framerate=10,
     )
 
-    ################################################################################################
-    # Plot with PGFPlotsX.jl
-    ################################################################################################
+    return nothing
 
-    if latex
+end
 
-        jld2_file = joinpath(output_path, "$(quantity)-profile.jld2")
+"""
+    densityProfile(
+        simulation_paths::Vector{String},
+        slice_n::Int,
+        quantities::Vector{Symbol};
+        <keyword arguments>
+    )::Nothing
 
-        jldopen(jld2_file, "r") do file
+Plot a density profile.
 
-            # Add the colormap library
-            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
+!!! note
 
-            # Construct the axis labels
-            xlabel = getLabel(L"r", 0, u"kpc")
-            ylabel = LaTeXString(
-                replace(
-                    plot_params.axis_label,
-                    "auto_label" => getLabel(plot_params.var_name, 0, plot_params.unit),
-                ),
-            )
+    This method plots several quantities for one simulations in one figure.
 
-            # Select y axis scaling
-            if yscale == log
-                ymode = "log"
-                log_basis_y = "exp(1)"
-            elseif yscale == log10
-                ymode = "log"
-                log_basis_y = "10"
-            else
-                (
-                    yscale == identity ||
-                    @warn("densityProfile: PGFPlotsX can only draw axis with linear or \\
-                    logarithmic scaling")
-                )
-                ymode = "normal"
-                log_basis_y = ""
-            end
+# Arguments
 
-            axis = @pgf PGFPlotsX.Axis({
-                xlabel = xlabel,
-                ylabel = ylabel,
-                ymode = ymode,
-                xmin = -0.5,
-                "log basis y" = log_basis_y,
-                "/pgf/number format/1000 sep={}",
-                "cycle list/Set1",
-                "cycle multiindex* list={
-                    linestyles*\\nextlist
-                    Set1\\nextlist
-                }",
-                "width=17cm",
-                "height=10cm",
-                "font=\\Large",
-                legend_style = {
-                    at = Coordinate(0.5, -0.17),
-                    anchor = "north",
-                    legend_columns = 2,
-                    draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.2cm}",
-                },
-            })
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `quantities::Vector{Symbol}`: Quantities for the y axis. The options are:
 
-            group = keys(file)[1]
+      + `:stellar_area_density`    -> Stellar area mass density, up to a radius of `FILTER_R`.
+      + `:gas_area_density`        -> Gas area mass density, up to a radius of `FILTER_R`.
+      + `:molecular_area_density`  -> Molecular hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:atomic_area_density`     -> Atomic hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:ionized_area_density`    -> Ionized hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:neutral_area_density`    -> Neutral hydrogen area mass density, up to a radius of `FILTER_R`.
+      + `:sfr_area_density`        -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+  - `cumulative::Bool=false`: If the profile will be accumulated or not.
+  - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
-            @pgf for sim_name in sim_labels
+      + `:all`             -> Plot every cell/particle within the simulation box.
+      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+  - `sim_labels::Union{Vector{String},Nothing}=string.(quantities)`: Labels for the plot legend, one per quantity. Set it to `nothing` if you don't want a legend.
+"""
+function densityProfile(
+    simulation_paths::Vector{String},
+    slice_n::Int,
+    quantities::Vector{Symbol};
+    cumulative::Bool=false,
+    yscale::Function=identity,
+    output_path::String="./",
+    filter_mode::Symbol=:all,
+    sim_labels::Union{Vector{String},Nothing}=string.(quantities),
+)::Nothing
 
-                x, y = file["$(group)/$(sim_name)"]
+    plot_params = plotParams(:generic_area_density)
+    filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
-                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
-                push!(axis, plot)
+    grid = CircularGrid(FILTER_R, 100)
 
-            end
+    @inbounds for simulation_path in simulation_paths
 
-            # Add the legends
-            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
+        # Get the simulation name as a string
+        sim_name = basename(simulation_path)
 
-            pgfsave(joinpath(output_path, "$(group).pdf"), axis, dpi=600)
-
+        # Draw the figures with CairoMakie
+        snapshotPlot(
+            fill(simulation_path, length(quantities)),
+            request,
+            [lines!];
+            pf_kwargs=[(;)],
+            # `snapshotPlot` configuration
+            output_path,
+            base_filename="$(sim_name)-density_profiles",
+            output_format=".pdf",
+            warnings=true,
+            show_progress=false,
+            # Data manipulation options
+            slice=slice_n,
+            filter_function,
+            da_functions=[daProfile],
+            da_args=[(grid, quantity) for quantity in quantities],
+            da_kwargs=[(; cumulative)],
+            post_processing=getNothing,
+            pp_args=(),
+            pp_kwargs=(;),
+            transform_box=true,
+            translation,
+            rotation,
+            smooth=0,
+            x_unit=u"kpc",
+            y_unit=plot_params.unit,
+            x_exp_factor=0,
+            y_exp_factor=0,
+            x_trim=(-Inf, Inf),
+            y_trim=(-Inf, Inf),
+            x_edges=false,
+            y_edges=false,
+            x_func=identity,
+            y_func=identity,
+            # Axes options
+            xaxis_label="auto_label",
+            yaxis_label=plot_params.axis_label,
+            xaxis_var_name=L"r",
+            yaxis_var_name=plot_params.var_name,
+            xaxis_scale_func=identity,
+            yaxis_scale_func=yscale,
+            xaxis_limits=(nothing, nothing),
+            yaxis_limits=(nothing, nothing),
+            # Plotting and animation options
+            save_figures=true,
+            backup_results=false,
+            sim_labels,
+            title="",
+            legend_kwarg=(; valign=:top, nbanks=1),
+            colorbar=false,
+            ################################################################
+            # Two-column-wide plot:
+            # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+            # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+            ################################################################
+            pt_per_unit=0.28346,
+            px_per_unit=1.0,
+            size=(1700, 1000),
+            aspect=nothing,
+            series_colors=nothing,
+            series_markers=nothing,
+            series_linestyles=nothing,
+            # Animation options
+            animation=false,
+            animation_filename="animation.mp4",
+            framerate=10,
+        )
         end
-
-        # Delete auxiliary JLD2 file
-        rm(jld2_file, force=true)
-
-    end
 
     return nothing
 
@@ -3279,7 +3330,7 @@ function stellarHistory(
         backup_results=latex,
         sim_labels,
         title="",
-        legend_kwarg=(;),
+        legend_kwarg=(; nbanks=2),
         colorbar=false,
         ################################################################
         # Two-column-wide plot:
@@ -3480,12 +3531,12 @@ function stellarCircularity(
         backup_results=latex,
         sim_labels,
         title="",
-        legend_kwarg=(; rowgap=-10, halign=:left, valign=:top, nbanks=1, labelsize=20),
+        legend_kwarg=(; nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
         colorbar=false,
         ##############################################################
         # One-column-wide plot:
         # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-        # height = 800 unit * 0.28346 pt/unit * 0.35278 mm/pt = 80 mm
+        # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
         ##############################################################
         pt_per_unit=0.28346,
         px_per_unit=1.0,
@@ -3673,7 +3724,7 @@ function compareWithFeldmann2020(
         backup_results=false,
         sim_labels,
         title="",
-        legend_kwarg=(;),
+        legend_kwarg=(; nbanks=2),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -4109,7 +4160,7 @@ end
 
 """
     fitKennicuttBigielLaw(
-        simulation_paths::Vector{String},
+        simulation_path::String,
         slice_n::Int;
         <keyword arguments>
     )::Nothing
@@ -4122,7 +4173,7 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
 
 # Arguments
 
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `simulation_path::String}`: Path to the simulation directory, set in the code variable `OutputDir`.
   - `slice::Union{Colon,UnitRange{<:Integer},StepRange{<:Integer,<:Integer},Vector{<:Integer}}`: Slice of the simulation, i.e. which snapshots will be read. It can be a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
 
@@ -4139,7 +4190,7 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-  - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `sim_labels::Union{Vector{String},Nothing}=["Simulation"]`: Label for the scatter plot. Set it to `nothing` if you don't want a legend.
 
 # References
 
@@ -4148,13 +4199,13 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
 function fitKennicuttBigielLaw(
-    simulation_paths::Vector{String},
+    simulation_path::String,
     slice_n::Int;
     quantity::Symbol=:molecular_area_density,
     x_range::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
     filter_mode::Symbol=:all,
-    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    sim_labels::Union{Vector{String},Nothing}=["Simulation"],
 )::Nothing
 
     grid = CircularGrid(FILTER_R, 20)
@@ -4176,7 +4227,7 @@ function fitKennicuttBigielLaw(
     )
 
     snapshotPlot(
-        simulation_paths,
+        [simulation_path],
         request,
         [scatter!];
         pf_kwargs=[(;)],
@@ -4223,7 +4274,8 @@ function fitKennicuttBigielLaw(
         backup_results=false,
         sim_labels,
         title="",
-        legend_kwarg=(;),
+        # (l, r, b, t)
+        legend_kwarg=(; padding=(0, 0, 150, 0)),
         colorbar=false,
         ################################################################
         # Two-column-wide plot:

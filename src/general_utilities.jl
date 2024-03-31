@@ -1341,8 +1341,8 @@ Compute the absolute x and y coordinates of a plot, from the relative ones.
 # Arguments
 
   - `plot::Union{Makie.FigureAxisPlot,Makie.Axis,Makie.Figure}`: Plot, axis, or figure for which the absolute coordinates will be calculated. In the case of a figure, it will use the limits from the current axis object.
-  - `r_x::Real`: Relative x coordinate, `rx` ∈ [0, 1].
-  - `r_y::Real`: Relative y coordinate, `ry` ∈ [0, 1].
+  - `r_x::Real`: Relative x coordinate.
+  - `r_y::Real`: Relative y coordinate.
 
 # Returns
 
@@ -1370,10 +1370,10 @@ function absCoor(
     y_limits = y_scale.(ylimits!(plot))
 
     # Compute the absolute coordinates
-    a_x = Makie.inverse_transform(x_scale).(x_limits[1] + r_x * (x_limits[2] - x_limits[1]))
-    a_y = Makie.inverse_transform(y_scale).(y_limits[1] + r_y * (y_limits[2] - y_limits[1]))
+    a_x = Makie.inverse_transform(x_scale).(x_limits[1] + abs(r_x) * (x_limits[2] - x_limits[1]))
+    a_y = Makie.inverse_transform(y_scale).(y_limits[1] + abs(r_y) * (y_limits[2] - y_limits[1]))
 
-    return a_x, a_y
+    return sign(r_x) * a_x, sign(r_y) * a_y
 
 end
 

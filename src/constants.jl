@@ -392,7 +392,7 @@ const THEME = Theme(
         linewidth=5,
         markersize=28,
         patchsize=(50, 50),
-        linepoints=[Point2f(-0.1, 0.5), Point2f(0.9, 0.5)],
+        linepoints=[Point2f(0.0, 0.5), Point2f(0.9, 0.5)],
         polypoints=[
             Point2f(0.15, 0.15),
             Point2f(0.85, 0.15),

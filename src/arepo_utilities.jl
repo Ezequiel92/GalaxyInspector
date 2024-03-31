@@ -876,7 +876,8 @@ Select the plotting parameters for a given `quantity`.
       + `:atomic_area_density`        -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
       + `:ionized_area_density`       -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
       + `:neutral_area_density`       -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:sfr_area_density`           -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:generic_area_density`       -> Parameters for plots with several diferent area densities.
       + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -1153,6 +1154,17 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
             var_name = L"\Sigma_\mathrm{SFR}",
             unit     = u"Msun*yr^-1*kpc^-2",
+        )
+
+    elseif quantity == :generic_area_density
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :stars => ["MASS", "POS ", "GAGE"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES"],
+            ),
+            var_name = L"\Sigma",
+            unit     = u"Msun*pc^-2",
         )
 
     elseif quantity == :gas_metallicity
