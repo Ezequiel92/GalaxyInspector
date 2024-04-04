@@ -1617,7 +1617,7 @@ function findQtyExtrema(
 end
 
 @doc raw"""
-    energyIntegrand(a::Float64, header::SnapshotHeader)::Float64
+    energyIntegrand(a::Real, header::SnapshotHeader)::Float64
 
 The integrand of the integral that converts the scale factor into physical time:
 
@@ -1636,14 +1636,14 @@ H = H_0 \, a \, .
 
 # Arguments
 
-  - `a::Float64`: Scale factor.
+  - `a::Real`: Scale factor.
   - `header::SnapshotHeader`: Header of the relevant snapshot file.
 
 # Returns
 
   - The integrand evaluated at `a`, in $\mathrm{Gyr}$.
 """
-function energyIntegrand(a::Float64, header::SnapshotHeader)::Float64
+function energyIntegrand(a::Real, header::SnapshotHeader)::Float64
 
     # Return 0 if `a` = 0, as the integrand goes to 0 in the limit a -> 0.
     !iszero(a) || return 0.0
@@ -1804,7 +1804,7 @@ countStars(path::String)::Int = count(findRealStars(path))
 
 @doc raw"""
     computeTime(
-        scale_factors::Vector{Float64},
+        scale_factors::Vector{<:Real},
         header::SnapshotHeader;
         <keyword arguments>
     )::Vector{<:Unitful.Time}
@@ -1825,7 +1825,7 @@ where
 
 # Arguments
 
-  - `scale_factors::Vector{Float64}`: Scale factors.
+  - `scale_factors::Vector{<:Real}`: Scale factors.
   - `header::SnapshotHeader`: A header of the simulation, containing the cosmological parameters.
   - `a0::Float64=0.0`: Initial scale factor.
 
