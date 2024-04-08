@@ -407,7 +407,7 @@ const THEME = Theme(
     ScatterLines=(linewidth=5, markersize=22),
     Scatter=(markersize=22,),
     Errorbars=(whiskerwidth=10,),
-    Heatmap=(colormap=:linear_kry_5_95_c72_n256, nan_color=:grey75),
+    Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
     Colorbar=(width=25, ticklabelpad=10, minorticksvisible=true, ticksize=7),
 )
 
