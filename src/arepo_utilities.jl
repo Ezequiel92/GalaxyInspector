@@ -2835,6 +2835,60 @@ function computeStellarVpolar(data_dict::Dict, component::Symbol)::Vector{<:Unit
 end
 
 """
+    computeMassRadius(
+        positions::Matrix{<:Unitful.Length},
+        masses::Vector{<:Unitful.Mass};
+        <keyword arguments>
+    )::Unitful.Length
+
+Compute the radius containing `percet`% of the total mass.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Masses of the cells/particles.
+  - `percent::Float64=90.0`: Target percentage of the total mass.
+
+# Returns
+
+  - The radius containing `percet` of the total mass.
+"""
+function computeMassRadius(
+    positions::Matrix{<:Unitful.Length},
+    masses::Vector{<:Unitful.Mass};
+    percent::Float64=90.0,
+)::Unitful.Length
+
+    (
+        0 < percent <=100  ||
+        throw(ArgumentError("computeMassRadius: The argument `percent` must be between 0 and 100, \
+        but I got $(percent)"))
+    )
+
+    # Check for missing data
+    !any(isempty, [positions, masses]) || return zero(typeof(1.0u"kpc"))
+
+    # Compute the mass limit
+    mass_limit = sum(masses) * (percent / 100.0)
+
+    radial_distances = computeDistance(positions)
+
+    sort_idxs = sortperm(radial_distances)
+
+    # Find the mass radius
+    accu_mass = 0.0u"Msun"
+    target_idx = 0
+    for mass in masses[sort_idxs]
+        accu_mass += mass
+        accu_mass < mass_limit || break
+        target_idx += 1
+    end
+
+    return radial_distances[sort_idxs[target_idx]]
+
+end
+
+"""
     computeMetalMass(data_dict::Dict, type_symbol::Symbol)::Vector{<:Unitful.Mass}
 
 Compute the total mass of metals (elements above helium) in each cell/particle.

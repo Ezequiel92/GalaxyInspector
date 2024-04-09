@@ -442,6 +442,19 @@ function snapshotReport(
         translateData!(data_dict, translation)
 
         ############################################################################################
+        # Print the radius containing 95% of the stellar mass
+        ############################################################################################
+
+        mass_radius = computeMassRadius(
+            data_dict[:stars]["POS "],
+            data_dict[:stars]["MASS"];
+            percent=95.0,
+        )
+
+        println(file, "\tRadius containing 95% of the stellar mass:\n")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius), sigdigits=4)) $(u"kpc")\n")
+
+        ############################################################################################
         # Print the normalized angular momentum of each component
         ############################################################################################
 
