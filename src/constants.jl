@@ -65,9 +65,9 @@ const AGE_RESOLUTION_ρ = 200u"Myr"
 """
 Threshold density, above which the gas particles enter the star formation routine.
 
-This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`
+This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `PhysDensThresh = CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`. Then, to go to physical units again ones does: PhysDensThresh * UnitDensity_in_cgs * cf_a3inv * HubbleParam * HubbleParam. For a cosmological simulation at readshift 0 (cf_a3inv = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
 """
-const THRESHOLD_DENSITY = 1.033780605417362e7u"Msun*kpc^-3"
+const THRESHOLD_DENSITY = 4.749326307150211e6u"Msun*kpc^-3"
 
 @doc raw"""
 Hubble constant in $\mathrm{Gyr^{-1}}$.
@@ -360,7 +360,7 @@ const THEME = Theme(
     # 42 unit * 0.28346 pt/unit = 12 pt
     ####################################
     fontsize=42,
-    figure_padding=(1, 35, 10, 10),
+    figure_padding=(1, 35, 10, 10), # left, right, bottom, top
     Axis=(
         xlabelpadding=15,
         ylabelpadding=15,
@@ -382,7 +382,7 @@ const THEME = Theme(
     Legend=(
         tellheight=false,
         tellwidth=false,
-        margin=(15, 15, 10, 10),
+        margin=(15, 15, 10, 10), # left, right, bottom, top
         framevisible=false,
         colgap=20,
         halign=:right,

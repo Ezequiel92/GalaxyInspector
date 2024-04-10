@@ -1560,7 +1560,7 @@ function densityMap(
                     # `snapshotPlot` configuration
                     output_path,
                     base_filename,
-                    output_format=".pdf",
+                    output_format=".png",
                     warnings=true,
                     show_progress=iszero(slice_n),
                     # Data manipulation options
@@ -1602,14 +1602,18 @@ function densityMap(
                     title,
                     legend_kwarg=(;),
                     colorbar=true,
+                    cb_kwargs=(;
+                        label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+                        labelpadding=2,
+                    ),
                     ##############################################################
                     # One-column-wide plot:
                     # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-                    # height = 730 unit * 0.28346 pt/unit * 0.35278 mm/pt = 73 mm
+                    # height = 640 unit * 0.28346 pt/unit * 0.35278 mm/pt = 64 mm
                     ##############################################################
                     pt_per_unit=0.28346,
-                    px_per_unit=1.0,
-                    size=(880, 730),
+                    px_per_unit=2.0,
+                    size=(880, 640),
                     aspect=AxisAspect(1),
                     series_colors=nothing,
                     series_markers=nothing,
@@ -1807,6 +1811,7 @@ function scatterPlot(
             title="",
             legend_kwarg=(;),
             colorbar=false,
+            cb_kwargs=(;),
             ################################################################
             # Two-column-wide plot:
             # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -1938,6 +1943,7 @@ function atomicToMolecularTransitionHeatmap(
                 title=L"%$(range[1]) \, < \, Z \, < \, %$(range[2])",
                 legend_kwarg=(; nbanks=1, valign=:top),
                 colorbar=false,
+                cb_kwargs=(;),
                 ##############################################################
                 # One-column-wide plot:
                 # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
@@ -2073,8 +2079,16 @@ function atomicToMolecularTransitionScatter(
             backup_results=false,
             sim_labels,
             title="",
-            legend_kwarg=(; nbanks=1, valign=:top, halign=:left, labelsize=20, rowgap=-5, markersize=20),
+            legend_kwarg=(;
+                nbanks=1,
+                valign=:top,
+                halign=:left,
+                labelsize=20,
+                rowgap=-5,
+                markersize=20,
+            ),
             colorbar=false,
+            cb_kwargs=(;),
             ##############################################################
             # One-column-wide plot:
             # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
@@ -2282,6 +2296,7 @@ function scatterDensityMap(
             title="",
             legend_kwarg=(;),
             colorbar=false,
+            cb_kwargs=(;),
             ##############################################################
             # One-column-wide plot:
             # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
@@ -2659,6 +2674,7 @@ function rotationCurve(
         title="",
         legend_kwarg=(; nbanks=2),
         colorbar=false,
+        cb_kwargs=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -2871,6 +2887,7 @@ function densityProfile(
         title="",
         legend_kwarg=(; valign=:top),
         colorbar=false,
+        cb_kwargs=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -3005,6 +3022,7 @@ function densityProfile(
             title="",
             legend_kwarg=(; valign=:top, nbanks=1),
             colorbar=false,
+            cb_kwargs=(;),
             ################################################################
             # Two-column-wide plot:
             # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -3131,6 +3149,7 @@ function velocityProfile(
         title="",
         legend_kwarg=(;),
         colorbar=false,
+        cb_kwargs=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -3345,6 +3364,7 @@ function stellarHistory(
         title="",
         legend_kwarg=(; nbanks=2),
         colorbar=false,
+        cb_kwargs=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -3546,6 +3566,7 @@ function stellarCircularity(
         title="",
         legend_kwarg=(; nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
         colorbar=false,
+        cb_kwargs=(;),
         ##############################################################
         # One-column-wide plot:
         # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
@@ -3860,6 +3881,7 @@ function compareWithMolla2015(
         title="",
         legend_kwarg=(;),
         colorbar=false,
+        cb_kwargs=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -4015,6 +4037,7 @@ function compareWithKennicuttBigiel(
         title="",
         legend_kwarg=(;),
         colorbar=false,
+        cb_kwargs=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
@@ -4290,6 +4313,7 @@ function fitKennicuttBigielLaw(
         # (l, r, b, t)
         legend_kwarg=(; padding=(0, 0, 150, 0)),
         colorbar=false,
+        cb_kwargs=(;),
         ################################################################
         # Two-column-wide plot:
         # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm

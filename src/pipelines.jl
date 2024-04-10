@@ -131,6 +131,7 @@ Some of the features are:
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `legend_kwarg::NamedTuple=(;)`: Keyword arguments for the legends.
   - `colorbar::Bool=false`: If a colorbar will be added to heatmaps. Only relevant for when `plot_functions` is `heatmap!`.
+  - `cb_kwargs::NamedTuple=(;)`: Keyword arguments for the colorbar.
   - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
   - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
   - `size::NTuple{2,Int}=(1280, 800)`: Size of the figures in points (≈ 0.353 mm). For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
@@ -199,6 +200,7 @@ function snapshotPlot(
     title::Union{Symbol,<:AbstractString}="",
     legend_kwarg::NamedTuple=(;),
     colorbar::Bool=false,
+    cb_kwargs::NamedTuple=(;),
     pt_per_unit::Float64=0.75,
     px_per_unit::Float64=1.0,
     size::NTuple{2,Int}=(1280, 800),
@@ -588,7 +590,7 @@ function snapshotPlot(
                 ticks = round.(range(min_c, max_c, 5); digits=1)
 
                 # For heatmaps add a colorbar
-                Colorbar(figure[1, 2], pf; ticks)
+                Colorbar(figure[1, 2], pf; ticks, cb_kwargs...)
 
                 # Adjust its height
                 rowsize!(figure.layout, 1, Makie.Fixed(pixelarea(axes.scene)[].widths[2]))
