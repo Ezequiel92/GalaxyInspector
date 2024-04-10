@@ -162,6 +162,16 @@ Internal code name (data group in the HDF5 output) corresponding to each type of
 const PARTICLE_CODE_NAME = Dict(symbol => "PartType$n" for (symbol, n) in PARTICLE_INDEX)
 
 """
+Human readable name corresponding to each morphological component.
+"""
+const MORPHOLOGICAL_COMPONENTS = Dict(
+    :disk        => "Disk",
+    :bulge       => "Bulge",
+    :thin_disk   => "Thin disk",
+    :thick_disk  => "Thick disk",
+)
+
+"""
 Default filter dictionary that does not exclude any cells/particles.
 """
 const PASS_ALL = Dict(key => (:) for key in keys(PARTICLE_INDEX))

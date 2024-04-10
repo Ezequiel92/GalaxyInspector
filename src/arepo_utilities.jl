@@ -4625,3 +4625,73 @@ function filterZinSubhalo(
     return indices
 
 end
+
+"""
+    filterComponentinSubhalo(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out stellar particles that do not belong to the given morphological component, based on a circularity criteria.
+
+# Arguments
+
+  - `data::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `component::Symbol`: Target component. It can be:
+      + `:disk`  -> Stellar particles with a circularity larger than 0.7.
+      + `:bulge` -> Stellar particles with a circularity smaller than 0.7.
+  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterComponentinSubhalo(
+    data_dict::Dict,
+    component::Symbol;
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+)::Dict{Symbol,IndexType}
+
+    # Find indices to filter by halo and subhalo
+    subhalo_idxs = filterSubhalo(data_dict; halo_idx, subhalo_rel_idx)
+
+    # Find indices to filter by component
+    if component == :disk
+        component_idxs = filterCircularity(data_dict, 0.7, Inf)
+    elseif component == :bulge
+        component_idxs = filterCircularity(data_dict, -Inf, 0.7)
+    else
+        throw(ArgumentError("filterComponentinSubhalo: `component` can only be :disk or :bulge, \
+        but I got :$(component)"))
+    end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+        indices[type_symbol] = subhalo_idxs[type_symbol] ∩ component_idxs[type_symbol]
+    end
+
+    return indices
+
+end

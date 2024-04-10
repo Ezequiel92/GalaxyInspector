@@ -3268,6 +3268,10 @@ end
 
 Plot the evolution of a given stellar `quantity` using the stellar ages at a given instant in time.
 
+!!! note
+
+    This method plots one quantity for several simulations in one figure.
+
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
@@ -3463,6 +3467,145 @@ function stellarHistory(
         rm(jld2_file, force=true)
 
     end
+
+    return nothing
+
+end
+
+"""
+    stellarHistory(
+        simulation_path::String,
+        slice_n::Int,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Plot the evolution of a given stellar `quantity` using the stellar ages at a given instant in time.
+
+!!! note
+
+    This method plots one quantity for several morphological components of the same simulation in one figure.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `quantity::Symbol`: Quantity for the y axis. The options are:
+
+      + `:sfr`          -> The star formation rate.
+      + `:ssfr`         -> The specific star formation rate.
+      + `:stellar_mass` -> Stellar mass.
+  - `components::Vector{Symbol}=[:disk, :bulge]`: Target morphological components.
+  - `n_bins::Int=20`: Number of bins (time intervals).
+  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+  - `output_path::String="./"`: Path to the output folder.
+"""
+function stellarHistory(
+    simulation_path::String,
+    slice_n::Int,
+    quantity::Symbol;
+    components::Vector{Symbol}=[:disk, :bulge],
+    n_bins::Int=20,
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+    output_path::String="./",
+)::Nothing
+
+    da_kwargs  = [
+        (;
+            quantity,
+            n_bins,
+            filter_function=data_dict -> filterComponentinSubhalo(
+                data_dict,
+                component;
+                halo_idx,
+                subhalo_rel_idx,
+            )
+        ) for component in components
+    ]
+    sim_labels = [MORPHOLOGICAL_COMPONENTS[component] for component in components]
+
+    x_plot_params = plotParams(:physical_time)
+    y_plot_params = plotParams(quantity)
+
+    _, translation, rotation, request = selectFilter(
+        :subhalo,
+        mergeRequests(
+            plotParams(:stellar_circularity).request,
+            Dict(:stars => ["GAGE"]),
+        ),
+    )
+
+    # Draw the figures with CairoMakie
+    snapshotPlot(
+        fill(simulation_path, length(components)),
+        request,
+        [lines!];
+        pf_kwargs=[(;)],
+        # `snapshotPlot` configuration
+        output_path,
+        base_filename="$(quantity)-stellar-history",
+        output_format=".pdf",
+        warnings=true,
+        show_progress=false,
+        # Data manipulation options
+        slice=slice_n,
+        filter_function=filterNothing,
+        da_functions=[daStellarHistory],
+        da_args=[()],
+        da_kwargs,
+        post_processing=getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
+        transform_box=true,
+        translation,
+        rotation,
+        smooth=0,
+        x_unit=x_plot_params.unit,
+        y_unit=y_plot_params.unit,
+        x_exp_factor=x_plot_params.exp_factor,
+        y_exp_factor=y_plot_params.exp_factor,
+        x_trim=(-Inf, Inf),
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label=x_plot_params.axis_label,
+        yaxis_label=y_plot_params.axis_label,
+        xaxis_var_name=x_plot_params.var_name,
+        yaxis_var_name=y_plot_params.var_name,
+        xaxis_scale_func=identity,
+        yaxis_scale_func=log10,
+        xaxis_limits=(nothing, nothing),
+        yaxis_limits=(nothing, nothing),
+        # Plotting and animation options
+        save_figures=true,
+        backup_results=false,
+        sim_labels,
+        title="",
+        legend_kwarg=(; nbanks=1),
+        colorbar=false,
+        cb_kwargs=(;),
+        ################################################################
+        # Two-column-wide plot:
+        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
+        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
+        ################################################################
+        pt_per_unit=0.28346,
+        px_per_unit=1.0,
+        size=(1700, 1000),
+        aspect=nothing,
+        series_colors=nothing,
+        series_markers=nothing,
+        series_linestyles=nothing,
+        # Animation options
+        animation=false,
+        animation_filename="animation.mp4",
+        framerate=10,
+    )
 
     return nothing
 

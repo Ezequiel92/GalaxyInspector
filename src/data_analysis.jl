@@ -528,6 +528,32 @@ Compute the evolution of a given stellar `quantity` using the stellar ages at a 
       + `:ssfr`         -> The specific star formation rate.
       + `:stellar_mass` -> Stellar mass.
   - `n_bins::Int=50`: Number of bins (time intervals).
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+      `filter_function(data_dict) -> indices`
+
+      where
+
+        + `data_dict::Dict`: A dictionary with the following shape:
+
+            * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+            * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+            * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * ...
+            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * ...
+
+        + `indices::Dict`: A dictionary with the following shape:
+
+            * `cell/particle type` -> idxs::IndexType
+            * `cell/particle type` -> idxs::IndexType
+            * `cell/particle type` -> idxs::IndexType
+            * ...
 
 # Returns
 
@@ -540,18 +566,21 @@ function daStellarHistory(
     data_dict::Dict;
     quantity::Symbol=:sfr,
     n_bins::Int=50,
+    filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Unitful.Time},Vector{<:Number}},Nothing}
 
-    birth_ticks = data_dict[:stars]["GAGE"]
-    masses = data_dict[:stars]["MASS"]
+    data = filterData(data_dict; filter_function)
+
+    birth_ticks = data[:stars]["GAGE"]
+    masses = data[:stars]["MASS"]
 
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [birth_ticks, masses]) || return nothing
 
     # Compute the stellar birth dates
-    if data_dict[:sim_data].cosmological
+    if data[:sim_data].cosmological
         # Go from scale factor to physical time
-        birth_times = computeTime(birth_ticks, data_dict[:snap_data].header)
+        birth_times = computeTime(birth_ticks, data[:snap_data].header)
     else
         birth_times = birth_ticks
     end
