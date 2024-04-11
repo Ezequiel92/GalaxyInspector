@@ -1073,8 +1073,8 @@ end
     )::Tuple{
         Vector{<:Unitful.Length},
         Vector{<:Unitful.Length},
-        Matrix{<:Unitful.Velocity},
-        Matrix{<:Unitful.Velocity},
+        Matrix{<:Number},
+        Matrix{<:Number},
     }
 
 Compute a 2D mean velocity field.
@@ -1101,6 +1101,7 @@ Compute a 2D mean velocity field.
   - `grid::SquareGrid`: Square grid.
   - `type_symbol::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
+  - `velocity_units::Bool=false`: If the velocity will be given as `Unitful.Quantity` or as `Flot64` (in which case the underlying unit is km * s^-1).
 
 # Returns
 
@@ -1116,11 +1117,12 @@ function daVelocityField(
     grid::SquareGrid,
     type_symbol::Symbol;
     projection_plane::Symbol=:xy,
+    velocity_units::Bool=false,
 )::Tuple{
     Vector{<:Unitful.Length},
     Vector{<:Unitful.Length},
-    Matrix{<:Unitful.Velocity},
-    Matrix{<:Unitful.Velocity},
+    Matrix{<:Number},
+    Matrix{<:Number},
 }
 
     positions = data_dict[type_symbol]["POS "]
@@ -1133,19 +1135,44 @@ function daVelocityField(
 
     # Project the cell/particles to the chosen plane
     if projection_plane == :xy
+
         pos_2D = positions[[1, 2], :]
+
+        # Compute the components of the mean velocity
+        vx = histogram2D(pos_2D, vec(velocities[1, :]), grid; total=false)
+        vy = histogram2D(pos_2D, vec(velocities[2, :]), grid; total=false)
+
     elseif projection_plane == :xz
+
         pos_2D = positions[[1, 3], :]
+
+        # Compute the components of the mean velocity
+        vx = histogram2D(pos_2D, vec(velocities[1, :]), grid; total=false)
+        vy = histogram2D(pos_2D, vec(velocities[3, :]), grid; total=false)
+
     elseif projection_plane == :yz
+
         pos_2D = positions[[2, 3], :]
+
+        # Compute the components of the mean velocity
+        vx = histogram2D(pos_2D, vec(velocities[2, :]), grid; total=false)
+        vy = histogram2D(pos_2D, vec(velocities[3, :]), grid; total=false)
+
     else
+
         throw(ArgumentError("daVelocityField: The argument `projection_plane` must be \
         :xy, :xz or :yz, but I got :$(projection_plane)"))
+
     end
 
-    # Compute the components of the mean velocity
-    vx = histogram2D(pos_2D, vec(velocities[1, :]), grid; total=false)
-    vy = histogram2D(pos_2D, vec(velocities[2, :]), grid; total=false)
+    # The transpose and reverse operation are to conform to the way arrows! expect the matrix to be structured
+    vx = collect(reverse!(transpose(vx), dims=2))
+    vy = collect(reverse!(transpose(vy), dims=2))
+
+    if !velocity_units
+        vx = ustrip.(u"km*s^-1", vx)
+        vy = ustrip.(u"km*s^-1", vy)
+    end
 
     return grid.x_ticks, grid.y_ticks, vx, vy
 

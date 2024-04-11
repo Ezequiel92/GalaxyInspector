@@ -77,6 +77,7 @@ export simulationReport
 export sfrTXT
 export cpuTXT
 export densityMap
+export densityMapVelField
 export scatterPlot
 export atomicToMolecularTransitionHeatmap
 export atomicToMolecularTransitionScatter

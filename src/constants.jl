@@ -370,7 +370,8 @@ const THEME = Theme(
     # 42 unit * 0.28346 pt/unit = 12 pt
     ####################################
     fontsize=42,
-    figure_padding=(1, 35, 10, 10), # left, right, bottom, top
+    # figure_padding=(1, 35, 10, 10), # left, right, bottom, top
+    figure_padding=(1, 50, 1, 10),
     Axis=(
         xlabelpadding=15,
         ylabelpadding=15,

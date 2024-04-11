@@ -1635,6 +1635,205 @@ function densityMap(
 end
 
 """
+    densityMapVelField(
+        simulation_paths::Vector{String},
+        slice_n::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot a 2D histogram of the density with the velocity field over it.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice_n::IndexType`: Slice of the simulations, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
+
+      + `:stellar_mass`   -> Stellar mass.
+      + `:gas_mass`       -> Gas mass.
+      + `:dm_mass`        -> Dark matter mass.
+      + `:bh_mass`        -> Black hole mass.
+      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Plot every cell/particle within the simulation box.
+      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+  - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
+  - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
+  - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
+  - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
+  - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
+  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used. This option is ignore if `slice_n` = 0.
+  - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
+"""
+function densityMapVelField(
+    simulation_paths::Vector{String},
+    slice_n::IndexType;
+    quantities::Vector{Symbol}=[:gas_mass],
+    output_path::String="./",
+    filter_mode::Symbol=:all,
+    projection_planes::Vector{Symbol}=[:xy],
+    box_size::Unitful.Length=100u"kpc",
+    pixel_length::Unitful.Length=0.1u"kpc",
+    smooth::Bool=false,
+    smoothing_length::Union{Unitful.Length,Nothing}=nothing,
+    print_range::Bool=false,
+    title::Union{Symbol,<:AbstractString}="",
+    annotation::String="",
+    latex::Bool=false,
+    colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
+)::Nothing
+
+    # Compute number of pixel per side
+    resolution = round(Int, box_size / pixel_length)
+
+    # Set up the grid for the heatmap
+    grid_hm = SquareGrid(box_size, resolution)
+
+    # Set up the grid for the velocity field
+    grid_vf = SquareGrid(box_size, 25)
+
+    if isnothing(colorrange)
+        pf_kwargs = [(;), (; lengthscale=0.02, arrowsize=7.0, linestyle=:solid, color=:white)]
+    else
+        pf_kwargs = [
+            (; colorrange),
+            (; lengthscale=0.02, arrowsize=7.0, linestyle=:solid, color=:white),
+        ]
+    end
+
+    @inbounds for quantity in quantities
+
+        filter_function, translation, rotation, request = selectFilter(
+            filter_mode,
+            plotParams(quantity).request,
+        )
+
+        if quantity ∈ [:gas_mass, :molecular_mass, :atomic_mass, :ionized_mass, :neutral_mass]
+            type_symbol = :gas
+        elseif quantity == :stellar_mass
+            type_symbol = :stars
+        elseif quantity == :dm_mass
+            type_symbol = :halo
+        elseif quantity == :bh_mass
+            type_symbol = :black_hole
+        else
+            throw(ArgumentError("densityMapVelField: `quantities` contains :$(quantity), \
+            which is not a valid symbol. See the documentation for valid options."))
+        end
+
+        @inbounds for simulation_path in simulation_paths
+
+            # Get the simulation name as a string
+            sim_name = basename(simulation_path)
+
+            @inbounds for projection_plane in projection_planes
+
+                # Construct the file name
+                base_filename = "$(sim_name)-$(quantity)-$(projection_plane)-density_map"
+
+                snapshotPlot(
+                    [simulation_path, simulation_path],
+                    request,
+                    [heatmap!, arrows!];
+                    pf_kwargs,
+                    # `snapshotPlot` configuration
+                    output_path,
+                    base_filename,
+                    output_format=".png",
+                    warnings=true,
+                    show_progress=iszero(slice_n),
+                    # Data manipulation options
+                    slice=iszero(slice_n) ? (:) : slice_n,
+                    filter_function,
+                    da_functions=[daDensity2DHistogram, daVelocityField],
+                    da_args=[(grid_hm, quantity), (grid_vf, type_symbol)],
+                    da_kwargs=[
+                        (; projection_plane, smooth, smoothing_length, print_range),
+                        (; projection_plane),
+                    ],
+                    post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
+                    pp_args=(annotation,),
+                    pp_kwargs=(; color=:blue),
+                    transform_box=true,
+                    translation,
+                    rotation,
+                    smooth=0,
+                    x_unit=u"kpc",
+                    y_unit=u"kpc",
+                    x_exp_factor=0,
+                    y_exp_factor=0,
+                    x_trim=(-Inf, Inf),
+                    y_trim=(-Inf, Inf),
+                    x_edges=false,
+                    y_edges=false,
+                    x_func=identity,
+                    y_func=identity,
+                    # Axes options
+                    xaxis_label="auto_label",
+                    yaxis_label="auto_label",
+                    xaxis_var_name=string(projection_plane)[1:1],
+                    yaxis_var_name=string(projection_plane)[2:2],
+                    xaxis_scale_func=identity,
+                    yaxis_scale_func=identity,
+                    xaxis_limits=(nothing, nothing),
+                    yaxis_limits=(nothing, nothing),
+                    # Plotting options
+                    save_figures=!latex && !iszero(slice_n),
+                    backup_results=latex && !iszero(slice_n),
+                    sim_labels=nothing,
+                    title,
+                    legend_kwarg=(;),
+                    colorbar=true,
+                    cb_kwargs=(;
+                        label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+                        labelpadding=2,
+                    ),
+                    ##############################################################
+                    # One-column-wide plot:
+                    # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
+                    # height = 640 unit * 0.28346 pt/unit * 0.35278 mm/pt = 64 mm
+                    ##############################################################
+                    pt_per_unit=0.28346,
+                    px_per_unit=2.0,
+                    size=(880, 640),
+                    aspect=AxisAspect(1),
+                    series_colors=nothing,
+                    series_markers=nothing,
+                    series_linestyles=nothing,
+                    # Animation options
+                    animation=iszero(slice_n),
+                    animation_filename="$(base_filename).mp4",
+                    framerate=5,
+                )
+
+            end
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
     scatterPlot(
         simulation_paths::Vector{String},
         slice_n::Int,

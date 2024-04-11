@@ -35,6 +35,7 @@ Some of the features are:
       + `scatterlines!` -> Scatter plot with lines between the markers.
       + `hist!`         -> Histogram.
       + `heatmap!`      -> Heatmap.
+      + `arrows!`       -> Vector field.
   - `pf_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the functions in `plot_functions`.
 
 ### snapshotPlot configuration
@@ -447,13 +448,7 @@ function snapshotPlot(
 
             # Data shape validation
             data_length = length(da_output)
-            if plot_function isa typeof(heatmap!)
-                (
-                    data_length == 3 ||
-                    error("snapshotPlot: For heatmaps `data_analysis` should return \
-                    three data vectors, and currently is returning $(data_length)")
-                )
-            elseif plot_function isa typeof(hist!)
+            if plot_function isa typeof(hist!)
                 (
                     data_length == 1 ||
                     error("snapshotPlot: For histograms `data_analysis` should return \
@@ -465,12 +460,27 @@ function snapshotPlot(
                     error("snapshotPlot: For scatter/line plots `data_analysis` should return \
                     two data vectors, and currently is returning $(data_length)")
                 )
+            elseif plot_function isa typeof(heatmap!)
+                (
+                    data_length == 3 ||
+                    error("snapshotPlot: For heatmaps `data_analysis` should return \
+                    three data vectors, and currently is returning $(data_length)")
+                )
+            elseif plot_function isa typeof(arrows!)
+                (
+                    data_length == 4 ||
+                    error("snapshotPlot: For vector field plots `data_analysis` should return \
+                    four data vectors, and currently is returning $(data_length)")
+                )
+            else
+                throw(ArgumentError("snapshotPlot: `plot_functions` contains $(plot_function), \
+                which is not a valid function. See the documentation for valid options."))
             end
 
             # Unit conversion
             axis_data = VecOrMat{<:Number}[
                 ustrip.(unit, quantity) for
-                (unit, quantity) in zip([x_unit, y_unit, Unitful.NoUnits], da_output)
+                (unit, quantity) in zip([x_unit, y_unit, Unitful.NoUnits, Unitful.NoUnits], da_output)
             ]
 
             # Sanitize the data
@@ -582,6 +592,7 @@ function snapshotPlot(
                 pf = plot_function(axes, axis_data...; color, marker, linestyle, pf_kwarg...)
             end
 
+            # Add a colorbar the the heatmap
             if plot_function isa typeof(heatmap!) && colorbar
                 # Compute the colorbar ticks
                 colorrange = pf.attributes.calculated_colors.val.colorrange.val
