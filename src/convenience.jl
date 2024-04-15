@@ -1192,7 +1192,6 @@ Plot a time series of the data in the `sfr.txt` file.
       + `:sfr`          -> The star formation rate.
   - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="./"`: Path to the output folder.
-  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function sfrTXT(
@@ -1201,16 +1200,11 @@ function sfrTXT(
     y_quantity::Symbol;
     smooth::Int=0,
     output_path::String="./",
-    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
-
-    ################################################################################################
-    # Plot with Makie.jl
-    ################################################################################################
 
     timeSeriesPlot(
         simulation_paths,
@@ -1247,98 +1241,17 @@ function sfrTXT(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting options
-        save_figures=!latex,
-        backup_results=latex,
+        save_figures=true,
+        backup_results=false,
+        theme=Theme(Legend=(valign=:top,),),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(; valign=:top),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
     )
-
-    ################################################################################################
-    # Plot with PGFPlotsX.jl
-    ################################################################################################
-
-    if latex
-
-        jld2_file = joinpath(output_path, "$(y_quantity)-vs-$(x_quantity).jld2")
-
-        jldopen(jld2_file, "r") do file
-
-            # Add the colormap library
-            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
-
-            # Construct the axis labels
-            xlabel = LaTeXString(
-                replace(
-                    x_plot_params.axis_label,
-                    "auto_label" => getLabel(x_plot_params.var_name, 0, x_plot_params.unit),
-                ),
-            )
-            ylabel = LaTeXString(
-                replace(
-                    y_plot_params.axis_label,
-                    "auto_label" => getLabel(y_plot_params.var_name, 0, y_plot_params.unit),
-                ),
-            )
-
-            axis = @pgf PGFPlotsX.Axis({
-                xlabel = xlabel,
-                ylabel = ylabel,
-                "/pgf/number format/1000 sep={}",
-                "cycle list/Set1",
-                "cycle multiindex* list={
-                    linestyles*\\nextlist
-                    Set1\\nextlist
-                }",
-                "width=17cm",
-                "height=10cm",
-                "font=\\Large",
-                legend_style = {
-                    at = Coordinate(0.5, -0.17),
-                    anchor = "north",
-                    legend_columns = 2,
-                    draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.2cm}",
-                },
-            })
-
-            group = keys(file)[1]
-
-            @pgf for sim_name in sim_labels
-
-                x, y = file["$(group)/$(sim_name)"]
-
-                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
-                push!(axis, plot)
-
-            end
-
-            # Add the legends
-            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
-
-            pgfsave(joinpath(output_path, "$(group).pdf"), axis)
-
-        end
-
-        # Delete auxiliary JLD2 file
-        rm(jld2_file, force=true)
-
-    end
 
     return nothing
 
@@ -1435,23 +1348,13 @@ function cpuTXT(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=yscale,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting options
         save_figures=true,
         backup_results=false,
+        theme=Theme(Legend=(halign=:left, valign=:top),),
+        size=(1700, 1000),
         sim_labels,
         title=L"\mathrm{Process: \,\, %$(safe_str_target)}",
-        legend_kwarg=(; halign=:left, valign=:top),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -1464,7 +1367,7 @@ end
 """
     densityMap(
         simulation_paths::Vector{String},
-        slice_n::IndexType;
+        slice::IndexType;
         <keyword arguments>
     )::Nothing
 
@@ -1473,7 +1376,7 @@ Plot a 2D histogram of the density.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::IndexType`: Slice of the simulations, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
   - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
 
       + `:stellar_mass`   -> Stellar mass.
@@ -1499,6 +1402,7 @@ Plot a 2D histogram of the density.
   - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
   - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `size::NTuple{2,Int}=(880, 640)`: Size of the figure in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1506,12 +1410,11 @@ Plot a 2D histogram of the density.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
-  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used. This option is ignore if `slice_n` = 0.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
 """
 function densityMap(
     simulation_paths::Vector{String},
-    slice_n::IndexType;
+    slice::IndexType;
     quantities::Vector{Symbol}=[:gas_mass],
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -1521,11 +1424,14 @@ function densityMap(
     smooth::Bool=false,
     smoothing_length::Union{Unitful.Length,Nothing}=nothing,
     print_range::Bool=false,
+    size::NTuple{2,Int}=(880, 640),
     title::Union{Symbol,<:AbstractString}="",
     annotation::String="",
-    latex::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
 )::Nothing
+
+    # Compute the axes limits, to avoid white padding around the heatmap grid
+    limit = ustrip(u"kpc", box_size / 2.0)
 
     # Compute number of pixel per side
     resolution = round(Int, box_size / pixel_length)
@@ -1562,9 +1468,9 @@ function densityMap(
                     base_filename,
                     output_format=".png",
                     warnings=true,
-                    show_progress=iszero(slice_n),
+                    show_progress=iszero(slice),
                     # Data manipulation options
-                    slice=iszero(slice_n) ? (:) : slice_n,
+                    slice=iszero(slice) ? (:) : slice,
                     filter_function,
                     da_functions=[daDensity2DHistogram],
                     da_args=[(grid, quantity)],
@@ -1593,33 +1499,26 @@ function densityMap(
                     yaxis_var_name=string(projection_plane)[2:2],
                     xaxis_scale_func=identity,
                     yaxis_scale_func=identity,
-                    xaxis_limits=(nothing, nothing),
-                    yaxis_limits=(nothing, nothing),
                     # Plotting options
-                    save_figures=!latex && !iszero(slice_n),
-                    backup_results=latex && !iszero(slice_n),
+                    save_figures=!iszero(slice),
+                    backup_results=iszero(slice),
+                    theme=Theme(
+                        figure_padding=(1, 70, 1, 15),
+                        Axis=(aspect=AxisAspect(1), limits=(-limit, limit, -limit, limit)),
+                        Colorbar=(
+                            label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+                            labelpadding=2,
+                        ),
+                    ),
+                    size,
                     sim_labels=nothing,
                     title,
-                    legend_kwarg=(;),
                     colorbar=true,
-                    cb_kwargs=(;
-                        label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
-                        labelpadding=2,
-                    ),
-                    ##############################################################
-                    # One-column-wide plot:
-                    # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-                    # height = 640 unit * 0.28346 pt/unit * 0.35278 mm/pt = 64 mm
-                    ##############################################################
-                    pt_per_unit=0.28346,
-                    px_per_unit=2.0,
-                    size=(880, 640),
-                    aspect=AxisAspect(1),
                     series_colors=nothing,
                     series_markers=nothing,
                     series_linestyles=nothing,
                     # Animation options
-                    animation=iszero(slice_n),
+                    animation=iszero(slice),
                     animation_filename="$(base_filename).mp4",
                     framerate=5,
                 )
@@ -1637,16 +1536,16 @@ end
 """
     densityMapVelField(
         simulation_paths::Vector{String},
-        slice_n::IndexType;
+        slice::IndexType;
         <keyword arguments>
     )::Nothing
 
-Plot a 2D histogram of the density with the velocity field over it.
+Plot a 2D histogram of the density, with the velocity field.
 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::IndexType`: Slice of the simulations, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
   - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
 
       + `:stellar_mass`   -> Stellar mass.
@@ -1672,6 +1571,8 @@ Plot a 2D histogram of the density with the velocity field over it.
   - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
   - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+  - `size::NTuple{2,Int}=(880, 640)`: Size of the figure in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1679,12 +1580,12 @@ Plot a 2D histogram of the density with the velocity field over it.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
-  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used. This option is ignore if `slice_n` = 0.
+  - `colorbar::Bool=false`: If a colorbar will be added.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
 """
 function densityMapVelField(
     simulation_paths::Vector{String},
-    slice_n::IndexType;
+    slice::IndexType;
     quantities::Vector{Symbol}=[:gas_mass],
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -1694,11 +1595,16 @@ function densityMapVelField(
     smooth::Bool=false,
     smoothing_length::Union{Unitful.Length,Nothing}=nothing,
     print_range::Bool=false,
+    theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
+    size::NTuple{2,Int}=(880, 640),
     annotation::String="",
-    latex::Bool=false,
+    colorbar::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
 )::Nothing
+
+    # Compute the axes limits, to avoid white padding around the heatmap grid
+    limit = ustrip(u"kpc", box_size / 2.0)
 
     # Compute number of pixel per side
     resolution = round(Int, box_size / pixel_length)
@@ -1758,9 +1664,9 @@ function densityMapVelField(
                     base_filename,
                     output_format=".png",
                     warnings=true,
-                    show_progress=iszero(slice_n),
+                    show_progress=iszero(slice),
                     # Data manipulation options
-                    slice=iszero(slice_n) ? (:) : slice_n,
+                    slice=iszero(slice) ? (:) : slice,
                     filter_function,
                     da_functions=[daDensity2DHistogram, daVelocityField],
                     da_args=[(grid_hm, quantity), (grid_vf, type_symbol)],
@@ -1792,33 +1698,29 @@ function densityMapVelField(
                     yaxis_var_name=string(projection_plane)[2:2],
                     xaxis_scale_func=identity,
                     yaxis_scale_func=identity,
-                    xaxis_limits=(nothing, nothing),
-                    yaxis_limits=(nothing, nothing),
                     # Plotting options
-                    save_figures=!latex && !iszero(slice_n),
-                    backup_results=latex && !iszero(slice_n),
+                    save_figures=!iszero(slice),
+                    backup_results=iszero(slice),
+                    theme=merge(
+                        theme,
+                        Theme(
+                            figure_padding=(1, 50, 1, 1),
+                            Axis=(aspect=AxisAspect(1), limits=(-limit, limit, -limit, limit)),
+                            Colorbar=(
+                                label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+                                labelpadding=2,
+                            ),
+                        ),
+                    ),
+                    size,
                     sim_labels=nothing,
                     title,
-                    legend_kwarg=(;),
-                    colorbar=true,
-                    cb_kwargs=(;
-                        label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
-                        labelpadding=2,
-                    ),
-                    ##############################################################
-                    # One-column-wide plot:
-                    # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-                    # height = 640 unit * 0.28346 pt/unit * 0.35278 mm/pt = 64 mm
-                    ##############################################################
-                    pt_per_unit=0.28346,
-                    px_per_unit=2.0,
-                    size=(880, 640),
-                    aspect=AxisAspect(1),
+                    colorbar,
                     series_colors=nothing,
                     series_markers=nothing,
                     series_linestyles=nothing,
                     # Animation options
-                    animation=iszero(slice_n),
+                    animation=iszero(slice),
                     animation_filename="$(base_filename).mp4",
                     framerate=5,
                 )
@@ -1836,7 +1738,7 @@ end
 """
     scatterPlot(
         simulation_paths::Vector{String},
-        slice_n::Int,
+        slice::IndexType,
         x_quantity::Symbol,
         y_quantity::Symbol;
         <keyword arguments>
@@ -1847,7 +1749,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`               -> Stellar mass.
@@ -1940,7 +1842,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
 """
 function scatterPlot(
     simulation_paths::Vector{String},
-    slice_n::Int,
+    slice::IndexType,
     x_quantity::Symbol,
     y_quantity::Symbol;
     output_path::String="./",
@@ -1972,7 +1874,7 @@ function scatterPlot(
             warnings=true,
             show_progress=false,
             # Data manipulation options
-            slice=slice_n,
+            slice=slice,
             filter_function,
             da_functions=[daScatterGalaxy],
             da_args=[(x_quantity, y_quantity)],
@@ -2001,25 +1903,14 @@ function scatterPlot(
             yaxis_var_name=y_plot_params.var_name,
             xaxis_scale_func=identity,
             yaxis_scale_func=identity,
-            xaxis_limits=(nothing, nothing),
-            yaxis_limits=(nothing, nothing),
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
+            theme=Theme(),
+            size=(1700, 1000),
             sim_labels=nothing,
             title="",
-            legend_kwarg=(;),
             colorbar=false,
-            cb_kwargs=(;),
-            ################################################################
-            # Two-column-wide plot:
-            # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-            # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-            ################################################################
-            pt_per_unit=0.28346,
-            px_per_unit=1.0,
-            size=(1700, 1000),
-            aspect=nothing,
             series_colors=nothing,
             series_markers=nothing,
             series_linestyles=nothing,
@@ -2036,9 +1927,9 @@ function scatterPlot(
 end
 
 """
-    atomicToMolecularTransitionHeatmap(
+    atomicMolecularTransitionHeatmap(
         simulation_paths::Vector{String},
-        slice_n::Int,
+        slice::IndexType,
         ranges::Vector{<:Tuple{<:Real,<:Real}};
         <keyword arguments>
     )::Nothing
@@ -2048,15 +1939,15 @@ Plot the atomic gas to molecular gas transition as a heatmap, for a set of metal
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `ranges::Vector{<:Tuple{<:Real,<:Real}}`: Metallicity ranges. On figure per range will be produced.
   - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
   - `output_path::String="./"`: Path to the output folder.
 """
-function atomicToMolecularTransitionHeatmap(
+function atomicMolecularTransitionHeatmap(
     simulation_paths::Vector{String},
-    slice_n::Int,
+    slice::IndexType,
     ranges::Vector{<:Tuple{<:Real,<:Real}};
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
@@ -2098,7 +1989,7 @@ function atomicToMolecularTransitionHeatmap(
                 warnings=true,
                 show_progress=false,
                 # Data manipulation options
-                slice=slice_n,
+                slice,
                 filter_function=data_dict -> filterZinSubhalo(
                     data_dict,
                     range[1],
@@ -2133,25 +2024,14 @@ function atomicToMolecularTransitionHeatmap(
                 yaxis_var_name=y_plot_params.var_name,
                 xaxis_scale_func=identity,
                 yaxis_scale_func=identity,
-                xaxis_limits=(nothing, nothing),
-                yaxis_limits=(nothing, nothing),
                 # Plotting and animation options
                 save_figures=true,
                 backup_results=false,
+                theme=Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=1, valign=:top)),
+                size=(880, 880),
                 sim_labels=nothing,
                 title=L"%$(range[1]) \, < \, Z \, < \, %$(range[2])",
-                legend_kwarg=(; nbanks=1, valign=:top),
                 colorbar=false,
-                cb_kwargs=(;),
-                ##############################################################
-                # One-column-wide plot:
-                # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-                # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-                ##############################################################
-                pt_per_unit=0.28346,
-                px_per_unit=1.0,
-                size=(880, 880),
-                aspect=AxisAspect(1),
                 series_colors=nothing,
                 series_markers=nothing,
                 series_linestyles=nothing,
@@ -2170,9 +2050,9 @@ function atomicToMolecularTransitionHeatmap(
 end
 
 """
-    atomicToMolecularTransitionScatter(
+    atomicMolecularTransitionScatter(
         simulation_paths::Vector{String},
-        slice_n::Int,
+        slice::IndexType,
         ranges::Vector{<:Tuple{<:Real,<:Real}};
         <keyword arguments>
     )::Nothing
@@ -2182,15 +2062,15 @@ Plot the atomic gas to molecular gas transition as a scatter plot, for a set of 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `ranges::Vector{<:Tuple{<:Real,<:Real}}`: Metallicity ranges.
   - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
   - `output_path::String="./"`: Path to the output folder.
 """
-function atomicToMolecularTransitionScatter(
+function atomicMolecularTransitionScatter(
     simulation_paths::Vector{String},
-    slice_n::Int,
+    slice::IndexType,
     ranges::Vector{<:Tuple{<:Real,<:Real}};
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
@@ -2242,7 +2122,7 @@ function atomicToMolecularTransitionScatter(
             warnings=true,
             show_progress=false,
             # Data manipulation options
-            slice=slice_n,
+            slice,
             filter_function=filterNothing,
             da_functions=[daScatterGalaxy],
             da_args=[(x_quantity, y_quantity)],
@@ -2271,32 +2151,24 @@ function atomicToMolecularTransitionScatter(
             yaxis_var_name=y_plot_params.var_name,
             xaxis_scale_func=log10,
             yaxis_scale_func=identity,
-            xaxis_limits=(nothing, nothing),
-            yaxis_limits=(nothing, nothing),
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
+            theme=Theme(
+                Axis=(aspect=AxisAspect(1),),
+                Legend=(
+                    nbanks=1,
+                    valign=:top,
+                    halign=:left,
+                    labelsize=20,
+                    rowgap=-5,
+                    markersize=20,
+                ),
+            ),
+            size=(880, 880),
             sim_labels,
             title="",
-            legend_kwarg=(;
-                nbanks=1,
-                valign=:top,
-                halign=:left,
-                labelsize=20,
-                rowgap=-5,
-                markersize=20,
-            ),
             colorbar=false,
-            cb_kwargs=(;),
-            ##############################################################
-            # One-column-wide plot:
-            # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-            # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-            ##############################################################
-            pt_per_unit=0.28346,
-            px_per_unit=1.0,
-            size=(880, 880),
-            aspect=AxisAspect(1),
             series_colors=nothing,
             series_markers=nothing,
             series_linestyles=nothing,
@@ -2315,7 +2187,7 @@ end
 """
     scatterDensityMap(
         simulation_paths::Vector{String},
-        slice_n::Int,
+        slice::IndexType,
         x_quantity::Symbol,
         y_quantity::Symbol;
         <keyword arguments>
@@ -2326,7 +2198,7 @@ Plot two quantities as a density scatter plot (2D histogram).
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If set to 0, an animation using every snapshots will be made. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
 
       + `:stellar_mass`               -> Stellar mass.
@@ -2422,7 +2294,7 @@ Plot two quantities as a density scatter plot (2D histogram).
 """
 function scatterDensityMap(
     simulation_paths::Vector{String},
-    slice_n::Int,
+    slice::IndexType,
     x_quantity::Symbol,
     y_quantity::Symbol;
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
@@ -2457,7 +2329,7 @@ function scatterDensityMap(
             warnings=true,
             show_progress=false,
             # Data manipulation options
-            slice=slice_n,
+            slice,
             filter_function,
             da_functions=[daScatterDensity],
             da_args=[(x_quantity, y_quantity)],
@@ -2486,25 +2358,14 @@ function scatterDensityMap(
             yaxis_var_name=y_plot_params.var_name,
             xaxis_scale_func=identity,
             yaxis_scale_func=identity,
-            xaxis_limits=(nothing, nothing),
-            yaxis_limits=(nothing, nothing),
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
+            theme=Theme(Axis=(aspect=AxisAspect(1),),),
+            size=(880, 880),
             sim_labels=nothing,
             title="",
-            legend_kwarg=(;),
             colorbar=false,
-            cb_kwargs=(;),
-            ##############################################################
-            # One-column-wide plot:
-            # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-            # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-            ##############################################################
-            pt_per_unit=0.28346,
-            px_per_unit=1.0,
-            size=(880, 880),
-            aspect=AxisAspect(1),
             series_colors=nothing,
             series_markers=nothing,
             series_linestyles=nothing,
@@ -2609,7 +2470,8 @@ Plot a time series.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
-  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
+  - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Plot every cell/particle within the simulation box.
@@ -2618,7 +2480,6 @@ Plot a time series.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function timeSeries(
@@ -2628,16 +2489,11 @@ function timeSeries(
     slice::IndexType=(:),
     output_path::String="./",
     filter_mode::Symbol=:all,
-    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
-
-    ################################################################################################
-    # Plot with Makie.jl
-    ################################################################################################
 
     timeSeriesPlot(
         simulation_paths,
@@ -2674,104 +2530,117 @@ function timeSeries(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting options
-        save_figures=!latex,
-        backup_results=latex,
-        sim_labels,
-        legend_kwarg=(;),
-        title="",
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
+        save_figures=true,
+        backup_results=false,
+        theme=Theme(),
         size=(1700, 1000),
-        aspect=nothing,
+        sim_labels,
+        title="",
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
     )
 
-    ################################################################################################
-    # Plot with PGFPlotsX.jl
-    ################################################################################################
+    return nothing
 
-    if latex
+end
 
-        jld2_file = joinpath(output_path, "$(y_quantity)-vs-$(x_quantity).jld2")
+"""
+    gasEvolution(
+        simulation_paths::Vector{String};
+        <keyword arguments>
+    )::Nothing
 
-        jldopen(jld2_file, "r") do file
+Plot a time series of the gas components. Either their masses or their fractions.
 
-            # Add the colormap library
-            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
+# Arguments
 
-            # Construct the axis labels
-            xlabel = LaTeXString(
-                replace(
-                    x_plot_params.axis_label,
-                    "auto_label" => getLabel(
-                        x_plot_params.var_name,
-                        x_plot_params.exp_factor,
-                        x_plot_params.unit,
-                    ),
-                ),
-            )
-            ylabel = LaTeXString(
-                replace(
-                    y_plot_params.axis_label,
-                    "auto_label" => getLabel(
-                        y_plot_params.var_name,
-                        y_plot_params.exp_factor,
-                        y_plot_params.unit,
-                    ),
-                ),
-            )
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `fractions::Bool=true`: If the fractions (default), or the masses, will be plotted.
+  - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
-            axis = @pgf PGFPlotsX.Axis({
-                xlabel = xlabel,
-                ylabel = ylabel,
-                "/pgf/number format/1000 sep={}",
-                "cycle list/Set1",
-                "cycle multiindex* list={
-                    linestyles*\\nextlist
-                    Set1\\nextlist
-                }",
-                "width=17cm",
-                "height=10cm",
-                "font=\\Large",
-                legend_style = {
-                    at = Coordinate(0.5, -0.17),
-                    anchor = "north",
-                    legend_columns = 2,
-                    draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.2cm}",
-                },
-            })
+      + `:all`             -> Plot every cell/particle within the simulation box.
+      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+"""
+function gasEvolution(
+    simulation_paths::Vector{String};
+    fractions::Bool=false,
+    slice::IndexType=(:),
+    output_path::String="./",
+    filter_mode::Symbol=:all,
+)::Nothing
 
-            group = keys(file)[1]
+    x_plot_params = plotParams(:physical_time)
 
-            @pgf for sim_name in sim_labels
+    if fractions
+        quantities = [:ionized_fraction, :atomic_fraction, :molecular_fraction]
+        y_plot_params = plotParams(:generic_fraction)
+    else
+        quantities = [:gas_mass, :ionized_mass, :atomic_mass, :molecular_mass]
+        y_plot_params = plotParams(:generic_mass)
+    end
 
-                x, y = file["$(group)/$(sim_name)"]
+    for simulation_path in simulation_paths
 
-                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
-                push!(axis, plot)
-
-            end
-
-            # Add the legends
-            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
-
-            pgfsave(joinpath(output_path, "$(group).pdf"), axis)
-
+        if fractions
+            filename = "gas_fractions-vs-physical_time-$(basename(simulation_path))"
+        else
+            filename = "gas_masses-vs-physical_time-$(basename(simulation_path))"
         end
 
-        # Delete auxiliary JLD2 file
-        rm(jld2_file, force=true)
+        timeSeriesPlot(
+            fill(simulation_path, length(quantities)),
+            [lines!];
+            pf_kwargs=[(;)],
+            # `timeSeriesPlot` configuration
+            output_path,
+            filename,
+            output_format=".pdf",
+            warnings=true,
+            show_progress=true,
+            # Data manipulation options
+            slice,
+            da_functions=[daEvolution],
+            da_args=[(:physical_time, quantity) for quantity in quantities],
+            da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=true)],
+            post_processing=getNothing,
+            pp_args=(),
+            pp_kwargs=(;),
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            x_trim=(-Inf, Inf),
+            y_trim=(-Inf, Inf),
+            x_edges=false,
+            y_edges=false,
+            x_func=identity,
+            y_func=identity,
+            # Axes options
+            xaxis_label=x_plot_params.axis_label,
+            yaxis_label=y_plot_params.axis_label,
+            xaxis_var_name=x_plot_params.var_name,
+            yaxis_var_name=y_plot_params.var_name,
+            xaxis_scale_func=identity,
+            yaxis_scale_func=identity,
+            # Plotting options
+            save_figures=true,
+            backup_results=false,
+            theme=Theme(),
+            size=(1700, 1000),
+            sim_labels=string(quantities),
+            title="",
+            series_colors=nothing,
+            series_markers=nothing,
+            series_linestyles=nothing,
+        )
 
     end
 
@@ -2782,7 +2651,7 @@ end
 """
     rotationCurve(
         simulation_paths::Vector{String},
-        slice_n::Int;
+        slice::IndexType;
         <keyword arguments>
     )::Nothing
 
@@ -2791,7 +2660,7 @@ Plot the galaxy rotation curve of a set of simulations.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `radius::Unitful.Length=FILTER_R`: Maximum radial distance for the rotation curve.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
@@ -2802,16 +2671,14 @@ Plot the galaxy rotation curve of a set of simulations.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function rotationCurve(
     simulation_paths::Vector{String},
-    slice_n::Int;
+    slice::IndexType;
     radius::Unitful.Length=FILTER_R,
     output_path::String="./",
     filter_mode::Symbol=:all,
-    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -2835,7 +2702,7 @@ function rotationCurve(
         warnings=true,
         show_progress=false,
         # Data manipulation options
-        slice=slice_n,
+        slice,
         filter_function,
         da_functions=[daRotationCurve],
         da_args=[(radius,)],
@@ -2864,25 +2731,14 @@ function rotationCurve(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(0.0, nothing),
         # Plotting and animation options
-        save_figures=!latex,
-        backup_results=latex,
+        save_figures=true,
+        backup_results=false,
+        theme=Theme(Axis=(limits=(nothing, nothing, 0.0, nothing),), Legend=(nbanks=2,)),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(; nbanks=2),
         colorbar=false,
-        cb_kwargs=(;),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -2892,85 +2748,6 @@ function rotationCurve(
         framerate=10,
     )
 
-    ################################################################################################
-    # Plot with PGFPlotsX.jl
-    ################################################################################################
-
-    if latex
-
-        jld2_file = joinpath(output_path, "rotation_curve.jld2")
-
-        jldopen(jld2_file, "r") do file
-
-            # Add the colormap library
-            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
-
-            # Construct the axis labels
-            xlabel = LaTeXString(
-                replace(
-                    x_plot_params.axis_label,
-                    "auto_label" => getLabel(
-                        x_plot_params.var_name,
-                        x_plot_params.exp_factor,
-                        x_plot_params.unit,
-                    ),
-                ),
-            )
-            ylabel = LaTeXString(
-                replace(
-                    y_plot_params.axis_label,
-                    "auto_label" => getLabel(
-                        y_plot_params.var_name,
-                        y_plot_params.exp_factor,
-                        y_plot_params.unit,
-                    ),
-                ),
-            )
-
-            axis = @pgf PGFPlotsX.Axis({
-                xlabel = xlabel,
-                ylabel = ylabel,
-                "/pgf/number format/1000 sep={}",
-                "cycle list/Set1",
-                "cycle multiindex* list={
-                    linestyles*\\nextlist
-                    Set1\\nextlist
-                }",
-                "width=17cm",
-                "height=10cm",
-                "font=\\Large",
-                legend_style = {
-                    at = Coordinate(0.5, -0.17),
-                    anchor = "north",
-                    legend_columns = 2,
-                    draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.2cm}",
-                },
-            })
-
-            group = keys(file)[1]
-
-            @pgf for sim_name in sim_labels
-
-                x, y = file["$(group)/$(sim_name)"]
-
-                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
-                push!(axis, plot)
-
-            end
-
-            # Add the legends
-            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
-
-            pgfsave(joinpath(output_path, "$(group).pdf"), axis)
-
-        end
-
-        # Delete auxiliary JLD2 file
-        rm(jld2_file, force=true)
-
-    end
-
     return nothing
 
 end
@@ -2978,7 +2755,7 @@ end
 """
     densityProfile(
         simulation_paths::Vector{String},
-        slice_n::Int,
+        slice::IndexType,
         quantity::Symbol;
         <keyword arguments>
     )::Nothing
@@ -2992,7 +2769,7 @@ Plot a density profile.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_area_density`    -> Stellar area mass density, up to a radius of `FILTER_R`.
@@ -3017,7 +2794,7 @@ Plot a density profile.
 """
 function densityProfile(
     simulation_paths::Vector{String},
-    slice_n::Int,
+    slice::IndexType,
     quantity::Symbol;
     cumulative::Bool=false,
     yscale::Function=identity,
@@ -3030,10 +2807,6 @@ function densityProfile(
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
     grid = CircularGrid(FILTER_R, 100)
-
-    ################################################################################################
-    # Plot with Makie.jl
-    ################################################################################################
 
     # Draw the figures with CairoMakie
     snapshotPlot(
@@ -3048,7 +2821,7 @@ function densityProfile(
         warnings=true,
         show_progress=false,
         # Data manipulation options
-        slice=slice_n,
+        slice,
         filter_function,
         da_functions=[daProfile],
         da_args=[(grid, quantity)],
@@ -3077,25 +2850,14 @@ function densityProfile(
         yaxis_var_name=plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=yscale,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
+        theme=Theme(Legend=(valign=:top,)),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(; valign=:top),
         colorbar=false,
-        cb_kwargs=(;),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -3112,7 +2874,7 @@ end
 """
     densityProfile(
         simulation_paths::Vector{String},
-        slice_n::Int,
+        slice::IndexType,
         quantities::Vector{Symbol};
         <keyword arguments>
     )::Nothing
@@ -3126,7 +2888,7 @@ Plot a density profile.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantities::Vector{Symbol}`: Quantities for the y axis. The options are:
 
       + `:stellar_area_density`    -> Stellar area mass density, up to a radius of `FILTER_R`.
@@ -3151,7 +2913,7 @@ Plot a density profile.
 """
 function densityProfile(
     simulation_paths::Vector{String},
-    slice_n::Int,
+    slice::IndexType,
     quantities::Vector{Symbol};
     cumulative::Bool=false,
     yscale::Function=identity,
@@ -3183,7 +2945,7 @@ function densityProfile(
             warnings=true,
             show_progress=false,
             # Data manipulation options
-            slice=slice_n,
+            slice,
             filter_function,
             da_functions=[daProfile],
             da_args=[(grid, quantity) for quantity in quantities],
@@ -3212,25 +2974,14 @@ function densityProfile(
             yaxis_var_name=plot_params.var_name,
             xaxis_scale_func=identity,
             yaxis_scale_func=yscale,
-            xaxis_limits=(nothing, nothing),
-            yaxis_limits=(nothing, nothing),
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
+            theme=Theme(Legend=(valign=:top, nbanks=1)),
+            size=(1700, 1000),
             sim_labels,
             title="",
-            legend_kwarg=(; valign=:top, nbanks=1),
             colorbar=false,
-            cb_kwargs=(;),
-            ################################################################
-            # Two-column-wide plot:
-            # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-            # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-            ################################################################
-            pt_per_unit=0.28346,
-            px_per_unit=1.0,
-            size=(1700, 1000),
-            aspect=nothing,
             series_colors=nothing,
             series_markers=nothing,
             series_linestyles=nothing,
@@ -3248,7 +2999,7 @@ end
 """
     velocityProfile(
         simulation_paths::Vector{String},
-        slice_n::Int,
+        slice::IndexType,
         quantity::Symbol;
         <keyword arguments>
     )::Nothing
@@ -3258,7 +3009,7 @@ Plot a density profile.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `component::Symbol`: Which component will be calculated. The options are:
 
       + `:stellar_vradial`     -> Stellar radial speed (``v_r``).
@@ -3274,17 +3025,15 @@ Plot a density profile.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function velocityProfile(
     simulation_paths::Vector{String},
-    slice_n::Int,
+    slice::IndexType,
     component::Symbol;
     yscale::Function=identity,
     output_path::String="./",
     filter_mode::Symbol=:all,
-    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -3292,10 +3041,6 @@ function velocityProfile(
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
     grid = CircularGrid(FILTER_R, 25)
-
-    ################################################################################################
-    # Plot with Makie.jl
-    ################################################################################################
 
     # Draw the figures with CairoMakie
     snapshotPlot(
@@ -3310,7 +3055,7 @@ function velocityProfile(
         warnings=true,
         show_progress=false,
         # Data manipulation options
-        slice=slice_n,
+        slice,
         filter_function,
         da_functions=[daProfile],
         da_args=[(grid, component)],
@@ -3339,25 +3084,14 @@ function velocityProfile(
         yaxis_var_name=plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=yscale,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting and animation options
-        save_figures=!latex,
-        backup_results=latex,
+        save_figures=true,
+        backup_results=false,
+        theme=Theme(),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(;),
         colorbar=false,
-        cb_kwargs=(;),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -3367,92 +3101,6 @@ function velocityProfile(
         framerate=10,
     )
 
-    ################################################################################################
-    # Plot with PGFPlotsX.jl
-    ################################################################################################
-
-    if latex
-
-        jld2_file = joinpath(output_path, "$(component)-profile.jld2")
-
-        jldopen(jld2_file, "r") do file
-
-            # Add the colormap library
-            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
-
-            # Construct the axis labels
-            xlabel = getLabel(L"r", 0, u"kpc")
-            ylabel = LaTeXString(
-                replace(
-                    plot_params.axis_label,
-                    "auto_label" => getLabel(plot_params.var_name, 0, plot_params.unit),
-                ),
-            )
-
-            # Select y axis scaling
-            if yscale == log
-                ymode = "log"
-                log_basis_y = "exp(1)"
-            elseif yscale == log10
-                ymode = "log"
-                log_basis_y = "10"
-            else
-                (
-                    yscale == identity ||
-                    @warn("densityProfile: PGFPlotsX can only draw axis with linear or \\
-                    logarithmic scaling")
-                )
-                ymode = "normal"
-                log_basis_y = ""
-            end
-
-            axis = @pgf PGFPlotsX.Axis({
-                xlabel = xlabel,
-                ylabel = ylabel,
-                ymode = ymode,
-                xmin = -0.5,
-                "log basis y" = log_basis_y,
-                "/pgf/number format/1000 sep={}",
-                "cycle list/Set1",
-                "cycle multiindex* list={
-                    linestyles*\\nextlist
-                    Set1\\nextlist
-                }",
-                "width=17cm",
-                "height=10cm",
-                "font=\\Large",
-                legend_style = {
-                    at = Coordinate(0.5, -0.17),
-                    anchor = "north",
-                    legend_columns = 2,
-                    draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.2cm}",
-                },
-            })
-
-            group = keys(file)[1]
-
-            @pgf for sim_name in sim_labels
-
-                x, y = file["$(group)/$(sim_name)"]
-
-                plot = PlotInc({"ultra thick"}, Coordinates(x, y))
-                push!(axis, plot)
-
-            end
-
-            # Add the legends
-            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
-
-            pgfsave(joinpath(output_path, "$(group).pdf"), axis, dpi=600)
-
-        end
-
-        # Delete auxiliary JLD2 file
-        rm(jld2_file, force=true)
-
-    end
-
     return nothing
 
 end
@@ -3460,7 +3108,7 @@ end
 """
     stellarHistory(
         simulation_paths::Vector{String},
-        slice_n::Int,
+        slice::IndexType,
         quantity::Symbol;
         <keyword arguments>
     )::Nothing
@@ -3474,7 +3122,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:sfr`          -> The star formation rate.
@@ -3490,17 +3138,15 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function stellarHistory(
     simulation_paths::Vector{String},
-    slice_n::Int,
+    slice::IndexType,
     quantity::Symbol;
     n_bins::Int=20,
     output_path::String="./",
     filter_mode::Symbol=:all,
-    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -3511,10 +3157,6 @@ function stellarHistory(
         filter_mode,
         Dict(:stars => ["GAGE"]),
     )
-
-    ################################################################################################
-    # Plot with Makie.jl
-    ################################################################################################
 
     # Draw the figures with CairoMakie
     snapshotPlot(
@@ -3529,7 +3171,7 @@ function stellarHistory(
         warnings=true,
         show_progress=false,
         # Data manipulation options
-        slice=slice_n,
+        slice,
         filter_function,
         da_functions=[daStellarHistory],
         da_args=[()],
@@ -3558,25 +3200,14 @@ function stellarHistory(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=log10,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting and animation options
-        save_figures=!latex,
-        backup_results=latex,
+        save_figures=true,
+        backup_results=false,
+        theme=Theme(Legend=(nbanks=2,)),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(; nbanks=2),
         colorbar=false,
-        cb_kwargs=(;),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -3586,87 +3217,6 @@ function stellarHistory(
         framerate=10,
     )
 
-    ################################################################################################
-    # Plot with PGFPlotsX.jl
-    ################################################################################################
-
-    if latex
-
-        jld2_file = joinpath(output_path, "$(quantity)-stellar-history.jld2")
-
-        jldopen(jld2_file, "r") do file
-
-            # Add the colormap library
-            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
-
-            # Construct the axis labels
-            xlabel = LaTeXString(
-                replace(
-                    x_plot_params.axis_label,
-                    "auto_label" => getLabel(
-                        x_plot_params.var_name,
-                        x_plot_params.exp_factor,
-                        x_plot_params.unit,
-                    ),
-                ),
-            )
-            ylabel = LaTeXString(
-                replace(
-                    y_plot_params.axis_label,
-                    "auto_label" => getLabel(
-                        y_plot_params.var_name,
-                        y_plot_params.exp_factor,
-                        y_plot_params.unit,
-                    ),
-                ),
-            )
-
-            # Draw the figures with PGFPlotsX
-            axis = @pgf PGFPlotsX.Axis({
-                xlabel = xlabel,
-                ylabel = ylabel,
-                ymode = "log",
-                "/pgf/number format/1000 sep={}",
-                "cycle list/Set1",
-                "cycle multiindex* list={
-                    linestyles*\\nextlist
-                    Set1\\nextlist
-                }",
-                "width=17cm",
-                "height=10cm",
-                "font=\\Large",
-                legend_style = {
-                    at = Coordinate(0.5, -0.17),
-                    anchor = "north",
-                    legend_columns = 2,
-                    draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.2cm}",
-                },
-            })
-
-            group = keys(file)[1]
-
-            @pgf for sim_name in sim_labels
-
-                x, y = file["$(group)/$(sim_name)"]
-
-                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
-                push!(axis, plot)
-
-            end
-
-            # Add the legends
-            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
-
-            pgfsave(joinpath(output_path, "$(group).pdf"), axis, dpi=600)
-
-        end
-
-        # Delete auxiliary JLD2 file
-        rm(jld2_file, force=true)
-
-    end
-
     return nothing
 
 end
@@ -3674,7 +3224,7 @@ end
 """
     stellarHistory(
         simulation_path::String,
-        slice_n::Int,
+        slice::IndexType,
         quantity::Symbol;
         <keyword arguments>
     )::Nothing
@@ -3688,7 +3238,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:sfr`          -> The star formation rate.
@@ -3702,7 +3252,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
 """
 function stellarHistory(
     simulation_path::String,
-    slice_n::Int,
+    slice::IndexType,
     quantity::Symbol;
     components::Vector{Symbol}=[:disk, :bulge],
     n_bins::Int=20,
@@ -3749,7 +3299,7 @@ function stellarHistory(
         warnings=true,
         show_progress=false,
         # Data manipulation options
-        slice=slice_n,
+        slice,
         filter_function=filterNothing,
         da_functions=[daStellarHistory],
         da_args=[()],
@@ -3778,25 +3328,14 @@ function stellarHistory(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=log10,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
+        theme=Theme(Legend=(nbanks=1,)),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(; nbanks=1),
         colorbar=false,
-        cb_kwargs=(;),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -3813,7 +3352,7 @@ end
 """
     stellarCircularity(
         simulation_paths::Vector{String},
-        slice_n::Int;
+        slice::IndexType;
         <keyword arguments>
     )::Nothing
 
@@ -3822,7 +3361,7 @@ Plot a histogram of the stellar circularity.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `range::NTuple{2,<:Number}=(-2.0, 2.0)`: Circularity range.
   - `n_bins::Int=60`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
@@ -3834,17 +3373,15 @@ Plot a histogram of the stellar circularity.
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-  - `latex::Bool=false`: If [PGFPlotsX](https://kristofferc.github.io/PGFPlotsX.jl/stable/) will be used for plotting; otherwise, [CairoMakie](https://docs.makie.org/stable/) will be used.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function stellarCircularity(
     simulation_paths::Vector{String},
-    slice_n::Int;
+    slice::IndexType;
     range::NTuple{2,<:Number}=(-2.0, 2.0),
     n_bins::Int=60,
     output_path::String="./",
     filter_mode::Symbol=:all,
-    latex::Bool=false,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -3853,10 +3390,6 @@ function stellarCircularity(
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
     grid = LinearGrid(range..., n_bins)
-
-    ################################################################################################
-    # Plot with Makie.jl
-    ################################################################################################
 
     snapshotPlot(
         simulation_paths,
@@ -3870,7 +3403,7 @@ function stellarCircularity(
         warnings=true,
         show_progress=false,
         # Data manipulation options
-        slice=slice_n,
+        slice,
         filter_function,
         da_functions=[daCircularityHistogram],
         da_args=[(grid,)],
@@ -3899,25 +3432,17 @@ function stellarCircularity(
         yaxis_var_name=L"\mathrm{Normalized \,\, counts}",
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting and animation options
-        save_figures=!latex,
-        backup_results=latex,
+        save_figures=true,
+        backup_results=false,
+        theme=Theme(
+            Axis=(aspect=AxisAspect(1),),
+            Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
+        ),
+        size=(880, 880),
         sim_labels,
         title="",
-        legend_kwarg=(; nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
         colorbar=false,
-        cb_kwargs=(;),
-        ##############################################################
-        # One-column-wide plot:
-        # width  = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-        # height = 880 unit * 0.28346 pt/unit * 0.35278 mm/pt = 88 mm
-        ##############################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(880, 800),
-        aspect=AxisAspect(1),
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -3927,83 +3452,12 @@ function stellarCircularity(
         framerate=10,
     )
 
-    ################################################################################################
-    # Plot with PGFPlotsX.jl
-    ################################################################################################
-
-    if latex
-
-        jld2_file = joinpath(output_path, "circularity_histogram.jld2")
-
-        jldopen(jld2_file, "r") do file
-
-            # Add the colormap library
-            push!(PGFPlotsX.CUSTOM_PREAMBLE, "\\usetikzlibrary{pgfplots.colorbrewer}")
-
-            # Construct the axis labels
-            xlabel = LaTeXString(
-                replace(
-                    plot_params.axis_label,
-                    "auto_label" => getLabel(
-                        plot_params.var_name,
-                        plot_params.exp_factor,
-                        plot_params.unit,
-                    ),
-                ),
-            )
-            ylabel = getLabel(L"\mathrm{Normalized \,\, counts}", 0, Unitful.NoUnits)
-
-            # Draw the figures with PGFPlotsX
-            axis = @pgf PGFPlotsX.Axis({
-                xlabel = xlabel,
-                ylabel = ylabel,
-                "/pgf/number format/1000 sep={}",
-                "cycle list/Set1",
-                "cycle multiindex* list={
-                    linestyles*\\nextlist
-                    Set1\\nextlist
-                }",
-                "width=8.8cm",
-                "height=8.8cm",
-                "font=\\Large",
-                legend_style = {
-                    at = Coordinate(0.5, -0.17),
-                    anchor = "north",
-                    legend_columns = 2,
-                    draw = "none",
-                    "/tikz/every even column/.append style={column sep=0.2cm}",
-                },
-            },)
-
-            group = keys(file)[1]
-
-            @pgf for sim_name in sim_labels
-
-                x, y = file["$(group)/$(sim_name)"]
-
-                plot = PlotInc({no_marks, "ultra thick"}, Coordinates(x, y))
-                push!(axis, plot)
-
-            end
-
-            # Add the legends
-            push!(axis, PGFPlotsX.Legend(replace.(sim_labels, "_" => " ")))
-
-            pgfsave(joinpath(output_path, "$(group).pdf"), axis, dpi=600)
-
-        end
-
-        # Delete auxiliary JLD2 file
-        rm(jld2_file, force=true)
-
-    end
-
     return nothing
 
 end
 
 """
-    compareWithFeldmann2020(
+    compareFeldmann2020(
         simulation_paths::Vector{String},
         x_quantity::Symbol,
         y_quantity::Symbol;
@@ -4027,7 +3481,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
       + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:sfr`            -> The star formation rate of the last `AGE_RESOLUTION`.
-  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
+  - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
@@ -4044,7 +3498,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
 
 R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*. Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
 """
-function compareWithFeldmann2020(
+function compareFeldmann2020(
     simulation_paths::Vector{String},
     x_quantity::Symbol,
     y_quantity::Symbol;
@@ -4093,23 +3547,13 @@ function compareWithFeldmann2020(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=log10,
         yaxis_scale_func=log10,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting options
         save_figures=true,
         backup_results=false,
+        theme=Theme(Legend=(nbanks=2,),),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(; nbanks=2),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -4120,9 +3564,9 @@ function compareWithFeldmann2020(
 end
 
 """
-    compareWithMolla2015(
+    compareMolla2015(
         simulation_paths::Vector{String},
-        slice_n::Int,
+        slice::IndexType,
         quantity::Symbol;
         <keyword arguments>
     )::Nothing
@@ -4132,7 +3576,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_area_density`   -> Stellar area mass density.
@@ -4157,9 +3601,9 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
 
 M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
-function compareWithMolla2015(
+function compareMolla2015(
     simulation_paths::Vector{String},
-    slice_n::Int,
+    slice::IndexType,
     quantity::Symbol;
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -4185,7 +3629,7 @@ function compareWithMolla2015(
         warnings=true,
         show_progress=false,
         # Data manipulation options
-        slice=slice_n,
+        slice,
         filter_function,
         da_functions=[daMolla2015],
         da_args=[(grid, quantity)],
@@ -4214,25 +3658,14 @@ function compareWithMolla2015(
         yaxis_var_name=plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
+        theme=Theme(),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(;),
         colorbar=false,
-        cb_kwargs=(;),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -4247,22 +3680,18 @@ function compareWithMolla2015(
 end
 
 """
-    compareWithKennicuttBigiel(
+    compareKennicuttBigielResolved(
         simulation_paths::Vector{String},
-        slice_n::Int;
+        slice::IndexType;
         <keyword arguments>
     )::Nothing
 
-Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`.
-
-!!! note
-
-    This method plots the KS relation using cylindrical bins at a fix moment in time.
+Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`. This method plots the KS relation using cylindrical bins at a fix moment in time.
 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
 
       + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
@@ -4285,9 +3714,9 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-function compareWithKennicuttBigiel(
+function compareKennicuttBigielResolved(
     simulation_paths::Vector{String},
-    slice_n::Int;
+    slice::IndexType;
     quantity::Symbol=:molecular_area_density,
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -4334,7 +3763,7 @@ function compareWithKennicuttBigiel(
         warnings=true,
         show_progress=false,
         # Data manipulation options
-        slice=slice_n,
+        slice,
         filter_function,
         da_functions,
         da_args,
@@ -4370,25 +3799,14 @@ function compareWithKennicuttBigiel(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=log10,
         yaxis_scale_func=log10,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
+        theme=Theme(),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(;),
         colorbar=false,
-        cb_kwargs=(;),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -4403,22 +3821,18 @@ function compareWithKennicuttBigiel(
 end
 
 """
-    compareWithKennicuttBigiel(
+    compareKennicuttBigielIntegrated(
         simulation_paths::Vector{String},
-        slice::Union{Colon,UnitRange{<:Integer},StepRange{<:Integer,<:Integer},Vector{<:Integer}};
+        slice::IndexType;
         <keyword arguments>
     )::Nothing
 
-Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`.
-
-!!! note
-
-    This method plots the KS relation for the whole galaxy at different points in time.
+Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`. This method plots the KS relation for the whole galaxy at different points in time.
 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::Union{Colon,UnitRange{<:Integer},StepRange{<:Integer,<:Integer},Vector{<:Integer}}`: Slice of the simulation, i.e. which snapshots will be read. It can be a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
 
       + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
@@ -4441,9 +3855,9 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-function compareWithKennicuttBigiel(
+function compareKennicuttBigielIntegrated(
     simulation_paths::Vector{String},
-    slice::Union{Colon,UnitRange{<:Integer},StepRange{<:Integer,<:Integer},Vector{<:Integer}};
+    slice::IndexType;
     quantity::Symbol=:molecular_area_density,
     output_path::String="./",
     filter_mode::Symbol=:all,
@@ -4510,23 +3924,13 @@ function compareWithKennicuttBigiel(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=log10,
         yaxis_scale_func=log10,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting options
         save_figures=true,
         backup_results=false,
+        theme=Theme(),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        legend_kwarg=(;),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,
@@ -4537,22 +3941,18 @@ function compareWithKennicuttBigiel(
 end
 
 """
-    fitKennicuttBigielLaw(
+    fitKennicuttBigielResolved(
         simulation_path::String,
-        slice_n::Int;
+        slice::IndexType;
         <keyword arguments>
     )::Nothing
 
 Plot the resolved Kennicutt-Schmidt relation with its linear fit.
 
-!!! note
-
-    This method plots the KS relation using cylindrical bins at a fix moment in time.
-
 # Arguments
 
   - `simulation_path::String}`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice::Union{Colon,UnitRange{<:Integer},StepRange{<:Integer,<:Integer},Vector{<:Integer}}`: Slice of the simulation, i.e. which snapshots will be read. It can be a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
 
       + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
@@ -4576,9 +3976,9 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-function fitKennicuttBigielLaw(
+function fitKennicuttBigielResolved(
     simulation_path::String,
-    slice_n::Int;
+    slice::IndexType;
     quantity::Symbol=:molecular_area_density,
     x_range::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
@@ -4616,7 +4016,7 @@ function fitKennicuttBigielLaw(
         warnings=true,
         show_progress=false,
         # Data manipulation options
-        slice=slice_n,
+        slice,
         filter_function,
         da_functions,
         da_args,
@@ -4645,26 +4045,17 @@ function fitKennicuttBigielLaw(
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=log10,
         yaxis_scale_func=log10,
-        xaxis_limits=(nothing, nothing),
-        yaxis_limits=(nothing, nothing),
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
+        ##########################
+        # left, right, bottom, top
+        ##########################
+        theme=Theme(Legend=(padding=(0, 0, 150, 0),),),
+        size=(1700, 1000),
         sim_labels,
         title="",
-        # (l, r, b, t)
-        legend_kwarg=(; padding=(0, 0, 150, 0)),
         colorbar=false,
-        cb_kwargs=(;),
-        ################################################################
-        # Two-column-wide plot:
-        # width  = 1700 unit * 0.28346 pt/unit * 0.35278 mm/pt = 170 mm
-        # height = 1000 unit * 0.28346 pt/unit * 0.35278 mm/pt = 100 mm
-        ################################################################
-        pt_per_unit=0.28346,
-        px_per_unit=1.0,
-        size=(1700, 1000),
-        aspect=nothing,
         series_colors=nothing,
         series_markers=nothing,
         series_linestyles=nothing,

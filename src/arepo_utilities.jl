@@ -851,6 +851,7 @@ Select the plotting parameters for a given `quantity`.
       + `:gas_mass`                   -> Gas mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
+      + `:generic_mass`               -> Parameters for plots with several diferent masses.
       + `:stellar_number`             -> Number of stellar particles.
       + `:gas_number`                 -> Number of gas cells.
       + `:dm_number`                  -> Number of dark matter particles.
@@ -864,6 +865,7 @@ Select the plotting parameters for a given `quantity`.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:generic_fraction`           -> Parameters for plots with several diferent fraction.
       + `:gas_mass_density`           -> Gas mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
@@ -949,6 +951,20 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(:black_hole => ["MASS", "POS ", "SOFT"]),
             var_name = L"M_\mathrm{BH}",
+            unit     = u"Msun",
+        )
+
+    elseif quantity == :generic_mass
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :stars => ["MASS", "POS ", "SOFT"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO "],
+                :dm_mass => ["MASS", "POS ", "SOFT"],
+                :bh_mass => ["MASS", "POS ", "SOFT"],
+            ),
+            var_name = L"M",
+            exp_factor = 10,
             unit     = u"Msun",
         )
 
@@ -1050,6 +1066,13 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(:gas => ["MASS", "POS ", "RHO ", "FRAC", "NH  ", "NHP ", "PRES"]),
             var_name = L"f_\mathrm{H2}^\star",
+        )
+
+    elseif quantity == :generic_fraction
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["MASS", "POS ", "RHO ", "FRAC", "NH  ", "NHP ", "PRES"]),
+            var_name = L"f",
         )
 
     elseif quantity == :gas_mass_density

@@ -364,53 +364,70 @@ const LINE_STYLES = [:solid, :dash, :dot, :dashdot, :dashdotdot]
 
 """
 Global plot theme.
+
+On the graphic units used:
+
+We know that 1 mm = 2.83466 pt and 1 in = 25,4 mm. Then, if we want 1 [code ]unit = 0.1 mm in vector graphics, we have to use `pt_per_unit` = 0.283466.
+For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is 600, so, using `px_per_unit` = 2.3622 we get 23.622 px/mm ~ 600 px/in (remember that 1 [code ]unit = 0.1 mm).
 """
-const THEME = Theme(
-    ####################################
-    # 42 unit * 0.28346 pt/unit = 12 pt
-    ####################################
-    fontsize=42,
-    # figure_padding=(1, 35, 10, 10), # left, right, bottom, top
-    figure_padding=(1, 50, 1, 10),
+const DEFAULT_THEME = Theme(
+    #####################################
+    # 35 unit * 0.283466 pt/unit ~ 9.9 pt
+    #####################################
+    fontsize=35,
+    ############################
+    # (left, right, bottom, top)
+    ############################
+    figure_padding=(1, 15, 1, 15),
+    CairoMakie=(px_per_unit=2.3622, pt_per_unit=0.283466),
     Axis=(
         xlabelpadding=15,
-        ylabelpadding=15,
-        xgridvisible=false,
-        ygridvisible=false,
-        xtickalign=0,
-        ytickalign=0,
-        xticksize=7,
-        yticksize=7,
         xticklabelpad=10,
-        yticklabelpad=10,
+        xticksize=7,
+        xgridvisible=false,
         xminorticksvisible=true,
-        yminorticksvisible=true,
-        xminortickalign=0,
-        yminortickalign=0,
         xminorticks=IntervalsBetween(5),
+        ylabelpadding=15,
+        yticklabelpad=10,
+        yticksize=7,
+        ygridvisible=false,
+        yminorticksvisible=true,
         yminorticks=IntervalsBetween(5),
+        ###############################################################################################
+        # Aspect ratio of the figures. The options are:
+        # nothing: Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
+        # AxisAspect(n): The aspect ratio will be given by the number `n` = width / height.
+        # DataAspect(): The aspect ratio of the data will be used.
+        ###############################################################################################
+        aspect=nothing,
     ),
     Legend=(
         tellheight=false,
         tellwidth=false,
-        margin=(15, 15, 10, 10), # left, right, bottom, top
+        ##########################
+        # left, right, bottom, top
+        ##########################
+        margin=(15, 15, 10, 10),
         framevisible=false,
         colgap=20,
         halign=:right,
         valign=:bottom,
         nbanks=3,
+        titlegap=-5,
         labelsize=30,
         linewidth=5,
         markersize=28,
         patchsize=(50, 50),
         linepoints=[Point2f(0.0, 0.5), Point2f(0.9, 0.5)],
+        ##############################################
+        # Vertices, relative to the default 1x1 square
+        ##############################################
         polypoints=[
             Point2f(0.15, 0.15),
             Point2f(0.85, 0.15),
             Point2f(0.85, 0.85),
             Point2f(0.15, 0.85),
         ],
-        titlegap=-5,
     ),
     Lines=(linewidth=5,),
     VLines=(linewidth=3,),

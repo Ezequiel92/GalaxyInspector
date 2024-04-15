@@ -29,7 +29,6 @@ using CSV,
     LaTeXStrings,
     Measurements,
     NearestNeighbors,
-    PGFPlotsX,
     ProgressMeter,
     QuadGK,
     Rotations,
@@ -79,18 +78,20 @@ export cpuTXT
 export densityMap
 export densityMapVelField
 export scatterPlot
-export atomicToMolecularTransitionHeatmap
-export atomicToMolecularTransitionScatter
+export atomicMolecularTransitionHeatmap
+export atomicMolecularTransitionScatter
 export scatterDensityMap
 export timeSeries
+export gasEvolution
 export rotationCurve
 export densityProfile
 export velocityProfile
 export stellarHistory
 export stellarCircularity
-export compareWithFeldmann2020
-export compareWithMolla2015
-export compareWithKennicuttBigiel
-export fitKennicuttBigielLaw
+export compareFeldmann2020
+export compareMolla2015
+export compareKennicuttBigielResolved
+export compareKennicuttBigielIntegrated
+export fitKennicuttBigielResolved
 
 end

@@ -116,13 +116,13 @@ Some of the features are:
   - `yaxis_var_name::AbstractString=""`: Name of the variable for the y axis.
   - `xaxis_scale_func::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `yaxis_scale_func::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the x axis.
-  - `yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the y axis.
 
 ### Plotting options
 
   - `save_figures::Bool=true`: If every figure will be saved as an image.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+  - `size::NTuple{2,Int}=(1000, 1000)`: Size of the figures in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -130,17 +130,7 @@ Some of the features are:
       + `:lookback_time` -> Physical time left to reach the last snapshot.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
-  - `legend_kwarg::NamedTuple=(;)`: Keyword arguments for the legends.
   - `colorbar::Bool=false`: If a colorbar will be added to heatmaps. Only relevant for when `plot_functions` is `heatmap!`.
-  - `cb_kwargs::NamedTuple=(;)`: Keyword arguments for the colorbar.
-  - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
-  - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
-  - `size::NTuple{2,Int}=(1280, 800)`: Size of the figures in points (≈ 0.353 mm). For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
-  - `aspect::Union{DataAspect,AxisAspect,Nothing}=nothing`: Aspect ratio of the figures. The options are:
-
-      + `nothing`       -> Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
-      + `AxisAspect(n)` -> The aspect ratio will be given by the number `n` = width / height.
-      + `DataAspect()`  -> The aspect ratio of the data will be used.
   - `series_colors::Union{Vector{<:ColorType},Nothing}=nothing`: Colors for the different simulations. If set to `nothing`, the colors will be assigned automatically. This is only relevant for `scatter!`, `scatterlines!`, and `lines!` plots.
   - `series_markers::Union{Vector{Symbol},Nothing}=nothing`: Markers for the different simulations. If set to `nothing`, the markers will be assigned automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
   - `series_linestyles::Union{Vector{<:LineStyleType},Nothing}=nothing`: Line styles for the different simulations. If set to `nothing`, the line styles will be assigned automatically. This is only relevant for `lines!` and `scatterlines!` plots.
@@ -192,20 +182,14 @@ function snapshotPlot(
     yaxis_var_name::AbstractString="",
     xaxis_scale_func::Function=identity,
     yaxis_scale_func::Function=identity,
-    xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
-    yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
     # Plotting options
     save_figures::Bool=true,
     backup_results::Bool=false,
+    theme::Attributes=Theme(),
+    size::NTuple{2,Int}=(1000, 1000),
     sim_labels::Union{Vector{String},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
-    legend_kwarg::NamedTuple=(;),
     colorbar::Bool=false,
-    cb_kwargs::NamedTuple=(;),
-    pt_per_unit::Float64=0.75,
-    px_per_unit::Float64=1.0,
-    size::NTuple{2,Int}=(1280, 800),
-    aspect::Union{DataAspect,AxisAspect,Nothing}=nothing,
     series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
     series_markers::Union{Vector{Symbol},Nothing}=nothing,
     series_linestyles::Union{Vector{<:LineStyleType},Nothing}=nothing,
@@ -252,7 +236,8 @@ function snapshotPlot(
     ################################################################################################
 
     # Apply the global theme defined in `./src/constants.jl`
-    set_theme!(merge(theme_latexfonts(), THEME))
+    set_theme!()
+    set_theme!(merge(theme, theme_latexfonts(), DEFAULT_THEME))
 
     # Create the figure
     figure = Figure(; size)
@@ -282,7 +267,7 @@ function snapshotPlot(
     )
 
     # Create the axes
-    axes = Makie.Axis(figure[1, 1]; limits=(xaxis_limits, yaxis_limits), xlabel, ylabel, aspect)
+    axes = Makie.Axis(figure[1, 1]; xlabel, ylabel)
 
     ################################################################################################
     # Set up the animation.
@@ -508,7 +493,6 @@ function snapshotPlot(
                         axis_data[1],
                         n_bins;
                         scaling=xaxis_scale_func,
-                        limits=xaxis_limits,
                     )
 
                     pf_kwarg = merge(pf_kwarg, (; bins))
@@ -601,7 +585,7 @@ function snapshotPlot(
                 ticks = round.(range(min_c, max_c, 5); digits=1)
 
                 # For heatmaps add a colorbar
-                Colorbar(figure[1, 2], pf; ticks, cb_kwargs...)
+                Colorbar(figure[1, 2], pf; ticks)
 
                 # Adjust its height
                 rowsize!(figure.layout, 1, Makie.Fixed(pixelarea(axes.scene)[].widths[2]))
@@ -721,8 +705,7 @@ function snapshotPlot(
                     figure[1, 1],
                     legend_elements,
                     legend_labels,
-                    titles;
-                    legend_kwarg...,
+                    titles,
                 )
             end
 
@@ -735,9 +718,7 @@ function snapshotPlot(
                     output_path,
                     "$(base_filename)-$(SNAP_BASENAME)_$(snapshot_number)$(output_format)",
                 ),
-                figure;
-                pt_per_unit,
-                px_per_unit,
+                figure,
             )
         end
 
@@ -829,24 +810,15 @@ Some of the features are:
   - `yaxis_var_name::AbstractString=""`: Name of the variable for the y axis.
   - `xaxis_scale_func::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `yaxis_scale_func::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the x axis.
-  - `yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing)`: Set it to a value different than `nothing` if you want to fix the limits of the y axis.
 
 ### Plotting options
 
   - `save_figures::Bool=true`: If the plot will be saved as an image.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+  - `size::NTuple{2,Int}=(1000, 1000)`: Size of the figures in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
-  - `legend_kwarg::NamedTuple=(;)`: Keyword arguments for the legends.
-  - `pt_per_unit::Float64=0.75`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.pdf` and `.svg`.
-  - `px_per_unit::Float64=1.0`: Factor to scale up or down the size of the figures, keeping the proportions. It only works for `.png`.
-  - `size::NTuple{2,Int}=(1280, 800)`: Size of the figures in points (≈ 0.353 mm). For PNGs, by default points = pixels (as given by `px_per_unit` = 1.0), and for PDFs and SVGs, points = 0.75 * pixels (as given by `pt_per_unit` = 0.75).
-  - `aspect::Union{DataAspect,AxisAspect,Nothing}=nothing`: Aspect ratio of the figures. The options are:
-
-      + `nothing`       -> Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
-      + `AxisAspect(n)` -> The aspect ratio will be given by the number `n` = width / height.
-      + `DataAspect()`  -> The aspect ratio of the data will be used.
   - `series_colors::Union{Vector{<:ColorType},Nothing}=nothing`: Colors for the different simulations. If set to `nothing`, the colors will be assigned automatically.
   - `series_markers::Union{Vector{Symbol},Nothing}=nothing`: Markers for the different simulations. If set to `nothing`, the markers will be assigned automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
   - `series_linestyles::Union{Vector{<:LineStyleType},Nothing}=nothing`: Line styles for the different simulations. If set to `nothing`, the line styles will be assigned automatically. This is only relevant for `lines!` and `scatterlines!` plots.
@@ -890,18 +862,13 @@ function timeSeriesPlot(
     yaxis_var_name::AbstractString="",
     xaxis_scale_func::Function=identity,
     yaxis_scale_func::Function=identity,
-    xaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
-    yaxis_limits::Tuple{<:Union{Real,Nothing},<:Union{Real,Nothing}}=(nothing, nothing),
     # Plotting options
     save_figures::Bool=true,
     backup_results::Bool=false,
+    theme::Attributes=Theme(),
+    size::NTuple{2,Int}=(1000, 1000),
     sim_labels::Union{Vector{String},Nothing}=nothing,
     title::AbstractString="",
-    legend_kwarg::NamedTuple=(;),
-    pt_per_unit::Float64=0.75,
-    px_per_unit::Float64=1.0,
-    size::NTuple{2,Int}=(1280, 800),
-    aspect::Union{DataAspect,AxisAspect,Nothing}=nothing,
     series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
     series_markers::Union{Vector{Symbol},Nothing}=nothing,
     series_linestyles::Union{Vector{<:LineStyleType},Nothing}=nothing,
@@ -918,7 +885,8 @@ function timeSeriesPlot(
     ################################################################################################
 
     # Apply the global theme defined in `./src/constants.jl`
-    set_theme!(merge(theme_latexfonts(), THEME))
+    set_theme!()
+    set_theme!(merge(theme, theme_latexfonts(), DEFAULT_THEME))
 
     # Create the figure
     figure = Figure(; size)
@@ -949,10 +917,8 @@ function timeSeriesPlot(
     # Create the axes
     axes = Makie.Axis(
         figure[1, 1];
-        limits=(xaxis_limits, yaxis_limits),
         xlabel,
         ylabel,
-        aspect,
         title,
     )
 
@@ -1156,13 +1122,12 @@ function timeSeriesPlot(
                 figure[1, 1],
                 legend_elements,
                 legend_labels,
-                titles;
-                legend_kwarg...,
+                titles,
             )
         end
 
         # Save the figure
-        save(joinpath(output_path, filename * output_format), figure; pt_per_unit, px_per_unit)
+        save(joinpath(output_path, filename * output_format), figure)
     end
 
     return axes, figure
