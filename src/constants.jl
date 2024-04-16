@@ -385,6 +385,7 @@ const DEFAULT_THEME = Theme(
         xticklabelpad=10,
         xticksize=7,
         xgridvisible=false,
+        spinewidth=3,
         xminorticksvisible=true,
         xminorticks=IntervalsBetween(5),
         ylabelpadding=15,
