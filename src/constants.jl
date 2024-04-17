@@ -378,7 +378,7 @@ const DEFAULT_THEME = Theme(
     ############################
     # (left, right, bottom, top)
     ############################
-    figure_padding=(1, 15, 1, 15),
+    figure_padding=(1, 15, 5, 15),
     CairoMakie=(px_per_unit=2.3622, pt_per_unit=0.283466),
     Axis=(
         xlabelpadding=15,

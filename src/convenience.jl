@@ -1402,6 +1402,7 @@ Plot a 2D histogram of the density.
   - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
   - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `size::NTuple{2,Int}=(880, 640)`: Size of the figure in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -1424,6 +1425,7 @@ function densityMap(
     smooth::Bool=false,
     smoothing_length::Union{Unitful.Length,Nothing}=nothing,
     print_range::Bool=false,
+    theme::Attributes=Theme(),
     size::NTuple{2,Int}=(880, 640),
     title::Union{Symbol,<:AbstractString}="",
     annotation::String="",
@@ -1502,12 +1504,12 @@ function densityMap(
                     # Plotting options
                     save_figures=!iszero(slice),
                     backup_results=iszero(slice),
-                    theme=Theme(
-                        figure_padding=(1, 70, 1, 15),
-                        Axis=(aspect=AxisAspect(1), limits=(-limit, limit, -limit, limit)),
-                        Colorbar=(
-                            label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
-                            labelpadding=2,
+                    theme=merge(
+                        theme,
+                        Theme(
+                            figure_padding=(1, 70, 1, 15),
+                            Axis=(aspect=AxisAspect(1), limits=(-limit, limit, -limit, limit)),
+                            Colorbar=(labelpadding=2,),
                         ),
                     ),
                     size,
@@ -2018,7 +2020,7 @@ function atomicMolecularTransitionHeatmap(
                 x_func=identity,
                 y_func=identity,
                 # Axes options
-                xaxis_label=L"$\log_{10}($auto_label $[\mathrm{cm}^{-3}])$",
+                xaxis_label=L"$\log_{10} \, $auto_label $[\mathrm{cm}^{-3}]$",
                 yaxis_label=y_plot_params.axis_label,
                 xaxis_var_name=x_plot_params.var_name,
                 yaxis_var_name=y_plot_params.var_name,
@@ -2781,6 +2783,8 @@ Plot a density profile.
       + `:sfr_area_density`        -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
+  - `n_bins::Int=100`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
@@ -2798,6 +2802,8 @@ function densityProfile(
     quantity::Symbol;
     cumulative::Bool=false,
     yscale::Function=identity,
+    radius::Unitful.Length=FILTER_R,
+    n_bins::Int=100,
     output_path::String="./",
     filter_mode::Symbol=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
@@ -2806,7 +2812,7 @@ function densityProfile(
     plot_params = plotParams(quantity)
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
-    grid = CircularGrid(FILTER_R, 100)
+    grid = CircularGrid(radius, n_bins)
 
     # Draw the figures with CairoMakie
     snapshotPlot(
@@ -2900,6 +2906,8 @@ Plot a density profile.
       + `:sfr_area_density`        -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
+  - `n_bins::Int=100`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
 
@@ -2917,6 +2925,8 @@ function densityProfile(
     quantities::Vector{Symbol};
     cumulative::Bool=false,
     yscale::Function=identity,
+    radius::Unitful.Length=FILTER_R,
+    n_bins::Int=100,
     output_path::String="./",
     filter_mode::Symbol=:all,
     sim_labels::Union{Vector{String},Nothing}=string.(quantities),
@@ -2925,7 +2935,7 @@ function densityProfile(
     plot_params = plotParams(:generic_area_density)
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
-    grid = CircularGrid(FILTER_R, 100)
+    grid = CircularGrid(radius, n_bins)
 
     @inbounds for simulation_path in simulation_paths
 
