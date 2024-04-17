@@ -2775,13 +2775,13 @@ Compute the cylindrical components of the velocity, ``\\mathbf{\\vec{v}} = v_r \
 The speed in the radial direction expressed in Cartesian coordinates is
 
 ```math
-v_r = \frac{x \, v_x + y \, v_z}{\sqrt(x^2 + y^2)} \, ,
+v_r = \frac{x \, v_x + y \, v_y}{\sqrt(x^2 + y^2)} \, ,
 ```
 
 in the tangential direction is
 
 ```math
-v_r = \frac{x \, v_y - y \, v_x}{\sqrt(x^2 + y^2)} \, ,
+v_\tau = \frac{x \, v_y - y \, v_x}{\sqrt(x^2 + y^2)} \, ,
 ```
 
 and the speed in the z direction will be computes as
@@ -2834,12 +2834,12 @@ function computeStellarVpolar(data_dict::Dict, component::Symbol)::Vector{<:Unit
     if component == :radial
 
         # Compute the radial component
-        vp = @. (x * vx + y * vy) / sqrt(x * x + y * y)
+        vp = @. (x * vx + y * vy) / sqrt(x^2 + y^2)
 
     elseif component == :tangential
 
         # Compute the tangential component
-        vp = @. (x * vy - y * vx) / sqrt(x * x + y * y)
+        vp = @. (x * vy - y * vx) / sqrt(x^2 + y^2)
 
     elseif component == :zstar
 
