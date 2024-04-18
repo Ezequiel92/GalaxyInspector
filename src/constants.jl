@@ -437,7 +437,7 @@ const DEFAULT_THEME = Theme(
     Scatter=(markersize=22,),
     Errorbars=(whiskerwidth=10,),
     Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
-    Colorbar=(width=25, ticklabelpad=10, minorticksvisible=true, ticksize=7),
+    Colorbar=(size=25, ticklabelpad=10, minorticksvisible=true, ticksize=7),
 )
 
 # Structures
