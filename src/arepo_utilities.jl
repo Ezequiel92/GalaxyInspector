@@ -657,6 +657,136 @@ function computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Lengt
 end
 
 """
+    computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Velocity}
+
+Read the velocity of the center of mass for a given halo or subhalo.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
+
+      + Index of the target halo (FoF group). Starts at 1.
+      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, the velocity of the whole halo with index `halo_idx` is returned.
+
+# Returns
+
+  - The specified velocity.
+"""
+function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Velocity}
+
+    # If there are no subfind data, return the origin
+    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
+        return zeros(typeof(1.0u"kpc"), 3)
+    end
+
+    halo_idx, subhalo_rel_idx = subfind_idx
+
+    # Load the necessary data
+    g_n_subs = data_dict[:group]["G_Nsubs"]
+    g_vel = data_dict[:group]["G_Vel"]
+    s_vel = data_dict[:subhalo]["S_Vel"]
+
+    # Check that the requested halo index is within bounds
+    n_groups_total = data_dict[:gc_data].header.n_groups_total
+
+    (
+        !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_vel, s_vel]) ||
+        return zeros(typeof(1.0u"kpc"), 3)
+    )
+
+    (
+        0 < halo_idx <= n_groups_total ||
+        throw(ArgumentError("computeCenter: There is only $(n_groups_total) FoF goups in \
+        $(data_dict[:gc_data].path), so halo_idx = $(halo_idx) is out of bounds"))
+    )
+
+    # Select the halo velocity if `subhalo_rel_idx` == 0
+    isPositive(subhalo_rel_idx) || return g_vel[:, halo_idx]
+
+    # Check that the requested subhalo index is within bounds
+    n_subfinds = g_n_subs[halo_idx]
+    (
+        subhalo_rel_idx <= n_subfinds ||
+        throw(ArgumentError("computeCenter: There is only $(n_subfinds) subhalos for the FoF \
+        group $(halo_idx) in $(data_dict[:gc_data].path), so subhalo_rel_idx = \
+        $(subhalo_rel_idx) is out of bounds"))
+    )
+
+    # Compute the number of subhalos and particles up to the last halo before `halo_idx`
+    if isone(halo_idx)
+        n_subs_floor = 0
+    else
+        n_subs_floor = sum(g_n_subs[1:(halo_idx - 1)]; init=0)
+    end
+
+    # Compute the subhalo absolute index
+    subhalo_abs_idx = n_subs_floor + subhalo_rel_idx
+
+    # Select the subhalo velocity
+    return s_vel[:, subhalo_abs_idx]
+
+end
+
+"""
+    computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
+
+Compute the velocity of a characteristic center of mass for the system.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `cm_type::Symbol`: It can be:
+
+      + `:global_cm`  -> Center of mass of the whole system.
+      + `:stellar_cm` -> Stellar center of mass.
+
+# Returns
+
+  - The specified velocity.
+"""
+function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
+
+    if cm_type == :global_cm
+
+        return computeGlobalVcm(data_dict)
+
+    elseif cm_type == :stellar_cm
+
+        return computeStellarVcm(data_dict)
+
+    end
+
+    throw(ArgumentError("computeVcm: `cm_type` can only be :global_cm, \
+    or :stellar_cm, but I got :$(center_type)"))
+
+end
+
+"""
     translatePoints(
         positions::Matrix{<:Number},
         new_origin::Vector{<:Number},
@@ -721,7 +851,7 @@ function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}
     translation != :zero || return nothing
 
     new_origin = computeCenter(data_dict, translation)
-    stellar_vcm = computeStellarVcm(data_dict)
+    stellar_vcm = computeVcm(data_dict, translation)
 
     @inbounds for type_symbol in snapshotTypes(data_dict)
 
@@ -2625,6 +2755,50 @@ function computeStellarVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
 
 end
 
+"""
+    computeGlobalVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
+
+Compute the velocity of the global center of mass.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - The velocity of the global center of mass.
+"""
+function computeGlobalVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
+
+    # Load the necessary data
+    velocities = hcat([data_dict[type_symbol]["VEL "] for type_symbol in type_symbols]...)
+    masses     = vcat([data_dict[type_symbol]["MASS"] for type_symbol in type_symbols]...)
+
+    # Check for missing data
+    !any(isempty, [velocities, masses]) || return zeros(typeof(1.0u"km/s"), 3)
+
+    # Compute the total mass
+    M = sum(masses)
+
+    # Compute the velocity of the center of mass
+    vcm = [sum(row .* masses) / M for row in eachrow(velocities)]
+
+    return vcm
+
+end
+
 @doc raw"""
     computeStellarVcirc(
         data_dict::Dict,
@@ -2894,6 +3068,7 @@ function computeMassRadius(
     # Compute the mass limit
     mass_limit = sum(masses) * (percent / 100.0)
 
+    # Compute the radial distance of each cell/particle
     radial_distances = computeDistance(positions)
 
     sort_idxs = sortperm(radial_distances)
@@ -2908,6 +3083,61 @@ function computeMassRadius(
     end
 
     return radial_distances[sort_idxs[target_idx]]
+
+end
+
+"""
+    computeMassHeight(
+        positions::Matrix{<:Unitful.Length},
+        masses::Vector{<:Unitful.Mass};
+        <keyword arguments>
+    )::Unitful.Length
+
+Compute the total height of a cylinder, of infinite radius, containing `percet`% of the total mass.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Masses of the cells/particles.
+  - `percent::Float64=90.0`: Target percentage of the total mass.
+
+# Returns
+
+  - The height containing `percet` of the total mass.
+"""
+function computeMassHeight(
+    positions::Matrix{<:Unitful.Length},
+    masses::Vector{<:Unitful.Mass};
+    percent::Float64=90.0,
+)::Unitful.Length
+
+    (
+        0 < percent <=100  ||
+        throw(ArgumentError("computeMassHeight: The argument `percent` must be between 0 and 100, \
+        but I got $(percent)"))
+    )
+
+    # Check for missing data
+    !any(isempty, [positions, masses]) || return zero(typeof(1.0u"kpc"))
+
+    # Compute the mass limit
+    mass_limit = sum(masses) * (percent / 100.0)
+
+    # Compute the vertical separation of each cell/particle
+    heights = abs.(vec(positions[3, :]))
+
+    sort_idxs = sortperm(heights)
+
+    # Find the mass radius
+    accu_mass = 0.0u"Msun"
+    target_idx = 0
+    for mass in masses[sort_idxs]
+        accu_mass += mass
+        accu_mass < mass_limit || break
+        target_idx += 1
+    end
+
+    return heights[sort_idxs[target_idx]] * 2.0
 
 end
 
@@ -3143,6 +3373,8 @@ function computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
+    !isempty(dg["MASS"]) || return Unitful.Mass[]
+
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of ionized hydrogen according to our model
@@ -3160,12 +3392,6 @@ function computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         fi = @. dg["NHP "] / (dg["NHP "] + dg["NH  "])
 
     end
-
-    (
-        !isempty(fi) || isempty(dg["MASS"]) ||
-        throw(ArgumentError("computeIonizedMass: I can't compute the ionized fraction \\
-        because there is missing data"))
-    )
 
     return fi .* dg["MASS"]
 
@@ -3204,6 +3430,8 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
+    !isempty(dg["MASS"]) || return Unitful.Mass[]
+
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of atomic hydrogen according to our model
@@ -3229,12 +3457,6 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         fa = setPositive(fn .- fm)
 
     end
-
-    (
-        !isempty(fa) || isempty(dg["MASS"]) ||
-        throw(ArgumentError("computeAtomicMass: I can't compute the atomic fraction \\
-        because there is missing data"))
-    )
 
     return fa .* dg["MASS"]
 
@@ -3273,6 +3495,8 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
+    !isempty(dg["MASS"]) || return Unitful.Mass[]
+
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of molecular hydrogen according to our model
@@ -3295,12 +3519,6 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
 
     end
-
-    (
-        !isempty(fm) || isempty(dg["MASS"]) ||
-        throw(ArgumentError("computeMolecularMass: I can't compute the molecular fraction \\
-        because there is missing data"))
-    )
 
     return fm .* dg["MASS"]
 
@@ -3335,6 +3553,8 @@ function computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
+    !isempty(dg["MASS"]) || return Unitful.Mass[]
+
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of atomic hydrogen according to our model
@@ -3361,12 +3581,6 @@ function computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
 
     end
-
-    (
-        !isempty(fn) || isempty(dg["MASS"]) ||
-        throw(ArgumentError("computeNeutralMass: I can't compute the neutral fraction \\
-        because there is missing data"))
-    )
 
     return fn .* dg["MASS"]
 
@@ -3690,17 +3904,45 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :sfr
 
-        integrated_qty = sum(computeSFR(data; age_resol=AGE_RESOLUTION); init=0.0u"Msun/yr")
+        # Get the global index (index in the context of the whole simulation.) of the current snapshot
+        present_idx = data[:snap_data].global_index
+
+        if present_idx == 1
+
+            integrated_qty = 0.0u"Msun/yr"
+
+        else
+
+            # Get the physical times
+            times = data[:sim_data].table[:, 5]
+            # Compute the time between snapshots
+            Δt = times[present_idx] - times[present_idx - 1]
+
+            integrated_qty = sum(computeSFR(data; age_resol=Δt); init=0.0u"Msun/yr")
+
+        end
 
     elseif quantity == :ssfr
 
-        sfr = sum(computeSFR(data; age_resol=AGE_RESOLUTION); init=0.0u"Msun/yr")
+        # Get the global index (index in the context of the whole simulation.) of the current snapshot
+        present_idx = data[:snap_data].global_index
+
+        # Compute the total stellar mass
         stellar_mass = sum(data[:stars]["MASS"]; init=0.0u"Msun")
 
-        if iszero(stellar_mass)
-            integrated_qty = 0.0u"yr^-1"
+        if present_idx == 1 || iszero(stellar_mass)
+
+            integrated_qty = 0.0u"Msun/yr"
+
         else
-            integrated_qty = sfr / stellar_mass
+
+            # Get the physical times
+            times = data[:sim_data].table[:, 5]
+            # Compute the time between snapshots
+            Δt = times[present_idx] - times[present_idx - 1]
+
+            integrated_qty = sum(computeSFR(data; age_resol=Δt); init=0.0u"Msun/yr") / stellar_mass
+
         end
 
     elseif quantity == :scale_factor
@@ -3963,15 +4205,27 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :stellar_xy_distance
 
-        scatter_qty = computeDistance(data_dict[:stars]["POS "][1:2, :])
+        if isempty(data_dict[:stars]["POS "])
+            scatter_qty = eltype(data_dict[:stars]["POS "])[]
+        else
+            scatter_qty = computeDistance(data_dict[:stars]["POS "][1:2, :])
+        end
 
     elseif quantity == :gas_xy_distance
 
-        scatter_qty = computeDistance(data_dict[:gas]["POS "][1:2, :])
+        if isempty(data_dict[:gas]["POS "])
+            scatter_qty = eltype(data_dict[:gas]["POS "])[]
+        else
+            scatter_qty = computeDistance(data_dict[:gas]["POS "][1:2, :])
+        end
 
     elseif quantity == :dm_xy_distance
 
-        scatter_qty = computeDistance(data_dict[:halo]["POS "][1:2, :])
+        if isempty(data_dict[:halo]["POS "])
+            scatter_qty = eltype(data_dict[:halo]["POS "])[]
+        else
+            scatter_qty = computeDistance(data_dict[:halo]["POS "][1:2, :])
+        end
 
     elseif quantity == :stellar_circularity
 
@@ -4102,8 +4356,8 @@ function selectFilter(
                 ),
             ),
             Dict(
-                :group => ["G_Nsubs", "G_LenType", "G_Pos"],
-                :subhalo => ["S_LenType", "S_Pos"],
+                :group => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
+                :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
                 :stars => ["POS ", "MASS", "VEL "],
             ),
         )
@@ -4123,8 +4377,8 @@ function selectFilter(
                 ),
             ),
             Dict(
-                :group => ["G_Nsubs", "G_LenType", "G_Pos"],
-                :subhalo => ["S_LenType", "S_Pos"],
+                :group => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
+                :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
                 :stars => ["POS ", "MASS", "VEL "],
             ),
         )
@@ -4168,8 +4422,8 @@ function selectFilter(
                 ),
             ),
             Dict(
-                :group => ["G_Nsubs", "G_LenType", "G_Pos"],
-                :subhalo => ["S_LenType", "S_Pos"],
+                :group => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
+                :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
                 :stars => ["POS ", "MASS", "VEL "],
             ),
         )

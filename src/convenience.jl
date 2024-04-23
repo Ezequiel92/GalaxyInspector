@@ -442,17 +442,95 @@ function snapshotReport(
         translateData!(data_dict, translation)
 
         ############################################################################################
-        # Print the radius containing 95% of the stellar mass
+        # Print the radius containing 90% and 95% of the stellar mass
         ############################################################################################
 
-        mass_radius = computeMassRadius(
+        mass_radius_90 = computeMassRadius(
+            data_dict[:stars]["POS "],
+            data_dict[:stars]["MASS"];
+            percent=90.0,
+        )
+
+        mass_radius_95 = computeMassRadius(
             data_dict[:stars]["POS "],
             data_dict[:stars]["MASS"];
             percent=95.0,
         )
 
+        println(file, "\tRadius containing 90% of the stellar mass:\n")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc")\n")
+
         println(file, "\tRadius containing 95% of the stellar mass:\n")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius), sigdigits=4)) $(u"kpc")\n")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc")\n")
+
+        ######################################################################################################
+        # Print the total height of a cylinder, of infinite radius, containing 90% and 95% of the stellar mass
+        ######################################################################################################
+
+        mass_height_90 = computeMassHeight(
+            data_dict[:stars]["POS "],
+            data_dict[:stars]["MASS"];
+            percent=90.0,
+        )
+
+        mass_height_95 = computeMassHeight(
+            data_dict[:stars]["POS "],
+            data_dict[:stars]["MASS"];
+            percent=95.0,
+        )
+
+        println(file, "\tTotal height containing 90% of the stellar mass:\n")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_90), sigdigits=4)) $(u"kpc")\n")
+
+        println(file, "\tTotal height containing 95% of the stellar mass:\n")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_95), sigdigits=4)) $(u"kpc")\n")
+
+        ############################################################################################
+        # Print the number of stars outside 50kpc
+        ############################################################################################
+
+        radial_distances = computeDistance(data_dict[:stars]["POS "])
+        stellar_masses = data_dict[:stars]["MASS"]
+
+        total_s_number = length(radial_distances)
+        total_s_mass = sum(stellar_masses)
+
+        idxs = findall(d->d>=50u"kpc", radial_distances)
+
+        number_outside = length(idxs)
+        mass_outside = sum(stellar_masses[idxs])
+
+        number_percent = (number_outside / total_s_number) * 100.0
+        mass_percent = (mass_outside / total_s_mass) * 100.0
+
+        println(file, "\tNumber of stars outside a radius of 50kpc:\n")
+        println(
+            file,
+            "\t\t$(number_outside) ($(round(number_percent, sigdigits=3))% of the total \
+            number of stars)\n",
+        )
+
+        println(file, "\tStellar mass outside a radius of 50kpc:\n")
+        println(
+            file,
+            "\t\t$(round(typeof(1.0u"Msun"), mass_outside, sigdigits=3)) \
+            ($(round(mass_percent, sigdigits=3))% of the total stellar mass)\n",
+        )
+
+        ############################################################################################
+        # Print the fraction of gas cells that have enter our routine
+        ############################################################################################
+
+        if !isempty(data_dict[:gas]["FRAC"])
+
+            total_number = length(data_dict[:gas]["MASS"])
+            stellar_gas_number = count(!isnan, data_dict[:gas]["FRAC"][1, :])
+            fraction = (stellar_gas_number / total_number) * 100
+
+            println(file, "\tFraction of gas cells that have enter our routine:\n")
+            println(file, "\t\t$(round(fraction, sigdigits=3))% of the total number of cells\n")
+
+        end
 
         ############################################################################################
         # Print the normalized angular momentum of each component
@@ -577,6 +655,7 @@ function snapshotReport(
                     "S_LenType",
                     "S_CM",
                     "S_Pos",
+                    "S_Vel",
                     "S_HalfmassRad",
 
                 ],
@@ -588,6 +667,7 @@ function snapshotReport(
                     "G_Nsubs",
                     "G_CM",
                     "G_Pos",
+                    "G_Vel",
                     "G_R_Crit200",
                 ],
             )
@@ -621,6 +701,7 @@ function snapshotReport(
             s_len_type      = gc_data[:subhalo]["S_LenType"][:, subhalo_abs_idx]
             s_cm            = gc_data[:subhalo]["S_CM"][:, subhalo_abs_idx]
             s_pos           = gc_data[:subhalo]["S_Pos"][:, subhalo_abs_idx]
+            s_vel           = gc_data[:subhalo]["S_Vel"][:, subhalo_abs_idx]
             s_half_mass_rad = gc_data[:subhalo]["S_HalfmassRad"][subhalo_abs_idx]
             g_mass          = gc_data[:group]["G_Mass"][halo_idx]
             g_mass_type     = gc_data[:group]["G_MassType"][:, halo_idx]
@@ -629,6 +710,7 @@ function snapshotReport(
             g_n_subs        = gc_data[:group]["G_Nsubs"][halo_idx]
             g_cm            = gc_data[:group]["G_CM"][:, halo_idx]
             g_pos           = gc_data[:group]["G_Pos"][:, halo_idx]
+            g_vel           = gc_data[:group]["G_Vel"][:, halo_idx]
             g_r_crit_200    = gc_data[:group]["G_R_Crit200"][halo_idx]
 
             ########################################################################################
@@ -701,6 +783,11 @@ function snapshotReport(
                 "\tSeparation between the minimum potencial and the global CM: \
                 \n\n\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
             )
+
+            ########################################################################################
+
+            vel_cm = round.(ustrip.(u"km*s^-1", g_vel), sigdigits=6)
+            println(file, "\n\tVelocity of the center of mass:\n\n\t\t$(vel_cm)$(u"km*s^-1")\n")
 
             ########################################################################################
 
@@ -785,6 +872,11 @@ function snapshotReport(
                 "\tSeparation between the minimum potencial and the global CM: \
                 \n\n\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
             )
+
+            ########################################################################################
+
+            vel_cm = round.(ustrip.(u"km*s^-1", s_vel), sigdigits=6)
+            println(file, "\n\tVelocity of the center of mass:\n\n\t\t$(vel_cm)$(u"km*s^-1")\n")
 
             ########################################################################################
 
@@ -1411,6 +1503,7 @@ Plot a 2D histogram of the density.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
+  - `colorbar::Bool=false`: If a colorbar will be added.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
 """
 function densityMap(
@@ -1429,6 +1522,7 @@ function densityMap(
     size::NTuple{2,Int}=(880, 640),
     title::Union{Symbol,<:AbstractString}="",
     annotation::String="",
+    colorbar::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
 )::Nothing
 
@@ -1515,7 +1609,7 @@ function densityMap(
                     size,
                     sim_labels=nothing,
                     title,
-                    colorbar=true,
+                    colorbar,
                     series_colors=nothing,
                     series_markers=nothing,
                     series_linestyles=nothing,
@@ -2363,8 +2457,8 @@ function scatterDensityMap(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=Theme(Axis=(aspect=AxisAspect(1),),),
-            size=(880, 880),
+            theme=Theme(figure_padding=(1, 20, 5, 15), Axis=(aspect=AxisAspect(1),),),
+            size=(850, 850),
             sim_labels=nothing,
             title="",
             colorbar=false,
@@ -2531,12 +2625,12 @@ function timeSeries(
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
-        yaxis_scale_func=identity,
+        yaxis_scale_func=log10,
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=Theme(),
-        size=(1700, 1000),
+        theme=Theme(Axis=(aspect=AxisAspect(1),),),
+        size=(880, 880),
         sim_labels,
         title="",
         series_colors=nothing,
@@ -2570,6 +2664,7 @@ Plot a time series of the gas components. Either their masses or their fractions
       + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function gasEvolution(
     simulation_paths::Vector{String};
@@ -2577,6 +2672,7 @@ function gasEvolution(
     slice::IndexType=(:),
     output_path::String="./",
     filter_mode::Symbol=:all,
+    theme::Attributes=Theme(),
 )::Nothing
 
     x_plot_params = plotParams(:physical_time)
@@ -2611,7 +2707,7 @@ function gasEvolution(
             slice,
             da_functions=[daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
-            da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=true)],
+            da_kwargs=[(; filter_mode, smooth=0, scaling=log10, warnings=true)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -2630,14 +2726,14 @@ function gasEvolution(
             yaxis_label=y_plot_params.axis_label,
             xaxis_var_name=x_plot_params.var_name,
             yaxis_var_name=y_plot_params.var_name,
-            xaxis_scale_func=identity,
-            yaxis_scale_func=identity,
+            xaxis_scale_func=log10,
+            yaxis_scale_func=log10,
             # Plotting options
             save_figures=true,
             backup_results=false,
-            theme=Theme(),
+            theme,
             size=(1700, 1000),
-            sim_labels=string(quantities),
+            sim_labels=string.(quantities),
             title="",
             series_colors=nothing,
             series_markers=nothing,
@@ -2831,7 +2927,7 @@ function densityProfile(
         filter_function,
         da_functions=[daProfile],
         da_args=[(grid, quantity)],
-        da_kwargs=[(; cumulative)],
+        da_kwargs=[(; flat=true, total=true, cumulative, density=true)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -2859,8 +2955,11 @@ function densityProfile(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Legend=(valign=:top,)),
-        size=(1700, 1000),
+        theme=Theme(
+            Axis=(aspect=AxisAspect(1),),
+            Legend=(valign=:top,),
+        ),
+        size=(850, 850),
         sim_labels,
         title="",
         colorbar=false,
@@ -2959,7 +3058,7 @@ function densityProfile(
             filter_function,
             da_functions=[daProfile],
             da_args=[(grid, quantity) for quantity in quantities],
-            da_kwargs=[(; cumulative)],
+            da_kwargs=[(; flat=true, total=true, cumulative, density=true)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -2987,8 +3086,141 @@ function densityProfile(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=Theme(Legend=(valign=:top, nbanks=1)),
-            size=(1700, 1000),
+            theme=Theme(
+                Axis=(aspect=AxisAspect(1),),
+                Legend=(valign=:top, nbanks=1),
+            ),
+            size=(880, 880),
+            sim_labels,
+            title="",
+            colorbar=false,
+            series_colors=nothing,
+            series_markers=nothing,
+            series_linestyles=nothing,
+            # Animation options
+            animation=false,
+            animation_filename="animation.mp4",
+            framerate=10,
+        )
+        end
+
+    return nothing
+
+end
+
+"""
+    massProfile(
+        simulation_paths::Vector{String},
+        slice::IndexType,
+        quantities::Vector{Symbol};
+        <keyword arguments>
+    )::Nothing
+
+Plot a mass profile.
+
+!!! note
+
+    This method plots several quantities for one simulations in one figure.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `quantities::Vector{Symbol}`: Quantities for the y axis. The options are:
+
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+  - `cumulative::Bool=false`: If the profile will be accumulated or not.
+  - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
+  - `n_bins::Int=100`: Number of bins.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Plot every cell/particle within the simulation box.
+      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+  - `sim_labels::Union{Vector{String},Nothing}=string.(quantities)`: Labels for the plot legend, one per quantity. Set it to `nothing` if you don't want a legend.
+"""
+function massProfile(
+    simulation_paths::Vector{String},
+    slice::IndexType,
+    quantities::Vector{Symbol};
+    cumulative::Bool=false,
+    yscale::Function=identity,
+    radius::Unitful.Length=FILTER_R,
+    n_bins::Int=100,
+    output_path::String="./",
+    filter_mode::Symbol=:all,
+    sim_labels::Union{Vector{String},Nothing}=string.(quantities),
+)::Nothing
+
+    plot_params = plotParams(:generic_mass)
+    filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
+
+    grid = CircularGrid(radius, n_bins)
+
+    @inbounds for simulation_path in simulation_paths
+
+        # Get the simulation name as a string
+        sim_name = basename(simulation_path)
+
+        # Draw the figures with CairoMakie
+        snapshotPlot(
+            fill(simulation_path, length(quantities)),
+            request,
+            [lines!];
+            pf_kwargs=[(;)],
+            # `snapshotPlot` configuration
+            output_path,
+            base_filename="$(sim_name)-mass_profiles",
+            output_format=".pdf",
+            warnings=true,
+            show_progress=false,
+            # Data manipulation options
+            slice,
+            filter_function,
+            da_functions=[daProfile],
+            da_args=[(grid, quantity) for quantity in quantities],
+            da_kwargs=[(; flat=true, total=true, cumulative, density=false)],
+            post_processing=getNothing,
+            pp_args=(),
+            pp_kwargs=(;),
+            transform_box=true,
+            translation,
+            rotation,
+            smooth=0,
+            x_unit=u"kpc",
+            y_unit=plot_params.unit,
+            x_exp_factor=0,
+            y_exp_factor=0,
+            x_trim=(-Inf, Inf),
+            y_trim=(-Inf, Inf),
+            x_edges=false,
+            y_edges=false,
+            x_func=identity,
+            y_func=identity,
+            # Axes options
+            xaxis_label="auto_label",
+            yaxis_label=plot_params.axis_label,
+            xaxis_var_name=L"r",
+            yaxis_var_name=plot_params.var_name,
+            xaxis_scale_func=identity,
+            yaxis_scale_func=yscale,
+            # Plotting and animation options
+            save_figures=true,
+            backup_results=false,
+            theme=Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=1,)),
+            size=(880, 880),
             sim_labels,
             title="",
             colorbar=false,
@@ -3213,8 +3445,8 @@ function stellarHistory(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Legend=(nbanks=2,)),
-        size=(1700, 1000),
+        theme=Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=2,)),
+        size=(850, 850),
         sim_labels,
         title="",
         colorbar=false,
@@ -3449,7 +3681,7 @@ function stellarCircularity(
             Axis=(aspect=AxisAspect(1),),
             Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
         ),
-        size=(880, 880),
+        size=(850, 850),
         sim_labels,
         title="",
         colorbar=false,

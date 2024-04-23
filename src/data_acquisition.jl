@@ -379,7 +379,7 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
         )
 
         # Compute the unit factor for each block
-        units = internalUnits.(blocks, path)
+        units = internalUnits.(blocks, file_path)
 
         [read(group, QUANTITIES[block].hdf5_name) .* unit for (unit, block) in zip(units, blocks)]
 

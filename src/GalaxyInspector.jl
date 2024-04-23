@@ -85,6 +85,7 @@ export timeSeries
 export gasEvolution
 export rotationCurve
 export densityProfile
+export massProfile
 export velocityProfile
 export stellarHistory
 export stellarCircularity

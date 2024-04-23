@@ -391,6 +391,14 @@ Compute a profile.
   - `grid::CircularGrid`: Circular grid.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
+      + `:stellar_mass`           -> Stellar mass.
+      + `:gas_mass`               -> Gas mass.
+      + `:dm_mass`                -> Dark matter mass.
+      + `:bh_mass`                -> Black hole mass.
+      + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
       + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
       + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
@@ -425,35 +433,35 @@ function daProfile(
     density::Bool=true,
 )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
 
-    if quantity == :stellar_area_density
+    if quantity ∈ [:stellar_area_density, :stellar_mass]
 
         positions = data_dict[:stars]["POS "]
-        values = data_dict[:stars]["MASS"]
+        values = scatterQty(data_dict, :stellar_mass)
 
-    elseif quantity == :gas_area_density
-
-        positions = data_dict[:gas]["POS "]
-        values = data_dict[:gas]["MASS"]
-
-    elseif quantity == :molecular_area_density
+    elseif quantity ∈ [:gas_area_density, :gas_mass]
 
         positions = data_dict[:gas]["POS "]
-        values = computeMolecularMass(data_dict)
+        values = scatterQty(data_dict, :gas_mass)
 
-    elseif quantity == :atomic_area_density
-
-        positions = data_dict[:gas]["POS "]
-        values = computeAtomicMass(data_dict)
-
-    elseif quantity == :ionized_area_density
+    elseif quantity ∈ [:molecular_area_density, :molecular_mass]
 
         positions = data_dict[:gas]["POS "]
-        values = computeIonizedMass(data_dict)
+        values = scatterQty(data_dict, :molecular_mass)
 
-    elseif quantity == :neutral_area_density
+    elseif quantity ∈ [:atomic_area_density, :atomic_mass]
 
         positions = data_dict[:gas]["POS "]
-        values = computeNeutralMass(data_dict)
+        values = scatterQty(data_dict, :atomic_mass)
+
+    elseif quantity ∈ [:ionized_area_density, :ionized_mass]
+
+        positions = data_dict[:gas]["POS "]
+        values = scatterQty(data_dict, :ionized_mass)
+
+    elseif quantity ∈ [:neutral_area_density, :neutral_mass]
+
+        positions = data_dict[:gas]["POS "]
+        values = scatterQty(data_dict, :neutral_mass)
 
     elseif quantity == :sfr_area_density
 
@@ -463,17 +471,17 @@ function daProfile(
     elseif quantity == :stellar_vradial
 
         positions = data_dict[:stars]["POS "]
-        values = computeStellarVpolar(data_dict, :radial)
+        values = scatterQty(data_dict, :stellar_vradial)
 
     elseif quantity == :stellar_vtangential
 
         positions = data_dict[:stars]["POS "]
-        values = computeStellarVpolar(data_dict, :tangential)
+        values = scatterQty(data_dict, :stellar_vtangential)
 
     elseif quantity == :stellar_vzstar
 
         positions = data_dict[:stars]["POS "]
-        values = computeStellarVpolar(data_dict, :zstar)
+        values = scatterQty(data_dict, :stellar_vzstar)
 
     else
 
