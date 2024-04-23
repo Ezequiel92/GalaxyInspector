@@ -1501,7 +1501,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(:gas => ["MASS", "POS ", "TEMP"]),
-            axis_label = L"\log_{10}(T \, / \, \mathrm{K})",
+            axis_label = L"\log_{10} \, T \, [\mathrm{K}]",
         )
 
     elseif quantity == :scale_factor
@@ -3583,6 +3583,52 @@ function computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     end
 
     return fn .* dg["MASS"]
+
+end
+
+"""
+    computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+
+Compute the "stellar mass" of every gas cell in `data`, which will be different than 0 only for cells in our model.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - The "stellar mass" of every gas cell.
+"""
+function computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+
+    dg = data_dict[:gas]
+
+    !isempty(dg["MASS"]) || return Unitful.Mass[]
+
+    if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+
+        # When there is no data from our model, use 0
+        fm = replace!(dg["FRAC"][4, :], NaN => 0.0)
+
+    else
+
+        return zeros(typeof(1.0u"Msun"), length(dg["MASS"]))
+
+    end
+
+    return fm .* dg["MASS"]
 
 end
 

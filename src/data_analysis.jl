@@ -769,7 +769,7 @@ function daDensity2DHistogram(
     end
 
     # Set the density unit
-    ρ_unit = u"Msun/kpc^2"
+    ρ_unit = u"Msun*kpc^2"
 
     # Project the cell/particles to the chosen plane
     if projection_plane == :xy
