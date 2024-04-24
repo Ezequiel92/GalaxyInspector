@@ -353,12 +353,12 @@ const IndexType = Union{
 # Makie.jl configuration
 
 """
-List of marker types.
+Default list of marker types.
 """
 const MARKERS = [:circle, :rect, :diamond, :hexagon, :cross, :xcross, :pentagon]
 
 """
-List of line styles.
+Default list of line styles.
 """
 const LINE_STYLES = [:solid, :dash, :dot, :dashdot, :dashdotdot]
 
@@ -379,6 +379,7 @@ const DEFAULT_THEME = Theme(
     # (left, right, bottom, top)
     ############################
     figure_padding=(1, 15, 5, 15),
+    palette=(color=Makie.wong_colors(), marker=MARKERS, linestyle=LINE_STYLES),
     CairoMakie=(px_per_unit=2.3622, pt_per_unit=0.283466),
     Axis=(
         xlabelpadding=15,
@@ -430,16 +431,15 @@ const DEFAULT_THEME = Theme(
             Point2f(0.15, 0.85),
         ],
     ),
-    Lines=(linewidth=5,),
-    VLines=(linewidth=3,),
-    HLines=(linewidth=3,),
-    ScatterLines=(linewidth=5, markersize=22),
-    Scatter=(markersize=22,),
+    Lines=(linewidth=5, cycle=Cycle([:color, :linestyle], covary=true)),
+    VLines=(linewidth=3, cycle=Cycle([:color, :linestyle], covary=true)),
+    HLines=(linewidth=3, cycle=Cycle([:color, :linestyle], covary=true)),
+    ScatterLines=(linewidth=5, markersize=22, cycle=Cycle([:color, :linestyle, :marker], covary=true)),
+    Scatter=(markersize=22, cycle=Cycle([:color, :marker], covary=true)),
     Errorbars=(whiskerwidth=10,),
     Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
     Colorbar=(size=25, ticklabelpad=10, minorticksvisible=true, ticksize=7),
     Barplot=(
-        colormap=Makie.wong_colors(),
         color_over_background=:black,
         color_over_bar=:black,
         flip_labels_at=10,

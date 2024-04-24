@@ -1272,13 +1272,13 @@ Plot a time series of the data in the `sfr.txt` file.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:physical_time` -> Physical time since the Big Bang.
       + `:lookback_time` -> Physical time left to reach the last snapshot.
       + `:scale_factor`  -> Scale factor.
       + `:redshift`      -> Redshift.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass` -> Stellar mass.
       + `:sfr`          -> The star formation rate.
@@ -1340,9 +1340,6 @@ function sfrTXT(
         size=(1700, 1000),
         sim_labels,
         title="",
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
     )
 
     return nothing
@@ -1364,7 +1361,7 @@ Plot a time series of the data in the `cpu.txt` file.
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `target::String`: Target process.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:time_step`              -> Time step.
       + `:physical_time`          -> Physical time since the Big Bang.
@@ -1372,7 +1369,7 @@ Plot a time series of the data in the `cpu.txt` file.
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
       + `:tot_clock_time_s`       -> Total clock time in seconds.
       + `:tot_clock_time_percent` -> Total clock time as a percentage.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:time_step`              -> Time step.
       + `:physical_time`          -> Physical time since the Big Bang.
@@ -1447,9 +1444,6 @@ function cpuTXT(
         size=(1700, 1000),
         sim_labels,
         title=L"\mathrm{Process: \,\, %$(safe_str_target)}",
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
     )
 
     return nothing
@@ -1610,9 +1604,6 @@ function densityMap(
                     sim_labels=nothing,
                     title,
                     colorbar,
-                    series_colors=nothing,
-                    series_markers=nothing,
-                    series_linestyles=nothing,
                     # Animation options
                     animation=iszero(slice),
                     animation_filename="$(base_filename).mp4",
@@ -1620,6 +1611,157 @@ function densityMap(
                 )
 
             end
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
+    temperatureMap(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot a 2D histogram of the temperature.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Plot every cell/particle within the simulation box.
+      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+  - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
+  - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
+  - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+  - `size::NTuple{2,Int}=(880, 640)`: Size of the figure in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
+  - `colorbar::Bool=false`: If a colorbar will be added.
+  - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
+"""
+function temperatureMap(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    output_path::String="./",
+    filter_mode::Symbol=:all,
+    projection_planes::Vector{Symbol}=[:xy],
+    box_size::Unitful.Length=100u"kpc",
+    pixel_length::Unitful.Length=0.1u"kpc",
+    print_range::Bool=false,
+    theme::Attributes=Theme(),
+    size::NTuple{2,Int}=(880, 640),
+    title::Union{Symbol,<:AbstractString}="",
+    annotation::String="",
+    colorbar::Bool=false,
+    colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
+)::Nothing
+
+    # Compute the axes limits, to avoid white padding around the heatmap grid
+    limit = ustrip(u"kpc", box_size / 2.0)
+
+    # Compute number of pixel per side
+    resolution = round(Int, box_size / pixel_length)
+
+    # Set up the grid
+    grid = SquareGrid(box_size, resolution)
+
+    pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        plotParams(:temperature).request,
+    )
+
+    @inbounds for simulation_path in simulation_paths
+
+        # Get the simulation name as a string
+        sim_name = basename(simulation_path)
+
+        @inbounds for projection_plane in projection_planes
+
+            # Construct the file name
+            base_filename = "$(sim_name)-$(projection_plane)-temperature_map"
+
+            snapshotPlot(
+                [simulation_path],
+                request,
+                [heatmap!];
+                pf_kwargs,
+                # `snapshotPlot` configuration
+                output_path,
+                base_filename,
+                output_format=".png",
+                warnings=true,
+                show_progress=iszero(slice),
+                # Data manipulation options
+                slice=iszero(slice) ? (:) : slice,
+                filter_function,
+                da_functions=[daTemperature2DHistogram],
+                da_args=[(grid,)],
+                da_kwargs=[(; projection_plane, print_range)],
+                post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
+                pp_args=(annotation,),
+                pp_kwargs=(; color=:blue),
+                transform_box=true,
+                translation,
+                rotation,
+                smooth=0,
+                x_unit=u"kpc",
+                y_unit=u"kpc",
+                x_exp_factor=0,
+                y_exp_factor=0,
+                x_trim=(-Inf, Inf),
+                y_trim=(-Inf, Inf),
+                x_edges=false,
+                y_edges=false,
+                x_func=identity,
+                y_func=identity,
+                # Axes options
+                xaxis_label="auto_label",
+                yaxis_label="auto_label",
+                xaxis_var_name=string(projection_plane)[1:1],
+                yaxis_var_name=string(projection_plane)[2:2],
+                xaxis_scale_func=identity,
+                yaxis_scale_func=identity,
+                # Plotting options
+                save_figures=!iszero(slice),
+                backup_results=iszero(slice),
+                theme=merge(
+                    theme,
+                    Theme(
+                        figure_padding=(1, 70, 1, 15),
+                        Axis=(aspect=AxisAspect(1), limits=(-limit, limit, -limit, limit)),
+                        Colorbar=(labelpadding=2,),
+                    ),
+                ),
+                size,
+                sim_labels=nothing,
+                title,
+                colorbar,
+                # Animation options
+                animation=iszero(slice),
+                animation_filename="$(base_filename).mp4",
+                framerate=5,
+            )
 
         end
 
@@ -1812,9 +1954,6 @@ function densityMapVelField(
                     sim_labels=nothing,
                     title,
                     colorbar,
-                    series_colors=nothing,
-                    series_markers=nothing,
-                    series_linestyles=nothing,
                     # Animation options
                     animation=iszero(slice),
                     animation_filename="$(base_filename).mp4",
@@ -1846,7 +1985,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
@@ -1883,10 +2022,12 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
@@ -1923,8 +2064,10 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
@@ -2007,9 +2150,6 @@ function scatterPlot(
             sim_labels=nothing,
             title="",
             colorbar=false,
-            series_colors=nothing,
-            series_markers=nothing,
-            series_linestyles=nothing,
             # Animation options
             animation=false,
             animation_filename="animation.mp4",
@@ -2128,9 +2268,6 @@ function atomicMolecularTransitionHeatmap(
                 sim_labels=nothing,
                 title=L"%$(range[1]) \, < \, Z \, < \, %$(range[2])",
                 colorbar=false,
-                series_colors=nothing,
-                series_markers=nothing,
-                series_linestyles=nothing,
                 # Animation options
                 animation=false,
                 animation_filename="animation.mp4",
@@ -2265,9 +2402,6 @@ function atomicMolecularTransitionScatter(
             sim_labels,
             title="",
             colorbar=false,
-            series_colors=nothing,
-            series_markers=nothing,
-            series_linestyles=nothing,
             # Animation options
             animation=false,
             animation_filename="animation.mp4",
@@ -2295,7 +2429,7 @@ Plot two quantities as a density scatter plot (2D histogram).
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
@@ -2332,10 +2466,12 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
@@ -2372,8 +2508,10 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
@@ -2462,9 +2600,6 @@ function scatterDensityMap(
             sim_labels=nothing,
             title="",
             colorbar=false,
-            series_colors=nothing,
-            series_markers=nothing,
-            series_linestyles=nothing,
             # Animation options
             animation=false,
             animation_filename="animation.mp4",
@@ -2490,7 +2625,7 @@ Plot a time series.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
@@ -2522,13 +2657,15 @@ Plot a time series.
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                   -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                    -> The star formation rate.
+      + `:ssfr`                   -> The specific star formation rate.
+      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:scale_factor`           -> Scale factor.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
@@ -2560,8 +2697,10 @@ Plot a time series.
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                   -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                    -> The star formation rate.
+      + `:ssfr`                   -> The specific star formation rate.
+      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:scale_factor`           -> Scale factor.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
@@ -2633,9 +2772,6 @@ function timeSeries(
         size=(880, 880),
         sim_labels,
         title="",
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
     )
 
     return nothing
@@ -2735,9 +2871,6 @@ function gasEvolution(
             size=(1700, 1000),
             sim_labels=string.(quantities),
             title="",
-            series_colors=nothing,
-            series_markers=nothing,
-            series_linestyles=nothing,
         )
 
     end
@@ -2837,9 +2970,6 @@ function rotationCurve(
         sim_labels,
         title="",
         colorbar=false,
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",
@@ -2926,7 +3056,7 @@ function densityProfile(
         slice,
         filter_function,
         da_functions=[daProfile],
-        da_args=[(grid, quantity)],
+        da_args=[(quantity, grid)],
         da_kwargs=[(; flat=true, total=true, cumulative, density=true)],
         post_processing=getNothing,
         pp_args=(),
@@ -2963,9 +3093,6 @@ function densityProfile(
         sim_labels,
         title="",
         colorbar=false,
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",
@@ -3057,7 +3184,7 @@ function densityProfile(
             slice,
             filter_function,
             da_functions=[daProfile],
-            da_args=[(grid, quantity) for quantity in quantities],
+            da_args=[(quantity, grid) for quantity in quantities],
             da_kwargs=[(; flat=true, total=true, cumulative, density=true)],
             post_processing=getNothing,
             pp_args=(),
@@ -3094,9 +3221,6 @@ function densityProfile(
             sim_labels,
             title="",
             colorbar=false,
-            series_colors=nothing,
-            series_markers=nothing,
-            series_linestyles=nothing,
             # Animation options
             animation=false,
             animation_filename="animation.mp4",
@@ -3190,7 +3314,7 @@ function massProfile(
             slice,
             filter_function,
             da_functions=[daProfile],
-            da_args=[(grid, quantity) for quantity in quantities],
+            da_args=[(quantity, grid) for quantity in quantities],
             da_kwargs=[(; flat=true, total=true, cumulative, density=false)],
             post_processing=getNothing,
             pp_args=(),
@@ -3224,9 +3348,6 @@ function massProfile(
             sim_labels,
             title="",
             colorbar=false,
-            series_colors=nothing,
-            series_markers=nothing,
-            series_linestyles=nothing,
             # Animation options
             animation=false,
             animation_filename="animation.mp4",
@@ -3300,7 +3421,7 @@ function velocityProfile(
         slice,
         filter_function,
         da_functions=[daProfile],
-        da_args=[(grid, component)],
+        da_args=[(component, grid)],
         da_kwargs=[(; flat=true, total=false, cumulative=false, density=false)],
         post_processing=getNothing,
         pp_args=(),
@@ -3334,9 +3455,6 @@ function velocityProfile(
         sim_labels,
         title="",
         colorbar=false,
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",
@@ -3450,9 +3568,6 @@ function stellarHistory(
         sim_labels,
         title="",
         colorbar=false,
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",
@@ -3578,9 +3693,6 @@ function stellarHistory(
         sim_labels,
         title="",
         colorbar=false,
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",
@@ -3685,9 +3797,6 @@ function stellarCircularity(
         sim_labels,
         title="",
         colorbar=false,
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",
@@ -3711,13 +3820,13 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:stellar_mass`   -> Stellar mass.
       + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:sfr`            -> The star formation rate of the last `AGE_RESOLUTION`.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`   -> Stellar mass.
       + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -3751,8 +3860,20 @@ function compareFeldmann2020(
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
+    if x_quantity == :sfr
+        x_quantity = :observational_sfr
+    end
+
+    if y_quantity == :sfr
+        y_quantity = :observational_sfr
+    end
+
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
+
+    if x_quantity == :sfr
+        x_quantity = :observational_sfr
+    end
 
     timeSeriesPlot(
         simulation_paths,
@@ -3796,9 +3917,6 @@ function compareFeldmann2020(
         size=(1700, 1000),
         sim_labels,
         title="",
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
     )
 
     return nothing
@@ -3908,9 +4026,6 @@ function compareMolla2015(
         sim_labels,
         title="",
         colorbar=false,
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",
@@ -3934,7 +4049,7 @@ Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
+  - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The options are:
 
       + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
       + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
@@ -3969,16 +4084,12 @@ function compareKennicuttBigielResolved(
 
     if quantity == :gas_area_density
 
-        da_functions = [daKennicuttSchmidt]
-        da_args = [(grid,)]
         post_processing = ppKennicutt1998!
         pp_args = ()
         filename = "Kennicutt1998"
 
     else
 
-        da_functions = [daKennicuttSchmidtLaw]
-        da_args = [(grid, quantity)]
         post_processing = ppBigiel2008!
         pp_args = (quantity,)
         filename = "Bigiel2008"
@@ -4007,8 +4118,8 @@ function compareKennicuttBigielResolved(
         # Data manipulation options
         slice,
         filter_function,
-        da_functions,
-        da_args,
+        da_functions=[daKennicuttSchmidtLaw],
+        da_args=[(grid, quantity)],
         da_kwargs=[(;)],
         post_processing,
         pp_args,
@@ -4049,9 +4160,6 @@ function compareKennicuttBigielResolved(
         sim_labels,
         title="",
         colorbar=false,
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",
@@ -4075,7 +4183,7 @@ Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (19
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
+  - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The options are:
 
       + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
       + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
@@ -4173,9 +4281,6 @@ function compareKennicuttBigielIntegrated(
         size=(1700, 1000),
         sim_labels,
         title="",
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
     )
 
     return nothing
@@ -4195,7 +4300,7 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
 
   - `simulation_path::String}`: Path to the simulation directory, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The possibilities are:
+  - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The options are:
 
       + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
       + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
@@ -4298,9 +4403,6 @@ function fitKennicuttBigielResolved(
         sim_labels,
         title="",
         colorbar=false,
-        series_colors=nothing,
-        series_markers=nothing,
-        series_linestyles=nothing,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",

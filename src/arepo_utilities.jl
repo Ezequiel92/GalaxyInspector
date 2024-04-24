@@ -1029,8 +1029,10 @@ Select the plotting parameters for a given `quantity`.
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:scale_factor`               -> Scale factor.
       + `:redshift`                   -> Redshift.
@@ -1497,6 +1499,22 @@ function plotParams(quantity::Symbol)::PlotParams
             unit     = u"yr^-1",
         )
 
+    elseif quantity == :observational_sfr
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
+            var_name = L"SFR",
+            unit     = u"Msun*yr^-1",
+        )
+
+    elseif quantity == :observational_ssfr
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
+            var_name = L"sSFR",
+            unit     = u"yr^-1",
+        )
+
     elseif quantity == :temperature
 
         plot_params = PlotParams(;
@@ -1830,7 +1848,7 @@ Compute a profile.
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `quantity::Vector{<:Number}`: The profile will be of this quantity.
   - `grid::CircularGrid`: Circular grid.
-  - `norm_values::Vector{<:Number}=[]`: Values to normalize `quantity`.
+  - `norm_values::Vector{<:Number}=Number[]`: Values to normalize `quantity`.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
   - `total::Bool=false`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
@@ -3515,7 +3533,7 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
         # Use the fraction of molecular hydrogen according to the pressure relation, unless
         # that value is larger than the fraction of neutral hydrogen according to Arepo,
-        # in that case use the neutral fraction assuming is all molecular hydrogen
+        # in that case use the neutral fraction assuming it is all molecular hydrogen
         fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
 
     end
@@ -3674,7 +3692,7 @@ function computeSFR(
     !isempty(ages) || return Unitful.MassFlow[]
 
     # Allocate memory
-    sfr = zeros(typeof(1.0u"Msun/yr"), length(ages))
+    sfr = zeros(typeof(1.0u"Msun*yr^-1"), length(ages))
 
     # Find the stellar particles younger than `age_resol`
     idxs = map(x -> x <= age_resol, ages)
@@ -3738,8 +3756,10 @@ Compute an integrated quantity for the whole system in `data`.
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                   -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                    -> The star formation rate.
+      + `:ssfr`                   -> The specific star formation rate.
+      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:scale_factor`           -> Scale factor.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
@@ -3869,7 +3889,7 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :sfr_area_density
 
-        sfr = sum(computeSFR(data; age_resol=AGE_RESOLUTION_ρ); init=0.0u"Msun/yr")
+        sfr = sum(computeSFR(data; age_resol=AGE_RESOLUTION_ρ); init=0.0u"Msun*yr^-1")
 
         integrated_qty = sfr / area(FILTER_R)
 
@@ -3950,12 +3970,12 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :sfr
 
-        # Get the global index (index in the context of the whole simulation.) of the current snapshot
+        # Get the global index (index in the context of the whole simulation) of the current snapshot
         present_idx = data[:snap_data].global_index
 
         if present_idx == 1
 
-            integrated_qty = 0.0u"Msun/yr"
+            integrated_qty = 0.0u"Msun*yr^-1"
 
         else
 
@@ -3964,13 +3984,13 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
-            integrated_qty = sum(computeSFR(data; age_resol=Δt); init=0.0u"Msun/yr")
+            integrated_qty = sum(computeSFR(data; age_resol=Δt); init=0.0u"Msun*yr^-1")
 
         end
 
     elseif quantity == :ssfr
 
-        # Get the global index (index in the context of the whole simulation.) of the current snapshot
+        # Get the global index (index in the context of the whole simulation) of the current snapshot
         present_idx = data[:snap_data].global_index
 
         # Compute the total stellar mass
@@ -3978,7 +3998,7 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
         if present_idx == 1 || iszero(stellar_mass)
 
-            integrated_qty = 0.0u"Msun/yr"
+            integrated_qty = 0.0u"yr^-1"
 
         else
 
@@ -3987,8 +4007,23 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
-            integrated_qty = sum(computeSFR(data; age_resol=Δt); init=0.0u"Msun/yr") / stellar_mass
+            integrated_qty = sum(computeSFR(data; age_resol=Δt); init=0.0u"Msun*yr^-1") / stellar_mass
 
+        end
+
+    elseif quantity == :observational_sfr
+
+        integrated_qty = sum(computeSFR(data; age_resol=AGE_RESOLUTION); init=0.0u"Msun*yr^-1")
+
+    elseif quantity == :observational_ssfr
+
+        sfr = sum(computeSFR(data; age_resol=AGE_RESOLUTION); init=0.0u"Msun*yr^-1")
+        stellar_mass = sum(data[:stars]["MASS"]; init=0.0u"Msun")
+
+        if iszero(stellar_mass)
+            integrated_qty = 0.0u"yr^-1"
+        else
+            integrated_qty = sfr / stellar_mass
         end
 
     elseif quantity == :scale_factor
@@ -4074,8 +4109,10 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
 
 # Returns
@@ -4299,14 +4336,57 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :sfr
 
-        scatter_qty = computeSFR(data_dict; age_resol=AGE_RESOLUTION)
+        # Get the global index (index in the context of the whole simulation) of the current snapshot
+        present_idx = data[:snap_data].global_index
+
+        if present_idx == 1
+
+            scatter_qty = zeros(typeof(1.0u"Msun*yr^-1"), length(data[:stars]["MASS"]))
+
+        else
+
+            # Get the physical times
+            times = data[:sim_data].table[:, 5]
+            # Compute the time between snapshots
+            Δt = times[present_idx] - times[present_idx - 1]
+
+            scatter_qty = computeSFR(data; age_resol=Δt)
+
+        end
 
     elseif quantity == :ssfr
 
-        sfr = computeSFR(data_dict; age_resol=AGE_RESOLUTION)
-        stellar_mass = data_dict[:stars]["MASS"]
+        # Get the global index (index in the context of the whole simulation) of the current snapshot
+        present_idx = data[:snap_data].global_index
 
-        scatter_qty = sfr ./ stellar_mass
+        # Load the stellar masses
+        stellar_masses = data[:stars]["MASS"]
+
+        if present_idx == 1 || iszero(stellar_mass)
+
+            scatter_qty = zeros(typeof(1.0u"yr^-1"), length(stellar_masses))
+
+        else
+
+            # Get the physical times
+            times = data[:sim_data].table[:, 5]
+            # Compute the time between snapshots
+            Δt = times[present_idx] - times[present_idx - 1]
+
+            scatter_qty = computeSFR(data; age_resol=Δt) ./ stellar_masses
+
+        end
+
+    elseif quantity == :observational_sfr
+
+        scatter_qty = computeSFR(data_dict; age_resol=AGE_RESOLUTION)
+
+    elseif quantity == :observational_ssfr
+
+        sfr = computeSFR(data_dict; age_resol=AGE_RESOLUTION)
+        stellar_masses = data_dict[:stars]["MASS"]
+
+        scatter_qty = sfr ./ stellar_masses
 
     elseif quantity == :temperature
 

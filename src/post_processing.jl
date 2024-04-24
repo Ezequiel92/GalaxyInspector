@@ -408,7 +408,7 @@ Draw a line plot with the fit for the KS relation in Bigiel et al. (2008).
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
-  - `quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
       + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
@@ -510,7 +510,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
-  - `quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_area_density`   -> Stellar area mass density.
       + `:molecular_area_density` -> Molecular hydrogen area mass density.
@@ -614,18 +614,18 @@ Draw a line, or scatter, plot using the experimental data from the xGASS and xCO
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
-      + `:stellar_mass`   -> Stellar mass.
-      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:sfr`            -> The star formation rate.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+      + `:stellar_mass`      -> Stellar mass.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:observational_sfr` -> The star formation rate of the last `AGE_RESOLUTION`.
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_mass`   -> Stellar mass.
-      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:sfr`            -> The star formation rate.
+      + `:stellar_mass`      -> Stellar mass.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:observational_sfr` -> The star formation rate of the last `AGE_RESOLUTION`.
   - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
 
 # Returns
@@ -662,14 +662,14 @@ function ppFeldmann2020!(
 
         x_data = data[!, "MHI"]
 
-    elseif x_quantity == :sfr
+    elseif x_quantity == :observational_sfr
 
         x_data = data[!, "SFR"]
 
     else
 
         throw(ArgumentError("ppFeldmann2020!: `x_quantity` can only be :stellar_mass, \
-        :molecular_mass, :atomic_mass, or :sfr, but I got :$(x_quantity)"))
+        :molecular_mass, :atomic_mass, or :observational_sfr, but I got :$(x_quantity)"))
 
     end
 
@@ -691,14 +691,14 @@ function ppFeldmann2020!(
 
         y_data = data[!, "MHI"] .± data[!, "e_MHI"]
 
-    elseif y_quantity == :sfr
+    elseif y_quantity == :observational_sfr
 
         y_data = data[!, "SFR"] .± data[!, "e_SFR"]
 
     else
 
         throw(ArgumentError("ppFeldmann2020!: `y_quantity` can only be :stellar_mass, \
-        :molecular_mass, :atomic_mass, or :sfr, but I got :$(x_quantity)"))
+        :molecular_mass, :atomic_mass, or :observational_sfr, but I got :$(y_quantity)"))
 
     end
 

@@ -20,8 +20,8 @@
 #   + groupcat type      -> (block -> data of block, block -> data of block, ...).
 #   + ...
 #
-# and return one or more vectors or matrices with the processed data. It should return `nothing`
-# if the input data has some problem that prevents computation (e.g. is empty).
+# and return one or more vectors or matrices. It should return `nothing` if the input data has
+# some problem that prevents computation (e.g. is empty).
 #
 # Expected signature:
 #
@@ -37,7 +37,8 @@
 """
     daRotationCurve(
         data_dict::Dict,
-        R::Unitful.Length,
+        R::Unitful.Length;
+        <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
 Compute a rotation curve.
@@ -57,7 +58,33 @@ Compute a rotation curve.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `R::Unitful.Length`: Radius for the profile.
+  - `R::Unitful.Length`: Maximum radius.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -68,16 +95,19 @@ Compute a rotation curve.
 """
 function daRotationCurve(
     data_dict::Dict,
-    R::Unitful.Length,
+    R::Unitful.Length;
+    filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
-    # Compute the circular velocity and the stellar radial distances, in the order of the snapshot
-    r, vcirc = computeStellarVcirc(data_dict)
+    data = filterData(data_dict; filter_function)
+
+    # Compute the circular velocities and the radial distances
+    r, vcirc = computeStellarVcirc(data)
 
     # Only leave the data within a sphere of radius `R`
     rangeCut!(r, vcirc, (0.0u"kpc", R))
 
-    # Sort the arrays
+    # Sort the arrays radialy
     idx = sortperm(r)
 
     return r[idx], vcirc[idx]
@@ -85,12 +115,14 @@ function daRotationCurve(
 end
 
 """
-    daKennicuttSchmidt(
+    function daKennicuttSchmidtLaw(
         data_dict::Dict,
         grid::CircularGrid,
+        quantity::Symbol;
+        <keyword arguments>
     )::Union{Tuple{Vector{<:SurfaceDensity},Vector{<:MassFlowDensity}},Nothing}
 
-Compute the gas mass and SFR surface densities, used in the Kennicutt-Schmidt law.
+Compute the gas mass surface density and the SFR surface density, used in the Kennicutt-Schmidt law.
 
 # Arguments
 
@@ -108,6 +140,37 @@ Compute the gas mass and SFR surface densities, used in the Kennicutt-Schmidt la
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CircularGrid`: Circular grid.
+  - `quantity::Symbol`: Target gas component. The options are:
+
+      + `:gas_area_density`       -> Total gas area mass density.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -122,92 +185,30 @@ Compute the gas mass and SFR surface densities, used in the Kennicutt-Schmidt la
 
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 """
-function daKennicuttSchmidt(
-    data_dict::Dict,
-    grid::CircularGrid,
-)::Union{Tuple{Vector{<:SurfaceDensity},Vector{<:MassFlowDensity}},Nothing}
-
-    gas_masses = data_dict[:gas]["MASS"]
-    gas_positions = data_dict[:gas]["POS "]
-    star_positions = data_dict[:stars]["POS "]
-
-    # Return `nothing` if any of the necessary quantities are missing
-    !any(isempty, [gas_masses, gas_positions, star_positions]) || return nothing
-
-    # Compute the gas mass surface density
-    gas_mass_density = computeProfile(gas_positions, gas_masses, grid; total=true, density=true)
-
-    # Compute the SFR surface density
-    sfr_density = computeProfile(
-        star_positions,
-        computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ),
-        grid;
-        total=true,
-        density=true,
-    )
-
-    return gas_mass_density, sfr_density
-
-end
-
-"""
-    function daKennicuttSchmidtLaw(
-        data_dict::Dict,
-        grid::CircularGrid,
-        quantity::Symbol,
-    )::Union{Tuple{Vector{<:SurfaceDensity},Vector{<:MassFlowDensity}},Nothing}
-
-Compute the (molecular or neutral) gas mass and SFR surface densities, used in the Kennicutt-Schmidt law.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `grid::CircularGrid`: Circular grid.
-  - `quantity::Symbol`: Quantity for the x axis. The possibilities are:
-
-      + `:molecular_area_density` -> Molecular hydrogen area mass density.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density.
-
-# Returns
-
-  - A tuple with two elements:
-
-      + A vector with the gas mass surface density of each ring.
-      + A vector with the SFR surface density of each ring.
-
-    It returns `nothing` if any of the necessary quantities are missing.
-"""
 function daKennicuttSchmidtLaw(
     data_dict::Dict,
     grid::CircularGrid,
-    quantity::Symbol,
+    quantity::Symbol;
+    filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:SurfaceDensity},Vector{<:MassFlowDensity}},Nothing}
 
-    gas_positions = data_dict[:gas]["POS "]
-    star_positions = data_dict[:stars]["POS "]
+    data = filterData(data_dict; filter_function)
+
+    gas_positions  = data[:gas]["POS "]
+    star_positions = data[:stars]["POS "]
 
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [gas_positions, star_positions]) || return nothing
 
-    if quantity == :molecular_area_density
-        gas_masses = computeMolecularMass(data_dict)
+    if quantity == :gas_area_density
+        gas_masses = data[:gas]["MASS"]
+    elseif quantity == :molecular_area_density
+        gas_masses = computeMolecularMass(data)
     elseif quantity == :neutral_area_density
-        gas_masses = computeNeutralMass(data_dict)
+        gas_masses = computeNeutralMass(data)
     else
         throw(ArgumentError("daKennicuttSchmidtLaw: `quantity` can only be :molecular_area_density \
-        and :neutral_area_density, but I got :$(quantity)"))
+        , :neutral_area_density or :gas_area_density, but I got :$(quantity)"))
     end
 
     # Compute the gas mass surface density
@@ -216,7 +217,7 @@ function daKennicuttSchmidtLaw(
     # Compute the SFR surface density
     sfr_density = computeProfile(
         star_positions,
-        computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ),
+        computeSFR(data; age_resol=AGE_RESOLUTION_ρ),
         grid;
         total=true,
         density=true,
@@ -230,7 +231,8 @@ end
     daMolla2015(
         data_dict::Dict,
         grid::CircularGrid,
-        quantity::Symbol,
+        quantity::Symbol;
+        <keyword arguments>
     )::Union{
         Tuple{
             Vector{<:Unitful.Length},
@@ -257,7 +259,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CircularGrid`: Circular grid.
-  - `quantity::Symbol`: Quantity for the y axis. The options are:
+  - `quantity::Symbol`: Quantity. The options are:
 
       + `:stellar_area_density`   -> Stellar area mass density.
       + `:molecular_area_density` -> Molecular hydrogen area mass density.
@@ -266,6 +268,32 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `:O_stellar_abundance`    -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
       + `:N_stellar_abundance`    -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`    -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -283,7 +311,8 @@ M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the in
 function daMolla2015(
     data_dict::Dict,
     grid::CircularGrid,
-    quantity::Symbol,
+    quantity::Symbol;
+    filter_function::Function=filterNothing,
 )::Union{
     Tuple{
         Vector{<:Unitful.Length},
@@ -292,65 +321,67 @@ function daMolla2015(
     Nothing,
 }
 
+    data = filterData(data_dict; filter_function)
+
     if quantity == :stellar_area_density
 
-        positions = data_dict[:stars]["POS "]
-        masses = data_dict[:stars]["MASS"]
+        positions   = data[:stars]["POS "]
+        masses      = data[:stars]["MASS"]
         norm_values = Number[]
-        f = identity
-        density = true
+        f           = identity
+        density     = true
 
     elseif quantity == :sfr_area_density
 
-        positions = data_dict[:stars]["POS "]
-        masses = computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ)
+        positions   = data[:stars]["POS "]
+        masses      = computeSFR(data; age_resol=AGE_RESOLUTION_ρ)
         norm_values = Number[]
-        f = identity
-        density = true
+        f           = identity
+        density     = true
 
     elseif quantity == :molecular_area_density
 
-        positions = data_dict[:gas]["POS "]
-        masses = computeMolecularMass(data_dict)
+        positions   = data[:gas]["POS "]
+        masses      = computeMolecularMass(data)
         norm_values = Number[]
-        f = identity
-        density = true
+        f           = identity
+        density     = true
 
     elseif quantity == :atomic_area_density
 
-        positions = data_dict[:gas]["POS "]
-        masses = computeAtomicMass(data_dict)
+        positions   = data[:gas]["POS "]
+        masses      = computeAtomicMass(data)
         norm_values = Number[]
-        f = identity
-        density = true
+        f           = identity
+        density     = true
 
     elseif quantity == :O_stellar_abundance
 
-        positions = data_dict[:stars]["POS "]
-        masses = computeElementMass(data_dict, :stars, :O) ./ ATOMIC_WEIGHTS[:O]
-        norm_values = computeElementMass(data_dict, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
-        f = x -> 12 .+ log10.(x)
-        density = false
+        positions   = data[:stars]["POS "]
+        masses      = computeElementMass(data, :stars, :O) ./ ATOMIC_WEIGHTS[:O]
+        norm_values = computeElementMass(data, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
+        f           = x -> 12 .+ log10.(x)
+        density     = false
 
     elseif quantity == :N_stellar_abundance
 
-        positions = data_dict[:stars]["POS "]
-        masses = computeElementMass(data_dict, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
-        norm_values = computeElementMass(data_dict, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
-        f = x -> 12 .+ log10.(x)
-        density = false
+        positions   = data[:stars]["POS "]
+        masses      = computeElementMass(data, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
+        norm_values = computeElementMass(data, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
+        f           = x -> 12 .+ log10.(x)
+        density     = false
 
     elseif quantity == :C_stellar_abundance
 
-        positions = data_dict[:stars]["POS "]
-        masses = computeElementMass(data_dict, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
-        norm_values = computeElementMass(data_dict, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
-        f = x -> 12 .+ log10.(x)
-        density = false
+        positions   = data[:stars]["POS "]
+        masses      = computeElementMass(data, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
+        norm_values = computeElementMass(data, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
+        f           = x -> 12 .+ log10.(x)
+        density     = false
 
     else
 
-        throw(ArgumentError("daa2015: I don't recognize the quantity :$(quantity)"))
+        throw(ArgumentError("daMolla2015: I don't recognize the quantity :$(quantity)"))
 
     end
 
@@ -366,8 +397,8 @@ end
 """
     daProfile(
         data_dict::Dict,
-        grid::CircularGrid,
         quantity::Symbol;
+        grid::CircularGrid;
         <keyword arguments>
     )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
 
@@ -388,8 +419,7 @@ Compute a profile.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `grid::CircularGrid`: Circular grid.
-  - `quantity::Symbol`: Quantity for the y axis. The options are:
+  - `quantity::Symbol`: Target quantity. The options are:
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
@@ -399,89 +429,120 @@ Compute a profile.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
-      + `:stellar_vcirc`          -> Stellar circular velocity, upto a radius of `FILTER_R`.
-      + `:stellar_vradial`        -> Stellar radial speed, upto a radius of `FILTER_R`.
-      + `:stellar_vtangential`    -> Stellar tangential speed, upto a radius of `FILTER_R`.
+      + `:stellar_area_density`   -> Stellar mass.
+      + `:gas_area_density`       -> Gas mass.
+      + `:molecular_area_density` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_area_density`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_area_density`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_area_density`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:sfr`                    -> Star formation rate, for the last `AGE_RESOLUTION_ρ`.
+      + `:sfr_area_density`       -> Star formation rate, for the last `AGE_RESOLUTION_ρ`.
+      + `:stellar_vcirc`          -> Stellar circular velocity.
+      + `:stellar_vradial`        -> Stellar radial speed.
+      + `:stellar_vtangential`    -> Stellar tangential speed.
+  - `grid::CircularGrid`: Circular grid.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
-  - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
+  - `total::Bool=false`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
-  - `density::Bool=true`: If the profile will be of the density of `quantity`.
+  - `density::Bool=false`: If the profile will be of the density of `quantity`.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
   - A tuple with two elements:
 
-      + A vector with the position of each ring.
-      + A vector with the `quantity` area density of each ring.
+      + A vector with the position of each ring or spherical shells.
+      + A vector with the value `quantity` in each each ring or spherical shells.
 
     It returns `nothing` if any of the necessary quantities are missing.
 """
 function daProfile(
     data_dict::Dict,
-    grid::CircularGrid,
-    quantity::Symbol;
+    quantity::Symbol,
+    grid::CircularGrid;
     flat::Bool=true,
-    total::Bool=true,
+    total::Bool=false,
     cumulative::Bool=false,
-    density::Bool=true,
+    density::Bool=false,
+    filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
+
+    data = filterData(data_dict; filter_function)
 
     if quantity ∈ [:stellar_area_density, :stellar_mass]
 
-        positions = data_dict[:stars]["POS "]
-        values = scatterQty(data_dict, :stellar_mass)
+        positions = data[:stars]["POS "]
+        values    = scatterQty(data, :stellar_mass)
 
     elseif quantity ∈ [:gas_area_density, :gas_mass]
 
-        positions = data_dict[:gas]["POS "]
-        values = scatterQty(data_dict, :gas_mass)
+        positions = data[:gas]["POS "]
+        values    = scatterQty(data, :gas_mass)
 
     elseif quantity ∈ [:molecular_area_density, :molecular_mass]
 
-        positions = data_dict[:gas]["POS "]
-        values = scatterQty(data_dict, :molecular_mass)
+        positions = data[:gas]["POS "]
+        values    = scatterQty(data, :molecular_mass)
 
     elseif quantity ∈ [:atomic_area_density, :atomic_mass]
 
-        positions = data_dict[:gas]["POS "]
-        values = scatterQty(data_dict, :atomic_mass)
+        positions = data[:gas]["POS "]
+        values    = scatterQty(data, :atomic_mass)
 
     elseif quantity ∈ [:ionized_area_density, :ionized_mass]
 
-        positions = data_dict[:gas]["POS "]
-        values = scatterQty(data_dict, :ionized_mass)
+        positions = data[:gas]["POS "]
+        values    = scatterQty(data, :ionized_mass)
 
     elseif quantity ∈ [:neutral_area_density, :neutral_mass]
 
-        positions = data_dict[:gas]["POS "]
-        values = scatterQty(data_dict, :neutral_mass)
+        positions = data[:gas]["POS "]
+        values    = scatterQty(data, :neutral_mass)
 
-    elseif quantity == :sfr_area_density
+    elseif quantity == [:sfr, :sfr_area_density]
 
-        positions = data_dict[:stars]["POS "]
-        values = computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ)
+        positions = data[:stars]["POS "]
+        values    = computeSFR(data; age_resol=AGE_RESOLUTION_ρ)
 
     elseif quantity == :stellar_vradial
 
-        positions = data_dict[:stars]["POS "]
-        values = scatterQty(data_dict, :stellar_vradial)
+        positions = data[:stars]["POS "]
+        values    = scatterQty(data, :stellar_vradial)
 
     elseif quantity == :stellar_vtangential
 
-        positions = data_dict[:stars]["POS "]
-        values = scatterQty(data_dict, :stellar_vtangential)
+        positions = data[:stars]["POS "]
+        values    = scatterQty(data, :stellar_vtangential)
 
     elseif quantity == :stellar_vzstar
 
-        positions = data_dict[:stars]["POS "]
-        values = scatterQty(data_dict, :stellar_vzstar)
+        positions = data[:stars]["POS "]
+        values    = scatterQty(data, :stellar_vzstar)
 
     else
 
@@ -496,7 +557,6 @@ function daProfile(
         positions,
         values,
         grid;
-        norm_values=Number[],
         flat,
         total,
         cumulative,
@@ -530,12 +590,12 @@ Compute the evolution of a given stellar `quantity` using the stellar ages at a 
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `quantity::Symbol=:sfr`: Which quantity will be calculated. The options are:
+  - `quantity::Symbol=:sfr`: Target quantity. The options are:
 
       + `:sfr`          -> The star formation rate.
       + `:ssfr`         -> The specific star formation rate.
       + `:stellar_mass` -> Stellar mass.
-  - `n_bins::Int=50`: Number of bins (time intervals).
+  - `n_bins::Int=100`: Number of bins (time intervals).
   - `filter_function::Function=filterNothing`: A functions with the signature:
 
       `filter_function(data_dict) -> indices`
@@ -567,20 +627,20 @@ Compute the evolution of a given stellar `quantity` using the stellar ages at a 
 
   - A tuple with two elements:
 
-      + A vector with the physical time of each bin.
-      + A vector with the values of `quantity` for each bin.
+      + A vector with the physical times.
+      + A vector with the values of `quantity` at each time.
 """
 function daStellarHistory(
     data_dict::Dict;
     quantity::Symbol=:sfr,
-    n_bins::Int=50,
+    n_bins::Int=100,
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Unitful.Time},Vector{<:Number}},Nothing}
 
     data = filterData(data_dict; filter_function)
 
     birth_ticks = data[:stars]["GAGE"]
-    masses = data[:stars]["MASS"]
+    masses      = data[:stars]["MASS"]
 
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [birth_ticks, masses]) || return nothing
@@ -593,12 +653,14 @@ function daStellarHistory(
         birth_times = birth_ticks
     end
 
+    # Compute the birth time range
+    min, max = extrema(birth_times)
+
     # Compute the total stellar mass in each time bin
-    grid = CircularGrid(maximum(birth_times), n_bins; shift=minimum(birth_times))
+    grid = CircularGrid(max, n_bins; shift=min)
     stellar_masses = histogram1D(birth_times, masses, grid; empty_nan=false)
 
     # Compute the time axis
-    min, max = extrema(birth_times)
     bin_width = (max - min) / n_bins
     x_axis = collect(range(min + (bin_width * 0.5), length=n_bins, step=bin_width))
 
@@ -618,7 +680,7 @@ function daStellarHistory(
 
     else
 
-        throw(ArgumentError("daStellarHistory: `quantity` can only be :sfr, :ssfr, \
+        throw(ArgumentError("daStellarHistory: `quantity` can only be :sfr, :ssfr \
         or :stellar_mass, but I got :$(quantity)"))
 
     end
@@ -630,7 +692,8 @@ end
 """
     daCircularityHistogram(
         data_dict::Dict,
-        grid::LinearGrid,
+        grid::LinearGrid;
+        <keyword arguments>
     )::Union{NTuple{2,Vector{Float64}},Nothing}
 
 Compute a histogram of the stellar circularity, normalized to the maximum number of counts.
@@ -651,21 +714,50 @@ Compute a histogram of the stellar circularity, normalized to the maximum number
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::LinearGrid`: Linear grid.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
   - A tuple with two elements:
 
-      + A vector with the circularity of each bin.
+      + A vector with the circularities.
       + A vector with the counts, normalized to the maximum value.
 """
 function daCircularityHistogram(
     data_dict::Dict,
-    grid::LinearGrid,
+    grid::LinearGrid;
+    filter_function::Function=filterNothing,
 )::Union{NTuple{2,Vector{Float64}},Nothing}
 
+    data = filterData(data_dict; filter_function)
+
     # Compute the stellar circularity
-    circularity = computeStellarCircularity(data_dict)
+    circularity = computeStellarCircularity(data)
 
     !isempty(circularity) || return nothing
 
@@ -691,7 +783,7 @@ Compute a 2D density histogram.
 
 !!! note
 
-    By default, ``\\mathrm{M_\\odot \\, kpc^{-2}}`` is used as unit of density, so the output will be ``\\log_{10}(\\rho \\, / \\, \\mathrm{M_\\odot \\, kpc^{-2}})``.
+    By default, ``\\mathrm{M_\\odot \\, kpc^{-2}}`` is used as unit of density, so the output will be ``\\log_{10}(\\rho \\, [\\mathrm{M_\\odot \\, kpc^{-2}}])``.
 
 # Arguments
 
@@ -709,7 +801,7 @@ Compute a 2D density histogram.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::SquareGrid`: Square grid.
-  - `quantity::Symbol`: For which quantity the density will be calculated. The possibilities are:
+  - `quantity::Symbol`: For which quantity the density will be calculated. The options are:
 
       + `:stellar_mass`   -> Stellar mass.
       + `:gas_mass`       -> Gas mass.
@@ -724,6 +816,32 @@ Compute a 2D density histogram.
   - `neighbors::Int=18`: Number of neighbors for the 2D smoothing (only relevant if `smooth` = true). The default value comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
   - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -731,7 +849,7 @@ Compute a 2D density histogram.
 
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
-      + A matrix with the values of density in each bin.
+      + A matrix with the values of density at each grid point.
 """
 function daDensity2DHistogram(
     data_dict::Dict,
@@ -742,7 +860,10 @@ function daDensity2DHistogram(
     neighbors::Int=18,
     smoothing_length::Union{Unitful.Length,Nothing}=nothing,
     print_range::Bool=false,
+    filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+
+    data = filterData(data_dict; filter_function)
 
     # Set the cell/particle type
     if quantity ∈ [:gas_mass, :molecular_mass, :atomic_mass, :ionized_mass, :neutral_mass]
@@ -758,10 +879,10 @@ function daDensity2DHistogram(
     end
 
     # Compute the masses
-    masses = scatterQty(data_dict, quantity)
+    masses = scatterQty(data, quantity)
 
     # Load the positions
-    positions = data_dict[type_symbol]["POS "]
+    positions = data[type_symbol]["POS "]
 
     # If any of the necessary quantities are missing return an empty density field
     if any(isempty, [masses, positions])
@@ -782,9 +903,6 @@ function daDensity2DHistogram(
         throw(ArgumentError("daDensity2DHistogram: The argument `projection_plane` must be \
         :xy, :xz or :yz, but I got :$(projection_plane)"))
     end
-
-    # Allocate memory
-    density = similar(grid.grid, Number)
 
     if smooth
 
@@ -814,14 +932,14 @@ function daDensity2DHistogram(
         if isnothing(smoothing_length)
 
             # Compute the smoothing lengths
-            if "SOFT" ∈ keys(data_dict[type_symbol])
+            if "SOFT" ∈ keys(data[type_symbol])
 
-                smoothing_length = mean(data_dict[type_symbol]["SOFT"])
+                smoothing_length = mean(data[type_symbol]["SOFT"])
 
-            elseif "RHO " ∈ keys(data_dict[type_symbol])
+            elseif "RHO " ∈ keys(data[type_symbol])
 
-                densities = data_dict[type_symbol]["RHO "]
-                masses = data_dict[type_symbol]["MASS"]
+                densities = data[type_symbol]["RHO "]
+                masses = data[type_symbol]["MASS"]
                 smoothing_length = mean(
                     cbrt(m / (1.333 * π * ρ)) for (m, ρ) in zip(masses, densities)
                 )
@@ -829,17 +947,20 @@ function daDensity2DHistogram(
             else
                 throw(ArgumentError("daDensity2DHistogram: Neither the \"SOFT\" or \"RHO \" blocks \
                 where present for the cell/particle type :$(type_symbol), and I need one of them \
-                to smooth out the density histogram"))
+                to smooth out the density histogram as requested"))
             end
 
         end
 
+        # Allocate memory
+        density = similar(grid.grid, Number)
+
         # Compute the density in each bin
         @inbounds for i in eachindex(grid.grid)
-            n_idx = n_idxs[i]
+            n_idx  = n_idxs[i]
             n_dist = n_dists[i]
 
-            h = ustrip(u"kpc", smoothing_length)
+            h  = ustrip(u"kpc", smoothing_length)
             qs = n_dist / h
             ws = kernel.(qs, h) * u"kpc^-2"
 
@@ -854,7 +975,7 @@ function daDensity2DHistogram(
 
     end
 
-    # Set 0 bins to NaN to add contrast with the minimum value different from 0
+    # Set bins with a value of 0 to NaN
     nan = NaN * unit(first(density))
     replace!(x -> iszero(x) ? nan : x, density)
 
@@ -865,10 +986,134 @@ function daDensity2DHistogram(
         # Print the density range
         @info(
             "\nDensity range \
-            \n  Simulation: $(basename(data_dict[:sim_data].path)) \
+            \n  Simulation: $(basename(data[:sim_data].path)) \
             \n  Quantity:   $(quantity) \
             \n  Plane:      $(projection_plane) \
-            \nlog₁₀(ρ / $(ρ_unit)) = $(extrema(filter(!isnan, values)))\n\n"
+            \nlog₁₀(ρ [$(ρ_unit)]) = $(extrema(filter(!isnan, values)))\n\n"
+        )
+    end
+
+    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured
+    z_axis = reverse!(transpose(values), dims=2)
+
+    return grid.x_ticks, grid.y_ticks, z_axis
+
+end
+
+"""
+    daTemperature2DHistogram(
+        data_dict::Dict,
+        grid::SquareGrid;
+        <keyword arguments>
+    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+
+Compute a 2D temperature histogram.
+
+!!! note
+
+    By default, ``K`` is used as unit of temperature, so the output will be ``\\log_{10}(T \\, [\\mathrm{K}])``.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `grid::SquareGrid`: Square grid.
+  - `projection_plane::Symbol=:xy`: To which plane the cells will be projected. The options are `:xy`, `:xz`, and `:yz`.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic temperature range.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+
+# Returns
+
+  - A tuple with three elements:
+
+      + A vector with the x coordinates of the grid.
+      + A vector with the y coordinates of the grid.
+      + A matrix with the values of temperature at each grid point.
+"""
+function daTemperature2DHistogram(
+    data_dict::Dict,
+    grid::SquareGrid;
+    projection_plane::Symbol=:xy,
+    print_range::Bool=false,
+    filter_function::Function=filterNothing,
+)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+
+    data = filterData(data_dict; filter_function)
+
+    # Load the temperatures
+    temperatures = data[:gas]["TEMP"]
+    # Load the positions
+    positions = data[:gas]["POS "]
+
+    # If any of the necessary quantities are missing return an empty temperature field
+    if any(isempty, [temperatures, positions])
+        return grid.x_ticks, grid.y_ticks, fill(NaN, size(grid.grid))
+    end
+
+    # Set the temperature unit
+    T_unit = u"K"
+
+    # Project the cell/particles to the chosen plane
+    if projection_plane == :xy
+        pos_2D = positions[[1, 2], :]
+    elseif projection_plane == :xz
+        pos_2D = positions[[1, 3], :]
+    elseif projection_plane == :yz
+        pos_2D = positions[[2, 3], :]
+    else
+        throw(ArgumentError("daTemperature2DHistogram: The argument `projection_plane` must be \
+        :xy, :xz or :yz, but I got :$(projection_plane)"))
+    end
+
+    # Compute the 2D histogram
+    temperature = histogram2D(pos_2D, temperatures, grid; total=false, empty_nan=true)
+
+    # Apply log10 to enhance the contrast
+    values = log10.(ustrip.(T_unit, temperature))
+
+    if print_range
+        # Print the temperature range
+        @info(
+            "\nTemperature range \
+            \n  Simulation: $(basename(data[:sim_data].path)) \
+            \n  Plane:      $(projection_plane) \
+            \nlog₁₀(T [$(T_unit)]) = $(extrema(filter(!isnan, values)))\n\n"
         )
     end
 
@@ -887,7 +1132,7 @@ end
         <keyword arguments>
     )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
-Compute a 2D histogram.
+Turn a scatter plot into a 2D histogram.
 
 # Arguments
 
@@ -904,7 +1149,7 @@ Compute a 2D histogram.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
@@ -941,10 +1186,12 @@ Compute a 2D histogram.
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
@@ -981,14 +1228,42 @@ Compute a 2D histogram.
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
-  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Set to the desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
-  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Set to the desired unit of `y_quantity`, if you want to use log10(`y_quantity`) for the y axis.
+  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `y_quantity`, if you want to use log10(`y_quantity`) for the y axis.
   - `n_bins::Int=100`: Number of bins per side of the grid.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -1007,29 +1282,39 @@ function daScatterDensity(
     x_log::Union{Unitful.Units,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
     n_bins::Int=100,
+    filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
-    # Compute the values of the quantities for the x and y axis
-    x_values = scatterQty(data_dict, x_quantity)
-    y_values = scatterQty(data_dict, y_quantity)
+    data = filterData(data_dict; filter_function)
 
-    if !isnothing(x_log)
-        null_x_idxs = findall(iszero, x_values)
-        x_values = log10.(deleteat!(ustrip.(x_log, x_values), null_x_idxs))
-        y_values = deleteat!(y_values, null_x_idxs)
-    end
+    # Compute the values of the quantities
+    x_values = scatterQty(data, x_quantity)
+    y_values = scatterQty(data, y_quantity)
 
-    if !isnothing(y_log)
-        null_y_idxs = findall(iszero, y_values)
-        x_values = deleteat!(x_values, null_y_idxs)
-        y_values = log10.(deleteat!(ustrip.(y_log, y_values), null_y_idxs))
+    # If any of the necessary quantities are missing return an empty histogram
+    if any(isempty, [x_values, y_values])
+        return 1:n_bins, 1:n_bins, fill(NaN, (n_bins, n_bins))
     end
 
     (
         length(x_values) == length(y_values) ||
-        throw(ArgumentError("daScatterDensity: I found a diferent number of values for  \
-        :$(x_quantity) and :$(y_quantity). They should be the same"))
+        throw(ArgumentError("daScatterDensity: :$(x_quantity) and :$(y_quantity) have a diferent \
+        number of values. They should be the same"))
     )
+
+    # If requested, apply log10 to the x axis data, ignoring 0 values
+    if !isnothing(x_log)
+        null_x_idxs = findall(iszero, x_values)
+        x_values    = log10.(deleteat!(ustrip.(x_log, x_values), null_x_idxs))
+        y_values    = deleteat!(y_values, null_x_idxs)
+    end
+
+    # If requested, apply log10 to the y axis data, ignoring 0 values
+    if !isnothing(y_log)
+        null_y_idxs = findall(iszero, y_values)
+        x_values    = deleteat!(x_values, null_y_idxs)
+        y_values    = log10.(deleteat!(ustrip.(y_log, y_values), null_y_idxs))
+    end
 
     # If there is no range specified, use the extrema of the x values
     if isnothing(x_range)
@@ -1049,11 +1334,6 @@ function daScatterDensity(
     x_axis = collect(range(x_range[1] + x_bin_h_width; length=n_bins, step=2 * x_bin_h_width))
     y_axis = collect(range(y_range[1] + y_bin_h_width; length=n_bins, step=2 * y_bin_h_width))
 
-    # If any of the necessary quantities are missing return an empty histogram
-    if any(isempty, [x_values, y_values])
-        return x_axis, y_axis, fill(NaN, (n_bins, n_bins))
-    end
-
     # Compute the 2D histogram
     counts = Float64.(histogram2D(
         permutedims(hcat(x_values, y_values), (2, 1)),
@@ -1061,7 +1341,7 @@ function daScatterDensity(
         collect(range(y_range[1], y_range[2]; length=n_bins + 1)),
     ))
 
-    # Set 0 bins to NaN to add contrast with the minimum value different from 0
+    # Set bins with a value of 0 to NaN
     replace!(x -> iszero(x) ? NaN : x, counts)
 
     # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured,
@@ -1078,18 +1358,9 @@ end
         grid::SquareGrid,
         type_symbol::Symbol;
         <keyword arguments>
-    )::Tuple{
-        Vector{<:Unitful.Length},
-        Vector{<:Unitful.Length},
-        Matrix{<:Number},
-        Matrix{<:Number},
-    }
+    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{<:Number},Matrix{<:Number}}
 
 Compute a 2D mean velocity field.
-
-!!! note
-
-    If the stellar masses and velocities can be found in `data_dict`, the velocity field is boosted with respect to the stellar center of mass.
 
 # Arguments
 
@@ -1109,7 +1380,33 @@ Compute a 2D mean velocity field.
   - `grid::SquareGrid`: Square grid.
   - `type_symbol::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
-  - `velocity_units::Bool=false`: If the velocity will be given as `Unitful.Quantity` or as `Flot64` (in which case the underlying unit is km * s^-1).
+  - `velocity_units::Bool=false`: If the velocity will be given as an `Unitful.Quantity` with units or as a `Flot64` (in which case the underlying unit is `km * s^-1`).
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -1117,8 +1414,8 @@ Compute a 2D mean velocity field.
 
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
-      + A matrix with the mean velocity in the x direction for each bin.
-      + A matrix with the mean velocity in the y direction for each bin.
+      + A matrix with the mean velocity in the x direction at each grid point.
+      + A matrix with the mean velocity in the y direction at each grid point.
 """
 function daVelocityField(
     data_dict::Dict,
@@ -1126,15 +1423,13 @@ function daVelocityField(
     type_symbol::Symbol;
     projection_plane::Symbol=:xy,
     velocity_units::Bool=false,
-)::Tuple{
-    Vector{<:Unitful.Length},
-    Vector{<:Unitful.Length},
-    Matrix{<:Number},
-    Matrix{<:Number},
-}
+    filter_function::Function=filterNothing,
+)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{<:Number},Matrix{<:Number}}
 
-    positions = data_dict[type_symbol]["POS "]
-    velocities = data_dict[type_symbol]["VEL "]
+    data = filterData(data_dict; filter_function)
+
+    positions  = data[type_symbol]["POS "]
+    velocities = data[type_symbol]["VEL "]
 
     # If any of the necessary quantities are missing return an empty velocity field
     if any(isempty, [positions, velocities])
@@ -1190,7 +1485,8 @@ end
     daIntegrateGalaxy(
         data_dict::Dict,
         x_quantity::Symbol,
-        y_quantity::Symbol,
+        y_quantity::Symbol;
+        <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
 Compute two global quantities of the simulation.
@@ -1210,7 +1506,7 @@ Compute two global quantities of the simulation.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
@@ -1242,13 +1538,15 @@ Compute two global quantities of the simulation.
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                   -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                    -> The star formation rate.
+      + `:ssfr`                   -> The specific star formation rate.
+      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:scale_factor`           -> Scale factor.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
@@ -1280,12 +1578,40 @@ Compute two global quantities of the simulation.
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                   -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                    -> The star formation rate.
+      + `:ssfr`                   -> The specific star formation rate.
+      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:scale_factor`           -> Scale factor.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -1297,10 +1623,13 @@ Compute two global quantities of the simulation.
 function daIntegrateGalaxy(
     data_dict::Dict,
     x_quantity::Symbol,
-    y_quantity::Symbol,
+    y_quantity::Symbol;
+    filter_function::Function=filterNothing,
 )::NTuple{2,Vector{<:Number}}
 
-    return [integrateQty(data_dict, x_quantity)], [integrateQty(data_dict, y_quantity)]
+    data = filterData(data_dict; filter_function)
+
+    return [integrateQty(data, x_quantity)], [integrateQty(data, y_quantity)]
 
 end
 
@@ -1329,7 +1658,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
@@ -1366,10 +1695,12 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
@@ -1406,8 +1737,10 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_vtangential`        -> Stellar tangential speed.
       + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
       + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                       -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `filter_function::Function=filterNothing`: A functions with the signature:
 
@@ -1459,8 +1792,8 @@ function daScatterGalaxy(
 
     (
         length(x_axis) == length(y_axis) ||
-        throw(ArgumentError("daScatterGalaxy: :$(x_quantity) and :$(y_quantity) \
-        are incompatible quantities, they should be from the same type of cell/particle"))
+        throw(ArgumentError("daScatterGalaxy: :$(x_quantity) and :$(y_quantity) have a diferent \
+        number of values. They should be the same"))
     )
 
     return x_axis[idx], y_axis[idx]
@@ -1500,7 +1833,7 @@ Compute the time series of two quantities.
 # Arguments
 
   - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
@@ -1532,13 +1865,15 @@ Compute the time series of two quantities.
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                   -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                    -> The star formation rate.
+      + `:ssfr`                   -> The specific star formation rate.
+      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:scale_factor`           -> Scale factor.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
@@ -1570,8 +1905,10 @@ Compute the time series of two quantities.
       + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:ssfr`                   -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`                    -> The star formation rate.
+      + `:ssfr`                   -> The specific star formation rate.
+      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:scale_factor`           -> Scale factor.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
@@ -1697,13 +2034,13 @@ Compute the stellar mass or SFR evolution using the data in the `sfr.txt` file.
 # Arguments
 
   - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:scale_factor`  -> Scale factor.
       + `:redshift`      -> Redshift.
       + `:physical_time` -> Physical time since the Big Bang.
       + `:lookback_time` -> Physical time left to reach the last snapshot.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass` -> Stellar mass.
       + `:sfr`          -> The star formation rate.
@@ -1747,8 +2084,8 @@ function daSFRtxt(
 
         (
             sim_data.cosmological ||
-            @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only \
-            be :physical_time")
+            @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
+            :physical_time")
         )
 
         x_axis = time_ticks
@@ -1758,8 +2095,8 @@ function daSFRtxt(
         if sim_data.cosmological
             x_axis = (1.0 ./ time_ticks) .- 1.0
         else
-            @warn("daSFRtxt: For non-cosmological simulations `x_quantity` \
-            can only be :physical_time")
+            @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
+            :physical_time")
             x_axis = time_ticks
         end
 
@@ -1783,8 +2120,8 @@ function daSFRtxt(
 
     else
 
-        throw(ArgumentError("daSFRtxt: `x_quantity` can only be :scale_factor, \
-        :redshift, :physical_time, or :lookback_time, but I got :$(x_quantity)"))
+        throw(ArgumentError("daSFRtxt: `x_quantity` can only be :scale_factor, :redshift, \
+        :physical_time or :lookback_time, but I got :$(x_quantity)"))
 
     end
 
@@ -1827,7 +2164,7 @@ Compute the evolution of a measured quantity in the `cpu.txt` file, for a given 
 
   - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
   - `target::String`: Target process.
-  - `x_quantity::Symbol`: Quantity for the x axis. The possibilities are:
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:time_step`              -> Time step.
       + `:physical_time`          -> Physical time since the Big Bang.
@@ -1835,7 +2172,7 @@ Compute the evolution of a measured quantity in the `cpu.txt` file, for a given 
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
       + `:tot_clock_time_s`       -> Total clock time in seconds.
       + `:tot_clock_time_percent` -> Total clock time as a percentage.
-  - `y_quantity::Symbol`: Quantity for the y axis. The possibilities are:
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:time_step`              -> Time step.
       + `:physical_time`          -> Physical time since the Big Bang.
@@ -1909,7 +2246,7 @@ function daCPUtxt(
 
     else
 
-        throw(ArgumentError("daCPUtxt: I don't recognize the x_quantity = :$(x_quantity)"))
+        throw(ArgumentError("daCPUtxt: I don't recognize the x_quantity :$(x_quantity)"))
 
     end
 
@@ -1943,7 +2280,7 @@ function daCPUtxt(
 
     else
 
-        throw(ArgumentError("daCPUtxt: I don't recognize the y_quantity = :$(y_quantity)"))
+        throw(ArgumentError("daCPUtxt: I don't recognize the y_quantity :$(y_quantity)"))
 
     end
 

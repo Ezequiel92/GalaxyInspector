@@ -131,9 +131,6 @@ Some of the features are:
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `colorbar::Bool=false`: If a colorbar will be added to heatmaps. Only relevant for when `plot_functions` is `heatmap!`.
-  - `series_colors::Union{Vector{<:ColorType},Nothing}=nothing`: Colors for the different simulations. If set to `nothing`, the colors will be assigned automatically. This is only relevant for `scatter!`, `scatterlines!`, and `lines!` plots.
-  - `series_markers::Union{Vector{Symbol},Nothing}=nothing`: Markers for the different simulations. If set to `nothing`, the markers will be assigned automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
-  - `series_linestyles::Union{Vector{<:LineStyleType},Nothing}=nothing`: Line styles for the different simulations. If set to `nothing`, the line styles will be assigned automatically. This is only relevant for `lines!` and `scatterlines!` plots.
 
 ## Animation options
 
@@ -190,9 +187,6 @@ function snapshotPlot(
     sim_labels::Union{Vector{String},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
     colorbar::Bool=false,
-    series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
-    series_markers::Union{Vector{Symbol},Nothing}=nothing,
-    series_linestyles::Union{Vector{<:LineStyleType},Nothing}=nothing,
     # Animation options
     animation::Bool=false,
     animation_filename::String="animation.mp4",
@@ -236,27 +230,12 @@ function snapshotPlot(
     ################################################################################################
 
     # Apply the global theme defined in `./src/constants.jl`
+    current_theme = merge(theme, theme_latexfonts(), DEFAULT_THEME)
     set_theme!()
-    set_theme!(merge(theme, theme_latexfonts(), DEFAULT_THEME))
+    set_theme!(current_theme)
 
     # Create the figure
     figure = Figure(; size)
-
-    # Create a list of distinguishable colors for the different simulations,
-    # only relevant for `scatter!`, `lines!`, and `scatterlines!` plots
-    if isnothing(series_colors)
-        colors = distinguishable_colors(n_simulations, [RGB(1, 1, 1), RGB(0, 0, 0)], dropseed=true)
-    else
-        colors = series_colors
-    end
-
-    # Select a set of markers for the different simulations,
-    # only relevant for `scatter!` and `scatterlines!` plots
-    markers = isnothing(series_markers) ? MARKERS : series_markers
-
-    # Select a set of line styles for the different simulations,
-    # only relevant for `lines!` and `scatterlines!` plots
-    linestyles = isnothing(series_linestyles) ? LINE_STYLES : series_linestyles
 
     # Create the labels
     xlabel = LaTeXString(
@@ -392,11 +371,6 @@ function snapshotPlot(
             data_analysis = ring(da_functions, simulation_index)
             da_arg = ring(da_args, simulation_index)
             da_kwarg = ring(da_kwargs, simulation_index)
-
-            # Get the plot styles for the current simulation
-            color = ring(colors, simulation_index)
-            marker = ring(markers, simulation_index)
-            linestyle = ring(linestyles, simulation_index)
 
             ########################################################################################
             # Read and transform the data in the snapshot.
@@ -573,7 +547,7 @@ function snapshotPlot(
 
             if animation || save_figures
                 # Draw the plot
-                pf = plot_function(axes, axis_data...; color, marker, linestyle, pf_kwarg...)
+                pf = plot_function(axes, axis_data...; pf_kwarg...)
             end
 
             # Add a colorbar the the heatmap
@@ -672,6 +646,11 @@ function snapshotPlot(
                 )
 
                 legend_element = Vector{Makie.LegendElement}(undef, n_simulations)
+
+                # Load the current palette
+                colors     = current_theme[:palette][:color][]
+                markers    = current_theme[:palette][:marker][]
+                linestyles = current_theme[:palette][:linestyle][]
 
                 @inbounds for i in eachindex(legend_element)
                     color = ring(colors, i)
@@ -819,9 +798,6 @@ Some of the features are:
   - `size::NTuple{2,Int}=(1000, 1000)`: Size of the figures in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
-  - `series_colors::Union{Vector{<:ColorType},Nothing}=nothing`: Colors for the different simulations. If set to `nothing`, the colors will be assigned automatically.
-  - `series_markers::Union{Vector{Symbol},Nothing}=nothing`: Markers for the different simulations. If set to `nothing`, the markers will be assigned automatically. This is only relevant for `scatter!` and `scatterlines!` plots.
-  - `series_linestyles::Union{Vector{<:LineStyleType},Nothing}=nothing`: Line styles for the different simulations. If set to `nothing`, the line styles will be assigned automatically. This is only relevant for `lines!` and `scatterlines!` plots.
 
 # Returns
 
@@ -869,9 +845,6 @@ function timeSeriesPlot(
     size::NTuple{2,Int}=(1000, 1000),
     sim_labels::Union{Vector{String},Nothing}=nothing,
     title::AbstractString="",
-    series_colors::Union{Vector{<:ColorType},Nothing}=nothing,
-    series_markers::Union{Vector{Symbol},Nothing}=nothing,
-    series_linestyles::Union{Vector{<:LineStyleType},Nothing}=nothing,
 )::Tuple{Makie.Axis,Figure}
 
     # Create the output folder if it doesn't exist
@@ -885,26 +858,12 @@ function timeSeriesPlot(
     ################################################################################################
 
     # Apply the global theme defined in `./src/constants.jl`
+    current_theme = merge(theme, theme_latexfonts(), DEFAULT_THEME)
     set_theme!()
-    set_theme!(merge(theme, theme_latexfonts(), DEFAULT_THEME))
+    set_theme!(current_theme)
 
     # Create the figure
     figure = Figure(; size)
-
-    # Create a list of distinguishable colors for the different simulations
-    if isnothing(series_colors)
-        colors = distinguishable_colors(n_simulations, [RGB(1, 1, 1), RGB(0, 0, 0)], dropseed=true)
-    else
-        colors = series_colors
-    end
-
-    # Select a set of markers for the different simulations,
-    # only relevant for `scatter!` and `scatterlines!` plots
-    markers = isnothing(series_markers) ? MARKERS : series_markers
-
-    # Select a set of line styles for the different simulations,
-    # only relevant for `lines!` and `scatterlines!` plots
-    linestyles = isnothing(series_linestyles) ? LINE_STYLES : series_linestyles
 
     # Create the labels
     xlabel = LaTeXString(
@@ -998,11 +957,6 @@ function timeSeriesPlot(
         da_arg = ring(da_args, simulation_index)
         da_kwarg = ring(da_kwargs, simulation_index)
 
-        # Get the plot styles for the current simulation
-        color = ring(colors, simulation_index)
-        marker = ring(markers, simulation_index)
-        linestyle = ring(linestyles, simulation_index)
-
         ############################################################################################
         # Compute the values to be plotted.
         ############################################################################################
@@ -1054,7 +1008,7 @@ function timeSeriesPlot(
 
         if save_figures
             # Draw the plot
-            plot_function(axes, axis_data...; color, marker, linestyle, pf_kwarg...)
+            plot_function(axes, axis_data...; pf_kwarg...)
         end
 
         # Move the progress bar forward
@@ -1090,6 +1044,11 @@ function timeSeriesPlot(
 
             legend_element = Vector{Makie.LegendElement}(undef, n_simulations)
 
+            # Load the current palette
+            colors     = current_theme[:palette][:color][]
+            markers    = current_theme[:palette][:marker][]
+            linestyles = current_theme[:palette][:linestyle][]
+
             @inbounds for i in eachindex(legend_element)
                 color = ring(colors, i)
                 marker = ring(markers, i)
@@ -1101,6 +1060,7 @@ function timeSeriesPlot(
                 else
                     legend_element[i] = MarkerElement(; color, marker)
                 end
+
             end
 
             push!(legend_elements, legend_element)
