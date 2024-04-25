@@ -634,6 +634,7 @@ Compute a characteristic center of mass for the system.
 
       + `:global_cm`  -> Center of mass of the whole system.
       + `:stellar_cm` -> Stellar center of mass.
+      + `:zero`       -> Origin.
 
 # Returns
 
@@ -649,10 +650,14 @@ function computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Lengt
 
         return computeCenterOfMass(data_dict[:stars]["POS "], data_dict[:stars]["MASS"])
 
+    elseif cm_type == :zero
+
+        return zeros(typeof(1.0u"kpc"), 3)
+
     end
 
-    throw(ArgumentError("computeCenter: `cm_type` can only be :global_cm, \
-    or :stellar_cm, but I got :$(center_type)"))
+    throw(ArgumentError("computeCenter: `cm_type` can only be :global_cm, :stellar_cm or :zero \
+    but I got :$(center_type)"))
 
 end
 
@@ -779,10 +784,14 @@ function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity
 
         return computeStellarVcm(data_dict)
 
+    elseif cm_type == :zero
+
+        return zeros(1.0u"km*s^-1", 3)
+
     end
 
-    throw(ArgumentError("computeVcm: `cm_type` can only be :global_cm, \
-    or :stellar_cm, but I got :$(center_type)"))
+    throw(ArgumentError("computeVcm: `cm_type` can only be :global_cm, :stellar_cm or :zero \
+    but I got :$(center_type)"))
 
 end
 
@@ -4512,7 +4521,7 @@ function selectFilter(
     elseif filter_mode == :sphere
 
         # Plot only the cell/particle inside a sphere with radius `FILTER_R`
-        filter_function = dd -> filterWithin(dd, FILTER_R, :cm)
+        filter_function = dd -> filterWithin(dd, (0.0u"kpc", FILTER_R), :cm)
         translation = :global_cm
         rotation = :global_am
 
@@ -4607,9 +4616,13 @@ Default filter function that does not filter any cells/particles.
 filterNothing(x...; y...)::Dict{Symbol,IndexType} = PASS_ALL
 
 """
-    filterWithin(data_dict::Dict, r::Unitful.Length, origin...)::Dict{Symbol,IndexType}
+    filterWithin(
+        data_dict::Dict,
+        range::NTuple{2,<:Unitful.Length},
+        origin...,
+    )::Dict{Symbol,IndexType}
 
-Filter out the cell/particles outside a sphere of radius `r`.
+Filter out the cell/particles outside a given spherical shell.
 
 # Arguments
 
@@ -4626,7 +4639,7 @@ Filter out the cell/particles outside a sphere of radius `r`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `r::Unitful.Length`: Radius of the sphere.
+  - `range::NTuple{2,<:Unitful.Length}`: Internal and external radius of the spherical shell.
   - `origin`: It can be any number and type of argument compatible with the second to last arguments of a [`computeCenter`](@ref) method.
 
 # Returns
@@ -4638,7 +4651,11 @@ Filter out the cell/particles outside a sphere of radius `r`.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterWithin(data_dict::Dict, r::Unitful.Length, origin...)::Dict{Symbol,IndexType}
+function filterWithin(
+    data_dict::Dict,
+    r::NTuple{2,<:Unitful.Length},
+    origin...,
+)::Dict{Symbol,IndexType}
 
     indices = Dict{Symbol,IndexType}()
     center = computeCenter(data_dict, origin...)
@@ -4651,7 +4668,7 @@ function filterWithin(data_dict::Dict, r::Unitful.Length, origin...)::Dict{Symbo
             indices[type_symbol] = (:)
         else
             distances = computeDistance(positions; center)
-            indices[type_symbol] = map(x -> x <= r, distances)
+            indices[type_symbol] = map(x -> range[1] < x <= range[2], distances)
         end
 
     end
@@ -5079,9 +5096,9 @@ function filterComponentinSubhalo(
     subhalo_idxs = filterSubhalo(data_dict; halo_idx, subhalo_rel_idx)
 
     # Find indices to filter by component
-    if component == :disk
+    if component == :bulge
         component_idxs = filterCircularity(data_dict, 0.7, Inf)
-    elseif component == :bulge
+    elseif component == :disk
         component_idxs = filterCircularity(data_dict, -Inf, 0.7)
     else
         throw(ArgumentError("filterComponentinSubhalo: `component` can only be :disk or :bulge, \

@@ -123,7 +123,7 @@ Some of the features are:
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `size::NTuple{2,Int}=(1000, 1000)`: Size of the figures in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
-  - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -184,7 +184,7 @@ function snapshotPlot(
     backup_results::Bool=false,
     theme::Attributes=Theme(),
     size::NTuple{2,Int}=(1000, 1000),
-    sim_labels::Union{Vector{String},Nothing}=nothing,
+    sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
     colorbar::Bool=false,
     # Animation options
@@ -796,7 +796,7 @@ Some of the features are:
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `size::NTuple{2,Int}=(1000, 1000)`: Size of the figures in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
-  - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
 
 # Returns
@@ -843,7 +843,7 @@ function timeSeriesPlot(
     backup_results::Bool=false,
     theme::Attributes=Theme(),
     size::NTuple{2,Int}=(1000, 1000),
-    sim_labels::Union{Vector{String},Nothing}=nothing,
+    sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
     title::AbstractString="",
 )::Tuple{Makie.Axis,Figure}
 

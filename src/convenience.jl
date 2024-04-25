@@ -3226,7 +3226,8 @@ function densityProfile(
             animation_filename="animation.mp4",
             framerate=10,
         )
-        end
+
+    end
 
     return nothing
 
