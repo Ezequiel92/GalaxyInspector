@@ -818,6 +818,107 @@ function daLineHistogram(
 end
 
 """
+    daStellarCircHistogram(
+        data_dict::Dict,
+        quantity::Symbol,
+        grid::LinearGrid;
+        <keyword arguments>
+    )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
+
+Compute a 1D histogram of a given `quantity`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `quantity::Symbol`: The possibilities are:
+
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+  - `grid::LinearGrid`: Linear grid.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+    + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+
+    + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+  - `norm::Int64=1`: Number of count that will be use to normalize the histogram.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the value corresponding to each bin.
+      + A vector with the counts, normalized to the maximum value.
+"""
+function daStellarCircHistogram(
+    data_dict::Dict,
+    quantity::Symbol,
+    grid::LinearGrid;
+    filter_function::Function=filterNothing,
+    norm::Int64=1,
+)::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
+
+    (
+        quantity ∈ [:stellar_circularity, :stellar_vcirc] ||
+        throw(ArgumentError("daCircularityHistogram: `quantity` can only be :stellar_vcirc \
+        or :stellar_circularity, but I got :$(quantity)"))
+    )
+
+    (
+        isPositive(norm) ||
+        throw(ArgumentError("daCircularityHistogram: `norm` must be a positive interger, \
+        but I got norm = $(norm)"))
+    )
+
+    # Compute the indices of the target stars
+    stellar_idxs = filter_function(data_dict)[:stars]
+
+    # Compute the values
+    values = scatterQty(data_dict, quantity)
+
+    # Return nothing if there are no stars before of after filtering
+    !(isempty(values) || isempty(values[stellar_idxs])) || return nothing
+
+    # Compute the quantity histogram
+    counts = histogram1D(values[stellar_idxs], grid)
+
+    return grid.grid, counts ./ norm
+
+end
+
+"""
     daDensity2DHistogram(
         data_dict::Dict,
         grid::SquareGrid,

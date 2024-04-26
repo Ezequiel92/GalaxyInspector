@@ -2996,8 +2996,6 @@ function computeStellarVcirc(
     )
     masses = vcat([data_dict[type_symbol]["MASS"] for type_symbol in type_symbols]...)
 
-    @debug("computeStellarVcirc: The circular velocity will be computed using $(type_symbols)")
-
     # Use the radial distances as bin edges for the mass histogram
     edges = [0.0u"kpc", rs...]
 
@@ -3008,6 +3006,8 @@ function computeStellarVcirc(
     # The mass histogram is a sorted array, so it is reverted to the unsorted order of `r`
     # to make `vcirc` the circular velocity of each star in the order of the snapshot
     invpermute!(M, sortperm(rs))
+
+    @debug("computeStellarVcirc: The circular velocity will be computed using $(type_symbols)")
 
     vcirc = [iszero(r) ? 0.0u"km*s^-1" : sqrt(Unitful.G * m / r) for (m, r) in zip(M, rs)]
 
