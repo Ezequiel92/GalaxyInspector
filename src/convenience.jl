@@ -442,9 +442,10 @@ function snapshotReport(
         translateData!(data_dict, translation)
 
         ############################################################################################
-        # Print the radius containing 90% and 95% of the stellar mass
+        # Print the radius containing 90% and 95% of the mass
         ############################################################################################
 
+        # Stars
         mass_radius_90 = computeMassRadius(
             data_dict[:stars]["POS "],
             data_dict[:stars]["MASS"];
@@ -457,15 +458,98 @@ function snapshotReport(
             percent=95.0,
         )
 
-        println(file, "\tRadius containing 90% of the stellar mass:\n")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc")\n")
+        println(file, "\tRadius containing X% of the stellar mass:\n")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
 
-        println(file, "\tRadius containing 95% of the stellar mass:\n")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc")\n")
+        # See only the gas cells that are within a sphere with a radius of `total_gas_r`
+        total_gas_r = 30.0u"kpc"
+        idx_tot_gas_r = filterWithin(data_dict, (0.0u"kpc", total_gas_r), :zero)[:gas]
 
-        ######################################################################################################
-        # Print the total height of a cylinder, of infinite radius, containing 90% and 95% of the stellar mass
-        ######################################################################################################
+        # Total gas
+        mass_radius_90 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            data_dict[:gas]["MASS"][idx_tot_gas_r];
+            percent=90.0,
+        )
+
+        mass_radius_95 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            data_dict[:gas]["MASS"][idx_tot_gas_r];
+            percent=95.0,
+        )
+
+        println(
+            file,
+            "\tRadius containing X% of the total gas mass (within $(total_gas_r)):\n",
+        )
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
+
+        # Ionized gas
+        mass_radius_90 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            computeIonizedMass(data_dict)[idx_tot_gas_r];
+            percent=90.0,
+        )
+
+        mass_radius_95 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            computeIonizedMass(data_dict)[idx_tot_gas_r];
+            percent=95.0,
+        )
+
+        println(
+            file,
+            "\tRadius containing X% of the ionized gas mass (within $(total_gas_r)):\n",
+        )
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
+
+        # Atomic gas
+        mass_radius_90 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            computeAtomicMass(data_dict)[idx_tot_gas_r];
+            percent=90.0,
+        )
+
+        mass_radius_95 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            computeAtomicMass(data_dict)[idx_tot_gas_r];
+            percent=95.0,
+        )
+
+        println(
+            file,
+            "\tRadius containing X% of the atomic gas mass (within $(total_gas_r)):\n",
+        )
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
+
+        # Molecular gas
+        mass_radius_90 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            computeMolecularMass(data_dict)[idx_tot_gas_r];
+            percent=90.0,
+        )
+
+        mass_radius_95 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            computeMolecularMass(data_dict)[idx_tot_gas_r];
+            percent=95.0,
+        )
+
+        println(
+            file,
+            "\tRadius containing X% of the molecular gas mass (within $(total_gas_r)):\n",
+        )
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
+
+        ############################################################################################
+        # Print the total height of a cylinder, of infinite radius, containing 90% and 95%
+        # of the stellar mass
+        ############################################################################################
 
         mass_height_90 = computeMassHeight(
             data_dict[:stars]["POS "],
@@ -479,11 +563,9 @@ function snapshotReport(
             percent=95.0,
         )
 
-        println(file, "\tTotal height containing 90% of the stellar mass:\n")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_90), sigdigits=4)) $(u"kpc")\n")
-
-        println(file, "\tTotal height containing 95% of the stellar mass:\n")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_95), sigdigits=4)) $(u"kpc")\n")
+        println(file, "\tTotal height containing X% of the stellar mass:\n")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_90), sigdigits=4)) $(u"kpc") (90%)")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_95), sigdigits=4)) $(u"kpc") (95%)\n")
 
         ############################################################################################
         # Print the number of stars outside 50kpc
