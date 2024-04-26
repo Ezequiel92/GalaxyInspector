@@ -3760,8 +3760,8 @@ function stellarCircularity(
         # Data manipulation options
         slice,
         filter_function,
-        da_functions=[daCircularityHistogram],
-        da_args=[(grid,)],
+        da_functions=[daLineHistogram],
+        da_args=[(:stellar_circularity, grid,)],
         da_kwargs=[(;)],
         post_processing=getNothing,
         pp_args=(),

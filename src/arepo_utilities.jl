@@ -370,6 +370,61 @@ Find which cell/particle types are part of the keys of `data`.
 snapshotTypes(data::Dict)::Vector{Symbol} = collect(keys(PARTICLE_INDEX) ∩ keys(data))
 
 """
+    snapshotTypes(path::String)::Vector{Symbol}
+
+Find which cell/particle types are part of the snapshot in `path`.
+
+!!! note
+
+    If each snapshot is made of multiple files, I'll check the first chunck.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - A vector with the cell/particle types.
+"""
+function snapshotTypes(path::String)::Vector{Symbol}
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("snapshotTypes: The file $(path) is not in the HDF5 format, \
+            I don't know how to read it"))
+        )
+
+        file_path = path
+
+    elseif isdir(path)
+
+        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("snapshotTypes: The directory $(path) does not contain \
+            snapshot sub-files in the HDF5 format"))
+        )
+
+        file_path = minimum(sub_files)
+
+    else
+
+        throw(ArgumentError("snapshotTypes: $(path) does not exist as a file or folder"))
+
+    end
+
+    snapshot_types = h5open(file_path, "r") do snapshot
+        collect(keys(PARTICLE_TYPE) ∩ keys(snapshot))
+    end
+
+    return snapshot_types
+
+end
+
+"""
     groupcatTypes(data::Dict)::Vector{Symbol}
 
 Find which group catalog data types are part of the keys of `data`.
@@ -383,6 +438,61 @@ Find which group catalog data types are part of the keys of `data`.
   - A vector with the group catalog data types.
 """
 groupcatTypes(data::Dict)::Vector{Symbol} = [:group, :subhalo] ∩ keys(data)
+
+"""
+    groupcatTypes(path::String)::Vector{Symbol}
+
+Find which group catalog data types are part of the snapshot in `path`.
+
+!!! note
+
+    If each snapshot is made of multiple files, I'll check the first chunck.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - A vector with the group catalog data types.
+"""
+function groupcatTypes(path::String)::Vector{Symbol}
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("groupcatTypes: The file $(path) is not in the HDF5 format, \
+            I don't know how to read it"))
+        )
+
+        file_path = path
+
+    elseif isdir(path)
+
+        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("groupcatTypes: The directory $(path) does not contain \
+            snapshot sub-files in the HDF5 format"))
+        )
+
+        file_path = minimum(sub_files)
+
+    else
+
+        throw(ArgumentError("groupcatTypes: $(path) does not exist as a file or folder"))
+
+    end
+
+    groupcat_types = h5open(file_path, "r") do snapshot
+        [:group, :subhalo] ∩ keys(snapshot)
+    end
+
+    return groupcat_types
+
+end
 
 """
     filterData!(data_dict::Dict; <keyword arguments>)::Nothing
@@ -4321,9 +4431,15 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :stellar_circularity
 
+        @debug("scatterQty: The stellar circularity depends on the positions and velocities of all \
+        cell/particles. So, after filtering, the result for a given star will change.")
+
         scatter_qty = computeStellarCircularity(data_dict)
 
     elseif quantity == :stellar_vcirc
+
+        @debug("scatterQty: The stellar circular velocity depends on the positions and velocities \
+        of all cell/particles. So, after filtering, the result for a given star will change.")
 
         _, scatter_qty = computeStellarVcirc(data_dict)
 
@@ -4653,7 +4769,7 @@ Filter out the cell/particles outside a given spherical shell.
 """
 function filterWithin(
     data_dict::Dict,
-    r::NTuple{2,<:Unitful.Length},
+    range::NTuple{2,<:Unitful.Length},
     origin...,
 )::Dict{Symbol,IndexType}
 

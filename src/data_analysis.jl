@@ -690,13 +690,14 @@ function daStellarHistory(
 end
 
 """
-    daCircularityHistogram(
+    function daLineHistogram(
         data_dict::Dict,
+        quantity::Symbol,
         grid::LinearGrid;
         <keyword arguments>
-    )::Union{NTuple{2,Vector{Float64}},Nothing}
+    )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
-Compute a histogram of the stellar circularity, normalized to the maximum number of counts.
+Compute a 1D histogram of a given `quantity`, normalized to the maximum number of counts.
 
 # Arguments
 
@@ -713,6 +714,48 @@ Compute a histogram of the stellar circularity, normalized to the maximum number
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - `quantity::Symbol`: The possibilities are:
+
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `grid::LinearGrid`: Linear grid.
   - `filter_function::Function=filterNothing`: A functions with the signature:
 
@@ -740,34 +783,37 @@ Compute a histogram of the stellar circularity, normalized to the maximum number
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
         * ...
+  - `norm::Int64=0`: Number of count that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
 
 # Returns
 
   - A tuple with two elements:
 
-      + A vector with the circularities.
+      + A vector with the value corresponding to each bin.
       + A vector with the counts, normalized to the maximum value.
 """
-function daCircularityHistogram(
+function daLineHistogram(
     data_dict::Dict,
+    quantity::Symbol,
     grid::LinearGrid;
     filter_function::Function=filterNothing,
-)::Union{NTuple{2,Vector{Float64}},Nothing}
+    norm::Int64=0,
+)::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
     data = filterData(data_dict; filter_function)
 
-    # Compute the stellar circularity
-    circularity = computeStellarCircularity(data)
+    # Compute the values
+    values = scatterQty(data, quantity)
 
-    !isempty(circularity) || return nothing
+    !isempty(values) || return nothing
 
-    # Compute the circularity histogram
-    counts = histogram1D(circularity, grid)
+    # Compute the quantity histogram
+    counts = histogram1D(values, grid)
 
-    # To normalize the counts
-    max_counts = maximum(counts)
+    # Normalize the counts
+    norm_counts = isPositive(norm) ? counts ./ norm : counts ./ maximum(counts)
 
-    return grid.grid, counts ./ max_counts
+    return grid.grid, norm_counts
 
 end
 
