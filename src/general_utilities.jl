@@ -183,16 +183,16 @@ end
 
 """
     rangeCut!(
-        data::Vector{<:Number},
+        raw_values::Vector{<:Number},
         range::Tuple{<:Number,<:Number};
         <keyword arguments>
     )::Bool
 
-Delete every element in `data` that is outside the given `range`.
+Delete every element in `raw_values` that is outside the given `range`.
 
 # Arguments
 
-  - `data::Vector{<:Number}`: Dataset that will be pruned.
+  - `raw_values::Vector{<:Number}`: Dataset that will be pruned.
   - `range::Tuple{<:Number,<:Number}`: The range in question.
   - `keep_edges::Bool=true`: If the edges of the range will be kept.
   - `min_left::Int=0`: Minimum number of values that need to be left after pruning to proceed with the transformation.
@@ -202,30 +202,30 @@ Delete every element in `data` that is outside the given `range`.
   - If a transformation was performed.
 """
 function rangeCut!(
-    data::Vector{<:Number},
+    raw_values::Vector{<:Number},
     range::Tuple{<:Number,<:Number};
     keep_edges::Bool=true,
     min_left::Int=0,
 )::Bool
 
     # Shortcut computation for special cases
-    !(isempty(data) || all(isinf.(range))) || return false
+    !(isempty(raw_values) || all(isinf.(range))) || return false
 
     if keep_edges
 
         # Check that after the transformation at least `min_left` elements will be left
-        count(x -> range[1] <= x <= range[2], data) >= min_left || return false
+        count(x -> range[1] <= x <= range[2], raw_values) >= min_left || return false
 
         # Delete element outside of the provided range
-        filter!(x -> range[1] <= x <= range[2], data)
+        filter!(x -> range[1] <= x <= range[2], raw_values)
 
     else
 
         # Check that after the transformation at least `min_left` elements will be left
-        count(x -> range[1] < x < range[2], data) >= min_left || return false
+        count(x -> range[1] < x < range[2], raw_values) >= min_left || return false
 
         # Delete element outside of the provided range
-        filter!(x -> range[1] < x < range[2], data)
+        filter!(x -> range[1] < x < range[2], raw_values)
 
     end
 
@@ -306,11 +306,11 @@ end
 
 """
     sanitizeData!(
-        data::Vector{<:Number};
+        raw_values::Vector{<:Number};
         <keyword arguments>
     )::NTuple{2,Bool}
 
-Do the following transformations over `data`, in order:
+Do the following transformations over `raw_values`, in order:
 
   - Trim it to fit within the domain of the function `func_domain`.
   - Trim it to fit within `range`.
@@ -320,23 +320,23 @@ By default, no transformation is done.
 
 # Arguments
 
-  - `data::Vector{<:Number}`: Dataset to be sanitized.
-  - `func_domain::Function=identity`: `data` will be trimmed to fit within the domain of the function `func_domain`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `range::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Every element in `data` that falls outside of `range` will be deleted.
+  - `raw_values::Vector{<:Number}`: Dataset to be sanitized.
+  - `func_domain::Function=identity`: `raw_values` will be trimmed to fit within the domain of the function `func_domain`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `range::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Every element in `raw_values` that falls outside of `range` will be deleted.
   - `keep_edges::Bool=true`: If the edges of `range` will be kept.
   - `min_left::Int=0`: Minimum number of values that need to be left after each transformation to procced with it.
-  - `exp_factor::Int=0`: Every element in `data` will be divided by 10^`exp_factor`.
-  - `warnings::Bool=true`: If a warning will be given when `data` is a vector of Integers, which may cause wrong results when dividing by 10^`exp_factor`.
+  - `exp_factor::Int=0`: Every element in `raw_values` will be divided by 10^`exp_factor`.
+  - `warnings::Bool=true`: If a warning will be given when `raw_values` is a vector of Integers, which may cause wrong results when dividing by 10^`exp_factor`.
 
 # Returns
 
   - A tuple with two flags:
 
-      + If `data` was mutated to fit within the domain of `func_domain`.
-      + If `data` was mutated to fit within `range`.
+      + If `raw_values` was mutated to fit within the domain of `func_domain`.
+      + If `raw_values` was mutated to fit within `range`.
 """
 function sanitizeData!(
-    data::Vector{<:Number};
+    raw_values::Vector{<:Number};
     func_domain::Function=identity,
     range::Tuple{<:Number,<:Number}=(-Inf, Inf),
     keep_edges::Bool=true,
@@ -345,26 +345,26 @@ function sanitizeData!(
     warnings::Bool=true,
 )::NTuple{2,Bool}
 
-    !isempty(data) || return false, false
+    !isempty(raw_values) || return false, false
 
-    d_unit = unit(first(data))
+    d_unit = unit(first(raw_values))
 
-    # Trim `data` to fit within the domain of `func_domain`
+    # Trim `raw_values` to fit within the domain of `func_domain`
     if func_domain ∈ [identity, Makie.pseudolog10, Makie.Symlog10]
 
         domain_flag = false
 
     elseif func_domain == sqrt
 
-        domain_flag = rangeCut!(data, (0.0, Inf) .* d_unit; keep_edges=true, min_left)
+        domain_flag = rangeCut!(raw_values, (0.0, Inf) .* d_unit; keep_edges=true, min_left)
 
     elseif func_domain == Makie.logit
 
-        domain_flag = rangeCut!(data, (0.0, 1.0) .* d_unit; keep_edges=false, min_left)
+        domain_flag = rangeCut!(raw_values, (0.0, 1.0) .* d_unit; keep_edges=false, min_left)
 
     elseif func_domain ∈ [log, log2, log10]
 
-        domain_flag = rangeCut!(data, (0.0, Inf) .* d_unit; keep_edges=false, min_left)
+        domain_flag = rangeCut!(raw_values, (0.0, Inf) .* d_unit; keep_edges=false, min_left)
 
     else
 
@@ -374,17 +374,17 @@ function sanitizeData!(
 
     end
 
-    # Trim `data` to fit within `range`
-    range_flag = rangeCut!(data, range; keep_edges, min_left)
+    # Trim `raw_values` to fit within `range`
+    range_flag = rangeCut!(raw_values, range; keep_edges, min_left)
 
     (
-        !(isa(data, Vector{<:Integer}) && !iszero(exp_factor) && warnings) ||
-        @warn("sanitizeData!: Elements of `data` are of type `Integer`, this may result \
+        !(isa(raw_values, Vector{<:Integer}) && !iszero(exp_factor) && warnings) ||
+        @warn("sanitizeData!: Elements of `raw_values` are of type `Integer`, this may result \
         in errors or unwanted truncation when using `exp_factor` != 0")
     )
 
-    # Scale `data` down by a factor of 10^`exp_factor`
-    iszero(exp_factor) || (data ./= exp10(exp_factor))
+    # Scale `raw_values` down by a factor of 10^`exp_factor`
+    iszero(exp_factor) || (raw_values ./= exp10(exp_factor))
 
     return domain_flag, range_flag
 
@@ -574,7 +574,7 @@ function scaledBins(
     # Get the inverse function of `scaling`
     inverse = Makie.inverse_transform(scaling)
 
-    # Get the unit of the data
+    # Get the unit of the values
     v_unit = unit(first(values))
 
     return [inverse(min + width * i) * v_unit for i in 0:n_bins]

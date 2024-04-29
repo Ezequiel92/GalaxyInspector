@@ -99,10 +99,10 @@ function daRotationCurve(
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the circular velocities and the radial distances
-    r, vcirc = computeStellarVcirc(data)
+    r, vcirc = computeStellarVcirc(filtered_dd)
 
     # Only leave the data within a sphere of radius `R`
     rangeCut!(r, vcirc, (0.0u"kpc", R))
@@ -192,20 +192,20 @@ function daKennicuttSchmidtLaw(
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:SurfaceDensity},Vector{<:MassFlowDensity}},Nothing}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
-    gas_positions  = data[:gas]["POS "]
-    star_positions = data[:stars]["POS "]
+    gas_positions  = filtered_dd[:gas]["POS "]
+    star_positions = filtered_dd[:stars]["POS "]
 
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [gas_positions, star_positions]) || return nothing
 
     if quantity == :gas_area_density
-        gas_masses = data[:gas]["MASS"]
+        gas_masses = filtered_dd[:gas]["MASS"]
     elseif quantity == :molecular_area_density
-        gas_masses = computeMolecularMass(data)
+        gas_masses = computeMolecularMass(filtered_dd)
     elseif quantity == :neutral_area_density
-        gas_masses = computeNeutralMass(data)
+        gas_masses = computeNeutralMass(filtered_dd)
     else
         throw(ArgumentError("daKennicuttSchmidtLaw: `quantity` can only be :molecular_area_density \
         , :neutral_area_density or :gas_area_density, but I got :$(quantity)"))
@@ -217,7 +217,7 @@ function daKennicuttSchmidtLaw(
     # Compute the SFR surface density
     sfr_density = computeProfile(
         star_positions,
-        computeSFR(data; age_resol=AGE_RESOLUTION_ρ),
+        computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ),
         grid;
         total=true,
         density=true,
@@ -321,61 +321,61 @@ function daMolla2015(
     Nothing,
 }
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
     if quantity == :stellar_area_density
 
-        positions   = data[:stars]["POS "]
-        masses      = data[:stars]["MASS"]
+        positions   = filtered_dd[:stars]["POS "]
+        masses      = filtered_dd[:stars]["MASS"]
         norm_values = Number[]
         f           = identity
         density     = true
 
     elseif quantity == :sfr_area_density
 
-        positions   = data[:stars]["POS "]
-        masses      = computeSFR(data; age_resol=AGE_RESOLUTION_ρ)
+        positions   = filtered_dd[:stars]["POS "]
+        masses      = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ)
         norm_values = Number[]
         f           = identity
         density     = true
 
     elseif quantity == :molecular_area_density
 
-        positions   = data[:gas]["POS "]
-        masses      = computeMolecularMass(data)
+        positions   = filtered_dd[:gas]["POS "]
+        masses      = computeMolecularMass(filtered_dd)
         norm_values = Number[]
         f           = identity
         density     = true
 
     elseif quantity == :atomic_area_density
 
-        positions   = data[:gas]["POS "]
-        masses      = computeAtomicMass(data)
+        positions   = filtered_dd[:gas]["POS "]
+        masses      = computeAtomicMass(filtered_dd)
         norm_values = Number[]
         f           = identity
         density     = true
 
     elseif quantity == :O_stellar_abundance
 
-        positions   = data[:stars]["POS "]
-        masses      = computeElementMass(data, :stars, :O) ./ ATOMIC_WEIGHTS[:O]
-        norm_values = computeElementMass(data, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
+        positions   = filtered_dd[:stars]["POS "]
+        masses      = computeElementMass(filtered_dd, :stars, :O) ./ ATOMIC_WEIGHTS[:O]
+        norm_values = computeElementMass(filtered_dd, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
         f           = x -> 12 .+ log10.(x)
         density     = false
 
     elseif quantity == :N_stellar_abundance
 
-        positions   = data[:stars]["POS "]
-        masses      = computeElementMass(data, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
-        norm_values = computeElementMass(data, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
+        positions   = filtered_dd[:stars]["POS "]
+        masses      = computeElementMass(filtered_dd, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
+        norm_values = computeElementMass(filtered_dd, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
         f           = x -> 12 .+ log10.(x)
         density     = false
 
     elseif quantity == :C_stellar_abundance
 
-        positions   = data[:stars]["POS "]
-        masses      = computeElementMass(data, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
-        norm_values = computeElementMass(data, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
+        positions   = filtered_dd[:stars]["POS "]
+        masses      = computeElementMass(filtered_dd, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
+        norm_values = computeElementMass(filtered_dd, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
         f           = x -> 12 .+ log10.(x)
         density     = false
 
@@ -492,57 +492,57 @@ function daProfile(
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
     if quantity ∈ [:stellar_area_density, :stellar_mass]
 
-        positions = data[:stars]["POS "]
-        values    = scatterQty(data, :stellar_mass)
+        positions = filtered_dd[:stars]["POS "]
+        values    = scatterQty(filtered_dd, :stellar_mass)
 
     elseif quantity ∈ [:gas_area_density, :gas_mass]
 
-        positions = data[:gas]["POS "]
-        values    = scatterQty(data, :gas_mass)
+        positions = filtered_dd[:gas]["POS "]
+        values    = scatterQty(filtered_dd, :gas_mass)
 
     elseif quantity ∈ [:molecular_area_density, :molecular_mass]
 
-        positions = data[:gas]["POS "]
-        values    = scatterQty(data, :molecular_mass)
+        positions = filtered_dd[:gas]["POS "]
+        values    = scatterQty(filtered_dd, :molecular_mass)
 
     elseif quantity ∈ [:atomic_area_density, :atomic_mass]
 
-        positions = data[:gas]["POS "]
-        values    = scatterQty(data, :atomic_mass)
+        positions = filtered_dd[:gas]["POS "]
+        values    = scatterQty(filtered_dd, :atomic_mass)
 
     elseif quantity ∈ [:ionized_area_density, :ionized_mass]
 
-        positions = data[:gas]["POS "]
-        values    = scatterQty(data, :ionized_mass)
+        positions = filtered_dd[:gas]["POS "]
+        values    = scatterQty(filtered_dd, :ionized_mass)
 
     elseif quantity ∈ [:neutral_area_density, :neutral_mass]
 
-        positions = data[:gas]["POS "]
-        values    = scatterQty(data, :neutral_mass)
+        positions = filtered_dd[:gas]["POS "]
+        values    = scatterQty(filtered_dd, :neutral_mass)
 
     elseif quantity == [:sfr, :sfr_area_density]
 
-        positions = data[:stars]["POS "]
-        values    = computeSFR(data; age_resol=AGE_RESOLUTION_ρ)
+        positions = filtered_dd[:stars]["POS "]
+        values    = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ)
 
     elseif quantity == :stellar_vradial
 
-        positions = data[:stars]["POS "]
-        values    = scatterQty(data, :stellar_vradial)
+        positions = filtered_dd[:stars]["POS "]
+        values    = scatterQty(filtered_dd, :stellar_vradial)
 
     elseif quantity == :stellar_vtangential
 
-        positions = data[:stars]["POS "]
-        values    = scatterQty(data, :stellar_vtangential)
+        positions = filtered_dd[:stars]["POS "]
+        values    = scatterQty(filtered_dd, :stellar_vtangential)
 
     elseif quantity == :stellar_vzstar
 
-        positions = data[:stars]["POS "]
-        values    = scatterQty(data, :stellar_vzstar)
+        positions = filtered_dd[:stars]["POS "]
+        values    = scatterQty(filtered_dd, :stellar_vzstar)
 
     else
 
@@ -637,18 +637,18 @@ function daStellarHistory(
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Unitful.Time},Vector{<:Number}},Nothing}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
-    birth_ticks = data[:stars]["GAGE"]
-    masses      = data[:stars]["MASS"]
+    birth_ticks = filtered_dd[:stars]["GAGE"]
+    masses      = filtered_dd[:stars]["MASS"]
 
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [birth_ticks, masses]) || return nothing
 
     # Compute the stellar birth dates
-    if data[:sim_data].cosmological
+    if filtered_dd[:sim_data].cosmological
         # Go from scale factor to physical time
-        birth_times = computeTime(birth_ticks, data[:snap_data].header)
+        birth_times = computeTime(birth_ticks, filtered_dd[:snap_data].header)
     else
         birth_times = birth_ticks
     end
@@ -800,10 +800,10 @@ function daLineHistogram(
     norm::Int64=0,
 )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the values
-    values = scatterQty(data, quantity)
+    values = scatterQty(filtered_dd, quantity)
 
     !isempty(values) || return nothing
 
@@ -1010,7 +1010,7 @@ function daDensity2DHistogram(
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
     # Set the cell/particle type
     if quantity ∈ [:gas_mass, :molecular_mass, :atomic_mass, :ionized_mass, :neutral_mass]
@@ -1026,10 +1026,10 @@ function daDensity2DHistogram(
     end
 
     # Compute the masses
-    masses = scatterQty(data, quantity)
+    masses = scatterQty(filtered_dd, quantity)
 
     # Load the positions
-    positions = data[type_symbol]["POS "]
+    positions = filtered_dd[type_symbol]["POS "]
 
     # If any of the necessary quantities are missing return an empty density field
     if any(isempty, [masses, positions])
@@ -1079,14 +1079,14 @@ function daDensity2DHistogram(
         if isnothing(smoothing_length)
 
             # Compute the smoothing lengths
-            if "SOFT" ∈ keys(data[type_symbol])
+            if "SOFT" ∈ keys(filtered_dd[type_symbol])
 
-                smoothing_length = mean(data[type_symbol]["SOFT"])
+                smoothing_length = mean(filtered_dd[type_symbol]["SOFT"])
 
-            elseif "RHO " ∈ keys(data[type_symbol])
+            elseif "RHO " ∈ keys(filtered_dd[type_symbol])
 
-                densities = data[type_symbol]["RHO "]
-                masses = data[type_symbol]["MASS"]
+                densities = filtered_dd[type_symbol]["RHO "]
+                masses = filtered_dd[type_symbol]["MASS"]
                 smoothing_length = mean(
                     cbrt(m / (1.333 * π * ρ)) for (m, ρ) in zip(masses, densities)
                 )
@@ -1133,7 +1133,7 @@ function daDensity2DHistogram(
         # Print the density range
         @info(
             "\nDensity range \
-            \n  Simulation: $(basename(data[:sim_data].path)) \
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Quantity:   $(quantity) \
             \n  Plane:      $(projection_plane) \
             \nlog₁₀(ρ [$(ρ_unit)]) = $(extrema(filter(!isnan, values)))\n\n"
@@ -1221,12 +1221,12 @@ function daTemperature2DHistogram(
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
     # Load the temperatures
-    temperatures = data[:gas]["TEMP"]
+    temperatures = filtered_dd[:gas]["TEMP"]
     # Load the positions
-    positions = data[:gas]["POS "]
+    positions = filtered_dd[:gas]["POS "]
 
     # If any of the necessary quantities are missing return an empty temperature field
     if any(isempty, [temperatures, positions])
@@ -1258,7 +1258,7 @@ function daTemperature2DHistogram(
         # Print the temperature range
         @info(
             "\nTemperature range \
-            \n  Simulation: $(basename(data[:sim_data].path)) \
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Plane:      $(projection_plane) \
             \nlog₁₀(T [$(T_unit)]) = $(extrema(filter(!isnan, values)))\n\n"
         )
@@ -1432,11 +1432,11 @@ function daScatterDensity(
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the values of the quantities
-    x_values = scatterQty(data, x_quantity)
-    y_values = scatterQty(data, y_quantity)
+    x_values = scatterQty(filtered_dd, x_quantity)
+    y_values = scatterQty(filtered_dd, y_quantity)
 
     # If any of the necessary quantities are missing return an empty histogram
     if any(isempty, [x_values, y_values])
@@ -1573,10 +1573,10 @@ function daVelocityField(
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{<:Number},Matrix{<:Number}}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
-    positions  = data[type_symbol]["POS "]
-    velocities = data[type_symbol]["VEL "]
+    positions  = filtered_dd[type_symbol]["POS "]
+    velocities = filtered_dd[type_symbol]["VEL "]
 
     # If any of the necessary quantities are missing return an empty velocity field
     if any(isempty, [positions, velocities])
@@ -1774,9 +1774,9 @@ function daIntegrateGalaxy(
     filter_function::Function=filterNothing,
 )::NTuple{2,Vector{<:Number}}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
-    return [integrateQty(data, x_quantity)], [integrateQty(data, y_quantity)]
+    return [integrateQty(filtered_dd, x_quantity)], [integrateQty(filtered_dd, y_quantity)]
 
 end
 
@@ -1930,10 +1930,10 @@ function daScatterGalaxy(
     filter_function::Function=filterNothing,
 )::NTuple{2,Vector{<:Number}}
 
-    data = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function)
 
-    x_axis = scatterQty(data, x_quantity)
-    y_axis = scatterQty(data, y_quantity)
+    x_axis = scatterQty(filtered_dd, x_quantity)
+    y_axis = scatterQty(filtered_dd, y_quantity)
 
     idx = sortperm(x_axis)
 

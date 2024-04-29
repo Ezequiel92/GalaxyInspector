@@ -321,8 +321,6 @@ function ppFitLine!(
 
     return nothing
 
-    # return [LineElement(; color, linestyle)], ["Linear fit"]
-
 end
 
 """
@@ -453,22 +451,22 @@ function ppBigiel2008!(
     x_points = sort!(Float64[point[1] for point in points])
 
     # Read the file with the fit data
-    data = readdlm(BIGIEL2008_DATA_PATH, skipstart=5, header=true)[1]
+    raw = readdlm(BIGIEL2008_DATA_PATH, skipstart=5, header=true)[1]
 
     # Parse the fits
     if quantity == :molecular_area_density
 
-        A = parse(Float64, split(data[end, 2], "+or-")[1])
+        A = parse(Float64, split(raw[end, 2], "+or-")[1])
 
         b08_intercept = exp10(A) * u"Msun * yr^-1 * kpc^-2"
-        b08_slope = parse(Float64, split(data[end, 3], "+or-")[1])
+        b08_slope = parse(Float64, split(raw[end, 3], "+or-")[1])
 
     elseif quantity == :neutral_area_density
 
-        A = parse(Float64, split(data[end, 5], "+or-")[1])
+        A = parse(Float64, split(raw[end, 5], "+or-")[1])
 
         b08_intercept = exp10(A) * u"Msun * yr^-1 * kpc^-2"
-        b08_slope = parse(Float64, split(data[end, 6], "+or-")[1])
+        b08_slope = parse(Float64, split(raw[end, 6], "+or-")[1])
 
     else
 
@@ -541,7 +539,7 @@ function ppMolla2015!(
 )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
     # Read the file with the compiled data
-    data = CSV.read(
+    raw = CSV.read(
         MOLLA2015_DATA_PATH,
         DataFrame;
         header=[
@@ -563,23 +561,23 @@ function ppMolla2015!(
         ],
     )
 
-    x_values = data[!, "R"]
+    x_values = raw[!, "R"]
 
     # Select the quantity for the y axis
     if quantity == :stellar_area_density
-        y_data = 10 .^ (data[!, "logΣ*"] .± data[!, "logΣ* error"])
+        y_data = 10 .^ (raw[!, "logΣ*"] .± raw[!, "logΣ* error"])
     elseif quantity == :molecular_area_density
-        y_data = data[!, "ΣH2"] .± data[!, "ΣH2 error"]
+        y_data = raw[!, "ΣH2"] .± raw[!, "ΣH2 error"]
     elseif quantity == :atomic_area_density
-        y_data = data[!, "ΣHI"] .± data[!, "ΣHI error"]
+        y_data = raw[!, "ΣHI"] .± raw[!, "ΣHI error"]
     elseif quantity == :sfr_area_density
-        y_data = 10 .^ (data[!, "logΣsfr"] .± data[!, "logΣsfr error"])
+        y_data = 10 .^ (raw[!, "logΣsfr"] .± raw[!, "logΣsfr error"])
     elseif quantity == :O_stellar_abundance
-        y_data = data[!, "O/H"] .± data[!, "ΔO/H"]
+        y_data = raw[!, "O/H"] .± raw[!, "ΔO/H"]
     elseif quantity == :N_stellar_abundance
-        y_data = data[!, "N/H"] .± data[!, "ΔN/H"]
+        y_data = raw[!, "N/H"] .± raw[!, "ΔN/H"]
     elseif quantity == :C_stellar_abundance
-        y_data = data[!, "C/H"] .± data[!, "ΔC/H"]
+        y_data = raw[!, "C/H"] .± raw[!, "ΔC/H"]
     else
         throw(ArgumentError("ppMolla2015: `x_quantity` can only be  :stellar_area_density, \
         :molecular_area_density, :atomic_area_density, :sfr_area_density, :O_stellar_abundance, \
@@ -647,24 +645,24 @@ function ppFeldmann2020!(
 )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
     # Read the CSV file with the raw data
-    data = CSV.read(FELDMANN2020_DATA_PATH, DataFrame, comment="#")
+    raw = CSV.read(FELDMANN2020_DATA_PATH, DataFrame, comment="#")
 
     # Select the quantity for the x axis
     if x_quantity == :stellar_mass
 
-        x_data = exp10.(data[!, "lgMstar"])
+        x_data = exp10.(raw[!, "lgMstar"])
 
     elseif x_quantity == :molecular_mass
 
-        x_data = data[!, "MH2"]
+        x_data = raw[!, "MH2"]
 
     elseif x_quantity == :atomic_mass
 
-        x_data = data[!, "MHI"]
+        x_data = raw[!, "MHI"]
 
     elseif x_quantity == :observational_sfr
 
-        x_data = data[!, "SFR"]
+        x_data = raw[!, "SFR"]
 
     else
 
@@ -677,23 +675,23 @@ function ppFeldmann2020!(
     if y_quantity == :stellar_mass
 
         # Compute the mean "error" for the stellar mass
-        err_low = data[!, "lgMstar"] .- data[!, "lgMstar_p16"]
-        err_high = data[!, "lgMstar_p84"] .- data[!, "lgMstar"]
+        err_low = raw[!, "lgMstar"] .- raw[!, "lgMstar_p16"]
+        err_high = raw[!, "lgMstar_p84"] .- raw[!, "lgMstar"]
         err_mean = @. (err_low + err_high) / 2.0
 
-        y_data = exp10.(data[!, "lgMstar"] .+ err_mean)
+        y_data = exp10.(raw[!, "lgMstar"] .+ err_mean)
 
     elseif y_quantity == :molecular_mass
 
-        y_data = data[!, "MH2"] .± data[!, "e_MH2"]
+        y_data = raw[!, "MH2"] .± raw[!, "e_MH2"]
 
     elseif y_quantity == :atomic_mass
 
-        y_data = data[!, "MHI"] .± data[!, "e_MHI"]
+        y_data = raw[!, "MHI"] .± raw[!, "e_MHI"]
 
     elseif y_quantity == :observational_sfr
 
-        y_data = data[!, "SFR"] .± data[!, "e_SFR"]
+        y_data = raw[!, "SFR"] .± raw[!, "e_SFR"]
 
     else
 

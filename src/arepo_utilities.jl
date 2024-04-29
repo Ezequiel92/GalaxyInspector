@@ -355,19 +355,19 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
 end
 
 """
-    snapshotTypes(data::Dict)::Vector{Symbol}
+    snapshotTypes(data_dict::Dict)::Vector{Symbol}
 
-Find which cell/particle types are part of the keys of `data`.
+Find which cell/particle types are part of the keys of `data_dict`.
 
 # Arguments
 
-  - `data::Dict`: A dictionary.
+  - `data_dict::Dict`: A dictionary.
 
 # Returns
 
   - A vector with the cell/particle types.
 """
-snapshotTypes(data::Dict)::Vector{Symbol} = collect(keys(PARTICLE_INDEX) ∩ keys(data))
+snapshotTypes(data_dict::Dict)::Vector{Symbol} = collect(keys(PARTICLE_INDEX) ∩ keys(data_dict))
 
 """
     snapshotTypes(path::String)::Vector{Symbol}
@@ -425,19 +425,19 @@ function snapshotTypes(path::String)::Vector{Symbol}
 end
 
 """
-    groupcatTypes(data::Dict)::Vector{Symbol}
+    groupcatTypes(data_dict::Dict)::Vector{Symbol}
 
-Find which group catalog data types are part of the keys of `data`.
+Find which group catalog data types are part of the keys of `data_dict`.
 
 # Arguments
 
-  - `data::Dict`: A dictionary.
+  - `data_dict::Dict`: A dictionary.
 
 # Returns
 
   - A vector with the group catalog data types.
 """
-groupcatTypes(data::Dict)::Vector{Symbol} = [:group, :subhalo] ∩ keys(data)
+groupcatTypes(data_dict::Dict)::Vector{Symbol} = [:group, :subhalo] ∩ keys(data_dict)
 
 """
     groupcatTypes(path::String)::Vector{Symbol}
@@ -550,9 +550,9 @@ function filterData!(data_dict::Dict; filter_function::Function=filterNothing)::
 
         idxs = indices[type_symbol]
 
-        @inbounds for (block, data) in data_dict[type_symbol]
-            @inbounds if !isempty(data)
-                data_dict[type_symbol][block] = collect(selectdim(data, ndims(data), idxs))
+        @inbounds for (block, values) in data_dict[type_symbol]
+            @inbounds if !isempty(values)
+                data_dict[type_symbol][block] = collect(selectdim(values, ndims(values), idxs))
             end
         end
 
@@ -615,24 +615,24 @@ Returna filtered copy of `data_dict` using the indices provided by `filter_funct
 """
 function filterData(data_dict::Dict; filter_function::Function=filterNothing)::Dict
 
-    data_dict_copy = deepcopy(data_dict)
+    dd_copy = deepcopy(data_dict)
 
     # Compute the filter dictionary
-    indices = filter_function(data_dict_copy)
+    indices = filter_function(dd_copy)
 
-    @inbounds for type_symbol in snapshotTypes(data_dict_copy)
+    @inbounds for type_symbol in snapshotTypes(dd_copy)
 
         idxs = indices[type_symbol]
 
-        @inbounds for (block, data) in data_dict_copy[type_symbol]
-            @inbounds if !isempty(data)
-                data_dict_copy[type_symbol][block] = collect(selectdim(data, ndims(data), idxs))
+        @inbounds for (block, values) in dd_copy[type_symbol]
+            @inbounds if !isempty(values)
+                dd_copy[type_symbol][block] = collect(selectdim(values, ndims(values), idxs))
             end
         end
 
     end
 
-    return data_dict_copy
+    return dd_copy
 
 end
 
@@ -974,13 +974,13 @@ function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}
 
     @inbounds for type_symbol in snapshotTypes(data_dict)
 
-        @inbounds for (block, data) in data_dict[type_symbol]
+        @inbounds for (block, values) in data_dict[type_symbol]
 
-            if !isempty(data)
+            if !isempty(values)
                 @inbounds if block == "POS "
-                    data_dict[type_symbol]["POS "] = translatePoints(data, new_origin)
+                    data_dict[type_symbol]["POS "] = translatePoints(values, new_origin)
                 elseif block == "VEL "
-                    data_dict[type_symbol]["VEL "] = translatePoints(data, stellar_vcm)
+                    data_dict[type_symbol]["VEL "] = translatePoints(values, stellar_vcm)
                 end
             end
 
@@ -1053,16 +1053,19 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
     elseif rotation == :stellar_subhalo_pa
 
-        data = deepcopy(data_dict)
+        star_data = deepcopy(data_dict)
 
-        filterData!(data, filter_function=dd -> filterSubhalo(dd; halo_idx=1, subhalo_rel_idx=1))
+        filterData!(
+            star_data,
+            filter_function=dd -> filterSubhalo(dd; halo_idx=1, subhalo_rel_idx=1),
+        )
 
-        !isempty(data[:stars]["MASS"]) || return nothing
+        !isempty(star_data[:stars]["MASS"]) || return nothing
 
         rotation_matrix = computePARotationMatrix(
-            data[:stars]["POS "],
-            data[:stars]["VEL "],
-            data[:stars]["MASS"],
+            star_data[:stars]["POS "],
+            star_data[:stars]["VEL "],
+            star_data[:stars]["MASS"],
         )
 
     else
@@ -1073,10 +1076,10 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
     @inbounds for type_symbol in snapshotTypes(data_dict)
 
-        @inbounds for (block, data) in data_dict[type_symbol]
+        @inbounds for (block, values) in data_dict[type_symbol]
 
-            @inbounds if block ∈ ["POS ", "VEL "] && !isempty(data)
-                data_dict[type_symbol][block] = rotation_matrix * data
+            @inbounds if block ∈ ["POS ", "VEL "] && !isempty(values)
+                data_dict[type_symbol][block] = rotation_matrix * values
             end
 
         end
@@ -3369,13 +3372,13 @@ function computeElementMass(
         but I got :$(type_symbol)"))
     end
 
-    data = data_dict[type_symbol]
+    values = data_dict[type_symbol]
 
-    if any(isempty, [data[z_block], data["MASS"]])
+    if any(isempty, [values[z_block], values["MASS"]])
         return Unitful.Mass[]
     end
 
-    return setPositive(data[z_block][ELEMENT_INDEX[element], :]) .* data["MASS"]
+    return setPositive(values[z_block][ELEMENT_INDEX[element], :]) .* values["MASS"]
 
 end
 
@@ -3824,13 +3827,13 @@ function computeSFR(
 end
 
 """
-    integrateQty(data::Dict, quantity::Symbol)::Number
+    integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
-Compute an integrated quantity for the whole system in `data`.
+Compute an integrated quantity for the whole system in `data_dict`.
 
 # Arguments
 
-  - `data::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: A dictionary with the following shape:
 
       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
       + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -3886,62 +3889,62 @@ Compute an integrated quantity for the whole system in `data`.
 
 # Returns
 
-  - The velue of `quantity` for the whole system in `data`.
+  - The velue of `quantity` for the whole system in `data_dict`.
 """
-function integrateQty(data::Dict, quantity::Symbol)::Number
+function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     if quantity == :stellar_mass
 
-        integrated_qty = sum(data[:stars]["MASS"]; init=0.0u"Msun")
+        integrated_qty = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
 
     elseif quantity == :gas_mass
 
-        integrated_qty = sum(data[:gas]["MASS"]; init=0.0u"Msun")
+        integrated_qty = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
     elseif quantity == :dm_mass
 
-        integrated_qty = sum(data[:halo]["MASS"]; init=0.0u"Msun")
+        integrated_qty = sum(data_dict[:halo]["MASS"]; init=0.0u"Msun")
 
     elseif quantity == :bh_mass
 
-        integrated_qty = sum(data[:black_hole]["MASS"]; init=0.0u"Msun")
+        integrated_qty = sum(data_dict[:black_hole]["MASS"]; init=0.0u"Msun")
 
     elseif quantity == :stellar_number
 
-        integrated_qty = length(data[:stars]["MASS"])
+        integrated_qty = length(data_dict[:stars]["MASS"])
 
     elseif quantity == :gas_number
 
-        integrated_qty = length(data[:gas]["MASS"])
+        integrated_qty = length(data_dict[:gas]["MASS"])
 
     elseif quantity == :dm_number
 
-        integrated_qty = length(data[:halo]["MASS"])
+        integrated_qty = length(data_dict[:halo]["MASS"])
 
     elseif quantity == :bh_number
 
-        integrated_qty = length(data[:black_hole]["MASS"])
+        integrated_qty = length(data_dict[:black_hole]["MASS"])
 
     elseif quantity == :molecular_mass
 
-        integrated_qty = sum(computeMolecularMass(data); init=0.0u"Msun")
+        integrated_qty = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
 
     elseif quantity == :atomic_mass
 
-        integrated_qty = sum(computeAtomicMass(data); init=0.0u"Msun")
+        integrated_qty = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
 
     elseif quantity == :ionized_mass
 
-        integrated_qty = sum(computeIonizedMass(data); init=0.0u"Msun")
+        integrated_qty = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
 
     elseif quantity == :neutral_mass
 
-        integrated_qty = sum(computeNeutralMass(data); init=0.0u"Msun")
+        integrated_qty = sum(computeNeutralMass(data_dict); init=0.0u"Msun")
 
     elseif quantity == :molecular_fraction
 
-        molecular_mass = sum(computeMolecularMass(data); init=0.0u"Msun")
-        gas_mass = sum(data[:gas]["MASS"]; init=0.0u"Msun")
+        molecular_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -3951,8 +3954,8 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :atomic_fraction
 
-        atomic_mass = sum(computeAtomicMass(data); init=0.0u"Msun")
-        gas_mass = sum(data[:gas]["MASS"]; init=0.0u"Msun")
+        atomic_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -3962,8 +3965,8 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :ionized_fraction
 
-        ionized_mass = sum(computeIonizedMass(data); init=0.0u"Msun")
-        gas_mass = sum(data[:gas]["MASS"]; init=0.0u"Msun")
+        ionized_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -3973,8 +3976,8 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :neutral_fraction
 
-        neutral_mass = sum(computeNeutralMass(data); init=0.0u"Msun")
-        gas_mass = sum(data[:gas]["MASS"]; init=0.0u"Msun")
+        neutral_mass = sum(computeNeutralMass(data_dict); init=0.0u"Msun")
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -3984,38 +3987,38 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :stellar_area_density
 
-        integrated_qty = sum(data[:stars]["MASS"]; init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun") / area(FILTER_R)
 
     elseif quantity == :gas_area_density
 
-        integrated_qty = sum(data[:gas]["MASS"]; init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") / area(FILTER_R)
 
     elseif quantity == :molecular_area_density
 
-        integrated_qty = sum(computeMolecularMass(data); init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(computeMolecularMass(data_dict); init=0.0u"Msun") / area(FILTER_R)
 
     elseif quantity == :atomic_area_density
 
-        integrated_qty = sum(computeAtomicMass(data); init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(computeAtomicMass(data_dict); init=0.0u"Msun") / area(FILTER_R)
 
     elseif quantity == :ionized_area_density
 
-        integrated_qty = sum(computeIonizedMass(data); init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(computeIonizedMass(data_dict); init=0.0u"Msun") / area(FILTER_R)
 
     elseif quantity == :neutral_area_density
 
-        integrated_qty = sum(computeNeutralMass(data); init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(computeNeutralMass(data_dict); init=0.0u"Msun") / area(FILTER_R)
 
     elseif quantity == :sfr_area_density
 
-        sfr = sum(computeSFR(data; age_resol=AGE_RESOLUTION_ρ); init=0.0u"Msun*yr^-1")
+        sfr = sum(computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ); init=0.0u"Msun*yr^-1")
 
         integrated_qty = sfr / area(FILTER_R)
 
     elseif quantity == :gas_metallicity
 
-        metal_mass = sum(computeMetalMass(data, :gas); init=0.0u"Msun")
-        gas_mass = sum(data[:gas]["MASS"]; init=0.0u"Msun")
+        metal_mass = sum(computeMetalMass(data_dict, :gas); init=0.0u"Msun")
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -4025,8 +4028,8 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :stellar_metallicity
 
-        metal_mass = sum(computeMetalMass(data, :stars); init=0.0u"Msun")
-        stellar_mass = sum(data[:stars]["MASS"]; init=0.0u"Msun")
+        metal_mass = sum(computeMetalMass(data_dict, :stars); init=0.0u"Msun")
+        stellar_mass = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
 
         if iszero(stellar_mass)
             integrated_qty = NaN
@@ -4038,21 +4041,21 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
         element_symbol = Symbol(first(split(string(quantity), "_")))
 
-        abundance = 12 + log10(computeGlobalAbundance(data, :gas, element_symbol))
+        abundance = 12 + log10(computeGlobalAbundance(data_dict, :gas, element_symbol))
         integrated_qty = isinf(abundance) ? NaN : abundance
 
     elseif quantity ∈ STELLAR_ABUNDANCE
 
         element_symbol = Symbol(first(split(string(quantity), "_")))
 
-        abundance = 12 + log10(computeGlobalAbundance(data, :stars, element_symbol))
+        abundance = 12 + log10(computeGlobalAbundance(data_dict, :stars, element_symbol))
         integrated_qty = isinf(abundance) ? NaN : abundance
 
     elseif quantity == :stellar_specific_am
 
-        positions = data[:stars]["POS "]
-        velocities = data[:stars]["VEL "]
-        masses = data[:stars]["MASS"]
+        positions = data_dict[:stars]["POS "]
+        velocities = data_dict[:stars]["VEL "]
+        masses = data_dict[:stars]["MASS"]
 
         if any(isempty, [positions, velocities, masses])
             integrated_qty = NaN
@@ -4063,9 +4066,9 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :gas_specific_am
 
-        positions = data[:gas]["POS "]
-        velocities = data[:gas]["VEL "]
-        masses = data[:gas]["MASS"]
+        positions = data_dict[:gas]["POS "]
+        velocities = data_dict[:gas]["VEL "]
+        masses = data_dict[:gas]["MASS"]
 
         if any(isempty, [positions, velocities, masses])
             integrated_qty = NaN
@@ -4076,9 +4079,10 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :dm_specific_am
 
-        positions = data[:halo]["POS "]
-        velocities = data[:halo]["VEL "]
-        masses = data[:halo]["MASS"]
+        positions = data_dict[:halo]["POS "]
+        velocities = data_dict[:halo]["VEL "]
+        masses = data_dict
+        masses = [:halo]["MASS"]
 
         if any(isempty, [positions, velocities, masses])
             integrated_qty = NaN
@@ -4090,7 +4094,7 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
     elseif quantity == :sfr
 
         # Get the global index (index in the context of the whole simulation) of the current snapshot
-        present_idx = data[:snap_data].global_index
+        present_idx = data_dict[:snap_data].global_index
 
         if present_idx == 1
 
@@ -4099,21 +4103,21 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
         else
 
             # Get the physical times
-            times = data[:sim_data].table[:, 5]
+            times = data_dict[:sim_data].table[:, 5]
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
-            integrated_qty = sum(computeSFR(data; age_resol=Δt); init=0.0u"Msun*yr^-1")
+            integrated_qty = sum(computeSFR(data_dict; age_resol=Δt); init=0.0u"Msun*yr^-1")
 
         end
 
     elseif quantity == :ssfr
 
         # Get the global index (index in the context of the whole simulation) of the current snapshot
-        present_idx = data[:snap_data].global_index
+        present_idx = data_dict[:snap_data].global_index
 
         # Compute the total stellar mass
-        stellar_mass = sum(data[:stars]["MASS"]; init=0.0u"Msun")
+        stellar_mass = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
 
         if present_idx == 1 || iszero(stellar_mass)
 
@@ -4122,22 +4126,25 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
         else
 
             # Get the physical times
-            times = data[:sim_data].table[:, 5]
+            times = data_dict[:sim_data].table[:, 5]
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
-            integrated_qty = sum(computeSFR(data; age_resol=Δt); init=0.0u"Msun*yr^-1") / stellar_mass
+            integrated_qty = sum(
+                computeSFR(data_dict; age_resol=Δt);
+                init=0.0u"Msun*yr^-1",
+            ) / stellar_mass
 
         end
 
     elseif quantity == :observational_sfr
 
-        integrated_qty = sum(computeSFR(data; age_resol=AGE_RESOLUTION); init=0.0u"Msun*yr^-1")
+        integrated_qty = sum(computeSFR(data_dict; age_resol=AGE_RESOLUTION); init=0.0u"Msun*yr^-1")
 
     elseif quantity == :observational_ssfr
 
-        sfr = sum(computeSFR(data; age_resol=AGE_RESOLUTION); init=0.0u"Msun*yr^-1")
-        stellar_mass = sum(data[:stars]["MASS"]; init=0.0u"Msun")
+        sfr = sum(computeSFR(data_dict; age_resol=AGE_RESOLUTION); init=0.0u"Msun*yr^-1")
+        stellar_mass = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
 
         if iszero(stellar_mass)
             integrated_qty = 0.0u"yr^-1"
@@ -4147,19 +4154,19 @@ function integrateQty(data::Dict, quantity::Symbol)::Number
 
     elseif quantity == :scale_factor
 
-        integrated_qty = data[:sim_data].table[data[:snap_data].global_index, 3]
+        integrated_qty = data_dict[:sim_data].table[data_dict[:snap_data].global_index, 3]
 
     elseif quantity == :redshift
 
-        integrated_qty = data[:sim_data].table[data[:snap_data].global_index, 4]
+        integrated_qty = data_dict[:sim_data].table[data_dict[:snap_data].global_index, 4]
 
     elseif quantity == :physical_time
 
-        integrated_qty = data[:sim_data].table[data[:snap_data].global_index, 5]
+        integrated_qty = data_dict[:sim_data].table[data_dict[:snap_data].global_index, 5]
 
     elseif quantity == :lookback_time
 
-        integrated_qty = data[:sim_data].table[data[:snap_data].global_index, 6]
+        integrated_qty = data_dict[:sim_data].table[data_dict[:snap_data].global_index, 6]
 
     else
 
@@ -4462,30 +4469,30 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :sfr
 
         # Get the global index (index in the context of the whole simulation) of the current snapshot
-        present_idx = data[:snap_data].global_index
+        present_idx = data_dict[:snap_data].global_index
 
         if present_idx == 1
 
-            scatter_qty = zeros(typeof(1.0u"Msun*yr^-1"), length(data[:stars]["MASS"]))
+            scatter_qty = zeros(typeof(1.0u"Msun*yr^-1"), length(data_dict[:stars]["MASS"]))
 
         else
 
             # Get the physical times
-            times = data[:sim_data].table[:, 5]
+            times = data_dict[:sim_data].table[:, 5]
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
-            scatter_qty = computeSFR(data; age_resol=Δt)
+            scatter_qty = computeSFR(data_dict; age_resol=Δt)
 
         end
 
     elseif quantity == :ssfr
 
         # Get the global index (index in the context of the whole simulation) of the current snapshot
-        present_idx = data[:snap_data].global_index
+        present_idx = data_dict[:snap_data].global_index
 
         # Load the stellar masses
-        stellar_masses = data[:stars]["MASS"]
+        stellar_masses = data_dict[:stars]["MASS"]
 
         if present_idx == 1 || iszero(stellar_mass)
 
@@ -4494,11 +4501,11 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         else
 
             # Get the physical times
-            times = data[:sim_data].table[:, 5]
+            times = data_dict[:sim_data].table[:, 5]
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
-            scatter_qty = computeSFR(data; age_resol=Δt) ./ stellar_masses
+            scatter_qty = computeSFR(data_dict; age_resol=Δt) ./ stellar_masses
 
         end
 
@@ -4800,7 +4807,7 @@ Filter out gas cells hotter than `max_temp`.
 
 # Arguments
 
-  - `data::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: A dictionary with the following shape:
 
       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
       + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -4826,9 +4833,9 @@ Filter out gas cells hotter than `max_temp`.
 """
 function filterHotGas(data_dict::Dict, max_temp::Unitful.Temperature)::Dict{Symbol,IndexType}
 
-    gas_metals = setPositive(data[:gas]["GMET"])
-    internal_energy = data[:gas]["U   "]
-    electron_fraction = data[:gas]["NE  "]
+    gas_metals = setPositive(data_dict[:gas]["GMET"])
+    internal_energy = data_dict[:gas]["U   "]
+    electron_fraction = data_dict[:gas]["NE  "]
 
     # Compute the gas temperature
     temperature = computeTemperature(gas_metals, internal_energy, electron_fraction)
@@ -4852,7 +4859,7 @@ Filter out gas cells and stellar particles with metallicity outside the range [`
 
 # Arguments
 
-  - `data::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: A dictionary with the following shape:
 
       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
       + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -4905,7 +4912,7 @@ Filter out stellar particles with circularity outside the range [`l_ϵ`, `h_ϵ`]
 
 # Arguments
 
-  - `data::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: A dictionary with the following shape:
 
       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
       + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -4960,7 +4967,7 @@ Filter out cells/particles that do not belong to a given halo and subhalo.
 
 # Arguments
 
-  - `data::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: A dictionary with the following shape:
 
       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
       + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -5110,7 +5117,7 @@ Filter out gas cells and stellar particles with metallicity outside the range [`
 
 # Arguments
 
-  - `data::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: A dictionary with the following shape:
 
       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
       + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -5173,7 +5180,7 @@ Filter out stellar particles that do not belong to the given morphological compo
 
 # Arguments
 
-  - `data::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: A dictionary with the following shape:
 
       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
       + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).

@@ -366,7 +366,7 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
     # List of blocks needed to compute the temperature
     blocks = ["GMET", "U   ", "NE  "]
 
-    data = h5open(file_path, "r") do snapshot
+    temp_data = h5open(file_path, "r") do snapshot
 
         group = snapshot[PARTICLE_CODE_NAME[:gas]]
 
@@ -385,7 +385,7 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
 
     end
 
-    return computeTemperature(data...)
+    return computeTemperature(temp_data...)
 
 end
 
@@ -624,8 +624,8 @@ function readSnapBlocks(
 
                             if iszero(mass_table)
 
-                                data = read(hdf5_group, QUANTITIES["MASS"].hdf5_name)
-                                qty_data["MASS"] = selectdim(data, ndims(data), idxs) .* unit
+                                raw = read(hdf5_group, QUANTITIES["MASS"].hdf5_name)
+                                qty_data["MASS"] = selectdim(raw, ndims(raw), idxs) .* unit
 
                             else
 
@@ -637,8 +637,8 @@ function readSnapBlocks(
 
                         elseif blockPresent(block, hdf5_group)
 
-                            data = read(hdf5_group, QUANTITIES[block].hdf5_name)
-                            qty_data[block] = selectdim(data, ndims(data), idxs) .* unit
+                            raw = read(hdf5_group, QUANTITIES[block].hdf5_name)
+                            qty_data[block] = selectdim(raw, ndims(raw), idxs) .* unit
 
                         else
 
@@ -752,12 +752,12 @@ function readGroupCatalog(
 
             @inbounds for block in keys(data_blocks)
 
-                data = [
+                raw = [
                     data_in_file[type_symbol][block] for
                     data_in_file in data_in_files if !isempty(data_in_file[type_symbol][block])
                 ]
 
-                qty_data[block] = cat(data...; dims=ndims(first(data)))
+                qty_data[block] = cat(raw...; dims=ndims(first(raw)))
 
             end
 
@@ -839,15 +839,15 @@ function readSnapshot(
 
             @inbounds for block in keys(data_blocks)
 
-                data = [
+                raw = [
                     data_in_file[type_symbol][block] for
                     data_in_file in data_in_files if !isempty(data_in_file[type_symbol][block])
                 ]
 
-                if isempty(data)
+                if isempty(raw)
                     qty_data[block] = Number[]
                 else
-                    qty_data[block] = cat(data...; dims=ndims(first(data)))
+                    qty_data[block] = cat(raw...; dims=ndims(first(raw)))
                 end
 
             end
@@ -1038,17 +1038,17 @@ function readCpuFile(
     data_out = Dict{String,Matrix{Float64}}()
 
     # Try reducing the data size
-    @inbounds for (target, data) in data_aux
+    @inbounds for (target, values) in data_aux
 
         # Ignore empty targets
-        !isempty(data) || continue
+        !isempty(values) || continue
 
-        l_e = length(data)
+        l_e = length(values)
 
         if 1 < step < l_e
-            data_out[target] = vcat(data[1:step:end]...)
+            data_out[target] = vcat(values[1:step:end]...)
         else
-            data_out[target] = vcat(data...)
+            data_out[target] = vcat(values...)
             (
                 !(warnings && step > l_e) ||
                 @warn("readCpuFile: `step` = $(step) is bigger than the number \
