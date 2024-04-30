@@ -16,7 +16,7 @@ Write a text file with information about a given snapshot.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be printed for each simulation.
   - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be considered in the "filtered" section of the report. The options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be considered in the "filtered" section of the report. The options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
@@ -24,6 +24,24 @@ Write a text file with information about a given snapshot.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1.
   - `warnings::Bool=true`: If a warning will be given when there is missing files.
@@ -32,7 +50,7 @@ function snapshotReport(
     simulation_paths::Vector{String},
     slice_n::Int;
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
     warnings::Bool=true,
@@ -171,7 +189,7 @@ function snapshotReport(
         )
 
         # Read the necessary snapshot data
-        if filter_mode ∈ [:halo, :subhalo, :stellar_subhalo, :all_subhalo]
+        if !in(filter_mode, [:all, :sphere])
 
             # Check that the group catalog data is available
             if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
@@ -204,7 +222,8 @@ function snapshotReport(
             else
 
                 throw(ArgumentError("snapshotReport: You asked for a filter base on the \
-                halos/subhalos, but I could not find a valid group catalog file"))
+                halos/subhalos or a perzonalized filter, but I could not find a valid \
+                group catalog file"))
 
             end
 
@@ -321,7 +340,17 @@ function snapshotReport(
         filterData!(data_dict; filter_function)
 
         println(file, "#"^100)
-        println(file, "\nGlobal properties (filtered box with mode :$(filter_mode)):")
+        if filter_mode isa Symbol
+            println(file, "\nGlobal properties (filtered box with mode :$(filter_mode)):")
+        else
+            println(file, "\nGlobal properties\n")
+            println(file, "\t", "#"^25)
+            println(file, "\tFiltered box with:")
+            println(file, "\n\t\tFilter function: $(String(Symbol(filter_mode[:filter_function])))")
+            println(file, "\t\tTranslation: $(filter_mode[:translation])")
+            println(file, "\t\tRotation: $(filter_mode[:rotation])")
+            println(file, "\t", "#"^25)
+        end
 
         ############################################################################################
         # Print the number of cells/particles for each component
@@ -487,64 +516,97 @@ function snapshotReport(
         println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
 
         # Ionized gas
-        mass_radius_90 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            computeIonizedMass(data_dict)[idx_tot_gas_r];
-            percent=90.0,
-        )
+        ionized_mass = computeIonizedMass(data_dict)
+        if !isempty(ionized_mass)
 
-        mass_radius_95 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            computeIonizedMass(data_dict)[idx_tot_gas_r];
-            percent=95.0,
-        )
+            mass_radius_90 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                ionized_mass[idx_tot_gas_r];
+                percent=90.0,
+            )
 
-        println(
-            file,
-            "\tRadius containing X% of the ionized gas mass (within $(total_gas_r)):\n",
-        )
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
+            mass_radius_95 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                ionized_mass[idx_tot_gas_r];
+                percent=95.0,
+            )
+
+            println(
+                file,
+                "\tRadius containing X% of the ionized gas mass (within $(total_gas_r)):\n",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+            )
+
+        end
 
         # Atomic gas
-        mass_radius_90 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            computeAtomicMass(data_dict)[idx_tot_gas_r];
-            percent=90.0,
-        )
+        atomic_mass = computeAtomicMass(data_dict)
+        if !isempty(atomic_mass)
 
-        mass_radius_95 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            computeAtomicMass(data_dict)[idx_tot_gas_r];
-            percent=95.0,
-        )
+            mass_radius_90 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                atomic_mass[idx_tot_gas_r];
+                percent=90.0,
+            )
 
-        println(
-            file,
-            "\tRadius containing X% of the atomic gas mass (within $(total_gas_r)):\n",
-        )
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
+            mass_radius_95 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                atomic_mass[idx_tot_gas_r];
+                percent=95.0,
+            )
+
+            println(
+                file,
+                "\tRadius containing X% of the atomic gas mass (within $(total_gas_r)):\n",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+            )
+
+        end
 
         # Molecular gas
-        mass_radius_90 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            computeMolecularMass(data_dict)[idx_tot_gas_r];
-            percent=90.0,
-        )
+        molecular_mass = computeMolecularMass(data_dict)
+        if !isempty(molecular_mass)
 
-        mass_radius_95 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            computeMolecularMass(data_dict)[idx_tot_gas_r];
-            percent=95.0,
-        )
+            mass_radius_90 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                molecular_mass[idx_tot_gas_r];
+                percent=90.0,
+            )
 
-        println(
-            file,
-            "\tRadius containing X% of the molecular gas mass (within $(total_gas_r)):\n",
-        )
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
+            mass_radius_95 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                molecular_mass[idx_tot_gas_r];
+                percent=95.0,
+            )
+
+            println(
+                file,
+                "\tRadius containing X% of the molecular gas mass (within $(total_gas_r)):\n",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+            )
+
+        end
 
         ############################################################################################
         # Print the total height of a cylinder, of infinite radius, containing 90% and 95%
@@ -868,8 +930,8 @@ function snapshotReport(
 
             ########################################################################################
 
-            vel_cm = round.(ustrip.(u"km*s^-1", g_vel), sigdigits=6)
-            println(file, "\n\tVelocity of the center of mass:\n\n\t\t$(vel_cm)$(u"km*s^-1")\n")
+            vel_cm = round.(Float64.(ustrip.(u"km*s^-1", g_vel)), sigdigits=6)
+            println(file, "\tVelocity of the center of mass:\n\n\t\t$(vel_cm) $(u"km*s^-1")\n")
 
             ########################################################################################
 
@@ -957,8 +1019,8 @@ function snapshotReport(
 
             ########################################################################################
 
-            vel_cm = round.(ustrip.(u"km*s^-1", s_vel), sigdigits=6)
-            println(file, "\n\tVelocity of the center of mass:\n\n\t\t$(vel_cm)$(u"km*s^-1")\n")
+            vel_cm = round.(Float64.(ustrip.(u"km*s^-1", s_vel)), sigdigits=6)
+            println(file, "\tVelocity of the center of mass:\n\n\t\t$(vel_cm) $(u"km*s^-1")\n")
 
             ########################################################################################
 
@@ -1080,15 +1142,15 @@ function simulationReport(
 
         else
 
-            pt = round.(ustrip.(u"Gyr", extrema(simulation_table[1, :physical_times])), digits=2)
+            pt = round(ustrip(u"Gyr", simulation_table[1, :physical_times]), digits=2)
 
             println(file, "Physical time:             $(pt) Gyr")
 
             if cosmological
 
                 # For cosmological simulations print the scale factor and the redshift
-                a = round.(extrema(simulation_table[1, :scale_factors]), digits=3)
-                z = round.(extrema(simulation_table[1, :redshifts]), digits=3)
+                a = round(simulation_table[1, :scale_factors], digits=3)
+                z = round(simulation_table[1, :redshifts], digits=3)
 
                 println(file, "Scale factor:              $(a)")
                 println(file, "Redshift:                  $(z)")
@@ -1285,15 +1347,17 @@ function simulationReport(
                     \n\n\t\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
                 )
 
-                println(file, "#"^55)
-                println(file, "NOTE: Stellar particle counts include wind particles!")
-                println(file, "#"^55)
+                println(file, "\t\t", "#"^54)
+                println(file, "\t\tNOTE: Stellar particle counts include wind particles!")
+                println(file, "\t\t", "#"^54)
 
-                println(file, "\n\tCell/particle number:\n")
+                println(file, "\n\t\tCell/particle number:\n")
 
                 for (i, len) in enumerate(s_len_type)
+
                     component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
-                    println(file, "\t\t$(component):$(" "^(22 - length(component))) $(len)")
+                    println(file, "\t\t\t$(component):$(" "^(22 - length(component))) $(len)")
+
                 end
 
                 println(file)
@@ -1556,14 +1620,32 @@ Plot a 2D histogram of the density.
       + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
@@ -1587,7 +1669,7 @@ function densityMap(
     slice::IndexType;
     quantities::Vector{Symbol}=[:gas_mass],
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
@@ -1716,14 +1798,32 @@ Plot a 2D histogram of the temperature.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
@@ -1744,7 +1844,7 @@ function temperatureMap(
     simulation_paths::Vector{String},
     slice::IndexType;
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
@@ -1877,14 +1977,32 @@ Plot a 2D histogram of the density, with the velocity field.
       + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
@@ -1908,7 +2026,7 @@ function densityMapVelField(
     slice::IndexType;
     quantities::Vector{Symbol}=[:gas_mass],
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
@@ -1935,14 +2053,7 @@ function densityMapVelField(
     # Set up the grid for the velocity field
     grid_vf = SquareGrid(box_size, 25)
 
-    if isnothing(colorrange)
-        pf_kwargs = [(;), (; lengthscale=0.02, arrowsize=7.0, linestyle=:solid, color=:white)]
-    else
-        pf_kwargs = [
-            (; colorrange),
-            (; lengthscale=0.02, arrowsize=7.0, linestyle=:solid, color=:white),
-        ]
-    end
+    pf_kwargs = isnothing(colorrange) ? [(;), (;)] : [(; colorrange), (;)]
 
     @inbounds for quantity in quantities
 
@@ -2152,14 +2263,32 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
 """
 function scatterPlot(
     simulation_paths::Vector{String},
@@ -2167,7 +2296,7 @@ function scatterPlot(
     x_quantity::Symbol,
     y_quantity::Symbol;
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
@@ -2599,14 +2728,32 @@ Plot two quantities as a density scatter plot (2D histogram).
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
   - `n_bins::Int=100`: Number of bins per side of the square grid.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
 """
 function scatterDensityMap(
     simulation_paths::Vector{String},
@@ -2617,7 +2764,7 @@ function scatterDensityMap(
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     n_bins::Int=100,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
@@ -2789,14 +2936,32 @@ Plot a time series.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function timeSeries(
@@ -2805,7 +2970,7 @@ function timeSeries(
     y_quantity::Symbol;
     slice::IndexType=(:),
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -2874,14 +3039,32 @@ Plot a time series of the gas components. Either their masses or their fractions
   - `fractions::Bool=true`: If the fractions (default), or the masses, will be plotted.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function gasEvolution(
@@ -2889,7 +3072,7 @@ function gasEvolution(
     fractions::Bool=false,
     slice::IndexType=(:),
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -2976,14 +3159,32 @@ Plot the galaxy rotation curve of a set of simulations.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `radius::Unitful.Length=FILTER_R`: Maximum radial distance for the rotation curve.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function rotationCurve(
@@ -2991,7 +3192,7 @@ function rotationCurve(
     slice::IndexType;
     radius::Unitful.Length=FILTER_R,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -3094,14 +3295,32 @@ Plot a density profile.
   - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function densityProfile(
@@ -3113,7 +3332,7 @@ function densityProfile(
     radius::Unitful.Length=FILTER_R,
     n_bins::Int=100,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -3217,14 +3436,32 @@ Plot a density profile.
   - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=string.(quantities)`: Labels for the plot legend, one per quantity. Set it to `nothing` if you don't want a legend.
 """
 function densityProfile(
@@ -3236,7 +3473,7 @@ function densityProfile(
     radius::Unitful.Length=FILTER_R,
     n_bins::Int=100,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=string.(quantities),
 )::Nothing
 
@@ -3348,14 +3585,32 @@ Plot a mass profile.
   - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=string.(quantities)`: Labels for the plot legend, one per quantity. Set it to `nothing` if you don't want a legend.
 """
 function massProfile(
@@ -3367,7 +3622,7 @@ function massProfile(
     radius::Unitful.Length=FILTER_R,
     n_bins::Int=100,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=string.(quantities),
 )::Nothing
 
@@ -3463,14 +3718,32 @@ Plot a density profile.
       + `:stellar_vzstar`      -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function velocityProfile(
@@ -3479,7 +3752,7 @@ function velocityProfile(
     component::Symbol;
     yscale::Function=identity,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -3573,14 +3846,32 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
       + `:stellar_mass` -> Stellar mass.
   - `n_bins::Int=20`: Number of bins (time intervals).
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function stellarHistory(
@@ -3589,7 +3880,7 @@ function stellarHistory(
     quantity::Symbol;
     n_bins::Int=20,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -3802,14 +4093,32 @@ Plot a histogram of the stellar circularity.
   - `range::NTuple{2,<:Number}=(-2.0, 2.0)`: Circularity range.
   - `n_bins::Int=60`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 """
 function stellarCircularity(
@@ -3818,7 +4127,7 @@ function stellarCircularity(
     range::NTuple{2,<:Number}=(-2.0, 2.0),
     n_bins::Int=60,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -3918,14 +4227,32 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 
 # References
@@ -3939,7 +4266,7 @@ function compareFeldmann2020(
     slice::IndexType=(:),
     scatter::Bool=false,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -4030,14 +4357,32 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
       + `:N_stellar_abundance`    -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`    -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 
 # References
@@ -4049,7 +4394,7 @@ function compareMolla2015(
     slice::IndexType,
     quantity::Symbol;
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -4138,14 +4483,32 @@ Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998
       + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 
 # References
@@ -4159,7 +4522,7 @@ function compareKennicuttBigielResolved(
     slice::IndexType;
     quantity::Symbol=:molecular_area_density,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -4272,14 +4635,32 @@ Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (19
       + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
 
 # References
@@ -4293,7 +4674,7 @@ function compareKennicuttBigielIntegrated(
     slice::IndexType;
     quantity::Symbol=:molecular_area_density,
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
 )::Nothing
 
@@ -4390,14 +4771,32 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
       + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
   - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=["Simulation"]`: Label for the scatter plot. Set it to `nothing` if you don't want a legend.
 
 # References
@@ -4412,7 +4811,7 @@ function fitKennicuttBigielResolved(
     quantity::Symbol=:molecular_area_density,
     x_range::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=["Simulation"],
 )::Nothing
 

@@ -434,7 +434,11 @@ const DEFAULT_THEME = Theme(
     Lines=(linewidth=5, cycle=Cycle([:color, :linestyle], covary=true)),
     VLines=(linewidth=3, cycle=Cycle([:color, :linestyle], covary=true)),
     HLines=(linewidth=3, cycle=Cycle([:color, :linestyle], covary=true)),
-    ScatterLines=(linewidth=5, markersize=22, cycle=Cycle([:color, :linestyle, :marker], covary=true)),
+    ScatterLines=(
+        linewidth=5,
+        markersize=22,
+        cycle=Cycle([:color, :linestyle, :marker], covary=true),
+    ),
     Scatter=(markersize=22, cycle=Cycle([:color, :marker], covary=true)),
     Errorbars=(whiskerwidth=10,),
     Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
@@ -447,6 +451,7 @@ const DEFAULT_THEME = Theme(
         strokecolor=:black,
         strokewidth=1,
     ),
+    Arrows=(lengthscale=0.02, arrowsize=7.0, linestyle=:solid, color=:white),
 )
 
 # Structures

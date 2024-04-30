@@ -2060,14 +2060,32 @@ Compute the time series of two quantities.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
-  - `filter_mode::Symbol=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `scaling::Function=identity`: Function to scale the x-axis (only relevant if `smooth` != 0). The bins will be computed accordingly. The options are the scaling functions accepted by Makie.jl: log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `warnings::Bool=true`: If a warning will be given when there is missing data.
@@ -2083,7 +2101,7 @@ function daEvolution(
     sim_data::Simulation,
     x_quantity::Symbol,
     y_quantity::Symbol;
-    filter_mode::Symbol=:all,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     smooth::Int=0,
     scaling::Function=identity,
     warnings::Bool=true,

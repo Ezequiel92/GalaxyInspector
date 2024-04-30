@@ -1091,6 +1091,65 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 end
 
 """
+    rotateData!(data_dict::Dict, axis_type::NTuple{2,Int})::Nothing
+
+Rotate the positions and velocities of the cells/particles in `data_dict`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `rotation::NTuple{2,Int}`: Type of rotation. The options are:
+
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+      + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+"""
+function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
+
+    # Compute the rotation matrix
+    star_data = deepcopy(data_dict)
+
+    filterData!(
+        star_data,
+        filter_function=dd -> filterSubhalo(dd; halo_idx=rotation[1], subhalo_rel_idx=rotation[2]),
+    )
+
+    !isempty(star_data[:stars]["MASS"]) || return nothing
+
+    rotation_matrix = computePARotationMatrix(
+        star_data[:stars]["POS "],
+        star_data[:stars]["VEL "],
+        star_data[:stars]["MASS"],
+    )
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+
+        @inbounds for (block, values) in data_dict[type_symbol]
+
+            @inbounds if block ∈ ["POS ", "VEL "] && !isempty(values)
+                data_dict[type_symbol][block] = rotation_matrix * values
+            end
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
     function plotParams(quantity::Symbol)::PlotParams
 
 Select the plotting parameters for a given `quantity`.
@@ -3513,7 +3572,7 @@ function computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
-    !isempty(dg["MASS"]) || return Unitful.Mass[]
+    !(isempty(dg["MASS"]) || isempty(dg["NHP "]) || isempty(dg["NH  "])) || return Unitful.Mass[]
 
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
@@ -3570,7 +3629,7 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
-    !isempty(dg["MASS"]) || return Unitful.Mass[]
+    !(isempty(dg["MASS"]) || isempty(dg["NHP "]) || isempty(dg["NH  "])) || return Unitful.Mass[]
 
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
@@ -3584,7 +3643,7 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
             (fhi, nh, nhp) in zip(f_HI, dg["NH  "], dg["NHP "])
         ]
 
-    else
+    elseif !isempty(dg["PRES"])
 
         # Fraction of neutral hydrogen according to Arepo
         fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
@@ -3595,6 +3654,10 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         # Use the fraction of neutral hydrogen that is not molecular according to the pressure relation,
         # unless that value is negative, in that case use 0 assuming all neutral hydrogen is molecular
         fa = setPositive(fn .- fm)
+
+    else
+
+        return Unitful.Mass[]
 
     end
 
@@ -3645,7 +3708,7 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         # When there is no data from our model, use 0
         fm = replace!(f_H2, NaN => 0.0)
 
-    else
+    elseif !isempty(dg["PRES"]) && !isempty(dg["NHP "]) && !isempty(dg["NH  "])
 
         # Fraction of neutral hydrogen according to Arepo
         fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
@@ -3657,6 +3720,10 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
         # that value is larger than the fraction of neutral hydrogen according to Arepo,
         # in that case use the neutral fraction assuming it is all molecular hydrogen
         fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
+
+    else
+
+        return Unitful.Mass[]
 
     end
 
@@ -3693,7 +3760,7 @@ function computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
-    !isempty(dg["MASS"]) || return Unitful.Mass[]
+    !(isempty(dg["MASS"]) || isempty(dg["NHP "]) || isempty(dg["NH  "])) || return Unitful.Mass[]
 
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
@@ -4575,7 +4642,6 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
           + `:stellar_pa`         -> Sets the stellar principal axis as the new coordinate system.
           + `:stellar_subhalo_pa` -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
       + New request dictionary.
-
 """
 function selectFilter(
     filter_mode::Symbol,
@@ -4694,6 +4760,98 @@ function selectFilter(
     end
 
     return filter_function, translation, rotation, new_request
+
+end
+
+"""
+    selectFilter(
+        filter_mode::Dict{Symbol,Any},
+        request::Dict{Symbol,Vector{String}},
+    )::Tuple{
+        Function,
+        Union{Symbol,
+        NTuple{2,Int}},
+        Union{Symbol,NTuple{2,Int}},
+        Dict{Symbol,Vector{String}},
+    }
+
+Select a filter function, and the corresponding translation and rotation for the simulation box.
+
+Creates a request dictionary, using `request` as a base, adding what is necessary for the filter function and corresponding transformations.
+
+# Arguments
+
+  - `filter_mode::Dict{Symbol,Any}`: A dictionary with three entries:
+
+      + `:filter_function` -> The filter function.
+      + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+          + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+          + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+          + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+      + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+          + `:zero`                       -> No rotation is appplied.
+          + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+          + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+          + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+          + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+          + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+  - `request::Dict{Symbol,Vector{String}}`: Base request dictionary, nothing will be deleted from it.
+
+# Returns
+
+  - A Tuple with four elements:
+
+      + The filter function.
+      + Translation for the simulation box. The posibilities are:
+
+          + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+          + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+          + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+      + Rotation for the simulation box. The posibilities are:
+
+          + `:zero`                       -> No rotation is appplied.
+          + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+          + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+          + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+          + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+          + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+      + New request dictionary.
+"""
+function selectFilter(
+    filter_mode::Dict{Symbol,Any},
+    request::Dict{Symbol,Vector{String}},
+)::Tuple{
+    Function,
+    Union{Symbol,
+    NTuple{2,Int}},
+    Union{Symbol,NTuple{2,Int}},
+    Dict{Symbol,Vector{String}},
+}
+
+    new_request = mergeRequests(
+        addRequest(
+            request,
+            Dict(type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)),
+        ),
+        Dict(
+            :group => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
+            :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
+            :stars => ["POS ", "MASS", "VEL "],
+        ),
+    )
+
+    return (
+        filter_mode[:filter_function],
+        filter_mode[:translation],
+        filter_mode[:rotation],
+        new_request,
+    )
 
 end
 

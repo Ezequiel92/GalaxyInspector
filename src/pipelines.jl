@@ -89,13 +89,15 @@ Some of the features are:
       + `:stellar_cm`                 -> Sets the stellar center of mass (after filtering) as the new origin.
       + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
       + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo, as the new origin.
-  - `rotation::Symbol=:zero`: Type of rotation (only relevant if `transform_box` = true). The options are:
+  - `rotation::Union{Symbol,NTuple{2,Int}}=:zero`: Type of rotation (only relevant if `transform_box` = true). The options are:
 
-      + `:zero`               -> No rotation is appplied.
-      + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
-      + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
-      + `:stellar_pa`         -> Sets the stellar principal axis as the new coordinate system.
-      + `:stellar_subhalo_pa` -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+      + `:zero`                       -> No rotation is appplied.
+      + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+      + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+      + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+      + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+      + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
   - `smooth::Int=0`: The result of `da_functions` will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing. Only valid for `scatter!`, `lines!`, and `scatterlines!` plots.
   - `x_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the x axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the y axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
@@ -160,7 +162,7 @@ function snapshotPlot(
     pp_kwargs::NamedTuple=(;),
     transform_box::Bool=false,
     translation::Union{Symbol,NTuple{2,Int}}=:zero,
-    rotation::Symbol=:zero,
+    rotation::Union{Symbol,NTuple{2,Int}}=:zero,
     smooth::Int=0,
     x_unit::Unitful.Units=Unitful.NoUnits,
     y_unit::Unitful.Units=Unitful.NoUnits,
@@ -552,14 +554,8 @@ function snapshotPlot(
 
             # Add a colorbar the the heatmap
             if plot_function isa typeof(heatmap!) && colorbar
-                # Compute the colorbar ticks
-                colorrange = pf.attributes.calculated_colors.val.colorrange.val
-                min_c = round(colorrange[1], RoundUp; digits=1)
-                max_c = round(colorrange[2], RoundDown; digits=1)
-                ticks = round.(range(min_c, max_c, 5); digits=1)
-
                 # For heatmaps add a colorbar
-                Colorbar(figure[1, 2], pf; ticks)
+                Colorbar(figure[1, 2], pf)
 
                 # Adjust its height
                 rowsize!(figure.layout, 1, Makie.Fixed(pixelarea(axes.scene)[].widths[2]))
