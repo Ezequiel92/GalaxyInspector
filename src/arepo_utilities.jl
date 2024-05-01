@@ -1281,7 +1281,7 @@ function rotateData!(data_dict::Dict, rotation::Int)::Nothing
 
     filterData!(
         star_data,
-        filter_function=dd -> filterSubhalo(dd; subhalo_abs_idx=rotation),
+        filter_function=dd -> filterSubhalo(dd, rotation),
     )
 
     !isempty(star_data[:stars]["MASS"]) || return nothing
@@ -4765,7 +4765,7 @@ end
     selectFilter(
         filter_mode::Symbol,
         request::Dict{Symbol,Vector{String}},
-    )::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
+    )::Tuple{Function,Union{Symbol,NTuple{2,Int},Int},Symbol,Dict{Symbol,Vector{String}}}
 
 Select a filter function, and the corresponding translation and rotation for the simulation box.
 
@@ -4805,7 +4805,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 function selectFilter(
     filter_mode::Symbol,
     request::Dict{Symbol,Vector{String}},
-)::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
+)::Tuple{Function,Union{Symbol,NTuple{2,Int},Int},Symbol,Dict{Symbol,Vector{String}}}
 
     if filter_mode == :all
 
@@ -4928,9 +4928,8 @@ end
         request::Dict{Symbol,Vector{String}},
     )::Tuple{
         Function,
-        Union{Symbol,
-        NTuple{2,Int}},
-        Union{Symbol,NTuple{2,Int}},
+        Union{Symbol,NTuple{2,Int},Int},
+        Union{Symbol,NTuple{2,Int},Int},
         Dict{Symbol,Vector{String}},
     }
 
@@ -4991,9 +4990,8 @@ function selectFilter(
     request::Dict{Symbol,Vector{String}},
 )::Tuple{
     Function,
-    Union{Symbol,
-    NTuple{2,Int}},
-    Union{Symbol,NTuple{2,Int}},
+    Union{Symbol,NTuple{2,Int},Int},
+    Union{Symbol,NTuple{2,Int},Int},
     Dict{Symbol,Vector{String}},
 }
 
@@ -5427,10 +5425,7 @@ function filterSubhalo(
 end
 
 """
-    filterSubhalo(
-        data_dict::Dict;
-        <keyword arguments>
-    )::Dict{Symbol,IndexType}
+    filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
 
 Filter out cells/particles that do not belong to a given subhalo.
 
@@ -5460,10 +5455,7 @@ Filter out cells/particles that do not belong to a given subhalo.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterSubhalo(
-    data_dict::Dict;
-    subhalo_abs_idx::Int=1,
-)::Dict{Symbol,IndexType}
+function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
 
     # If there are no subfind data, filter out every cell/particle
     if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
