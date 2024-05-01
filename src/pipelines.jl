@@ -82,14 +82,15 @@ Some of the features are:
   - `pp_args::Tuple=()`: Positional arguments for the post processing function.
   - `pp_kwargs::NamedTuple=(;)`: Keyword arguments for the post processing function.
   - `transform_box::Bool=false`: If a translation and rotation (in that order) will be applied to the simulation box, affecting the positions and velocities of all the cells and particles. If active, it is applied AFTER the `filter_function`.
-  - `translation::Union{Symbol,NTuple{2,Int}}=:zero`: Type of translation (only relevant if `transform_box` = true). The options are:
+  - `translation::Union{Symbol,NTuple{2,Int},Int}=:zero`: Type of translation (only relevant if `transform_box` = true). The options are:
 
       + `:zero`                       -> No translation is applied.
       + `:global_cm`                  -> Sets the center of mass of the whole system (after filtering) as the new origin.
       + `:stellar_cm`                 -> Sets the stellar center of mass (after filtering) as the new origin.
       + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
       + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo, as the new origin.
-  - `rotation::Union{Symbol,NTuple{2,Int}}=:zero`: Type of rotation (only relevant if `transform_box` = true). The options are:
+      + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+  - `rotation::Union{Symbol,NTuple{2,Int},Int}=:zero`: Type of rotation (only relevant if `transform_box` = true). The options are:
 
       + `:zero`                       -> No rotation is appplied.
       + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -98,6 +99,7 @@ Some of the features are:
       + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
       + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
       + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+      + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `smooth::Int=0`: The result of `da_functions` will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing. Only valid for `scatter!`, `lines!`, and `scatterlines!` plots.
   - `x_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the x axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the y axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
@@ -161,8 +163,8 @@ function snapshotPlot(
     pp_args::Tuple=(),
     pp_kwargs::NamedTuple=(;),
     transform_box::Bool=false,
-    translation::Union{Symbol,NTuple{2,Int}}=:zero,
-    rotation::Union{Symbol,NTuple{2,Int}}=:zero,
+    translation::Union{Symbol,NTuple{2,Int},Int}=:zero,
+    rotation::Union{Symbol,NTuple{2,Int},Int}=:zero,
     smooth::Int=0,
     x_unit::Unitful.Units=Unitful.NoUnits,
     y_unit::Unitful.Units=Unitful.NoUnits,

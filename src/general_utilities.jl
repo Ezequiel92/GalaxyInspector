@@ -136,8 +136,8 @@ Base.intersect(a1::Colon, a2::Colon)::Colon = (:)
 """
 New methods for `Base.intersect` to use with the `Vector{Bool}` type.
 """
-Base.intersect(a1::Vector{Bool}, a2::IndexType)::Vector{Int64} = findall(a1) ∩ a2
-Base.intersect(a1::IndexType, a2::Vector{Bool})::Vector{Int64} = a1 ∩ findall(a2)
+Base.intersect(a1::Vector{Bool}, a2::IndexType)::Vector{Int} = findall(a1) ∩ a2
+Base.intersect(a1::IndexType, a2::Vector{Bool})::Vector{Int} = a1 ∩ findall(a2)
 Base.intersect(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .&& a2)
 
 """

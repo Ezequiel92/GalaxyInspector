@@ -721,6 +721,57 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
 end
 
 """
+    computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Length}
+
+Read the position of the potencial minimum for a given subhalo.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `subhalo_abs_idx::Int`: Absolute index of the target subhalo (subfind). Starts at 1.
+
+# Returns
+
+  - The specified potencial minimum.
+"""
+function computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Length}
+
+    # If there are no subfind data, return the origin
+    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
+        return zeros(typeof(1.0u"kpc"), 3)
+    end
+
+    s_pos = data_dict[:subhalo]["S_Pos"]
+
+    # Check that the requested subhalo index is within bounds
+    n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
+
+    !iszero(n_subgroups_total) && !isempty(s_pos) || return zeros(typeof(1.0u"kpc"), 3)
+
+    (
+        0 < subhalo_abs_idx <= n_subgroups_total ||
+        throw(ArgumentError("computeCenter: There is only $(n_subgroups_total) subhalos in \
+        $(data_dict[:gc_data].path), so subhalo_abs_idx = $(subhalo_abs_idx) is out of bounds"))
+    )
+
+    # Select the subhalo potencial minimum
+    return s_pos[:, subhalo_abs_idx]
+
+end
+
+"""
     computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Length}
 
 Compute a characteristic center of mass for the system.
@@ -856,6 +907,57 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
 end
 
 """
+    computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Velocity}
+
+Read the velocity of the center of mass for a given subhalo.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `subhalo_abs_idx::Int`: Absolute index of the target subhalo (subfind). Starts at 1.
+
+# Returns
+
+  - The specified velocity.
+"""
+function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Velocity}
+
+    # If there are no subfind data, return the origin
+    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
+        return zeros(typeof(1.0u"kpc"), 3)
+    end
+
+    s_vel = data_dict[:subhalo]["S_Vel"]
+
+    # Check that the requested subhalo index is within bounds
+    n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
+
+    !iszero(n_subgroups_total) && !isempty(s_vel) || return zeros(typeof(1.0u"kpc"), 3)
+
+    (
+        0 < subhalo_abs_idx <= n_subgroups_total ||
+        throw(ArgumentError("computeCenter: There is only $(n_subgroups_total) subhalos in \
+        $(data_dict[:gc_data].path), so subhalo_abs_idx = $(subhalo_abs_idx) is out of bounds"))
+    )
+
+    # Select the subhalo velocity
+    return s_vel[:, subhalo_abs_idx]
+
+end
+
+"""
     computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
 
 Compute the velocity of a characteristic center of mass for the system.
@@ -934,7 +1036,7 @@ function translatePoints(
 end
 
 """
-    translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}})::Nothing
+    translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int},Int})::Nothing
 
 Translate the positions of the cells/particles in `data_dict`.
 
@@ -957,15 +1059,16 @@ Translate the positions of the cells/particles in `data_dict`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `translation::Union{Symbol,NTuple{2,Int}}=:zero`: Type of translation. The options are:
+  - `translation::Union{Symbol,NTuple{2,Int},Int}=:zero`: Type of translation. The options are:
 
       + `:zero`                       -> No translation is applied.
       + `:global_cm`                  -> Sets the center of mass of the whole system as the new origin.
       + `:stellar_cm`                 -> Sets the stellar center of mass as the new origin.
-      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
-      + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo, as the new origin.
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+      + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+      + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
 """
-function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}})::Nothing
+function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int},Int})::Nothing
 
     translation != :zero || return nothing
 
@@ -1112,8 +1215,8 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
       + ...
   - `rotation::NTuple{2,Int}`: Type of rotation. The options are:
 
-      + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
-      + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new coordinate system.
+      + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo as the new coordinate system.
 """
 function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
 
@@ -1123,6 +1226,62 @@ function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
     filterData!(
         star_data,
         filter_function=dd -> filterSubhalo(dd; halo_idx=rotation[1], subhalo_rel_idx=rotation[2]),
+    )
+
+    !isempty(star_data[:stars]["MASS"]) || return nothing
+
+    rotation_matrix = computePARotationMatrix(
+        star_data[:stars]["POS "],
+        star_data[:stars]["VEL "],
+        star_data[:stars]["MASS"],
+    )
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+
+        @inbounds for (block, values) in data_dict[type_symbol]
+
+            @inbounds if block ∈ ["POS ", "VEL "] && !isempty(values)
+                data_dict[type_symbol][block] = rotation_matrix * values
+            end
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
+    rotateData!(data_dict::Dict, axis_type::Int)::Nothing
+
+Rotate the positions and velocities of the cells/particles in `data_dict`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `rotation::Int`: Target subhalo absolute index, starting at 1. Sets the principal axis of the stars in the subhalo as the new coordinate system.
+"""
+function rotateData!(data_dict::Dict, rotation::Int)::Nothing
+
+    # Compute the rotation matrix
+    star_data = deepcopy(data_dict)
+
+    filterData!(
+        star_data,
+        filter_function=dd -> filterSubhalo(dd; subhalo_abs_idx=rotation),
     )
 
     !isempty(star_data[:stars]["MASS"]) || return nothing
@@ -4788,8 +4947,9 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
-          + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+          + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+          + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
       + `:rotation`        -> Rotation for the simulation box. The posibilities are:
 
           + `:zero`                       -> No rotation is appplied.
@@ -4797,8 +4957,9 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
           + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
           + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
           + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
-          + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new coordinate system.
+          + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo as the new coordinate system.
+          + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `request::Dict{Symbol,Vector{String}}`: Base request dictionary, nothing will be deleted from it.
 
 # Returns
@@ -4810,8 +4971,9 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
-          + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+          + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+          + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
       + Rotation for the simulation box. The posibilities are:
 
           + `:zero`                       -> No rotation is appplied.
@@ -4819,8 +4981,9 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
           + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
           + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
           + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
-          + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new coordinate system.
+          + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo as the new coordinate system.
+          + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
       + New request dictionary.
 """
 function selectFilter(
@@ -5225,6 +5388,115 @@ function filterSubhalo(
         last_idxs  = first_idxs .+ s_len_type[:, subhalo_abs_idx] .- 1
 
     end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    # Fill the filter dictionary
+    @inbounds for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
+
+        type_symbol = INDEX_PARTICLE[i - 1]
+
+        @inbounds if first_idx == last_idx || iszero(last_idx)
+            indices[type_symbol] = Int[]
+        end
+
+        if type_symbol == :stars
+
+            # Find the indices of the stars, excluding wind particles
+            real_stars_idxs = findRealStars(data_dict[:snap_data].path)
+
+            n_wind_before = count(x -> !(x), real_stars_idxs[1:(first_idx - 1)])
+            n_wind_between = count(x -> !(x), real_stars_idxs[first_idx:last_idx])
+
+            stars_first_idx = first_idx - n_wind_before
+            stars_last_idx = last_idx - n_wind_before - n_wind_between
+
+            indices[type_symbol] = stars_first_idx:stars_last_idx
+
+        else
+
+            indices[type_symbol] = first_idx:last_idx
+
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterSubhalo(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out cells/particles that do not belong to a given subhalo.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `subhalo_abs_idx::Int`: Index of the target subhalo (subfind). Starts at 1.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterSubhalo(
+    data_dict::Dict;
+    subhalo_abs_idx::Int=1,
+)::Dict{Symbol,IndexType}
+
+    # If there are no subfind data, filter out every cell/particle
+    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
+        return PASS_NONE
+    end
+
+    # Load the necessary data
+    s_len_type = data_dict[:subhalo]["S_LenType"]
+
+    # If any of the data is misssing return an empty filter dictionary
+    n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
+    (
+        !iszero(n_subgroups_total) && !isempty(s_len_type) ||
+        return Dict(type_symbol => Int[] for type_symbol in snapshotTypes(data_dict))
+    )
+
+    # Check that the requested subhalo index is within bounds
+    (
+        0 < subhalo_abs_idx <= n_subgroups_total ||
+        throw(ArgumentError("filterSubhalo: There is only $(n_subgroups_total) subhalos in \
+        $(data_dict[:gc_data].path), so subhalo_abs_idx = $(subhalo_abs_idx) is out of bounds"))
+    )
+
+    # Compute the number of particles upto the last subhalo before `subhalo_abs_idx`
+    if isone(subhalo_abs_idx)
+        len_type_floor = zeros(Int, size(s_len_type, 1))
+    else
+        len_type_floor = sum(s_len_type[:, 1:(subhalo_abs_idx - 1)], dims=2; init=0)
+    end
+
+    # Compute the first and last index of the selected cells/particles (for each cell/particle type)
+    first_idxs = len_type_floor .+ 1
+    last_idxs  = len_type_floor .+ s_len_type[:, subhalo_abs_idx]
 
     # Allocate memory
     indices = Dict{Symbol,IndexType}()

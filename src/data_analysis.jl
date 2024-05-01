@@ -783,7 +783,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
         * ...
-  - `norm::Int64=0`: Number of count that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
+  - `norm::Int=0`: Number of count that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
 
 # Returns
 
@@ -797,7 +797,7 @@ function daLineHistogram(
     quantity::Symbol,
     grid::LinearGrid;
     filter_function::Function=filterNothing,
-    norm::Int64=0,
+    norm::Int=0,
 )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
     filtered_dd = filterData(data_dict; filter_function)
@@ -873,7 +873,7 @@ Compute a 1D histogram of a given `quantity`.
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
         * ...
-  - `norm::Int64=1`: Number of count that will be use to normalize the histogram.
+  - `norm::Int=1`: Number of count that will be use to normalize the histogram.
 
 # Returns
 
@@ -887,7 +887,7 @@ function daStellarCircHistogram(
     quantity::Symbol,
     grid::LinearGrid;
     filter_function::Function=filterNothing,
-    norm::Int64=1,
+    norm::Int=1,
 )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
     (
@@ -2075,8 +2075,9 @@ Compute the time series of two quantities.
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
-              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
-              + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
           + `:rotation`        -> Rotation for the simulation box. The posibilities are:
 
               + `:zero`                       -> No rotation is appplied.
@@ -2086,6 +2087,7 @@ Compute the time series of two quantities.
               + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `scaling::Function=identity`: Function to scale the x-axis (only relevant if `smooth` != 0). The bins will be computed accordingly. The options are the scaling functions accepted by Makie.jl: log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `warnings::Bool=true`: If a warning will be given when there is missing data.
