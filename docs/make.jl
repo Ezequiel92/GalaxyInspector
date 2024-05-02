@@ -14,6 +14,8 @@ makedocs(
         warn_outdated=true,
         collapselevel=1,
         edit_link="main",
+        size_threshold=500000,
+        size_threshold_warn=400000,
     ),
     modules=[GalaxyInspector],
     pages=[
@@ -31,10 +33,6 @@ makedocs(
         "Index"        => "index.md",
     ],
     warnonly=[:missing_docs],
-    Documenter.HTML(
-        size_threshold=500000,
-        size_threshold_warn=400000,
-    )
 )
 
 # Deploy the documentation to GitHub pages
