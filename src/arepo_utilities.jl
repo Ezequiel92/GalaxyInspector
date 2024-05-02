@@ -855,7 +855,7 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
 
     # If there are no subfind data, return the origin
     if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
-        return zeros(typeof(1.0u"kpc"), 3)
+        return zeros(typeof(1.0u"km*s^-1"), 3)
     end
 
     halo_idx, subhalo_rel_idx = subfind_idx
@@ -870,7 +870,7 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
 
     (
         !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_vel, s_vel]) ||
-        return zeros(typeof(1.0u"kpc"), 3)
+        return zeros(typeof(1.0u"km*s^-1"), 3)
     )
 
     (
@@ -936,7 +936,7 @@ function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Vel
 
     # If there are no subfind data, return the origin
     if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
-        return zeros(typeof(1.0u"kpc"), 3)
+        return zeros(typeof(1.0u"km*s^-1"), 3)
     end
 
     s_vel = data_dict[:subhalo]["S_Vel"]
@@ -944,7 +944,7 @@ function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Vel
     # Check that the requested subhalo index is within bounds
     n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
 
-    !iszero(n_subgroups_total) && !isempty(s_vel) || return zeros(typeof(1.0u"kpc"), 3)
+    !iszero(n_subgroups_total) && !isempty(s_vel) || return zeros(typeof(1.0u"km*s^-1"), 3)
 
     (
         0 < subhalo_abs_idx <= n_subgroups_total ||
@@ -4765,7 +4765,7 @@ end
     selectFilter(
         filter_mode::Symbol,
         request::Dict{Symbol,Vector{String}},
-    )::Tuple{Function,Union{Symbol,NTuple{2,Int},Int},Symbol,Dict{Symbol,Vector{String}}}
+    )::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
 
 Select a filter function, and the corresponding translation and rotation for the simulation box.
 
@@ -4805,7 +4805,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 function selectFilter(
     filter_mode::Symbol,
     request::Dict{Symbol,Vector{String}},
-)::Tuple{Function,Union{Symbol,NTuple{2,Int},Int},Symbol,Dict{Symbol,Vector{String}}}
+)::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
 
     if filter_mode == :all
 
@@ -5598,7 +5598,7 @@ end
         <keyword arguments>
     )::Dict{Symbol,IndexType}
 
-Filter out stellar particles that do not belong to the given morphological component, based on a circularity criteria.
+Filter out stellar particles that do not belong to the given morphological component of a given halo and subhalo, based on a circularity criteria.
 
 # Arguments
 
@@ -5655,6 +5655,67 @@ function filterComponentinSubhalo(
 
     @inbounds for type_symbol in snapshotTypes(data_dict)
         indices[type_symbol] = subhalo_idxs[type_symbol] ∩ component_idxs[type_symbol]
+    end
+
+    return indices
+
+end
+
+"""
+    filterRadioinSubhalo(
+        data_dict::Dict,
+        range::NTuple{2,<:Unitful.Length};
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out the cell/particles outside a given spherical shell, around a given halo and subhalo.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `range::NTuple{2,<:Unitful.Length}`: Internal and external radius of the spherical shell.
+  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterRadioinSubhalo(
+    data_dict::Dict,
+    range::NTuple{2,<:Unitful.Length};
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+)::Dict{Symbol,IndexType}
+
+    # Find indices to filter by halo and subhalo
+    subhalo_idxs = filterSubhalo(data_dict; halo_idx, subhalo_rel_idx)
+
+    # Find indices to filter by radial distance
+    radio_idxs = filterWithin(data_dict, range, (halo_idx, subhalo_rel_idx))
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+        indices[type_symbol] = subhalo_idxs[type_symbol] ∩ radio_idxs[type_symbol]
     end
 
     return indices

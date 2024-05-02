@@ -3124,7 +3124,7 @@ function gasEvolution(
             slice,
             da_functions=[daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
-            da_kwargs=[(; filter_mode, smooth=0, scaling=log10, warnings=true)],
+            da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=true)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -3143,13 +3143,13 @@ function gasEvolution(
             yaxis_label=y_plot_params.axis_label,
             xaxis_var_name=x_plot_params.var_name,
             yaxis_var_name=y_plot_params.var_name,
-            xaxis_scale_func=log10,
+            xaxis_scale_func=identity,
             yaxis_scale_func=log10,
             # Plotting options
             save_figures=true,
             backup_results=false,
             theme,
-            size=(1700, 1000),
+            size=(880, 880),
             sim_labels=string.(quantities),
             title="",
         )
@@ -3267,7 +3267,7 @@ function rotationCurve(
         save_figures=true,
         backup_results=false,
         theme=Theme(Axis=(limits=(nothing, nothing, 0.0, nothing),), Legend=(nbanks=2,)),
-        size=(1700, 1000),
+        size=(880, 880),
         sim_labels,
         title="",
         colorbar=false,
@@ -3729,7 +3729,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot a density profile.
+Plot a velocity profile.
 
 # Arguments
 
