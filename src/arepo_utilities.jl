@@ -5661,63 +5661,63 @@ function filterComponentinSubhalo(
 
 end
 
-"""
-    filterRadioinSubhalo(
-        data_dict::Dict,
-        range::NTuple{2,<:Unitful.Length};
-        <keyword arguments>
-    )::Dict{Symbol,IndexType}
+# """
+#     filterRadioinSubhalo(
+#         data_dict::Dict,
+#         range::NTuple{2,<:Unitful.Length};
+#         <keyword arguments>
+#     )::Dict{Symbol,IndexType}
 
-Filter out the cell/particles outside a given spherical shell, around a given halo and subhalo.
+# Filter out the cell/particles outside a given spherical shell, around a given halo and subhalo.
 
-# Arguments
+# # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
+#   - `data_dict::Dict`: A dictionary with the following shape:
 
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `range::NTuple{2,<:Unitful.Length}`: Internal and external radius of the spherical shell.
-  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+#       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+#       + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+#       + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+#       + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + ...
+#       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + ...
+#   - `range::NTuple{2,<:Unitful.Length}`: Internal and external radius of the spherical shell.
+#   - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+#   - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
 
-# Returns
+# # Returns
 
-  - A dictionary with the following shape:
+#   - A dictionary with the following shape:
 
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterRadioinSubhalo(
-    data_dict::Dict,
-    range::NTuple{2,<:Unitful.Length};
-    halo_idx::Int=1,
-    subhalo_rel_idx::Int=1,
-)::Dict{Symbol,IndexType}
+#       + `cell/particle type` -> idxs::IndexType
+#       + `cell/particle type` -> idxs::IndexType
+#       + `cell/particle type` -> idxs::IndexType
+#       + ...
+# """
+# function filterRadioinSubhalo(
+#     data_dict::Dict,
+#     range::NTuple{2,<:Unitful.Length};
+#     halo_idx::Int=1,
+#     subhalo_rel_idx::Int=1,
+# )::Dict{Symbol,IndexType}
 
-    # Find indices to filter by halo and subhalo
-    subhalo_idxs = filterSubhalo(data_dict; halo_idx, subhalo_rel_idx)
+#     # Find indices to filter by halo and subhalo
+#     subhalo_idxs = filterSubhalo(data_dict; halo_idx, subhalo_rel_idx)
 
-    # Find indices to filter by radial distance
-    radio_idxs = filterWithin(data_dict, range, (halo_idx, subhalo_rel_idx))
+#     # Find indices to filter by radial distance
+#     radio_idxs = filterWithin(data_dict, range, (halo_idx, subhalo_rel_idx))
 
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
+#     # Allocate memory
+#     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
-        indices[type_symbol] = subhalo_idxs[type_symbol] ∩ radio_idxs[type_symbol]
-    end
+#     @inbounds for type_symbol in snapshotTypes(data_dict)
+#         indices[type_symbol] = subhalo_idxs[type_symbol] ∩ radio_idxs[type_symbol]
+#     end
 
-    return indices
+#     return indices
 
-end
+# end
