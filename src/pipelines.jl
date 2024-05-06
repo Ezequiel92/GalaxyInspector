@@ -36,6 +36,7 @@ Some of the features are:
       + `hist!`         -> Histogram.
       + `heatmap!`      -> Heatmap.
       + `arrows!`       -> Vector field.
+      + `barplot!`      -> Bar plots.
   - `pf_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the functions in `plot_functions`.
 
 ### snapshotPlot configuration
@@ -417,17 +418,22 @@ function snapshotPlot(
                     error("snapshotPlot: For histograms `data_analysis` should return \
                     only one data vector, and currently is returning $(data_length)")
                 )
-            elseif plot_function isa Union{typeof(scatter!),typeof(scatterlines!),typeof(lines!)}
+            elseif plot_function isa Union{
+                typeof(scatter!),
+                typeof(scatterlines!),
+                typeof(lines!),
+                typeof(barplot!),
+            }
                 (
                     data_length == 2 ||
-                    error("snapshotPlot: For scatter/line plots `data_analysis` should return \
-                    two data vectors, and currently is returning $(data_length)")
+                    error("snapshotPlot: For scatter, line and bar plots `data_analysis` should \
+                    return two data vectors, and currently is returning $(data_length)")
                 )
             elseif plot_function isa typeof(heatmap!)
                 (
                     data_length == 3 ||
-                    error("snapshotPlot: For heatmaps `data_analysis` should return \
-                    three data vectors, and currently is returning $(data_length)")
+                    error("snapshotPlot: For heatmaps `data_analysis` should return three data \
+                    vectors, and currently is returning $(data_length)")
                 )
             elseif plot_function isa typeof(arrows!)
                 (

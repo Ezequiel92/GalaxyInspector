@@ -5277,6 +5277,59 @@ function filterCircularity(data_dict::Dict, l_ϵ::Float64, h_ϵ::Float64)::Dict{
 end
 
 """
+    filterGFM(data_dict::Dict)::Dict{Symbol,IndexType}
+
+Filter out gas cells that have not entered out routine.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterGFM(data_dict::Dict)::Dict{Symbol,IndexType}
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+
+        @inbounds if type_symbol == :gas
+            if isempty(dg["FRAC"])
+                indices[type_symbol] = Int[]
+            else
+                indices[type_symbol] = map(!isnan, data_dict["FRAC"][1, :])
+            end
+        else
+            indices[type_symbol] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
     filterSubhalo(
         data_dict::Dict;
         <keyword arguments>

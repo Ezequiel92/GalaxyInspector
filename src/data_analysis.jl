@@ -1947,6 +1947,134 @@ function daScatterGalaxy(
 
 end
 
+"""
+    daGasFractions(
+        data_dict::Dict,
+        x_quantity::Symbol,
+        edges::Vector{<:Number};
+        <keyword arguments>
+    )::Union{NTuple{2,Vector{<:Number}},Nothing}
+
+Compute a gas fraction bar plot.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
+
+      + `:density`     -> Gas mass density.
+      + `:temperature` -> Gas temperature.
+  - `edges::Vector{<:Number}`: A sorted list of bin edges.
+  - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
+  - `filter_function::Function=filterNothing`: A functions with the signature:
+
+      `filter_function(data_dict) -> indices`
+
+      where
+
+        + `data_dict::Dict`: A dictionary with the following shape:
+
+            * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+            * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+            * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * ...
+            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+            * ...
+
+        + `indices::Dict`: A dictionary with the following shape:
+
+            * `cell/particle type` -> idxs::IndexType
+            * `cell/particle type` -> idxs::IndexType
+            * `cell/particle type` -> idxs::IndexType
+            * ...
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the values of `x_quantity`.
+      + A vector with the values of `y_quantity`.
+"""
+function daGasFractions(
+    data_dict::Dict,
+    x_quantity::Symbol,
+    edges::Vector{<:Number};
+    include_stars::Bool=false,
+    filter_function::Function=filterNothing,
+)::Union{NTuple{2,Vector{<:Number}},Nothing}
+
+    dg = filterData(data_dict; filter_function)[:gas]
+
+    # If after filtering there is no gas cells left, return nothing
+    gas_mass = dg["MASS"]
+    !isempty(gas_mass) || return nothing
+
+    ionized_mass   = dg["FRAC"][1, :] .* gas_mass
+    atomic_mass    = dg["FRAC"][2, :] .* gas_mass
+    molecular_mass = dg["FRAC"][3, :] .* gas_mass
+    stellar_mass   = dg["FRAC"][4, :] .* gas_mass
+
+    if x_quantity == :temperature
+        gas_qty = uconvert.(u"K", dg["TEMP"])
+    elseif x_quantity == :density
+        gas_qty = uconvert.(u"cm^-3", dg["RHO "] ./ u"mp")
+    else
+        throw(ArgumentError("daScatterGalaxy: `gas_qty` can only be :temperature or :density, \
+        but I got gas_qty = :$(gas_qty )"))
+    end
+
+    # Number of bins for the x axis quantity
+    n_bins = length(edges) - 1
+    # Number of bars per bin
+    n_bars   = include_stars ? 4 : 3
+
+    # Allocate memory
+    percents = Vector{Float64}(undef, n_bins * n_bars)
+    for i in 1:n_bins
+
+        # Compute the indices of the gas cells inside the bin
+        qty_idx = findall(q->edges[i]<q<=edges[i + 1], gas_qty)
+
+        # Compute the total mass of each phase inside the bin
+        mol_mass = sum(molecular_mass[qty_idx])
+        ato_mass = sum(atomic_mass[qty_idx])
+        ion_mass = sum(ionized_mass[qty_idx])
+
+        # Compute the mass fraction of each phase inside the bin
+        if include_stars
+            str_mass = sum(stellar_mass[temp_idx])
+            total_mass = mol_mass + ato_mass + ion_mass + str_mass
+            percents[n_bars*i - 3] = uconvert(Unitful.NoUnits, (str_mass/total_mass) * 100)
+        else
+            total_mass = mol_mass + ato_mass + ion_mass
+        end
+        percents[n_bars*i - 2] = uconvert(Unitful.NoUnits, (mol_mass/total_mass) * 100)
+        percents[n_bars*i - 1] = uconvert(Unitful.NoUnits, (ato_mass/total_mass) * 100)
+        percents[n_bars*i]     = uconvert(Unitful.NoUnits, (ion_mass/total_mass) * 100)
+
+    end
+
+    return repeat(1:n_bins, inner=n_bars), percents
+
+end
+
 ####################################################################################################
 # Signature for the timeSeriesPlot function in ./src/pipelines.jl.
 ####################################################################################################
