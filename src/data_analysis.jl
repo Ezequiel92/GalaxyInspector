@@ -1950,12 +1950,12 @@ end
 """
     daGasFractions(
         data_dict::Dict,
-        x_quantity::Symbol,
+        quantity::Symbol,
         edges::Vector{<:Number};
         <keyword arguments>
     )::Union{NTuple{2,Vector{<:Number}},Nothing}
 
-Compute a gas fraction bar plot.
+Compute the values for a gas fraction bar plot.
 
 # Arguments
 
@@ -1972,7 +1972,7 @@ Compute a gas fraction bar plot.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
+  - `quantity::Symbol`: Target quantity. The options are:
 
       + `:density`     -> Gas mass density.
       + `:temperature` -> Gas temperature.
@@ -2009,12 +2009,12 @@ Compute a gas fraction bar plot.
 
   - A tuple with two elements:
 
-      + A vector with the values of `x_quantity`.
-      + A vector with the values of `y_quantity`.
+      + A vector with the positions of each bar.
+      + A vector with the height of each bar.
 """
 function daGasFractions(
     data_dict::Dict,
-    x_quantity::Symbol,
+    quantity::Symbol,
     edges::Vector{<:Number};
     include_stars::Bool=false,
     filter_function::Function=filterNothing,
@@ -2024,50 +2024,65 @@ function daGasFractions(
 
     # If after filtering there is no gas cells left, return nothing
     gas_mass = dg["MASS"]
-    !isempty(gas_mass) || return nothing
+    !(isempty(gas_mass) || isempty(dg["FRAC"][1, :])) || return nothing
 
+    # Compute the mass of each gas phase
     ionized_mass   = dg["FRAC"][1, :] .* gas_mass
     atomic_mass    = dg["FRAC"][2, :] .* gas_mass
     molecular_mass = dg["FRAC"][3, :] .* gas_mass
     stellar_mass   = dg["FRAC"][4, :] .* gas_mass
 
-    if x_quantity == :temperature
+    if quantity == :temperature
         gas_qty = uconvert.(u"K", dg["TEMP"])
-    elseif x_quantity == :density
+    elseif quantity == :density
         gas_qty = uconvert.(u"cm^-3", dg["RHO "] ./ u"mp")
     else
         throw(ArgumentError("daScatterGalaxy: `gas_qty` can only be :temperature or :density, \
-        but I got gas_qty = :$(gas_qty )"))
+        but I got gas_qty = :$(gas_qty)"))
     end
 
-    # Number of bins for the x axis quantity
+    # Compute the number of bins for the gas quantity
     n_bins = length(edges) - 1
-    # Number of bars per bin
-    n_bars   = include_stars ? 4 : 3
+
+    # Compute the number of bars per bin
+    n_bars = include_stars ? 4 : 3
 
     # Allocate memory
     percents = Vector{Float64}(undef, n_bins * n_bars)
+
+    # Loop over each bin
     for i in 1:n_bins
 
-        # Compute the indices of the gas cells inside the bin
-        qty_idx = findall(q->edges[i]<q<=edges[i + 1], gas_qty)
+        # Compute the indices of the gas cells inside the current bin
+        qty_idx = findall(q->edges[i] < q <= edges[i + 1], gas_qty)
 
-        # Compute the total mass of each phase inside the bin
-        mol_mass = sum(molecular_mass[qty_idx])
-        ato_mass = sum(atomic_mass[qty_idx])
-        ion_mass = sum(ionized_mass[qty_idx])
+        if isempty(qty_idx)
 
-        # Compute the mass fraction of each phase inside the bin
-        if include_stars
-            str_mass = sum(stellar_mass[temp_idx])
-            total_mass = mol_mass + ato_mass + ion_mass + str_mass
-            percents[n_bars*i - 3] = uconvert(Unitful.NoUnits, (str_mass/total_mass) * 100)
+            percents[((i - 1) * n_bars + 1):(i * n_bars)] .= 0.0
+
         else
-            total_mass = mol_mass + ato_mass + ion_mass
+
+            if include_stars
+                total_masses = [
+                    sum(molecular_mass[qty_idx]),
+                    sum(atomic_mass[qty_idx]),
+                    sum(ionized_mass[qty_idx]),
+                    sum(stellar_mass[qty_idx]),
+                ]
+            else
+                total_masses = [
+                    sum(molecular_mass[qty_idx]),
+                    sum(atomic_mass[qty_idx]),
+                    sum(ionized_mass[qty_idx]),
+                ]
+            end
+
+            # Compute the mass fraction of each phase inside the current bin
+            fractions = uconvert.(Unitful.NoUnits, (total_masses ./ sum(total_masses)) .* 100)
+
+            percents[((i - 1) * n_bars + 1):(i * n_bars)] .= fractions
+
         end
-        percents[n_bars*i - 2] = uconvert(Unitful.NoUnits, (mol_mass/total_mass) * 100)
-        percents[n_bars*i - 1] = uconvert(Unitful.NoUnits, (ato_mass/total_mass) * 100)
-        percents[n_bars*i]     = uconvert(Unitful.NoUnits, (ion_mass/total_mass) * 100)
 
     end
 

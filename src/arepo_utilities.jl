@@ -108,6 +108,48 @@ function getLabel(
 end
 
 """
+    barPlotLabelFormater(x::Number)::LaTeXString
+
+Format a number to be a barplot label.
+
+For values between 0 and 0.01 the label will be `< 0.01`, otherwise it will be the value itself with 2 digits.
+
+# Arguments
+
+  - `x::Number`: Value to be formated.
+
+# Returns
+
+  - The bar label.
+"""
+function barPlotLabelFormater(x::Number)::LaTeXString
+
+    if 0 < x < 0.01
+        return L"< \, 0.01"
+    end
+
+    return latexstring(round(x; digits=2))
+
+end
+
+"""
+    barPlotLabelFormater(x::LaTeXString)::LaTeXString
+
+Format a number to be a barplot label.
+
+Method for compatibility with the barplot! function of [Makie](https://docs.makie.org/stable/).
+
+# Arguments
+
+  - `x::Number`: Value to be formated.
+
+# Returns
+
+  - The bar label.
+"""
+barPlotLabelFormater(x::LaTeXString)::LaTeXString = x
+
+"""
     formatError(q_mean::Number, q_error::Number)::NTuple{2,<:Number}
 
 Nicely format a magnitude with uncertainty.
@@ -5314,10 +5356,10 @@ function filterGFM(data_dict::Dict)::Dict{Symbol,IndexType}
     @inbounds for type_symbol in snapshotTypes(data_dict)
 
         @inbounds if type_symbol == :gas
-            if isempty(dg["FRAC"])
+            if isempty(data_dict[:gas]["FRAC"])
                 indices[type_symbol] = Int[]
             else
-                indices[type_symbol] = map(!isnan, data_dict["FRAC"][1, :])
+                indices[type_symbol] = map(!isnan, data_dict[:gas]["FRAC"][1, :])
             end
         else
             indices[type_symbol] = (:)

@@ -443,13 +443,15 @@ const DEFAULT_THEME = Theme(
     Errorbars=(whiskerwidth=10,),
     Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
     Colorbar=(size=25, ticklabelpad=10, minorticksvisible=true, ticksize=7),
-    Barplot=(
+    BarPlot=(
         color_over_background=:black,
         color_over_bar=:black,
         flip_labels_at=10,
         direction=:x,
         strokecolor=:black,
         strokewidth=1,
+        bar_labels=:y,
+        dodge_gap=0.04,
     ),
     Arrows=(lengthscale=0.02, arrowsize=7.0, linestyle=:solid, color=:white),
 )

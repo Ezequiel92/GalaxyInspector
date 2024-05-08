@@ -595,7 +595,7 @@ function ppMolla2015!(
         errorbars!(figure.current_axis.x, x_values, y_values, y_uncertainties; color)
     end
 
-    return ([MarkerElement(; color, marker=:utriangle)], ["Mollá et al. (2015)"])
+    return [MarkerElement(; color, marker=:utriangle)], ["Mollá et al. (2015)"]
 
 end
 
@@ -835,7 +835,48 @@ function ppFeldmann2020!(
 
     return (
         [PolyElement(; color=(:red, 0.3)), PolyElement(; color=(:orange, 0.3))],
-        [L"\mathrm{Feldmann \,\, (2020)} \,\, 1σ", L"\mathrm{Feldmann \,\, (2020)} \,\, 2σ"],
+        [
+            L"\mathrm{Feldmann \,\, (2020)} \,\, 1 \, \sigma",
+            L"\mathrm{Feldmann \,\, (2020)} \,\, 2 \, \sigma",
+        ],
     )
+
+end
+
+"""
+    ppBarPlotLabels(
+        ::Makie.Figure,
+        include_stars::Bool;
+        <keyword arguments>
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+Return the legend elements for the plot made by [`gasFractionsBarPlot`](@ref).
+
+# Arguments
+
+  - `::Makie.Figure`: Makie figure to be drawn over.
+  - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
+  - `colors=Makie.wong_colors()`: Colors for the bars.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `PolyElement`s to be used in the legend.
+      + The label strings.
+"""
+function ppBarPlotLabels(
+    ::Makie.Figure,
+    include_stars::Bool;
+    colors=Makie.wong_colors(),
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+    if include_stars
+        labels = ["Molecular gas", "Atomic gas", "Ionized gas", "Stars"]
+    else
+        labels = ["Molecular gas", "Atomic gas", "Ionized gas"]
+    end
+
+    return [PolyElement(polycolor=colors[i]) for i in 1:length(labels)], labels
 
 end

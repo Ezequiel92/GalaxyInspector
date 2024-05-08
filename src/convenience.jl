@@ -2854,6 +2854,185 @@ function scatterDensityMap(
 end
 
 """
+    gasFractionsBarPlot(
+        simulation_paths::Vector{String},
+        slice::IndexType,
+        y_quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Plot a bar plot of the gas fractions for different temperature or density bins.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `quantity::Symbol`: Target quantity. The options are:
+
+      + `:density`     -> Gas mass density.
+      + `:temperature` -> Gas temperature.
+  - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
+  - `n_bins::Int=5`: Number of bins for the `quantity`.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+"""
+function gasFractionsBarPlot(
+    simulation_paths::Vector{String},
+    slice::IndexType,
+    quantity::Symbol;
+    include_stars::Bool=false,
+    n_bins::Int=5,
+    output_path::String="./",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+)::Nothing
+
+    if quantity == :temperature
+
+        plot_params = plotParams(:temperature)
+        ranges      = range(1, 8, n_bins + 1)
+        edges       = exp10.(ranges) .* u"K"
+        yaxis_label = L"T \,\, [\mathrm{K}]"
+
+    elseif quantity == :density
+
+        plot_params = plotParams(:gas_mass_density)
+        ranges      = range(-3, 3, n_bins + 1)
+        edges       = exp10.(ranges) .* u"cm^-3"
+        yaxis_label = L"\rho_\mathrm{cell} \,\, [\mathrm{cm^{-3}}]"
+
+    else
+
+        throw(ArgumentError("gasFractionsBarPlot: `quantity` can only be :temperature or \
+        :density, but I got quantity = :$(quantity)"))
+
+    end
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(plot_params.request, Dict(:gas=>["FRAC"])),
+    )
+
+    # Compute the axis ticks
+    ticks = string.([round((ranges[i] + ranges[i + 1]) / 2; sigdigits = 3) for i in 1:n_bins])
+    # Number of bars per bin
+    n_bars = include_stars ? 4 : 3
+    # Compute the dodge argument for `barplot!`
+    dodge = repeat(1:n_bars, outer=n_bins)
+    # Set the color list
+    colors = Makie.wong_colors()
+
+    @inbounds for simulation_path in simulation_paths
+
+        # Get the simulation name as a string
+        sim_name = basename(simulation_path)
+
+        if include_stars
+            base_filename = "$(sim_name)-fractions-vs-$(quantity)"
+        else
+            base_filename = "$(sim_name)-fractions-vs-$(quantity)-no_stars"
+        end
+
+        snapshotPlot(
+            [simulation_path],
+            request,
+            [barplot!];
+            pf_kwargs=[(; dodge, color=colors[dodge])],
+            # `snapshotPlot` configuration
+            output_path,
+            base_filename,
+            output_format=".pdf",
+            warnings=true,
+            show_progress=false,
+            # Data manipulation options
+            slice,
+            filter_function,
+            da_functions=[daGasFractions],
+            da_args=[(quantity, edges)],
+            da_kwargs=[(; include_stars, filter_function=filterGFM)],
+            post_processing=ppBarPlotLabels,
+            pp_args=(include_stars,),
+            pp_kwargs=(;),
+            transform_box=true,
+            translation,
+            rotation,
+            smooth=0,
+            x_unit=Unitful.NoUnits,
+            y_unit=Unitful.NoUnits,
+            x_exp_factor=0,
+            y_exp_factor=0,
+            x_trim=(-Inf, Inf),
+            y_trim=(-Inf, Inf),
+            x_edges=false,
+            y_edges=false,
+            x_func=identity,
+            y_func=identity,
+            # Axes options
+            xaxis_label=L"\mathrm{Fraction} \,\, [%]",
+            yaxis_label,
+            xaxis_var_name="",
+            yaxis_var_name="",
+            xaxis_scale_func=identity,
+            yaxis_scale_func=identity,
+            # Plotting and animation options
+            save_figures=true,
+            backup_results=false,
+            theme=Theme(
+                Legend=(nbanks=include_stars ? 2 : 3,),
+                Axis=(
+                    limits=(nothing, 105, nothing, nothing),
+                    xticks=([0, 50, 100], [L"0.0", L"50", L"100"]),
+                    yticks=(1:n_bins, [L"10^{%$(tick)}" for tick in ticks]),
+                ),
+                BarPlot=(
+                    flip_labels_at=10,
+                    label_formatter=barPlotLabelFormater,
+                    label_size= include_stars ? 25 : 35,
+                ),
+            ),
+            size=(1700, 1200),
+            sim_labels=nothing,
+            title="",
+            colorbar=false,
+            # Animation options
+            animation=false,
+            animation_filename="animation.mp4",
+            framerate=10,
+        )
+
+    end
+
+    return nothing
+
+end
+
+"""
     timeSeries(
         simulation_paths::Vector{String},
         x_quantity::Symbol,

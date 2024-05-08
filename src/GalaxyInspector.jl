@@ -82,6 +82,7 @@ export scatterPlot
 export atomicMolecularTransitionHeatmap
 export atomicMolecularTransitionScatter
 export scatterDensityMap
+export gasFractionsBarPlot
 export timeSeries
 export gasEvolution
 export rotationCurve
