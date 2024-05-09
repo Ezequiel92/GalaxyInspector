@@ -1363,15 +1363,15 @@ Select the plotting parameters for a given `quantity`.
       + `:gas_mass`                   -> Gas mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:generic_mass`               -> Parameters for plots with several diferent masses.
       + `:stellar_number`             -> Number of stellar particles.
       + `:gas_number`                 -> Number of gas cells.
       + `:dm_number`                  -> Number of dark matter particles.
       + `:bh_number`                  -> Number of black hole particles.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
@@ -1468,6 +1468,42 @@ function plotParams(quantity::Symbol)::PlotParams
             unit     = u"Msun",
         )
 
+    elseif quantity == :molecular_mass
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO "]),
+            var_name   = L"M_\mathrm{H2}",
+            exp_factor = 10,
+            unit       = u"Msun",
+        )
+
+    elseif quantity == :atomic_mass
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO "]),
+            var_name   = L"M_\mathrm{HI}",
+            exp_factor = 10,
+            unit       = u"Msun",
+        )
+
+    elseif quantity == :ionized_mass
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO "]),
+            var_name   = L"M_\mathrm{HII}",
+            exp_factor = 10,
+            unit       = u"Msun",
+        )
+
+    elseif quantity == :neutral_mass
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO "]),
+            var_name   = L"M_\mathrm{H2 + HI}",
+            exp_factor = 10,
+            unit       = u"Msun",
+        )
+
     elseif quantity == :generic_mass
 
         plot_params = PlotParams(;
@@ -1508,42 +1544,6 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(:black_hole => ["MASS", "POS "]),
             var_name = L"\mathrm{Number \,\, of \,\, BH \,\, particles}",
-        )
-
-    elseif quantity == :molecular_mass
-
-        plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO "]),
-            var_name   = L"M_\mathrm{H2}",
-            exp_factor = 10,
-            unit       = u"Msun",
-        )
-
-    elseif quantity == :atomic_mass
-
-        plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO "]),
-            var_name   = L"M_\mathrm{HI}",
-            exp_factor = 10,
-            unit       = u"Msun",
-        )
-
-    elseif quantity == :ionized_mass
-
-        plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO "]),
-            var_name   = L"M_\mathrm{HII}",
-            exp_factor = 10,
-            unit       = u"Msun",
-        )
-
-    elseif quantity == :neutral_mass
-
-        plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO "]),
-            var_name   = L"M_\mathrm{H2 + HI}",
-            exp_factor = 10,
-            unit       = u"Msun",
         )
 
     elseif quantity == :molecular_fraction
@@ -4120,14 +4120,14 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:gas_mass`               -> Gas mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
-      + `:stellar_number`         -> Number of stellar particles.
-      + `:gas_number`             -> Number of gas cells.
-      + `:dm_number`              -> Number of dark matter particles.
-      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_number`         -> Number of stellar particles.
+      + `:gas_number`             -> Number of gas cells.
+      + `:dm_number`              -> Number of dark matter particles.
+      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
@@ -4177,22 +4177,6 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
         integrated_qty = sum(data_dict[:black_hole]["MASS"]; init=0.0u"Msun")
 
-    elseif quantity == :stellar_number
-
-        integrated_qty = length(data_dict[:stars]["MASS"])
-
-    elseif quantity == :gas_number
-
-        integrated_qty = length(data_dict[:gas]["MASS"])
-
-    elseif quantity == :dm_number
-
-        integrated_qty = length(data_dict[:halo]["MASS"])
-
-    elseif quantity == :bh_number
-
-        integrated_qty = length(data_dict[:black_hole]["MASS"])
-
     elseif quantity == :molecular_mass
 
         integrated_qty = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
@@ -4208,6 +4192,22 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
     elseif quantity == :neutral_mass
 
         integrated_qty = sum(computeNeutralMass(data_dict); init=0.0u"Msun")
+
+    elseif quantity == :stellar_number
+
+        integrated_qty = length(data_dict[:stars]["MASS"])
+
+    elseif quantity == :gas_number
+
+        integrated_qty = length(data_dict[:gas]["MASS"])
+
+    elseif quantity == :dm_number
+
+        integrated_qty = length(data_dict[:halo]["MASS"])
+
+    elseif quantity == :bh_number
+
+        integrated_qty = length(data_dict[:black_hole]["MASS"])
 
     elseif quantity == :molecular_fraction
 

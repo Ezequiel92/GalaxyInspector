@@ -3051,14 +3051,14 @@ Plot a time series.
       + `:gas_mass`               -> Gas mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
-      + `:stellar_number`         -> Number of stellar particles.
-      + `:gas_number`             -> Number of gas cells.
-      + `:dm_number`              -> Number of dark matter particles.
-      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_number`         -> Number of stellar particles.
+      + `:gas_number`             -> Number of gas cells.
+      + `:dm_number`              -> Number of dark matter particles.
+      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
@@ -3091,14 +3091,14 @@ Plot a time series.
       + `:gas_mass`               -> Gas mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
-      + `:stellar_number`         -> Number of stellar particles.
-      + `:gas_number`             -> Number of gas cells.
-      + `:dm_number`              -> Number of dark matter particles.
-      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_number`         -> Number of stellar particles.
+      + `:gas_number`             -> Number of gas cells.
+      + `:dm_number`              -> Number of dark matter particles.
+      + `:bh_number`              -> Number of black hole particles.
       + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
