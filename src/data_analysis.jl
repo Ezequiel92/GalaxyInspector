@@ -1972,10 +1972,29 @@ Compute the values for a gas fraction bar plot.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `quantity::Symbol`: Target quantity. The options are:
+  - `quantity::Symbol`: Target quantity. The possibilities are:
 
-      + `:density`     -> Gas mass density.
-      + `:temperature` -> Gas temperature.
+      + `:gas_mass`                   -> Gas mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `edges::Vector{<:Number}`: A sorted list of bin edges.
   - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
   - `filter_function::Function=filterNothing`: A functions with the signature:
@@ -2020,26 +2039,21 @@ function daGasFractions(
     filter_function::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Number}},Nothing}
 
-    dg = filterData(data_dict; filter_function)[:gas]
+    dd = filterData(data_dict; filter_function)
 
-    # If after filtering there is no gas cells left, return nothing
-    gas_mass = dg["MASS"]
-    !(isempty(gas_mass) || isempty(dg["FRAC"][1, :])) || return nothing
+    # Compute the gas quantities
+    gas_qty  = scatterQty(dd, quantity)
+    gas_mass = dd[:gas]["MASS"]
+    gas_frac = dd[:gas]["FRAC"]
+
+    # If any of the necessary quantities are missing return nothing
+    !any(isempty, [gas_mass, gas_frac[1, :], gas_qty]) || return nothing
 
     # Compute the mass of each gas phase
-    ionized_mass   = dg["FRAC"][1, :] .* gas_mass
-    atomic_mass    = dg["FRAC"][2, :] .* gas_mass
-    molecular_mass = dg["FRAC"][3, :] .* gas_mass
-    stellar_mass   = dg["FRAC"][4, :] .* gas_mass
-
-    if quantity == :temperature
-        gas_qty = uconvert.(u"K", dg["TEMP"])
-    elseif quantity == :density
-        gas_qty = uconvert.(u"cm^-3", dg["RHO "] ./ u"mp")
-    else
-        throw(ArgumentError("daScatterGalaxy: `gas_qty` can only be :temperature or :density, \
-        but I got gas_qty = :$(gas_qty)"))
-    end
+    ionized_mass   = gas_frac[1, :] .* gas_mass
+    atomic_mass    = gas_frac[2, :] .* gas_mass
+    molecular_mass = gas_frac[3, :] .* gas_mass
+    stellar_mass   = gas_frac[4, :] .* gas_mass
 
     # Compute the number of bins for the gas quantity
     n_bins = length(edges) - 1

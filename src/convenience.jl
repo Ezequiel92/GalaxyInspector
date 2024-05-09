@@ -2857,22 +2857,44 @@ end
     gasFractionsBarPlot(
         simulation_paths::Vector{String},
         slice::IndexType,
-        y_quantity::Symbol;
+        quantity::Symbol,
+        edges::Vector{<:Number};
         <keyword arguments>
     )::Nothing
 
-Plot a bar plot of the gas fractions for different temperature or density bins.
+Plot a bar plot of the gas fractions for different bins of a given quantity.
 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol`: Target quantity. The options are:
+  - `quantity::Symbol`: Target quantity. The possibilities are:
 
-      + `:density`     -> Gas mass density.
-      + `:temperature` -> Gas temperature.
+      + `:gas_mass`                   -> Gas mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+  - `edges::Vector{<:Number}`: A sorted list of bin edges.
   - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
-  - `n_bins::Int=5`: Number of bins for the `quantity`.
+  - `axis_label::Union{AbstractString,Nothing}=nothing`: Label for the axis. It can contain the string `auto_label`, which will be replaced by the default label: `var_name` / 10^`exp_factor` `unit`. If set to `nothing` a label will be assigned automaticaly.
+  - `exp_ticks::Bool=false`: If the axis ticks will be the ``\\log_{10}`` of `edges`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -2906,47 +2928,42 @@ Plot a bar plot of the gas fractions for different temperature or density bins.
 function gasFractionsBarPlot(
     simulation_paths::Vector{String},
     slice::IndexType,
-    quantity::Symbol;
+    quantity::Symbol,
+    edges::Vector{<:Number};
     include_stars::Bool=false,
-    n_bins::Int=5,
+    axis_label::Union{AbstractString,Nothing}=nothing,
+    exp_ticks::Bool=false,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
 )::Nothing
 
-    if quantity == :temperature
-
-        plot_params = plotParams(:temperature)
-        ranges      = range(1, 8, n_bins + 1)
-        edges       = exp10.(ranges) .* u"K"
-        yaxis_label = L"T \,\, [\mathrm{K}]"
-
-    elseif quantity == :density
-
-        plot_params = plotParams(:gas_mass_density)
-        ranges      = range(-3, 3, n_bins + 1)
-        edges       = exp10.(ranges) .* u"cm^-3"
-        yaxis_label = L"\rho_\mathrm{cell} \,\, [\mathrm{cm^{-3}}]"
-
-    else
-
-        throw(ArgumentError("gasFractionsBarPlot: `quantity` can only be :temperature or \
-        :density, but I got quantity = :$(quantity)"))
-
-    end
+    plot_params = plotParams(quantity)
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
         mergeRequests(plot_params.request, Dict(:gas=>["FRAC"])),
     )
 
-    # Compute the axis ticks
-    ticks = string.([round((ranges[i] + ranges[i + 1]) / 2; sigdigits = 3) for i in 1:n_bins])
+    # Compute the number of bins for the gas quantity
+    n_bins = length(edges) - 1
+
     # Number of bars per bin
     n_bars = include_stars ? 4 : 3
+
     # Compute the dodge argument for `barplot!`
     dodge = repeat(1:n_bars, outer=n_bins)
+
     # Set the color list
     colors = Makie.wong_colors()
+
+    # Compute the axis ticks
+    if exp_ticks
+        tick_nums = log10.(ustrip.(plot_params.unit, edges))
+    else
+        tick_nums = ustrip.(plot_params.unit, edges)
+    end
+
+    ticks = [string(round((tick_nums[i] + tick_nums[i + 1]) / 2, sigdigits=2)) for i in 1:n_bins]
 
     @inbounds for simulation_path in simulation_paths
 
@@ -2995,9 +3012,9 @@ function gasFractionsBarPlot(
             y_func=identity,
             # Axes options
             xaxis_label=L"\mathrm{Fraction} \,\, [%]",
-            yaxis_label,
+            yaxis_label=isnothing(axis_label) ? plot_params.axis_label : axis_label,
             xaxis_var_name="",
-            yaxis_var_name="",
+            yaxis_var_name=plot_params.var_name,
             xaxis_scale_func=identity,
             yaxis_scale_func=identity,
             # Plotting and animation options
@@ -3008,7 +3025,7 @@ function gasFractionsBarPlot(
                 Axis=(
                     limits=(nothing, 105, nothing, nothing),
                     xticks=([0, 50, 100], [L"0.0", L"50", L"100"]),
-                    yticks=(1:n_bins, [L"10^{%$(tick)}" for tick in ticks]),
+                    yticks=(1:n_bins, ticks),
                 ),
                 BarPlot=(
                     flip_labels_at=10,
