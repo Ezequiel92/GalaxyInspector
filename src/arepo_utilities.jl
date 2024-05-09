@@ -1507,15 +1507,15 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :generic_mass
 
         plot_params = PlotParams(;
-            request  = Dict(
-                :stars => ["MASS", "POS ", "SOFT"],
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO "],
+            request    = Dict(
+                :stars   => ["MASS", "POS ", "SOFT"],
+                :gas     => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO "],
                 :dm_mass => ["MASS", "POS ", "SOFT"],
                 :bh_mass => ["MASS", "POS ", "SOFT"],
             ),
-            var_name = L"M",
+            var_name   = L"M",
             exp_factor = 10,
-            unit     = u"Msun",
+            unit       = u"Msun",
         )
 
     elseif quantity == :stellar_number
@@ -1561,7 +1561,6 @@ function plotParams(quantity::Symbol)::PlotParams
         )
 
     elseif quantity == :ionized_fraction
-
 
         plot_params = PlotParams(;
             request  = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP "]),
@@ -1698,7 +1697,7 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(
                 :stars => ["MASS", "POS ", "GAGE"],
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES"],
+                :gas   => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES"],
             ),
             var_name = L"\Sigma",
             unit     = u"Msun*pc^-2",
