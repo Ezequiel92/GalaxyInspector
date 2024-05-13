@@ -2246,6 +2246,8 @@ Compute the time series of two quantities.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
+  - `fraction::Bool=false`: If the `y_quantity` will be represented as a fraction of the last value. If `cumulative` = true, this will apply to the accumulated values.
   - `scaling::Function=identity`: Function to scale the x-axis (only relevant if `smooth` != 0). The bins will be computed accordingly. The options are the scaling functions accepted by Makie.jl: log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
@@ -2262,6 +2264,8 @@ function daEvolution(
     y_quantity::Symbol;
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     smooth::Int=0,
+    cumulative::Bool=false,
+    fraction::Bool=false,
     scaling::Function=identity,
     warnings::Bool=true,
 )::NTuple{2,Vector{<:Number}}
@@ -2335,6 +2339,14 @@ function daEvolution(
         # Compute the value for the y axis
         y_axis[slice_index] = integrateQty(data_dict, y_quantity)
 
+    end
+
+    if cumulative
+        cumsum!(y_axis, y_axis)
+    end
+
+    if fraction
+        y_axis ./= y_axis[end]
     end
 
     if iszero(smooth)

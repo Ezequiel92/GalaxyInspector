@@ -182,7 +182,7 @@ function snapshotReport(
         end
 
         # Select the filter function, translation and request dictionary
-        filter_function, translation, _, request = selectFilter(
+        filter_function, translation, rotation, request = selectFilter(
             filter_mode,
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
@@ -342,23 +342,25 @@ function snapshotReport(
         filterData!(data_dict; filter_function)
 
         println(file, "#"^100)
+        println(file, "Filtered box with:")
+
         if filter_mode isa Symbol
-            println(file, "\nGlobal properties (filtered box with mode :$(filter_mode)):")
+            println(file, "\n\tFilter mode: $(filter_mode)")
         else
-            println(file, "\nGlobal properties\n")
-            println(file, "\t", "#"^25)
-            println(file, "\tFiltered box with:")
-            println(file, "\n\t\tFilter function: $(String(Symbol(filter_mode[:filter_function])))")
-            println(file, "\t\tTranslation: $(filter_mode[:translation])")
-            println(file, "\t\tRotation: $(filter_mode[:rotation])")
-            println(file, "\t", "#"^25)
+            println(file, "\n\tFilter function: $(String(Symbol(filter_function)))")
         end
+
+        println(file, "\tTranslation: $(translation)")
+        println(file, "\tRotation: $(rotation)")
+        println(file, "#"^100)
+
+        println(file, "\nGlobal properties:\n")
 
         ############################################################################################
         # Print the number of cells/particles for each component
         ############################################################################################
 
-        println(file, "\n\tCell/particle number:\n")
+        println(file, "\tCell/particle number:\n")
 
         total_count = 0
         for component in component_list
@@ -469,200 +471,6 @@ function snapshotReport(
         global_cm = round.(ustrip.(u"Mpc", global_cm), sigdigits=6)
         println(file, "\t\tGlobal center of mass:   $(global_cm) $(u"Mpc")\n")
 
-        # Translate the simulation box
-        translateData!(data_dict, translation)
-
-        ############################################################################################
-        # Print the radius containing 90% and 95% of the mass
-        ############################################################################################
-
-        # Stars
-        mass_radius_90 = computeMassRadius(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["MASS"];
-            percent=90.0,
-        )
-
-        mass_radius_95 = computeMassRadius(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["MASS"];
-            percent=95.0,
-        )
-
-        println(file, "\tRadius containing X% of the stellar mass:\n")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
-
-        # See only the gas cells that are within a sphere with a radius of `total_gas_r`
-        total_gas_r = 30.0u"kpc"
-        idx_tot_gas_r = filterWithin(data_dict, (0.0u"kpc", total_gas_r), :zero)[:gas]
-
-        # Total gas
-        mass_radius_90 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            data_dict[:gas]["MASS"][idx_tot_gas_r];
-            percent=90.0,
-        )
-
-        mass_radius_95 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            data_dict[:gas]["MASS"][idx_tot_gas_r];
-            percent=95.0,
-        )
-
-        println(
-            file,
-            "\tRadius containing X% of the total gas mass (within $(total_gas_r)):\n",
-        )
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
-
-        # Ionized gas
-        ionized_mass = computeIonizedMass(data_dict)
-        if !isempty(ionized_mass)
-
-            mass_radius_90 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                ionized_mass[idx_tot_gas_r];
-                percent=90.0,
-            )
-
-            mass_radius_95 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                ionized_mass[idx_tot_gas_r];
-                percent=95.0,
-            )
-
-            println(
-                file,
-                "\tRadius containing X% of the ionized gas mass (within $(total_gas_r)):\n",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
-            )
-
-        end
-
-        # Atomic gas
-        atomic_mass = computeAtomicMass(data_dict)
-        if !isempty(atomic_mass)
-
-            mass_radius_90 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                atomic_mass[idx_tot_gas_r];
-                percent=90.0,
-            )
-
-            mass_radius_95 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                atomic_mass[idx_tot_gas_r];
-                percent=95.0,
-            )
-
-            println(
-                file,
-                "\tRadius containing X% of the atomic gas mass (within $(total_gas_r)):\n",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
-            )
-
-        end
-
-        # Molecular gas
-        molecular_mass = computeMolecularMass(data_dict)
-        if !isempty(molecular_mass)
-
-            mass_radius_90 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                molecular_mass[idx_tot_gas_r];
-                percent=90.0,
-            )
-
-            mass_radius_95 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                molecular_mass[idx_tot_gas_r];
-                percent=95.0,
-            )
-
-            println(
-                file,
-                "\tRadius containing X% of the molecular gas mass (within $(total_gas_r)):\n",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
-            )
-
-        end
-
-        ############################################################################################
-        # Print the total height of a cylinder, of infinite radius, containing 90% and 95%
-        # of the stellar mass
-        ############################################################################################
-
-        mass_height_90 = computeMassHeight(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["MASS"];
-            percent=90.0,
-        )
-
-        mass_height_95 = computeMassHeight(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["MASS"];
-            percent=95.0,
-        )
-
-        println(file, "\tTotal height containing X% of the stellar mass:\n")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_90), sigdigits=4)) $(u"kpc") (90%)")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_95), sigdigits=4)) $(u"kpc") (95%)\n")
-
-        ############################################################################################
-        # Print the number of stars outside 50kpc
-        ############################################################################################
-
-        radial_distances = computeDistance(data_dict[:stars]["POS "])
-        stellar_masses = data_dict[:stars]["MASS"]
-
-        total_s_number = length(radial_distances)
-        total_s_mass = sum(stellar_masses)
-
-        idxs = findall(d->d>=50u"kpc", radial_distances)
-
-        number_outside = length(idxs)
-        mass_outside = sum(stellar_masses[idxs])
-
-        number_percent = (number_outside / total_s_number) * 100.0
-        mass_percent = (mass_outside / total_s_mass) * 100.0
-
-        println(file, "\tNumber of stars outside a radius of 50kpc:\n")
-        println(
-            file,
-            "\t\t$(number_outside) ($(round(number_percent, sigdigits=3))% of the total \
-            number of stars)\n",
-        )
-
-        println(file, "\tStellar mass outside a radius of 50kpc:\n")
-        println(
-            file,
-            "\t\t$(round(typeof(1.0u"Msun"), mass_outside, sigdigits=3)) \
-            ($(round(mass_percent, sigdigits=3))% of the total stellar mass)\n",
-        )
-
         ############################################################################################
         # Print the fraction of gas cells that have enter our routine
         ############################################################################################
@@ -677,56 +485,6 @@ function snapshotReport(
             println(file, "\t\t$(round(fraction, sigdigits=3))% of the total number of cells\n")
 
         end
-
-        ############################################################################################
-        # Print the normalized angular momentum of each component
-        ############################################################################################
-
-        println(file, "\tNormalized angular momentum:\n")
-
-        for component in component_list
-
-            L = computeTotalAngularMomentum(
-                data_dict[component]["POS "],
-                data_dict[component]["VEL "],
-                data_dict[component]["MASS"];
-            )
-
-            title = "$(PARTICLE_NAMES[component]):"
-            title *= " "^(25 - length(title))
-
-            println(file, "\t\t$(title)$(round.(L, sigdigits=3))")
-
-        end
-
-        global_L = round.(computeGlobalAngularMomentum(data_dict), sigdigits=3)
-
-        println(file, "\n\t\tGlobal angular momentum: $(global_L)\n")
-
-        ############################################################################################
-        # Print the spin parameter of each component
-        ############################################################################################
-
-        println(file, "\tSpin parameter (R = $(FILTER_R)):\n")
-
-        for component in component_list
-
-            λ = computeSpinParameter(
-                data_dict[component]["POS "],
-                data_dict[component]["VEL "],
-                data_dict[component]["MASS"],
-            )
-
-            title = "$(PARTICLE_NAMES[component]):"
-            title *= " "^(25 - length(title))
-
-            println(file, "\t\t$(title)$(round.(λ, sigdigits=3))")
-
-        end
-
-        global_λ = round.(computeGlobalSpinParameter(data_dict), sigdigits=3)
-
-        println(file, "\n\t\tTotal spin parameter:    $(global_λ)\n")
 
         ############################################################################################
         # Print the maximum and minimum values of each parameter of the ODEs
@@ -781,10 +539,345 @@ function snapshotReport(
         end
 
         ############################################################################################
+        # Translate the simulation box
+        ############################################################################################
+
+        translateData!(data_dict, translation)
+
+        ############################################################################################
+        # Print the normalized angular momentum of each component
+        ############################################################################################
+
+        println(file, "\tNormalized angular momentum:\n")
+
+        for component in component_list
+
+            L = computeTotalAngularMomentum(
+                data_dict[component]["POS "],
+                data_dict[component]["VEL "],
+                data_dict[component]["MASS"];
+            )
+
+            title = "$(PARTICLE_NAMES[component]):"
+            title *= " "^(25 - length(title))
+
+            println(file, "\t\t$(title)$(round.(L, sigdigits=3))")
+
+        end
+
+        global_L = round.(computeGlobalAngularMomentum(data_dict), sigdigits=3)
+
+        println(file, "\n\t\tGlobal angular momentum: $(global_L)\n")
+
+        ############################################################################################
+        # Print the spin parameter of each component
+        ############################################################################################
+
+        println(file, "\tSpin parameter (R = $(FILTER_R)):\n")
+
+        for component in component_list
+
+            λ = computeSpinParameter(
+                data_dict[component]["POS "],
+                data_dict[component]["VEL "],
+                data_dict[component]["MASS"],
+            )
+
+            title = "$(PARTICLE_NAMES[component]):"
+            title *= " "^(25 - length(title))
+
+            println(file, "\t\t$(title)$(round.(λ, sigdigits=3))")
+
+        end
+
+        global_λ = round.(computeGlobalSpinParameter(data_dict), sigdigits=3)
+
+        println(file, "\n\t\tTotal spin parameter:    $(global_λ)\n")
+
+        println(file, "#"^100)
+        println(file, "\nCharacteristic radii:\n")
+
+        ############################################################################################
+        # Radio maximo
+        ############################################################################################
+
+        radial_limit = 50.0u"kpc"
+
+        ############################################################################################
+        # Print the radius containing 90% and 95% of the mass
+        ############################################################################################
+
+        # Stars
+        mass_radius_90 = computeMassRadius(
+            data_dict[:stars]["POS "],
+            data_dict[:stars]["MASS"];
+            percent=90.0,
+        )
+
+        mass_radius_95 = computeMassRadius(
+            data_dict[:stars]["POS "],
+            data_dict[:stars]["MASS"];
+            percent=95.0,
+        )
+
+        println(file, "\tRadius containing X% of the stellar mass:\n")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
+
+        # See only the gas cells that are within a sphere with a radius of `radial_limit`
+        idx_tot_gas_r = filterWithin(data_dict, (0.0u"kpc", radial_limit), :zero)[:gas]
+
+        # Total gas
+        mass_radius_90 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            data_dict[:gas]["MASS"][idx_tot_gas_r];
+            percent=90.0,
+        )
+
+        mass_radius_95 = computeMassRadius(
+            data_dict[:gas]["POS "][:, idx_tot_gas_r],
+            data_dict[:gas]["MASS"][idx_tot_gas_r];
+            percent=95.0,
+        )
+
+        println(
+            file,
+            "\tRadius containing X% of the total gas mass (within $(radial_limit)):\n",
+        )
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
+
+        # Ionized gas
+        ionized_mass = computeIonizedMass(data_dict)
+        if !isempty(ionized_mass)
+
+            mass_radius_90 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                ionized_mass[idx_tot_gas_r];
+                percent=90.0,
+            )
+
+            mass_radius_95 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                ionized_mass[idx_tot_gas_r];
+                percent=95.0,
+            )
+
+            println(
+                file,
+                "\tRadius containing X% of the ionized gas mass (within $(radial_limit)):\n",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+            )
+
+        end
+
+        # Atomic gas
+        atomic_mass = computeAtomicMass(data_dict)
+        if !isempty(atomic_mass)
+
+            mass_radius_90 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                atomic_mass[idx_tot_gas_r];
+                percent=90.0,
+            )
+
+            mass_radius_95 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                atomic_mass[idx_tot_gas_r];
+                percent=95.0,
+            )
+
+            println(
+                file,
+                "\tRadius containing X% of the atomic gas mass (within $(radial_limit)):\n",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+            )
+
+        end
+
+        # Molecular gas
+        molecular_mass = computeMolecularMass(data_dict)
+        if !isempty(molecular_mass)
+
+            mass_radius_90 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                molecular_mass[idx_tot_gas_r];
+                percent=90.0,
+            )
+
+            mass_radius_95 = computeMassRadius(
+                data_dict[:gas]["POS "][:, idx_tot_gas_r],
+                molecular_mass[idx_tot_gas_r];
+                percent=95.0,
+            )
+
+            println(
+                file,
+                "\tRadius containing X% of the molecular gas mass (within $(radial_limit)):\n",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+            )
+            println(
+                file,
+                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+            )
+
+        end
+
+        println(file, "#"^100)
+        println(file, "\nCharacteristic fractions:\n")
+
+        ############################################################################################
+        # Print the number of stars inside `radial_limit`
+        ############################################################################################
+
+        stellar_radial_distances = computeDistance(data_dict[:stars]["POS "])
+        stellar_masses = data_dict[:stars]["MASS"]
+
+        total_s_number = length(stellar_radial_distances)
+        total_s_mass = sum(stellar_masses)
+
+        idxs = findall(d->d <= radial_limit, stellar_radial_distances)
+
+        number_inside = length(idxs)
+        mass_inside = sum(stellar_masses[idxs])
+
+        number_percent = (number_inside / total_s_number) * 100.0
+        mass_percent = (mass_inside / total_s_mass) * 100.0
+
+        println(file, "\tNumber of stars inside a radius of $(radial_limit):\n")
+        println(
+            file,
+            "\t\t$(number_inside) ($(round(number_percent, sigdigits=3))% of the total \
+            number of stars)\n",
+        )
+
+        println(file, "\tStellar mass inside a radius of $(radial_limit):\n")
+        println(
+            file,
+            "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
+            ($(round(mass_percent, sigdigits=3))% of the total stellar mass)\n",
+        )
+
+        ############################################################################################
+        # Print the gas fraction inside `radial_limit`
+        ############################################################################################
+
+        gas_radial_distances = computeDistance(data_dict[:gas]["POS "])
+        idxs = findall(d->d <= radial_limit, gas_radial_distances)
+
+        # Total gas
+        gas_masses   = data_dict[:gas]["MASS"]
+        total_mass   = sum(gas_masses)
+        mass_inside  = sum(gas_masses[idxs])
+        mass_percent = (mass_inside / total_mass) * 100.0
+
+        println(file, "\tGas mass inside a radius of $(radial_limit):\n")
+        println(
+            file,
+            "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
+            ($(round(mass_percent, sigdigits=3))% of the total gas mass)\n",
+        )
+
+        # Ionized gas
+        if !isempty(ionized_mass)
+
+            total_mass   = sum(ionized_mass)
+            mass_inside  = sum(ionized_mass[idxs])
+            mass_percent = (mass_inside / total_mass) * 100.0
+
+            println(file, "\tIonized gas mass inside a radius of $(radial_limit):\n")
+            println(
+                file,
+                "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
+                ($(round(mass_percent, sigdigits=3))% of the total ionized gas mass)\n",
+            )
+
+        end
+
+        # Atomic gas
+        if !isempty(atomic_mass)
+
+            total_mass   = sum(atomic_mass)
+            mass_inside  = sum(atomic_mass[idxs])
+            mass_percent = (mass_inside / total_mass) * 100.0
+
+            println(file, "\tAtomic gas mass inside a radius of $(radial_limit):\n")
+            println(
+                file,
+                "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
+                ($(round(mass_percent, sigdigits=3))% of the total atomic gas mass)\n",
+            )
+
+        end
+
+        # Molecular gas
+        if !isempty(molecular_mass)
+
+            total_mass   = sum(molecular_mass)
+            mass_inside  = sum(molecular_mass[idxs])
+            mass_percent = (mass_inside / total_mass) * 100.0
+
+            println(file, "\tMolecular gas mass inside a radius of $(radial_limit):\n")
+            println(
+                file,
+                "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
+                ($(round(mass_percent, sigdigits=3))% of the total molecular gas mass)\n",
+            )
+
+        end
+
+        ############################################################################################
+        # Rotate the simulation box
+        ############################################################################################
+
+        rotateData!(data_dict, rotation)
+
+        ############################################################################################
+        # Print the total height of a cylinder, of infinite radius, containing 90% and 95%
+        # of the stellar mass
+        ############################################################################################
+
+        mass_height_90 = computeMassHeight(
+            data_dict[:stars]["POS "],
+            data_dict[:stars]["MASS"];
+            percent=90.0,
+        )
+
+        mass_height_95 = computeMassHeight(
+            data_dict[:stars]["POS "],
+            data_dict[:stars]["MASS"];
+            percent=95.0,
+        )
+
+        println(file, "\tTotal height containing X% of the stellar mass:\n")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_90), sigdigits=4)) $(u"kpc") (90%)")
+        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_95), sigdigits=4)) $(u"kpc") (95%)\n")
+
+        ############################################################################################
         # Print the properties of the target halo and subhalo
         ############################################################################################
 
         if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
+
+            println(file, "#"^100)
+            println(file, "\nHalo and subhalo global properties:")
 
             # Check that the requested halo index is within bounds
             n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
@@ -863,7 +956,7 @@ function snapshotReport(
             # Print the halo properties
             ########################################################################################
 
-            println(file, "#"^71)
+            println(file, "\n", "#"^71)
             println(file, "NOTE: Stellar particle counts include wind particles from here on out!")
             println(file, "#"^71)
 
@@ -3142,6 +3235,8 @@ Plot a time series.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
+  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
+  - `fraction::Bool=false`: If the `y_quantity` will be represented as a fraction of the last value. If `cumulative` = true, this will apply to the accumulated values.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -3178,6 +3273,8 @@ function timeSeries(
     simulation_paths::Vector{String},
     x_quantity::Symbol,
     y_quantity::Symbol;
+    cumulative::Bool=false,
+    fraction::Bool=false,
     slice::IndexType=(:),
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
@@ -3186,6 +3283,16 @@ function timeSeries(
 
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
+
+    y_var_name = y_plot_params.var_name
+
+    if cumulative
+        y_var_name = "Accumulated $(y_var_name)"
+    end
+
+    if fraction
+        y_var_name = "Fraction of $(y_var_name)"
+    end
 
     timeSeriesPlot(
         simulation_paths,
@@ -3201,14 +3308,14 @@ function timeSeries(
         slice,
         da_functions=[daEvolution],
         da_args=[(x_quantity, y_quantity)],
-        da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=true)],
+        da_kwargs=[(; filter_mode, smooth=0, cumulative, fraction, scaling=identity, warnings=true)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
         x_unit=x_plot_params.unit,
-        y_unit=y_plot_params.unit,
+        y_unit=fraction ? Unitful.NoUnits : y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
-        y_exp_factor=y_plot_params.exp_factor,
+        y_exp_factor=fraction ? 0 : y_plot_params.exp_factor,
         x_trim=(-Inf, Inf),
         y_trim=(-Inf, Inf),
         x_edges=false,
@@ -3219,9 +3326,9 @@ function timeSeries(
         xaxis_label=x_plot_params.axis_label,
         yaxis_label=y_plot_params.axis_label,
         xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
+        yaxis_var_name=y_var_name,
         xaxis_scale_func=identity,
-        yaxis_scale_func=log10,
+        yaxis_scale_func=fraction ? identity : log10,
         # Plotting options
         save_figures=true,
         backup_results=false,
