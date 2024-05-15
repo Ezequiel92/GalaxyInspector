@@ -2358,6 +2358,87 @@ function daEvolution(
 end
 
 """
+    daAccretion(
+        sim_data::Simulation;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute a accreted gas mass time series.
+
+# Arguments
+
+  - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
+  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `warnings::Bool=true`: If a warning will be given when there is missing data.
+
+# Returns
+
+  - A Tuple with two elements:
+
+      + A Vector with the physical times.
+      + A Vector with the accreted mass at each time.
+"""
+function daAccretion(
+    sim_data::Simulation;
+    halo_idx::Int=1,
+    smooth::Int=0,
+    warnings::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    # Compure the time axis
+    t  = sim_data.table[sim_data.slice, :physical_times]
+    Δt = deltas(t)
+
+    # Iterate over each snapshot in the slice
+    iterator = eachrow(DataFrame(sim_data.table[sim_data.slice, :]))
+
+    (
+        length(iterator) >= 2 ||
+        throw(ArgumentError("daAccretion: The given slice: $(sim_data.slice), selected for less \
+        than two snapshots. I need at least two snapshots to compute the a time series of \
+        gas accretion. The full simulation table is:\n$(sim_data.table)"))
+    )
+
+    # Allocate memory
+    masses = fill!(Vector{Number}(undef, length(iterator)), NaN)
+
+    @inbounds for (slice_index, sim_table_data) in pairs(iterator)
+
+        snapshot_path = sim_table_data[7]
+        groupcat_path = sim_table_data[8]
+
+        # Skip missing snapshots
+        !ismissing(snapshot_path) || continue
+
+        gc_data = readGroupCatalog(
+            groupcat_path,
+            snapshot_path,
+            Dict(:group => ["G_M_Crit200"]);
+            warnings,
+        )
+
+        # Read the virial mass
+        if isempty(gc_data[:group]["G_M_Crit200"])
+            masses[slice_index] = 0.0u"Msun"
+        else
+            masses[slice_index] = gc_data[:group]["G_M_Crit200"][halo_idx]
+        end
+
+    end
+
+    # Compute the change in virial mass
+    Δm = deltas(masses)
+
+    if iszero(smooth)
+        return t, Δm ./ Δt
+    else
+        return smoothWindow(t, Δm ./ Δt, smooth)
+    end
+
+end
+
+"""
     daSFRtxt(
         sim_data::Simulation,
         x_quantity::Symbol,

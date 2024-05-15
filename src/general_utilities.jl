@@ -1274,6 +1274,85 @@ function smoothWindow(
 
 end
 
+"""
+    cubicSplineKernel(q::Real, h::Number)::Number
+
+2D cubic spline kernel.
+
+# Arguments
+
+  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
+  - `h::Number`: Smoothing length.
+
+# Returns
+
+  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
+
+# References
+
+[PySPH documentation](https://pysph.readthedocs.io/en/latest/reference/kernels.html)
+
+J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
+
+M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
+"""
+function cubicSplineKernel(q::Real, h::Number)::Number
+
+    (
+        isPositive(q, h) ||
+        throw(DomainError("cubicSplineKernel: `q` and `h` must be positive, \
+        but I got `q` = $q and `h` = $h"))
+    )
+
+    σ3 = 10.0 / (7.0 * area(h))
+
+    if 0 <= q <= 1
+        return σ3 * (1.0 - 1.5 * q * q * (1.0 - q * 0.5))
+    elseif 1 < q <= 2
+        return (σ3 * 0.25) * (2.0 - q)^3.0
+    else
+        return zero(σ3)
+    end
+
+end
+
+"""
+    deltas(data::Vector{<:Number})::Vector{<:Number}
+
+Compute the difference between each consecutive pair of elements in `data`.
+
+# Arguments
+
+  - `data::Vector{<:Number}`: Values. It has to have at least 2 elements.
+
+# Returns
+
+  - A vector with the difference between each consecutive pair of elements in `data`, the first element is 0 by convention.
+"""
+function deltas(data::Vector{<:Number})::Vector{<:Number}
+
+    # Allocate memory
+    Δd = similar(data)
+
+    nd = length(data)
+
+    # Check that `data` has a valid length
+    (
+        nd >= 2 ||
+        throw(ArgumentError("deltas: `data` must have at least 2 elements, but it has only $(nd)"))
+    )
+
+    # Set the first value to 0, by convention
+    Δd[1] = zero(data[1])
+
+    @inbounds for i in 2:nd
+        Δd[i] = data[i] - data[i - 1]
+    end
+
+    return Δd
+
+end
+
 ####################################################################################################
 # Makie utilities.
 ####################################################################################################
@@ -1446,45 +1525,3 @@ end
 Default function to end `cleanPlot!` recursion if an unknown type is encountered.
 """
 cleanPlot!(default) = error("cleanPlot!: I cannot clean elements of type $(typeof(default))")
-
-"""
-    cubicSplineKernel(q::Real, h::Number)::Number
-
-2D cubic spline kernel.
-
-# Arguments
-
-  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
-  - `h::Number`: Smoothing length.
-
-# Returns
-
-  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
-
-# References
-
-[PySPH documentation](https://pysph.readthedocs.io/en/latest/reference/kernels.html)
-
-J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
-
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
-"""
-function cubicSplineKernel(q::Real, h::Number)::Number
-
-    (
-        isPositive(q, h) ||
-        throw(DomainError("cubicSplineKernel: `q` and `h` must be positive, \
-        but I got `q` = $q and `h` = $h"))
-    )
-
-    σ3 = 10.0 / (7.0 * area(h))
-
-    if 0 <= q <= 1
-        return σ3 * (1.0 - 1.5 * q * q * (1.0 - q * 0.5))
-    elseif 1 < q <= 2
-        return (σ3 * 0.25) * (2.0 - q)^3.0
-    else
-        return zero(σ3)
-    end
-
-end

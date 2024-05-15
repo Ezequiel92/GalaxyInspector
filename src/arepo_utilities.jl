@@ -195,7 +195,7 @@ function formatError(q_mean::Number, q_error::Number)::NTuple{2,<:Number}
     # Positive error check
     (
         q_error >= zero(q_error) ||
-        throw(DomainError("formatError: `q_error` must be positive, but I got \
+        throw(ArgumentError("formatError: `q_error` must be positive, but I got \
         q_error = $(q_error)"))
     )
 
@@ -1402,6 +1402,7 @@ Select the plotting parameters for a given `quantity`.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_accretion`              -> Gas accretion rate. Positive values mean gas infall into the virial radius ``R_{200}``, and negative values mean outflow.
       + `:stellar_specific_am`        -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`            -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`             -> Norm of the dark matter specific angular momentum.
@@ -1781,6 +1782,14 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(:halo => ["POS "]),
             var_name = L"r_{xy}",
             unit     = u"kpc",
+        )
+
+    elseif quantity == :gas_accretion
+
+        plot_params = PlotParams(;
+            request  = Dict(:group => ["G_M_Crit200"]),
+            var_name = "Gas accretion",
+            unit     = u"Msun*yr^-1",
         )
 
     elseif quantity == :stellar_specific_am

@@ -85,6 +85,7 @@ export scatterDensityMap
 export gasFractionsBarPlot
 export timeSeries
 export gasEvolution
+export accretionEvolution
 export rotationCurve
 export densityProfile
 export massProfile

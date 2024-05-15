@@ -3464,6 +3464,83 @@ function gasEvolution(
 end
 
 """
+    accretionEvolution(
+        simulation_paths::Vector{String};
+        <keyword arguments>
+    )::Nothing
+
+Plot a time series of the accreted gas mass.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `output_path::String="./"`: Path to the output folder.
+  - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+"""
+function accretionEvolution(
+    simulation_paths::Vector{String};
+    slice::IndexType=(:),
+    halo_idx::Int=1,
+    smooth::Int=0,
+    output_path::String="./",
+    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+)::Nothing
+
+    x_plot_params = plotParams(:physical_time)
+    y_plot_params = plotParams(:gas_accretion)
+
+    timeSeriesPlot(
+        simulation_paths,
+        [lines!];
+        pf_kwargs=[(;)],
+        # `timeSeriesPlot` configuration
+        output_path,
+        filename="gas-accretion-evolution",
+        output_format=".pdf",
+        warnings=true,
+        show_progress=true,
+        # Data manipulation options
+        slice,
+        da_functions=[daAccretion],
+        da_args=[()],
+        da_kwargs=[(; halo_idx, smooth, warnings=true)],
+        post_processing=getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
+        x_unit=x_plot_params.unit,
+        y_unit=y_plot_params.unit,
+        x_exp_factor=x_plot_params.exp_factor,
+        y_exp_factor=y_plot_params.exp_factor,
+        x_trim=(-Inf, Inf),
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label=x_plot_params.axis_label,
+        yaxis_label=y_plot_params.axis_label,
+        xaxis_var_name=x_plot_params.var_name,
+        yaxis_var_name=y_plot_params.var_name,
+        xaxis_scale_func=identity,
+        yaxis_scale_func=identity,
+        # Plotting options
+        save_figures=true,
+        backup_results=false,
+        theme=Theme(Axis=(aspect=AxisAspect(1),),),
+        size=(880, 880),
+        sim_labels,
+        title="",
+    )
+
+    return nothing
+
+end
+
+"""
     rotationCurve(
         simulation_paths::Vector{String},
         slice::IndexType;
