@@ -50,7 +50,7 @@ Some of the features are:
 ### Data manipulation options
 
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
@@ -58,24 +58,23 @@ Some of the features are:
 
       + `data_dict::Dict`: A dictionary with the following shape:
 
-          * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-          * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-          * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-          * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-          * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-          * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-          * ...
-          * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-          * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-          * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-          * ...
-
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
       + `indices::Dict`: A dictionary with the following shape:
 
-          * `cell/particle type` -> idxs::IndexType
-          * `cell/particle type` -> idxs::IndexType
-          * `cell/particle type` -> idxs::IndexType
-          * ...
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
   - `da_functions::Vector{<:Function}=[getNothing]`: Vector of data analysis functions. See the required signature and examples in `./src/data_analysis.jl`.
   - `da_args::Vector{<:Tuple}=[()]`: Vector of positional arguments for the data analysis functions.
   - `da_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the data analysis functions.

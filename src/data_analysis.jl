@@ -59,13 +59,13 @@ Compute a rotation curve.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `R::Unitful.Length`: Maximum radius.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -78,8 +78,7 @@ Compute a rotation curve.
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -145,13 +144,13 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
       + `:gas_area_density`       -> Total gas area mass density.
       + `:molecular_area_density` -> Molecular hydrogen area mass density.
       + `:neutral_area_density`   -> Neutral hydrogen area mass density.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -164,8 +163,7 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -268,13 +266,13 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `:O_stellar_abundance`    -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
       + `:N_stellar_abundance`    -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`    -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -287,8 +285,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -445,13 +442,14 @@ Compute a profile.
   - `total::Bool=false`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `fractions::Bool=false`: If a profile of the gas mass fractions will be calculated. It is only valid with `quantity` equal to :neutral_mass, :molecular_mass, :atomic_mass or :ionized_mass, and it forces `total` = true, `cumulative` = false, and `density` = false.
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -464,8 +462,7 @@ Compute a profile.
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -489,60 +486,83 @@ function daProfile(
     total::Bool=false,
     cumulative::Bool=false,
     density::Bool=false,
+    fractions::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
 
     filtered_dd = filterData(data_dict; filter_function)
 
+    if fractions
+        (
+            quantity ∈ [:molecular_mass, :atomic_mass, :ionized_mass] ||
+            throw(ArgumentError("daProfile: If `fractions``= true, quantity must be \
+            :neutral_mass, :molecular_mass, :atomic_mass or :ionized_mass, \
+            but I got `quantity` = :$(quantity)"))
+        )
+        total      = true
+        cumulative = false
+        density    = false
+    end
+
     if quantity ∈ [:stellar_area_density, :stellar_mass]
 
-        positions = filtered_dd[:stars]["POS "]
-        values    = scatterQty(filtered_dd, :stellar_mass)
+        positions   = filtered_dd[:stars]["POS "]
+        values      = scatterQty(filtered_dd, :stellar_mass)
+        norm_values = Number[]
 
     elseif quantity ∈ [:gas_area_density, :gas_mass]
 
-        positions = filtered_dd[:gas]["POS "]
-        values    = scatterQty(filtered_dd, :gas_mass)
+        positions   = filtered_dd[:gas]["POS "]
+        values      = scatterQty(filtered_dd, :gas_mass)
+        norm_values = Number[]
 
     elseif quantity ∈ [:molecular_area_density, :molecular_mass]
 
-        positions = filtered_dd[:gas]["POS "]
-        values    = scatterQty(filtered_dd, :molecular_mass)
+        positions   = filtered_dd[:gas]["POS "]
+        values      = scatterQty(filtered_dd, :molecular_mass)
+        norm_values = fractions ? scatterQty(filtered_dd, :gas_mass) : Number[]
 
     elseif quantity ∈ [:atomic_area_density, :atomic_mass]
 
-        positions = filtered_dd[:gas]["POS "]
-        values    = scatterQty(filtered_dd, :atomic_mass)
+        positions   = filtered_dd[:gas]["POS "]
+        values      = scatterQty(filtered_dd, :atomic_mass)
+        norm_values = fractions ? scatterQty(filtered_dd, :gas_mass) : Number[]
 
     elseif quantity ∈ [:ionized_area_density, :ionized_mass]
 
-        positions = filtered_dd[:gas]["POS "]
-        values    = scatterQty(filtered_dd, :ionized_mass)
+        positions   = filtered_dd[:gas]["POS "]
+        values      = scatterQty(filtered_dd, :ionized_mass)
+        norm_values = fractions ? scatterQty(filtered_dd, :gas_mass) : Number[]
 
     elseif quantity ∈ [:neutral_area_density, :neutral_mass]
 
-        positions = filtered_dd[:gas]["POS "]
-        values    = scatterQty(filtered_dd, :neutral_mass)
+        positions   = filtered_dd[:gas]["POS "]
+        values      = scatterQty(filtered_dd, :neutral_mass)
+        norm_values = fractions ? scatterQty(filtered_dd, :gas_mass) : Number[]
 
     elseif quantity == [:sfr, :sfr_area_density]
 
-        positions = filtered_dd[:stars]["POS "]
-        values    = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ)
+        positions   = filtered_dd[:stars]["POS "]
+        values      = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ)
+        norm_values = Number[]
 
     elseif quantity == :stellar_vradial
 
-        positions = filtered_dd[:stars]["POS "]
-        values    = scatterQty(filtered_dd, :stellar_vradial)
+        positions   = filtered_dd[:stars]["POS "]
+        values      = scatterQty(filtered_dd, :stellar_vradial)
+        norm_values = Number[]
 
     elseif quantity == :stellar_vtangential
 
-        positions = filtered_dd[:stars]["POS "]
-        values    = scatterQty(filtered_dd, :stellar_vtangential)
+        positions   = filtered_dd[:stars]["POS "]
+        values      = scatterQty(filtered_dd, :stellar_vtangential)
+        norm_values = Number[]
 
     elseif quantity == :stellar_vzstar
 
-        positions = filtered_dd[:stars]["POS "]
-        values    = scatterQty(filtered_dd, :stellar_vzstar)
+        positions   = filtered_dd[:stars]["POS "]
+        values      = scatterQty(filtered_dd, :stellar_vzstar)
+        norm_values = Number[]
 
     else
 
@@ -557,6 +577,7 @@ function daProfile(
         positions,
         values,
         grid;
+        norm_values,
         flat,
         total,
         cumulative,
@@ -596,32 +617,31 @@ Compute the evolution of a given stellar `quantity` using the stellar ages at a 
       + `:ssfr`         -> The specific star formation rate.
       + `:stellar_mass` -> Stellar mass.
   - `n_bins::Int=100`: Number of bins (time intervals).
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
-      `filter_function(data_dict) -> indices`
+    `filter_function(data_dict) -> indices`
 
-      where
+    where
 
-        + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
-            * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-            * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-            * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * ...
-            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * ...
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
 
-        + `indices::Dict`: A dictionary with the following shape:
-
-            * `cell/particle type` -> idxs::IndexType
-            * `cell/particle type` -> idxs::IndexType
-            * `cell/particle type` -> idxs::IndexType
-            * ...
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -757,13 +777,13 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `grid::LinearGrid`: Linear grid.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -776,8 +796,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -847,13 +866,13 @@ Compute a 1D histogram of a given `quantity`.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
   - `grid::LinearGrid`: Linear grid.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -866,8 +885,7 @@ Compute a 1D histogram of a given `quantity`.
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -963,13 +981,13 @@ Compute a 2D density histogram.
   - `neighbors::Int=18`: Number of neighbors for the 2D smoothing (only relevant if `smooth` = true). The default value comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
   - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -982,8 +1000,7 @@ Compute a 2D density histogram.
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -1178,13 +1195,13 @@ Compute a 2D temperature histogram.
   - `grid::SquareGrid`: Square grid.
   - `projection_plane::Symbol=:xy`: To which plane the cells will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic temperature range.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -1197,8 +1214,7 @@ Compute a 2D temperature histogram.
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -1385,13 +1401,13 @@ Turn a scatter plot into a 2D histogram.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `y_quantity`, if you want to use log10(`y_quantity`) for the y axis.
   - `n_bins::Int=100`: Number of bins per side of the grid.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -1404,8 +1420,7 @@ Turn a scatter plot into a 2D histogram.
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -1528,13 +1543,13 @@ Compute a 2D mean velocity field.
   - `type_symbol::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `velocity_units::Bool=false`: If the velocity will be given as an `Unitful.Quantity` with units or as a `Flot64` (in which case the underlying unit is `km * s^-1`).
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -1547,8 +1562,7 @@ Compute a 2D mean velocity field.
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -1733,13 +1747,13 @@ Compute two global quantities of the simulation.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
 
     where
 
-    + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
         * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
         * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
@@ -1752,8 +1766,7 @@ Compute two global quantities of the simulation.
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
         * ...
-
-    + `indices::Dict`: A dictionary with the following shape:
+      + `indices::Dict`: A dictionary with the following shape:
 
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
@@ -1889,32 +1902,31 @@ Compute two quantities for every cell/particle in the simulation.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
-      `filter_function(data_dict) -> indices`
+    `filter_function(data_dict) -> indices`
 
-      where
+    where
 
-        + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
-            * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-            * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-            * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * ...
-            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * ...
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
 
-        + `indices::Dict`: A dictionary with the following shape:
-
-            * `cell/particle type` -> idxs::IndexType
-            * `cell/particle type` -> idxs::IndexType
-            * `cell/particle type` -> idxs::IndexType
-            * ...
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -1997,32 +2009,31 @@ Compute the values for a gas fraction bar plot.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `edges::Vector{<:Number}`: A sorted list of bin edges.
   - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
-  - `filter_function::Function=filterNothing`: A functions with the signature:
+  - `filter_function::Function=filterNothing`: A function with the signature:
 
-      `filter_function(data_dict) -> indices`
+    `filter_function(data_dict) -> indices`
 
-      where
+    where
 
-        + `data_dict::Dict`: A dictionary with the following shape:
+      + `data_dict::Dict`: A dictionary with the following shape:
 
-            * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-            * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-            * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * ...
-            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-            * ...
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
 
-        + `indices::Dict`: A dictionary with the following shape:
-
-            * `cell/particle type` -> idxs::IndexType
-            * `cell/particle type` -> idxs::IndexType
-            * `cell/particle type` -> idxs::IndexType
-            * ...
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 
 # Returns
 
@@ -2279,8 +2290,8 @@ function daEvolution(
     iterator = eachrow(DataFrame(sim_data.table[sim_data.slice, :]))
 
     # Allocate memory
-    x_axis = fill!(Vector{Number}(undef, length(iterator)), NaN)
-    y_axis = fill!(Vector{Number}(undef, length(iterator)), NaN)
+    x_axis = Vector{Number}(NaN, length(iterator))
+    y_axis = Vector{Number}(NaN, length(iterator))
 
     @inbounds for (slice_index, sim_table_data) in pairs(iterator)
 
@@ -2368,7 +2379,36 @@ Compute a accreted gas mass time series.
 # Arguments
 
   - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted. Only valis if `tracers` = true. The options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `tracers::Bool=false`: If tracers will be use to compute the mass accretion. If false, `filter_mode` will be ignored.
   - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
@@ -2381,18 +2421,34 @@ Compute a accreted gas mass time series.
 """
 function daAccretion(
     sim_data::Simulation;
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     halo_idx::Int=1,
+    tracers::Bool=false,
     smooth::Int=0,
     warnings::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
-    # Compure the time axis
-    t  = sim_data.table[sim_data.slice, :physical_times]
-    Δt = deltas(t)
+    filter_function, translation, _, request = selectFilter(
+        filter_mode,
+        Dict(
+            :gas         => ["ID  ", "MASS"],
+            :stars       => ["ID  ", "MASS"],
+            :black_hole  => ["ID  ", "MASS"],
+            :group       => ["G_R_Crit200", "G_M_Crit200"],
+            :tracer      => ["PAID", "TRID"],
+        ),
+    )
+
+    # Read the metadata table for the simulation
+    simulation_dataframe = DataFrame(sim_data.table[sim_data.slice, :])
+
+    # Delete missing snapshots
+    filter!(row -> !ismissing(row[:snapshot_paths]), simulation_dataframe)
 
     # Iterate over each snapshot in the slice
-    iterator = eachrow(DataFrame(sim_data.table[sim_data.slice, :]))
+    iterator = eachrow(simulation_dataframe)
 
+    # Check that there are at least 2 snapshots left
     (
         length(iterator) >= 2 ||
         throw(ArgumentError("daAccretion: The given slice: $(sim_data.slice), selected for less \
@@ -2400,40 +2456,140 @@ function daAccretion(
         gas accretion. The full simulation table is:\n$(sim_data.table)"))
     )
 
-    # Allocate memory
-    masses = fill!(Vector{Number}(undef, length(iterator)), NaN)
+    ################################################################################################
+    # First element of the iteration over the snapshots
+    ################################################################################################
 
-    @inbounds for (slice_index, sim_table_data) in pairs(iterator)
+    sim_table_data = iterator[1]
 
+    snapshot_path = sim_table_data[7]
+    groupcat_path = sim_table_data[8]
+
+    # Get the snapshot header
+    snapshot_header = readSnapHeader(snapshot_path)
+
+    # Get the group catalog header
+    groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+
+    # Construct the metadata dictionary
+    metadata = Dict(
+        :sim_data => sim_data,
+        :snap_data => Snapshot(
+            snapshot_path,
+            sim_table_data[1],
+            1,
+            sim_table_data[5],
+            sim_table_data[6],
+            sim_table_data[3],
+            sim_table_data[4],
+            snapshot_header,
+        ),
+        :gc_data => GroupCatalog(groupcat_path, groupcat_header),
+    )
+
+    # Read the data in the snapshot
+    past_dd = merge(
+        metadata,
+        readSnapshot(snapshot_path, request; warnings),
+        readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+    )
+
+    if tracers
+        # Filter the data
+        filterData!(past_dd; filter_function)
+        # Translate the data
+        translateData!(past_dd, translation)
+    end
+
+    # Allocate memory fo the mass axis
+    Δm = Vector{Unitful.Mass}(undef, length(iterator) - 1)
+
+    ################################################################################################
+    # Iteration over the snapshots
+    ################################################################################################
+
+    @inbounds for (slice_index, sim_table_data) in pairs(iterator[2:end])
+
+        global_index  = sim_table_data[1]
+        scale_factor  = sim_table_data[3]
+        redshift      = sim_table_data[4]
+        physical_time = sim_table_data[5]
+        lookback_time = sim_table_data[6]
         snapshot_path = sim_table_data[7]
         groupcat_path = sim_table_data[8]
 
-        # Skip missing snapshots
-        !ismissing(snapshot_path) || continue
+        # Get the snapshot header
+        snapshot_header = readSnapHeader(snapshot_path)
 
-        gc_data = readGroupCatalog(
-            groupcat_path,
-            snapshot_path,
-            Dict(:group => ["G_M_Crit200"]);
-            warnings,
+        # Get the group catalog header
+        groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+
+        # Construct the metadata dictionary
+        metadata = Dict(
+            :sim_data => sim_data,
+            :snap_data => Snapshot(
+                snapshot_path,
+                global_index,
+                slice_index + 1,
+                physical_time,
+                lookback_time,
+                scale_factor,
+                redshift,
+                snapshot_header,
+            ),
+            :gc_data => GroupCatalog(groupcat_path, groupcat_header),
         )
 
-        # Read the virial mass
-        if isempty(gc_data[:group]["G_M_Crit200"])
-            masses[slice_index] = 0.0u"Msun"
-        else
-            masses[slice_index] = gc_data[:group]["G_M_Crit200"][halo_idx]
+        # Read the data in the snapshot
+        present_dd = merge(
+            metadata,
+            readSnapshot(snapshot_path, request; warnings),
+            readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+        )
+
+        if tracers
+            # Filter the data
+            filterData!(present_dd; filter_function)
+            # Translate the data
+            translateData!(present_dd, translation)
         end
+
+        if tracers
+
+            Δm[slice_index], _, _ = computeVirialAccretion(present_dd, past_dd; halo_idx)
+
+        else
+
+            if isempty(past_dd[:group]["G_M_Crit200"])
+                m_past = 0.0u"Msun"
+            else
+                m_past = past_dd[:group]["G_M_Crit200"][halo_idx]
+            end
+
+            if isempty(present_dd[:group]["G_M_Crit200"])
+                m_present = 0.0u"Msun"
+            else
+                m_present = present_dd[:group]["G_M_Crit200"][halo_idx]
+            end
+
+            Δm[slice_index] = m_present -  m_past
+
+        end
+
+        past_dd = present_dd
 
     end
 
-    # Compute the change in virial mass
-    Δm = deltas(masses)
+    # Compure the time ticks
+    t  = sim_data.table[sim_data.slice, :physical_times]
+
+    # Compure the time axis
+    Δt = deltas(t)[2:end]
 
     if iszero(smooth)
-        return t, Δm ./ Δt
+        return t[2:end], Δm ./ Δt
     else
-        return smoothWindow(t, Δm ./ Δt, smooth)
+        return smoothWindow(t[2:end], Δm ./ Δt, smooth)
     end
 
 end

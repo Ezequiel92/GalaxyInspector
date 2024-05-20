@@ -335,10 +335,9 @@ function snapshotReport(
         end
 
         ############################################################################################
-        # Print the global properties of the simulation after filtering
+        # Filter the simulation box
         ############################################################################################
 
-        # Filter cell/particles
         filterData!(data_dict; filter_function)
 
         println(file, "#"^100)
@@ -353,6 +352,10 @@ function snapshotReport(
         println(file, "\tTranslation: $(translation)")
         println(file, "\tRotation: $(rotation)")
         println(file, "#"^100)
+
+        ############################################################################################
+        # Print the global properties of the simulation after filtering
+        ############################################################################################
 
         println(file, "\nGlobal properties:\n")
 
@@ -594,255 +597,6 @@ function snapshotReport(
 
         println(file, "\n\t\tTotal spin parameter:    $(global_λ)\n")
 
-        println(file, "#"^100)
-        println(file, "\nCharacteristic radii:\n")
-
-        ############################################################################################
-        # Radio maximo
-        ############################################################################################
-
-        radial_limit = 50.0u"kpc"
-
-        ############################################################################################
-        # Print the radius containing 90% and 95% of the mass
-        ############################################################################################
-
-        # Stars
-        mass_radius_90 = computeMassRadius(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["MASS"];
-            percent=90.0,
-        )
-
-        mass_radius_95 = computeMassRadius(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["MASS"];
-            percent=95.0,
-        )
-
-        println(file, "\tRadius containing X% of the stellar mass:\n")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
-
-        # See only the gas cells that are within a sphere with a radius of `radial_limit`
-        idx_tot_gas_r = filterWithin(data_dict, (0.0u"kpc", radial_limit), :zero)[:gas]
-
-        # Total gas
-        mass_radius_90 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            data_dict[:gas]["MASS"][idx_tot_gas_r];
-            percent=90.0,
-        )
-
-        mass_radius_95 = computeMassRadius(
-            data_dict[:gas]["POS "][:, idx_tot_gas_r],
-            data_dict[:gas]["MASS"][idx_tot_gas_r];
-            percent=95.0,
-        )
-
-        println(
-            file,
-            "\tRadius containing X% of the total gas mass (within $(radial_limit)):\n",
-        )
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n")
-
-        # Ionized gas
-        ionized_mass = computeIonizedMass(data_dict)
-        if !isempty(ionized_mass)
-
-            mass_radius_90 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                ionized_mass[idx_tot_gas_r];
-                percent=90.0,
-            )
-
-            mass_radius_95 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                ionized_mass[idx_tot_gas_r];
-                percent=95.0,
-            )
-
-            println(
-                file,
-                "\tRadius containing X% of the ionized gas mass (within $(radial_limit)):\n",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
-            )
-
-        end
-
-        # Atomic gas
-        atomic_mass = computeAtomicMass(data_dict)
-        if !isempty(atomic_mass)
-
-            mass_radius_90 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                atomic_mass[idx_tot_gas_r];
-                percent=90.0,
-            )
-
-            mass_radius_95 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                atomic_mass[idx_tot_gas_r];
-                percent=95.0,
-            )
-
-            println(
-                file,
-                "\tRadius containing X% of the atomic gas mass (within $(radial_limit)):\n",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
-            )
-
-        end
-
-        # Molecular gas
-        molecular_mass = computeMolecularMass(data_dict)
-        if !isempty(molecular_mass)
-
-            mass_radius_90 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                molecular_mass[idx_tot_gas_r];
-                percent=90.0,
-            )
-
-            mass_radius_95 = computeMassRadius(
-                data_dict[:gas]["POS "][:, idx_tot_gas_r],
-                molecular_mass[idx_tot_gas_r];
-                percent=95.0,
-            )
-
-            println(
-                file,
-                "\tRadius containing X% of the molecular gas mass (within $(radial_limit)):\n",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
-            )
-            println(
-                file,
-                "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
-            )
-
-        end
-
-        println(file, "#"^100)
-        println(file, "\nCharacteristic fractions:\n")
-
-        ############################################################################################
-        # Print the number of stars inside `radial_limit`
-        ############################################################################################
-
-        stellar_radial_distances = computeDistance(data_dict[:stars]["POS "])
-        stellar_masses = data_dict[:stars]["MASS"]
-
-        total_s_number = length(stellar_radial_distances)
-        total_s_mass = sum(stellar_masses)
-
-        idxs = findall(d->d <= radial_limit, stellar_radial_distances)
-
-        number_inside = length(idxs)
-        mass_inside = sum(stellar_masses[idxs])
-
-        number_percent = (number_inside / total_s_number) * 100.0
-        mass_percent = (mass_inside / total_s_mass) * 100.0
-
-        println(file, "\tNumber of stars inside a radius of $(radial_limit):\n")
-        println(
-            file,
-            "\t\t$(number_inside) ($(round(number_percent, sigdigits=3))% of the total \
-            number of stars)\n",
-        )
-
-        println(file, "\tStellar mass inside a radius of $(radial_limit):\n")
-        println(
-            file,
-            "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
-            ($(round(mass_percent, sigdigits=3))% of the total stellar mass)\n",
-        )
-
-        ############################################################################################
-        # Print the gas fraction inside `radial_limit`
-        ############################################################################################
-
-        gas_radial_distances = computeDistance(data_dict[:gas]["POS "])
-        idxs = findall(d->d <= radial_limit, gas_radial_distances)
-
-        # Total gas
-        gas_masses   = data_dict[:gas]["MASS"]
-        total_mass   = sum(gas_masses)
-        mass_inside  = sum(gas_masses[idxs])
-        mass_percent = (mass_inside / total_mass) * 100.0
-
-        println(file, "\tGas mass inside a radius of $(radial_limit):\n")
-        println(
-            file,
-            "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
-            ($(round(mass_percent, sigdigits=3))% of the total gas mass)\n",
-        )
-
-        # Ionized gas
-        if !isempty(ionized_mass)
-
-            total_mass   = sum(ionized_mass)
-            mass_inside  = sum(ionized_mass[idxs])
-            mass_percent = (mass_inside / total_mass) * 100.0
-
-            println(file, "\tIonized gas mass inside a radius of $(radial_limit):\n")
-            println(
-                file,
-                "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
-                ($(round(mass_percent, sigdigits=3))% of the total ionized gas mass)\n",
-            )
-
-        end
-
-        # Atomic gas
-        if !isempty(atomic_mass)
-
-            total_mass   = sum(atomic_mass)
-            mass_inside  = sum(atomic_mass[idxs])
-            mass_percent = (mass_inside / total_mass) * 100.0
-
-            println(file, "\tAtomic gas mass inside a radius of $(radial_limit):\n")
-            println(
-                file,
-                "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
-                ($(round(mass_percent, sigdigits=3))% of the total atomic gas mass)\n",
-            )
-
-        end
-
-        # Molecular gas
-        if !isempty(molecular_mass)
-
-            total_mass   = sum(molecular_mass)
-            mass_inside  = sum(molecular_mass[idxs])
-            mass_percent = (mass_inside / total_mass) * 100.0
-
-            println(file, "\tMolecular gas mass inside a radius of $(radial_limit):\n")
-            println(
-                file,
-                "\t\t$(round(typeof(1.0u"Msun"), mass_inside, sigdigits=3)) \
-                ($(round(mass_percent, sigdigits=3))% of the total molecular gas mass)\n",
-            )
-
-        end
-
         ############################################################################################
         # Rotate the simulation box
         ############################################################################################
@@ -875,9 +629,6 @@ function snapshotReport(
         ############################################################################################
 
         if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
-
-            println(file, "#"^100)
-            println(file, "\nHalo and subhalo global properties:")
 
             # Check that the requested halo index is within bounds
             n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
@@ -953,8 +704,391 @@ function snapshotReport(
             g_r_crit_200    = gc_data[:group]["G_R_Crit200"][halo_idx]
 
             ########################################################################################
-            # Print the halo properties
+            # Print the mass of each hydrogen phase between 50 kpc y and the virial radius.
             ########################################################################################
+
+            if :gas in component_list
+
+                ####################################################################################
+                # Disc external radius
+                ####################################################################################
+
+                radial_limit = 50.0u"kpc"
+
+                ####################################################################################
+                # Indices of cells and particles within the disc radius and
+                # between the disc radius and the virial radius
+                ####################################################################################
+
+                disc_idxs = filterWithin(data_dict, (0.0u"kpc", radial_limit), :zero)
+                halo_idxs = filterWithin(data_dict, (radial_limit, g_r_crit_200), :zero)
+
+                stellar_masses   = data_dict[:stars]["MASS"]
+                gas_masses       = data_dict[:gas]["MASS"]
+                ionized_masses   = computeIonizedMass(data_dict)
+                atomic_masses    = computeAtomicMass(data_dict)
+                molecular_masses = computeMolecularMass(data_dict)
+
+                stellar_mass_inside  = stellar_masses[disc_idxs[:stars]]
+                stellar_mass_outside = stellar_masses[halo_idxs[:stars]]
+
+                gas_mass_inside  = gas_masses[disc_idxs[:gas]]
+                gas_mass_outside = gas_masses[halo_idxs[:gas]]
+
+                if !isempty(ionized_masses)
+                    ionized_mass_inside  = ionized_masses[disc_idxs[:gas]]
+                    ionized_mass_outside = ionized_masses[halo_idxs[:gas]]
+                end
+
+                if !isempty(atomic_masses)
+                    atomic_mass_inside  = atomic_masses[disc_idxs[:gas]]
+                    atomic_mass_outside = atomic_masses[halo_idxs[:gas]]
+                end
+
+                if !isempty(molecular_masses)
+                    molecular_mass_inside  = molecular_masses[disc_idxs[:gas]]
+                    molecular_mass_outside = molecular_masses[halo_idxs[:gas]]
+                end
+
+                println(file, "#"^100)
+                println(file, "\nCharacteristic radii:\n")
+
+                ####################################################################################
+                # Print the radius containing 90% and 95% of the mass, withing de disc (r < 50 kpc)
+                ####################################################################################
+
+                #############################
+                # Stars
+                #############################
+
+                mass_radius_90 = computeMassRadius(
+                    data_dict[:stars]["POS "][:, disc_idxs[:stars]],
+                    stellar_mass_inside;
+                    percent=90.0,
+                )
+
+                mass_radius_95 = computeMassRadius(
+                    data_dict[:stars]["POS "][:, disc_idxs[:stars]],
+                    stellar_mass_inside;
+                    percent=95.0,
+                )
+
+                println(file, "\tRadius containing X% of the stellar mass (r < $(radial_limit)):\n")
+                println(
+                    file,
+                    "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+                )
+                println(
+                    file,
+                    "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+                )
+
+                #############################
+                # Total gas
+                #############################
+
+                mass_radius_90 = computeMassRadius(
+                    data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                    gas_mass_inside;
+                    percent=90.0,
+                )
+
+                mass_radius_95 = computeMassRadius(
+                    data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                    gas_mass_inside;
+                    percent=95.0,
+                )
+
+                println(
+                    file,
+                    "\tRadius containing X% of the total gas mass (r < $(radial_limit)):\n",
+                )
+                println(
+                    file,
+                    "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+                )
+                println(
+                    file,
+                    "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+                )
+
+                #############################
+                # Ionized gas
+                #############################
+
+                if !isempty(ionized_masses)
+
+                    mass_radius_90 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        ionized_mass_inside;
+                        percent=90.0,
+                    )
+
+                    mass_radius_95 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        ionized_mass_inside;
+                        percent=95.0,
+                    )
+
+                    println(
+                        file,
+                        "\tRadius containing X% of the ionized gas mass (r < $(radial_limit)):\n",
+                    )
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+                    )
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+                    )
+
+                end
+
+                #############################
+                # Atomic gas
+                #############################
+
+                if !isempty(atomic_masses)
+
+                    mass_radius_90 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        atomic_mass_inside;
+                        percent=90.0,
+                    )
+
+                    mass_radius_95 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        atomic_mass_inside;
+                        percent=95.0,
+                    )
+
+                    println(
+                        file,
+                        "\tRadius containing X% of the atomic gas mass (r < $(radial_limit)):\n",
+                    )
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+                    )
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+                    )
+
+                end
+
+                #############################
+                # Molecular gas
+                #############################
+
+                if !isempty(molecular_masses)
+
+                    mass_radius_90 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        molecular_mass_inside;
+                        percent=90.0,
+                    )
+
+                    mass_radius_95 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        molecular_mass_inside;
+                        percent=95.0,
+                    )
+
+                    println(
+                        file,
+                        "\tRadius containing X% of the molecular gas mass (r < $(radial_limit)):\n",
+                    )
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+                    )
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+                    )
+
+                end
+
+                ####################################################################################
+                # Print the masses withing de disc (r < 50 kpc) and
+                # outside the disc (50 kpc < r < R200)
+                ####################################################################################
+
+                println(file, "#"^100)
+                println(file, "\nCharacteristic fractions and masses:\n")
+
+                println(file, "\t", "#"^20)
+                println(file, "\tR200: $(round(typeof(1.0u"kpc"), g_r_crit_200, sigdigits=4))")
+                println(file, "\t", "#"^20, "\n")
+
+                #############################
+                # Stars
+                #############################
+
+                total_stellar_mass_inside  = sum(stellar_mass_inside; init=0.0u"Msun")
+                total_stellar_mass_outside = sum(stellar_mass_outside; init=0.0u"Msun")
+                total_stellar_mass         = total_stellar_mass_inside + total_stellar_mass_outside
+
+                s_inside_percent  = (total_stellar_mass_inside / total_stellar_mass) * 100.0
+                s_outside_percent = (total_stellar_mass_outside / total_stellar_mass) * 100.0
+
+                println(file, "\t", "#"^40)
+                println(file, "\tStars:")
+                println(file, "\t", "#"^40, "\n")
+
+                println(file, "\tStellar mass inside the disc (r < $(radial_limit)):\n")
+                println(
+                    file,
+                    "\t\t$(round(typeof(1.0u"Msun"), total_stellar_mass_inside, sigdigits=3)) \
+                    ($(round(s_inside_percent, sigdigits=3))% of the total stellar mass)\n",
+                )
+
+                println(file, "\tStellar mass outside the disc ($(radial_limit) < r < R200):\n")
+                println(
+                    file,
+                    "\t\t$(round(typeof(1.0u"Msun"), total_stellar_mass_outside, sigdigits=3)) \
+                    ($(round(s_outside_percent, sigdigits=3))% of the total stellar mass)\n",
+                )
+
+                #############################
+                # Total gas
+                #############################
+
+                total_gas_mass_inside  = sum(gas_mass_inside; init=0.0u"Msun")
+                total_gas_mass_outside = sum(gas_mass_outside; init=0.0u"Msun")
+                total_gas_mass         = total_gas_mass_inside + total_gas_mass_outside
+
+                g_inside_percent  = (total_gas_mass_inside / total_gas_mass) * 100.0
+                g_outside_percent = (total_gas_mass_outside / total_gas_mass) * 100.0
+
+                println(file, "\t", "#"^40)
+                println(file, "\tTotal gas:")
+                println(file, "\t", "#"^40, "\n")
+
+                println(file, "\tGas mass inside the disc (r < $(radial_limit)):\n")
+                println(
+                    file,
+                    "\t\t$(round(typeof(1.0u"Msun"), total_gas_mass_inside, sigdigits=3)) \
+                    ($(round(g_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                )
+
+                println(file, "\tGas mass outside the disc ($(radial_limit) < r < R200):\n")
+                println(
+                    file,
+                    "\t\t$(round(typeof(1.0u"Msun"), total_gas_mass_outside, sigdigits=3)) \
+                    ($(round(g_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                )
+
+                #############################
+                # Ionized gas
+                #############################
+
+                if !isempty(ionized_masses)
+
+                    total_ion_mass_inside  = sum(ionized_mass_inside; init=0.0u"Msun")
+                    total_ion_mass_outside = sum(ionized_mass_outside; init=0.0u"Msun")
+
+                    i_inside_percent  = (total_ion_mass_inside  / total_gas_mass) * 100.0
+                    i_outside_percent = (total_ion_mass_outside / total_gas_mass) * 100.0
+
+                    println(file, "\t", "#"^40)
+                    println(file, "\tIonized gas:")
+                    println(file, "\t", "#"^40, "\n")
+
+                    println(file, "\tIonized mass inside the disc (r < $(radial_limit)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_ion_mass_inside, sigdigits=3)) \
+                        ($(round(i_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                    )
+
+                    println(file, "\tIonized mass outside the disc ($(radial_limit) < r < R200):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_ion_mass_outside, sigdigits=3)) \
+                        ($(round(i_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                    )
+
+                end
+
+                #############################
+                # Atomic gas
+                #############################
+
+                if !isempty(atomic_masses)
+
+                    total_ato_mass_inside  = sum(atomic_mass_inside; init=0.0u"Msun")
+                    total_ato_mass_outside = sum(atomic_mass_outside; init=0.0u"Msun")
+
+                    a_inside_percent  = (total_ato_mass_inside  / total_gas_mass) * 100.0
+                    a_outside_percent = (total_ato_mass_outside / total_gas_mass) * 100.0
+
+                    println(file, "\t", "#"^40)
+                    println(file, "\tAtomic gas:")
+                    println(file, "\t", "#"^40, "\n")
+
+                    println(file, "\tAtomic mass inside the disc (r < $(radial_limit)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_inside, sigdigits=3)) \
+                        ($(round(a_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                    )
+
+                    println(file, "\tAtomic mass outside the disc ($(radial_limit) < r < R200):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_outside, sigdigits=3)) \
+                        ($(round(a_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                    )
+
+                end
+
+                #############################
+                # Molecular gas
+                #############################
+
+                if !isempty(molecular_masses)
+
+                    total_mol_mass_inside  = sum(molecular_mass_inside; init=0.0u"Msun")
+                    total_mol_mass_outside = sum(molecular_mass_outside; init=0.0u"Msun")
+
+                    m_inside_percent  = (total_mol_mass_inside  / total_gas_mass) * 100.0
+                    m_outside_percent = (total_mol_mass_outside / total_gas_mass) * 100.0
+
+                    println(file, "\t", "#"^40)
+                    println(file, "\tMolecular gas:")
+                    println(file, "\t", "#"^40, "\n")
+
+                    println(file, "\tMolecular mass inside the disc (r < $(radial_limit)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_inside, sigdigits=3)) \
+                        ($(round(m_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                    )
+
+                    println(file, "\tMolecular mass outside the disc ($(radial_limit) < r < R200):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_outside, sigdigits=3)) \
+                        ($(round(m_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                    )
+
+                end
+
+            end
+
+            ########################################################################################
+            # Halo and subhalo global properties
+            ########################################################################################
+
+            println(file, "#"^100)
+            println(file, "\nHalo and subhalo global properties:")
+
+            ##############################
+            # Print the halo properties
+            ##############################
 
             println(file, "\n", "#"^71)
             println(file, "NOTE: Stellar particle counts include wind particles from here on out!")
@@ -965,7 +1099,7 @@ function snapshotReport(
             ########################################################################################
 
             println(file, "\tCell/particle number:\n")
-            for (i, len) in enumerate(g_len_type)
+            for (i, len) in pairs(g_len_type)
 
                 component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
                 println(file, "\t\t$(component):$(" "^(22 - length(component))) $(len)")
@@ -979,7 +1113,7 @@ function snapshotReport(
             ########################################################################################
 
             println(file, "\tMasses:\n")
-            for (i, mass) in enumerate(g_mass_type)
+            for (i, mass) in pairs(g_mass_type)
 
                 type_symbol = INDEX_PARTICLE[i - 1]
 
@@ -1044,9 +1178,9 @@ function snapshotReport(
                 \n\n\t\t$(round(typeof(1.0u"kpc"), g_r_crit_200, sigdigits=4))\n",
             )
 
-            ########################################################################################
+            ##############################
             # Print the subhalo properties
-            ########################################################################################
+            ##############################
 
             println(file, "#"^100)
             println(
@@ -1058,7 +1192,7 @@ function snapshotReport(
             ########################################################################################
 
             println(file, "\tCell/particle number:\n")
-            for (i, len) in enumerate(s_len_type)
+            for (i, len) in pairs(s_len_type)
 
                 component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
                 println(file, "\t\t$(component):$(" "^(22 - length(component))) $(len)")
@@ -1068,7 +1202,7 @@ function snapshotReport(
             ########################################################################################
 
             println(file, "\n\tMasses:\n")
-            for (i, mass) in enumerate(s_mass_type)
+            for (i, mass) in pairs(s_mass_type)
 
                 type_symbol = INDEX_PARTICLE[i - 1]
 
@@ -1448,7 +1582,7 @@ function simulationReport(
 
                 println(file, "\n\t\tCell/particle number:\n")
 
-                for (i, len) in enumerate(s_len_type)
+                for (i, len) in pairs(s_len_type)
 
                     component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
                     println(file, "\t\t\t$(component):$(" "^(22 - length(component))) $(len)")
@@ -1526,6 +1660,7 @@ Plot a time series of the data in the `sfr.txt` file.
   - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="./"`: Path to the output folder.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function sfrTXT(
     simulation_paths::Vector{String},
@@ -1534,6 +1669,7 @@ function sfrTXT(
     smooth::Int=0,
     output_path::String="./",
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
@@ -1577,7 +1713,7 @@ function sfrTXT(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Legend=(valign=:top,),),
+        theme=merge(theme, Theme(Legend=(valign=:top,),)),
         size=(1700, 1000),
         sim_labels,
         title="",
@@ -1624,6 +1760,7 @@ Plot a time series of the data in the `cpu.txt` file.
   - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`. This option does not affect histograms.
   - `output_path::String="./"`: Path to the output folder.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function cpuTXT(
     simulation_paths::Vector{String},
@@ -1636,6 +1773,7 @@ function cpuTXT(
     y_trim::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
@@ -1681,7 +1819,7 @@ function cpuTXT(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Legend=(halign=:left, valign=:top),),
+        theme=merge(theme, Theme(Legend=(halign=:left, valign=:top),)),
         size=(1700, 1000),
         sim_labels,
         title=L"\mathrm{Process: \,\, %$(safe_str_target)}",
@@ -2392,6 +2530,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function scatterPlot(
     simulation_paths::Vector{String},
@@ -2400,6 +2539,7 @@ function scatterPlot(
     y_quantity::Symbol;
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    theme::Attributes=Theme(),
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
@@ -2459,7 +2599,7 @@ function scatterPlot(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=Theme(),
+            theme,
             size=(1700, 1000),
             sim_labels=nothing,
             title="",
@@ -2494,6 +2634,7 @@ Plot the atomic gas to molecular gas transition as a heatmap, for a set of metal
   - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
   - `output_path::String="./"`: Path to the output folder.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function atomicMolecularTransitionHeatmap(
     simulation_paths::Vector{String},
@@ -2502,6 +2643,7 @@ function atomicMolecularTransitionHeatmap(
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
     output_path::String="./",
+    theme::Attributes=Theme(),
 )::Nothing
 
     # Set some plotting parameters
@@ -2577,7 +2719,10 @@ function atomicMolecularTransitionHeatmap(
                 # Plotting and animation options
                 save_figures=true,
                 backup_results=false,
-                theme=Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=1, valign=:top)),
+                theme=merge(
+                    theme,
+                    Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=1, valign=:top)),
+                ),
                 size=(880, 880),
                 sim_labels=nothing,
                 title=L"%$(range[1]) \, < \, Z \, < \, %$(range[2])",
@@ -2614,6 +2759,7 @@ Plot the atomic gas to molecular gas transition as a scatter plot, for a set of 
   - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
   - `output_path::String="./"`: Path to the output folder.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function atomicMolecularTransitionScatter(
     simulation_paths::Vector{String},
@@ -2622,6 +2768,7 @@ function atomicMolecularTransitionScatter(
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
     output_path::String="./",
+    theme::Attributes=Theme(),
 )::Nothing
 
     # Set some plotting parameters
@@ -2701,15 +2848,18 @@ function atomicMolecularTransitionScatter(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=Theme(
-                Axis=(aspect=AxisAspect(1),),
-                Legend=(
-                    nbanks=1,
-                    valign=:top,
-                    halign=:left,
-                    labelsize=20,
-                    rowgap=-5,
-                    markersize=20,
+            theme=merge(
+                theme,
+                Theme(
+                    Axis=(aspect=AxisAspect(1),),
+                    Legend=(
+                        nbanks=1,
+                        valign=:top,
+                        halign=:left,
+                        labelsize=20,
+                        rowgap=-5,
+                        markersize=20,
+                    ),
                 ),
             ),
             size=(880, 880),
@@ -2859,6 +3009,7 @@ Plot two quantities as a density scatter plot (2D histogram).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function scatterDensityMap(
     simulation_paths::Vector{String},
@@ -2870,6 +3021,7 @@ function scatterDensityMap(
     n_bins::Int=100,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    theme::Attributes=Theme(),
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
@@ -2929,7 +3081,7 @@ function scatterDensityMap(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=Theme(figure_padding=(1, 20, 5, 15), Axis=(aspect=AxisAspect(1),),),
+            theme=merge(theme, Theme(figure_padding=(1, 20, 5, 15), Axis=(aspect=AxisAspect(1),),)),
             size=(850, 850),
             sim_labels=nothing,
             title="",
@@ -3017,6 +3169,7 @@ Plot a bar plot of the gas fractions for different bins of a given quantity.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function gasFractionsBarPlot(
     simulation_paths::Vector{String},
@@ -3028,6 +3181,7 @@ function gasFractionsBarPlot(
     exp_ticks::Bool=false,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    theme::Attributes=Theme(),
 )::Nothing
 
     plot_params = plotParams(quantity)
@@ -3113,17 +3267,20 @@ function gasFractionsBarPlot(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=Theme(
-                Legend=(nbanks=include_stars ? 2 : 3,),
-                Axis=(
-                    limits=(nothing, 105, nothing, nothing),
-                    xticks=([0, 50, 100], [L"0.0", L"50", L"100"]),
-                    yticks=(1:n_bins, ticks),
-                ),
-                BarPlot=(
-                    flip_labels_at=10,
-                    label_formatter=barPlotLabelFormater,
-                    label_size= include_stars ? 25 : 35,
+            theme=merge(
+                theme,
+                Theme(
+                    Legend=(nbanks=include_stars ? 2 : 3,),
+                    Axis=(
+                        limits=(nothing, 105, nothing, nothing),
+                        xticks=([0, 50, 100], [L"0.0", L"50", L"100"]),
+                        yticks=(1:n_bins, ticks),
+                    ),
+                    BarPlot=(
+                        flip_labels_at=10,
+                        label_formatter=barPlotLabelFormater,
+                        label_size= include_stars ? 25 : 35,
+                    ),
                 ),
             ),
             size=(1700, 1200),
@@ -3268,6 +3425,7 @@ Plot a time series.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function timeSeries(
     simulation_paths::Vector{String},
@@ -3279,6 +3437,7 @@ function timeSeries(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     x_plot_params = plotParams(x_quantity)
@@ -3332,7 +3491,7 @@ function timeSeries(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Axis=(aspect=AxisAspect(1),),),
+        theme=merge(theme, Theme(Axis=(aspect=AxisAspect(1),),)),
         size=(880, 880),
         sim_labels,
         title="",
@@ -3399,9 +3558,11 @@ function gasEvolution(
 
     if fractions
         quantities = [:ionized_fraction, :atomic_fraction, :molecular_fraction]
+        sim_labels = ["Ionized fraction", "Atomic fraction", "Molecular fraction",]
         y_plot_params = plotParams(:generic_fraction)
     else
         quantities = [:gas_mass, :ionized_mass, :atomic_mass, :molecular_mass]
+        sim_labels = ["Total gas", "Ionized gas", "Atomic gas", "Molecular gas",]
         y_plot_params = plotParams(:generic_mass)
     end
 
@@ -3453,7 +3614,7 @@ function gasEvolution(
             backup_results=false,
             theme,
             size=(880, 880),
-            sim_labels=string.(quantities),
+            sim_labels,
             title="",
         )
 
@@ -3476,17 +3637,21 @@ Plot a time series of the accreted gas mass.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
   - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="./"`: Path to the output folder.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function accretionEvolution(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
     halo_idx::Int=1,
+    tracers::Bool=false,
     smooth::Int=0,
     output_path::String="./",
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     x_plot_params = plotParams(:physical_time)
@@ -3506,10 +3671,10 @@ function accretionEvolution(
         slice,
         da_functions=[daAccretion],
         da_args=[()],
-        da_kwargs=[(; halo_idx, smooth, warnings=true)],
-        post_processing=getNothing,
-        pp_args=(),
-        pp_kwargs=(;),
+        da_kwargs=[(; filter_mode=:halo, halo_idx, tracers, smooth, warnings=true)],
+        post_processing=ppHorizontalFlags!,
+        pp_args=([0.0],),
+        pp_kwargs=(; colors=[:gray65], line_styles=[nothing], warnings=true),
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
@@ -3530,7 +3695,7 @@ function accretionEvolution(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Axis=(aspect=AxisAspect(1),),),
+        theme=merge(theme, Theme(Axis=(aspect=AxisAspect(1),),)),
         size=(880, 880),
         sim_labels,
         title="",
@@ -3584,6 +3749,7 @@ Plot the galaxy rotation curve of a set of simulations.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function rotationCurve(
     simulation_paths::Vector{String},
@@ -3592,6 +3758,7 @@ function rotationCurve(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     x_plot_params = plotParams(:stellar_radial_distance)
@@ -3646,7 +3813,10 @@ function rotationCurve(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Axis=(limits=(nothing, nothing, 0.0, nothing),), Legend=(nbanks=2,)),
+        theme=merge(
+            theme,
+            Theme(Axis=(limits=(nothing, nothing, 0.0, nothing),), Legend=(nbanks=2,)),
+        ),
         size=(880, 880),
         sim_labels,
         title="",
@@ -3722,6 +3892,7 @@ Plot a density profile.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function densityProfile(
     simulation_paths::Vector{String},
@@ -3734,6 +3905,7 @@ function densityProfile(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     plot_params = plotParams(quantity)
@@ -3786,9 +3958,12 @@ function densityProfile(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(
-            Axis=(aspect=AxisAspect(1),),
-            Legend=(valign=:top,),
+        theme=merge(
+            theme,
+            Theme(
+                Axis=(aspect=AxisAspect(1),),
+                Legend=(valign=:top,),
+            ),
         ),
         size=(850, 850),
         sim_labels,
@@ -3865,6 +4040,7 @@ Plot a density profile.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=string.(quantities)`: Labels for the plot legend, one per quantity. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function densityProfile(
     simulation_paths::Vector{String},
@@ -3877,6 +4053,7 @@ function densityProfile(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=string.(quantities),
+    theme::Attributes=Theme(),
 )::Nothing
 
     plot_params = plotParams(:generic_area_density)
@@ -3934,9 +4111,12 @@ function densityProfile(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=Theme(
-                Axis=(aspect=AxisAspect(1),),
-                Legend=(valign=:top, nbanks=1),
+            theme=merge(
+                theme,
+                Theme(
+                    Axis=(aspect=AxisAspect(1),),
+                    Legend=(valign=:top, nbanks=1),
+                ),
             ),
             size=(880, 880),
             sim_labels,
@@ -4016,6 +4196,7 @@ Plot a mass profile.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=string.(quantities)`: Labels for the plot legend, one per quantity. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function massProfile(
     simulation_paths::Vector{String},
@@ -4028,6 +4209,7 @@ function massProfile(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=string.(quantities),
+    theme::Attributes=Theme(),
 )::Nothing
 
     plot_params = plotParams(:generic_mass)
@@ -4085,7 +4267,10 @@ function massProfile(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=1,)),
+            theme=merge(
+                theme,
+                Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=2, halign=:right, valign=:top)),
+            ),
             size=(880, 880),
             sim_labels,
             title="",
@@ -4151,6 +4336,7 @@ Plot a velocity profile.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function velocityProfile(
     simulation_paths::Vector{String},
@@ -4160,6 +4346,7 @@ function velocityProfile(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     plot_params = plotParams(component)
@@ -4212,7 +4399,7 @@ function velocityProfile(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(),
+        theme,
         size=(1700, 1000),
         sim_labels,
         title="",
@@ -4281,6 +4468,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function stellarHistory(
     simulation_paths::Vector{String},
@@ -4290,6 +4478,7 @@ function stellarHistory(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     x_plot_params = plotParams(:physical_time)
@@ -4345,7 +4534,7 @@ function stellarHistory(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=2,)),
+        theme=merge(theme, Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=2,))),
         size=(850, 850),
         sim_labels,
         title="",
@@ -4388,6 +4577,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
   - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
   - `output_path::String="./"`: Path to the output folder.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function stellarHistory(
     simulation_path::String,
@@ -4398,6 +4588,7 @@ function stellarHistory(
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
     output_path::String="./",
+    theme::Attributes=Theme(),
 )::Nothing
 
     da_kwargs  = [
@@ -4470,7 +4661,7 @@ function stellarHistory(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Legend=(nbanks=1,)),
+        theme=merge(theme, Theme(Legend=(nbanks=1,))),
         size=(1700, 1000),
         sim_labels,
         title="",
@@ -4530,6 +4721,7 @@ Plot a histogram of the stellar circularity.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function stellarCircularity(
     simulation_paths::Vector{String},
@@ -4539,6 +4731,7 @@ function stellarCircularity(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     plot_params = plotParams(:stellar_circularity)
@@ -4591,9 +4784,12 @@ function stellarCircularity(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(
-            Axis=(aspect=AxisAspect(1),),
-            Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
+        theme=merge(
+            theme,
+            Theme(
+                Axis=(aspect=AxisAspect(1),),
+                Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
+            ),
         ),
         size=(850, 850),
         sim_labels,
@@ -4666,6 +4862,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
 
@@ -4680,6 +4877,7 @@ function compareFeldmann2020(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     if x_quantity == :sfr
@@ -4735,7 +4933,7 @@ function compareFeldmann2020(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=Theme(Legend=(nbanks=2,),),
+        theme=merge(theme, Theme(Legend=(nbanks=2,),)),
         size=(1700, 1000),
         sim_labels,
         title="",
@@ -4798,6 +4996,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
 
@@ -4810,6 +5009,7 @@ function compareMolla2015(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     plot_params = plotParams(quantity)
@@ -4863,7 +5063,7 @@ function compareMolla2015(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(),
+        theme,
         size=(1700, 1000),
         sim_labels,
         title="",
@@ -4926,6 +5126,7 @@ Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
 
@@ -4940,6 +5141,7 @@ function compareKennicuttBigielResolved(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     grid = CircularGrid(FILTER_R, 20)
@@ -5017,7 +5219,7 @@ function compareKennicuttBigielResolved(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=Theme(),
+        theme,
         size=(1700, 1000),
         sim_labels,
         title="",
@@ -5080,6 +5282,7 @@ Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (19
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
 
@@ -5094,6 +5297,7 @@ function compareKennicuttBigielIntegrated(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
 )::Nothing
 
     if quantity == :gas_area_density
@@ -5159,7 +5363,7 @@ function compareKennicuttBigielIntegrated(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=Theme(),
+        theme,
         size=(1700, 1000),
         sim_labels,
         title="",
@@ -5218,6 +5422,7 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=["Simulation"]`: Label for the scatter plot. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
 
@@ -5233,6 +5438,7 @@ function fitKennicuttBigielResolved(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=["Simulation"],
+    theme::Attributes=Theme(),
 )::Nothing
 
     grid = CircularGrid(FILTER_R, 20)
@@ -5300,7 +5506,7 @@ function fitKennicuttBigielResolved(
         ##########################
         # left, right, bottom, top
         ##########################
-        theme=Theme(Legend=(padding=(0, 0, 150, 0),),),
+        theme=merge(theme, Theme(Legend=(padding=(0, 0, 150, 0),),)),
         size=(1700, 1000),
         sim_labels,
         title="",
