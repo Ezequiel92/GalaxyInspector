@@ -8,5 +8,5 @@ Some of these functions are exported.
 
 ```@autodocs
 Modules = [GalaxyInspector]
-Pages   = ["arepo/data_acquisition.jl"]
+Pages   = ["arepo/transformations.jl"]
 ```

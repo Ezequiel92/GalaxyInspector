@@ -10,5 +10,5 @@ None of these functions are exported.
 
 ```@autodocs
 Modules = [GalaxyInspector]
-Pages   = ["arepo_utilities.jl"]
+Pages   = ["arepo/arepo_utilities.jl"]
 ```
