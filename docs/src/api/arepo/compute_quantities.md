@@ -1,4 +1,4 @@
-# Arepo utilities
+# Derived quantities functions
 
 These functions are only used internally, and depend on the particulars of the Arepo code (e.g. units).
 
@@ -10,5 +10,5 @@ None of these functions are exported.
 
 ```@autodocs
 Modules = [GalaxyInspector]
-Pages   = ["arepo/arepo_utilities.jl"]
+Pages   = ["arepo/compute_quantities.jl"]
 ```
