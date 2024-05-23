@@ -30,6 +30,11 @@ If physical lengths will be used throughout, instead of comoving lengths.
 const PHYSICAL_UNITS = false
 
 """
+Mass of the tracers in internal units. It values comes from `All.TargetGasMass = All.TargetGasMassFactor * All.ReferenceGasPartMass` in the Arepo code.
+"""
+const TRACER_MASS = 3.65456e-06
+
+"""
 Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{kpc}``.
 See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
 """
@@ -48,19 +53,19 @@ See the documentation [here](https://www.tng-project.org/data/docs/specification
 const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
 
 """
-Radius of the sphere used in [`filterWithin`](@ref), and for area density calculation.
+Radius of the sphere used for area density calculation.
 """
-const FILTER_R = 25u"kpc"
+const FILTER_R = 30.0u"kpc"
 
 """
 Stellar age limit for the SFR and sSFR calculations.
 """
-const AGE_RESOLUTION = 25u"Myr"
+const AGE_RESOLUTION = 25.0u"Myr"
 
 """
 Stellar age limit for the SFR area density calculation.
 """
-const AGE_RESOLUTION_ρ = 200u"Myr"
+const AGE_RESOLUTION_ρ = 200.0u"Myr"
 
 """
 Threshold density, above which the gas particles enter the star formation routine.

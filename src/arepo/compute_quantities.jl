@@ -2888,17 +2888,13 @@ function computeVirialAccretion(
     # Find the tracers that were inside R200 in the past, but are now outside R200
     outflow_ids = setdiff(past_tracer_ids, present_tracer_ids)
 
-    # Compute the inflow mass
-    # The mass associated with a tracer is the mass of the parent
-    # cell/particle of that tracer in the past snapshot
-    inflow_masses = tracersToMass(past_dd, inflow_ids)
-    inflow_mass = sum(vcat(values(inflow_masses)...); init=0.0u"Msun")
+    # Compute the mass of each tracer in physical units
+    tracer_mass = TRACER_MASS * internalUnits("MASS", present_dd[:snap_data].path)
 
+    # Compute the inflow mass
+    inflow_mass = length(inflow_ids) * tracer_mass
     # Compute the outflow mass
-    # The mass associated with a tracer is the mass of the parent
-    # cell/particle of that tracer in the past snapshot
-    ouflow_masses = tracersToMass(past_dd, outflow_ids)
-    ouflow_mass = sum(vcat(values(ouflow_masses)...); init=0.0u"Msun")
+    ouflow_mass = length(outflow_ids) * tracer_mass
 
     # Compute the net mass
     net_mass_increase = inflow_mass - ouflow_mass

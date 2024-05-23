@@ -2057,14 +2057,36 @@ function daGasFractions(
     gas_mass = dd[:gas]["MASS"]
     gas_frac = dd[:gas]["FRAC"]
 
-    # If any of the necessary quantities are missing return nothing
-    !any(isempty, [gas_mass, gas_frac[1, :], gas_qty]) || return nothing
-
+    #TODO
     # Compute the mass of each gas phase
-    ionized_mass   = gas_frac[1, :] .* gas_mass
-    atomic_mass    = gas_frac[2, :] .* gas_mass
-    molecular_mass = gas_frac[3, :] .* gas_mass
-    stellar_mass   = gas_frac[4, :] .* gas_mass
+    if include_stars
+        ionized_mass   = [
+            isnan(fhii) ? nhp / (nhp + nh) : fhii for
+            (fhii, nh, nhp) in zip(gas_frac[1, :], dd[:gas]["NH  "], dd[:gas]["NHP "])
+        ] .* gas_mass
+        atomic_mass    = [
+            isnan(fhi) ? nh / (nhp + nh) : fhi for
+            (fhi, nh, nhp) in zip(gas_frac[2, :], dd[:gas]["NH  "], dd[:gas]["NHP "])
+        ] .* gas_mass
+        molecular_mass = replace!(gas_frac[3, :], NaN => 0.0) .* gas_mass
+        stellar_mass   = replace!(gas_frac[4, :], NaN => 0.0) .* gas_mass
+    else
+        ionized_mass   = computeIonizedMass(data_dict)
+        atomic_mass    = computeAtomicMass(data_dict)
+        molecular_mass = computeMolecularMass(data_dict)
+        # ionized_mass   = [
+        #     isnan(fhii) ? nhp / (nhp + nh) : fhii for
+        #     (fhii, nh, nhp) in zip(gas_frac[1, :], dd[:gas]["NH  "], dd[:gas]["NHP "])
+        # ] .* gas_mass
+        # atomic_mass    = [
+        #     isnan(fhi) ? nh / (nhp + nh) : fhi for
+        #     (fhi, nh, nhp) in zip(gas_frac[2, :], dd[:gas]["NH  "], dd[:gas]["NHP "])
+        # ] .* gas_mass
+        # molecular_mass = replace!(gas_frac[3, :], NaN => 0.0) .* gas_mass
+    end
+
+    # If any of the necessary quantities are missing return nothing
+    !any(isempty, [gas_qty, ionized_mass, atomic_mass, molecular_mass]) || return nothing
 
     # Compute the number of bins for the gas quantity
     n_bins = length(edges) - 1
@@ -2290,8 +2312,8 @@ function daEvolution(
     iterator = eachrow(DataFrame(sim_data.table[sim_data.slice, :]))
 
     # Allocate memory
-    x_axis = Vector{Number}(NaN, length(iterator))
-    y_axis = Vector{Number}(NaN, length(iterator))
+    x_axis = Vector{Number}(fill(NaN, length(iterator)))
+    y_axis = Vector{Number}(fill(NaN, length(iterator)))
 
     @inbounds for (slice_index, sim_table_data) in pairs(iterator)
 

@@ -545,6 +545,8 @@ function snapshotReport(
         # Translate the simulation box
         ############################################################################################
 
+
+
         translateData!(data_dict, translation)
 
         ############################################################################################
@@ -3032,10 +3034,18 @@ function scatterDensityMap(
         mergeRequests(x_plot_params.request, y_plot_params.request),
     )
 
+    n_sims = length(simulation_paths)
+
     @inbounds for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
+
+        if isone(n_sims)
+            base_filename="$(y_quantity)-vs-$(x_quantity)"
+        else
+            base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)"
+        end
 
         snapshotPlot(
             [simulation_path],
@@ -3044,7 +3054,7 @@ function scatterDensityMap(
             pf_kwargs=[(;)],
             # `snapshotPlot` configuration
             output_path,
-            base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
+            base_filename,
             output_format=".pdf",
             warnings=true,
             show_progress=false,
@@ -3188,7 +3198,12 @@ function gasFractionsBarPlot(
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        mergeRequests(plot_params.request, Dict(:gas=>["FRAC"])),
+        mergeRequests(
+            plot_params.request,
+            plotParams(:molecular_mass).request,
+            plotParams(:atomic_mass).request,
+            plotParams(:ionized_mass).request,
+        ),
     )
 
     # Compute the number of bins for the gas quantity
@@ -3201,7 +3216,7 @@ function gasFractionsBarPlot(
     dodge = repeat(1:n_bars, outer=n_bins)
 
     # Set the color list
-    colors = Makie.wong_colors()
+    colors = Makie.wong_colors()[[3,4,1,2]]
 
     # Compute the axis ticks
     if exp_ticks
@@ -3212,15 +3227,25 @@ function gasFractionsBarPlot(
 
     ticks = [string(round((tick_nums[i] + tick_nums[i + 1]) / 2, sigdigits=2)) for i in 1:n_bins]
 
+    n_sims = length(simulation_paths)
+
     @inbounds for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
 
-        if include_stars
-            base_filename = "$(sim_name)-fractions-vs-$(quantity)"
+        if isone(n_sims)
+            if include_stars
+                base_filename = "fractions-vs-$(quantity)-barplot"
+            else
+                base_filename = "fractions-vs-$(quantity)-barplot-no_stars"
+            end
         else
-            base_filename = "$(sim_name)-fractions-vs-$(quantity)-no_stars"
+            if include_stars
+                base_filename = "$(sim_name)-fractions-vs-$(quantity)-barplot"
+            else
+                base_filename = "$(sim_name)-fractions-vs-$(quantity)-barplot-no_stars"
+            end
         end
 
         snapshotPlot(
@@ -3242,7 +3267,7 @@ function gasFractionsBarPlot(
             da_kwargs=[(; include_stars, filter_function=filterGFM)],
             post_processing=ppBarPlotLabels,
             pp_args=(include_stars,),
-            pp_kwargs=(;),
+            pp_kwargs=(; colors),
             transform_box=true,
             translation,
             rotation,
@@ -3459,7 +3484,7 @@ function timeSeries(
         pf_kwargs=[(;)],
         # `timeSeriesPlot` configuration
         output_path,
-        filename="$(y_quantity)-vs-$(x_quantity)",
+        filename=fraction ? "$(y_quantity)-vs-$(x_quantity)_fraction" : "$(y_quantity)-vs-$(x_quantity)",
         output_format=".pdf",
         warnings=true,
         show_progress=true,
@@ -3655,7 +3680,13 @@ function accretionEvolution(
 )::Nothing
 
     x_plot_params = plotParams(:physical_time)
-    y_plot_params = plotParams(:gas_accretion)
+    y_plot_params = plotParams(:mass_accretion)
+
+    if tracers
+        filename="mass-accretion-with-tracers"
+    else
+        filename="net-mass-change-evolution"
+    end
 
     timeSeriesPlot(
         simulation_paths,
@@ -3663,7 +3694,7 @@ function accretionEvolution(
         pf_kwargs=[(;)],
         # `timeSeriesPlot` configuration
         output_path,
-        filename="gas-accretion-evolution",
+        filename,
         output_format=".pdf",
         warnings=true,
         show_progress=true,
@@ -3689,7 +3720,7 @@ function accretionEvolution(
         xaxis_label=x_plot_params.axis_label,
         yaxis_label=y_plot_params.axis_label,
         xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
+        yaxis_var_name=tracers ? y_plot_params.var_name : "Net mass change",
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,
         # Plotting options
@@ -3792,7 +3823,7 @@ function rotationCurve(
         transform_box=true,
         translation,
         rotation,
-        smooth=round(Int64, 4 * ustrip(u"kpc", radius)),
+        smooth=round(Int64, 5 * ustrip(u"kpc", radius)),
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
@@ -4217,10 +4248,26 @@ function massProfile(
 
     grid = CircularGrid(radius, n_bins)
 
+    n_sims = length(simulation_paths)
+
     @inbounds for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
+
+        if isone(n_sims)
+            if cumulative
+                base_filename = "mass_profiles-cumulative"
+            else
+                base_filename = "mass_profiles"
+            end
+        else
+            if cumulative
+                base_filename = "$(sim_name)-mass_profiles-cumulative"
+            else
+                base_filename = "$(sim_name)-mass_profiles"
+            end
+        end
 
         # Draw the figures with CairoMakie
         snapshotPlot(
@@ -4230,7 +4277,7 @@ function massProfile(
             pf_kwargs=[(;)],
             # `snapshotPlot` configuration
             output_path,
-            base_filename="$(sim_name)-mass_profiles",
+            base_filename,
             output_format=".pdf",
             warnings=true,
             show_progress=false,
@@ -5144,7 +5191,7 @@ function compareKennicuttBigielResolved(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CircularGrid(FILTER_R, 20)
+    grid = CircularGrid(FILTER_R, 60)
 
     if quantity == :gas_area_density
 
@@ -5384,7 +5431,7 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
 
 # Arguments
 
-  - `simulation_path::String}`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The options are:
 
