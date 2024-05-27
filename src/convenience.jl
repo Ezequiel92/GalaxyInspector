@@ -722,8 +722,8 @@ function snapshotReport(
                 # between the disc radius and the virial radius
                 ####################################################################################
 
-                disc_idxs = filterWithin(data_dict, (0.0u"kpc", radial_limit), :zero)
-                halo_idxs = filterWithin(data_dict, (radial_limit, g_r_crit_200), :zero)
+                disc_idxs = filterWithinSphere(data_dict, (0.0u"kpc", radial_limit), :zero)
+                halo_idxs = filterWithinSphere(data_dict, (radial_limit, g_r_crit_200), :zero)
 
                 stellar_masses   = data_dict[:stars]["MASS"]
                 gas_masses       = data_dict[:gas]["MASS"]
@@ -1685,13 +1685,13 @@ function sfrTXT(
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)",
         output_format=".pdf",
-        warnings=true,
+        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice=(:),
         da_functions=[daSFRtxt],
         da_args=[(x_quantity, y_quantity)],
-        da_kwargs=[(; smooth, warnings=true)],
+        da_kwargs=[(; smooth, warnings=false)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -1791,13 +1791,13 @@ function cpuTXT(
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)-for-$(safe_str_target)",
         output_format=".pdf",
-        warnings=true,
+        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice=(:),
         da_functions=[daCPUtxt],
         da_args=[(target, x_quantity, y_quantity)],
-        da_kwargs=[(; smooth, warnings=true)],
+        da_kwargs=[(; smooth, warnings=false)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -1900,6 +1900,31 @@ Plot a 2D histogram of the density.
   - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
+  - `da_ff::Function=filterNothing`: Filter function for the data analysis function. It must be a function with the signature:
+
+    `da_ff(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
 """
 function densityMap(
     simulation_paths::Vector{String},
@@ -1919,6 +1944,7 @@ function densityMap(
     annotation::String="",
     colorbar::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
+    da_ff::Function=filterNothing,
 )::Nothing
 
     # Compute the axes limits, to avoid white padding around the heatmap grid
@@ -1958,14 +1984,22 @@ function densityMap(
                     output_path,
                     base_filename,
                     output_format=".png",
-                    warnings=true,
-                    show_progress=iszero(slice),
+                    warnings=false,
+                    show_progress=true,
                     # Data manipulation options
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
                     da_functions=[daDensity2DHistogram],
                     da_args=[(grid, quantity)],
-                    da_kwargs=[(; projection_plane, smooth, smoothing_length, print_range)],
+                    da_kwargs=[
+                        (;
+                            projection_plane,
+                            smooth,
+                            smoothing_length,
+                            print_range,
+                            filter_function=da_ff,
+                        ),
+                    ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
                     pp_kwargs=(; color=:blue),
@@ -2131,8 +2165,8 @@ function temperatureMap(
                 output_path,
                 base_filename,
                 output_format=".png",
-                warnings=true,
-                show_progress=iszero(slice),
+                warnings=false,
+                show_progress=true,
                 # Data manipulation options
                 slice=iszero(slice) ? (:) : slice,
                 filter_function,
@@ -2335,8 +2369,8 @@ function densityMapVelField(
                     output_path,
                     base_filename,
                     output_format=".png",
-                    warnings=true,
-                    show_progress=iszero(slice),
+                    warnings=false,
+                    show_progress=true,
                     # Data manipulation options
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
@@ -2566,8 +2600,8 @@ function scatterPlot(
             output_path,
             base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
             output_format=".pdf",
-            warnings=true,
-            show_progress=false,
+            warnings=false,
+            show_progress=true,
             # Data manipulation options
             slice=slice,
             filter_function,
@@ -2655,7 +2689,7 @@ function atomicMolecularTransitionHeatmap(
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
 
-    _, translation, rotation, request = selectFilter(
+    filter_function, translation, rotation, request = selectFilter(
         :subhalo,
         mergeRequests(
             x_plot_params.request,
@@ -2680,20 +2714,19 @@ function atomicMolecularTransitionHeatmap(
                 output_path,
                 base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)-$(range[1])-Z-$(range[2])",
                 output_format=".pdf",
-                warnings=true,
-                show_progress=false,
+                warnings=false,
+                show_progress=true,
                 # Data manipulation options
                 slice,
-                filter_function=data_dict -> filterZinSubhalo(
-                    data_dict,
-                    range[1],
-                    range[2];
-                    halo_idx,
-                    subhalo_rel_idx,
-                ),
+                filter_function,
                 da_functions=[daScatterDensity],
                 da_args=[(x_quantity, y_quantity)],
-                da_kwargs=[(; x_log=x_plot_params.unit)],
+                da_kwargs=[
+                    (;
+                        x_log=x_plot_params.unit,
+                        filter_function=dd -> filterMetallicity(dd, range[1], range[2]),
+                    )
+                ],
                 post_processing=getNothing,
                 pp_args=(),
                 pp_kwargs=(;),
@@ -2777,22 +2810,14 @@ function atomicMolecularTransitionScatter(
     x_quantity = :atomic_number_density
     y_quantity = :molecular_neutral_fraction
     da_kwargs  = [
-        (;
-            filter_function=data_dict -> filterZinSubhalo(
-                data_dict,
-                range[1],
-                range[2];
-                halo_idx,
-                subhalo_rel_idx,
-            )
-        ) for range in ranges
+        (;filter_function=dd -> filterMetallicity(dd, range[1], range[2])) for range in ranges
     ]
     sim_labels = ["$(range[1]) < Z < $(range[2])" for range in ranges]
 
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
 
-    _, translation, rotation, request = selectFilter(
+    filter_function, translation, rotation, request = selectFilter(
         :subhalo,
         mergeRequests(
             x_plot_params.request,
@@ -2815,11 +2840,11 @@ function atomicMolecularTransitionScatter(
             output_path,
             base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
             output_format=".pdf",
-            warnings=true,
-            show_progress=false,
+            warnings=false,
+            show_progress=true,
             # Data manipulation options
             slice,
-            filter_function=filterNothing,
+            filter_function,
             da_functions=[daScatterGalaxy],
             da_args=[(x_quantity, y_quantity)],
             da_kwargs,
@@ -3056,8 +3081,8 @@ function scatterDensityMap(
             output_path,
             base_filename,
             output_format=".pdf",
-            warnings=true,
-            show_progress=false,
+            warnings=false,
+            show_progress=true,
             # Data manipulation options
             slice,
             filter_function,
@@ -3257,8 +3282,8 @@ function gasFractionsBarPlot(
             output_path,
             base_filename,
             output_format=".pdf",
-            warnings=true,
-            show_progress=false,
+            warnings=false,
+            show_progress=true,
             # Data manipulation options
             slice,
             filter_function,
@@ -3486,13 +3511,13 @@ function timeSeries(
         output_path,
         filename=fraction ? "$(y_quantity)-vs-$(x_quantity)_fraction" : "$(y_quantity)-vs-$(x_quantity)",
         output_format=".pdf",
-        warnings=true,
+        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
         da_functions=[daEvolution],
         da_args=[(x_quantity, y_quantity)],
-        da_kwargs=[(; filter_mode, smooth=0, cumulative, fraction, scaling=identity, warnings=true)],
+        da_kwargs=[(; filter_mode, smooth=0, cumulative, fraction, scaling=identity, warnings=false)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -3607,13 +3632,13 @@ function gasEvolution(
             output_path,
             filename,
             output_format=".pdf",
-            warnings=true,
+            warnings=false,
             show_progress=true,
             # Data manipulation options
             slice,
             da_functions=[daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
-            da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=true)],
+            da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=false)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -3650,12 +3675,12 @@ function gasEvolution(
 end
 
 """
-    accretionEvolution(
+    virialAccretionEvolution(
         simulation_paths::Vector{String};
         <keyword arguments>
     )::Nothing
 
-Plot a time series of the accreted gas mass.
+Plot a time series of the accreted mass into the virial radius.
 
 # Arguments
 
@@ -3668,7 +3693,7 @@ Plot a time series of the accreted gas mass.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
-function accretionEvolution(
+function virialAccretionEvolution(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
     halo_idx::Int=1,
@@ -3683,9 +3708,9 @@ function accretionEvolution(
     y_plot_params = plotParams(:mass_accretion)
 
     if tracers
-        filename="mass-accretion-with-tracers"
+        filename="virial-mass-accretion_with_tracers"
     else
-        filename="net-mass-change-evolution"
+        filename="virial-mass-change_evolution"
     end
 
     timeSeriesPlot(
@@ -3696,16 +3721,16 @@ function accretionEvolution(
         output_path,
         filename,
         output_format=".pdf",
-        warnings=true,
+        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
-        da_functions=[daAccretion],
+        da_functions=[daVirialAccretion],
         da_args=[()],
-        da_kwargs=[(; filter_mode=:halo, halo_idx, tracers, smooth, warnings=true)],
+        da_kwargs=[(; filter_mode=:halo, halo_idx, tracers, smooth, warnings=false)],
         post_processing=ppHorizontalFlags!,
         pp_args=([0.0],),
-        pp_kwargs=(; colors=[:gray65], line_styles=[nothing], warnings=true),
+        pp_kwargs=(; colors=[:gray65], line_styles=[nothing], warnings=false),
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
@@ -3721,6 +3746,87 @@ function accretionEvolution(
         yaxis_label=y_plot_params.axis_label,
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name=tracers ? y_plot_params.var_name : "Net mass change",
+        xaxis_scale_func=identity,
+        yaxis_scale_func=identity,
+        # Plotting options
+        save_figures=true,
+        backup_results=false,
+        theme=merge(theme, Theme(Axis=(aspect=AxisAspect(1),),)),
+        size=(880, 880),
+        sim_labels,
+        title="",
+    )
+
+    return nothing
+
+end
+
+"""
+    discAccretionEvolution(
+        simulation_paths::Vector{String};
+        <keyword arguments>
+    )::Nothing
+
+Plot a time series of the accreted mass into the disc.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `max_r::Unitful.Length=FILTER_R`: Radius of the cylinder.
+  - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
+  - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `output_path::String="./"`: Path to the output folder.
+  - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function discAccretionEvolution(
+    simulation_paths::Vector{String};
+    slice::IndexType=(:),
+    max_r::Unitful.Length=FILTER_R,
+    max_z::Unitful.Length=5.0u"kpc",
+    smooth::Int=0,
+    output_path::String="./",
+    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    x_plot_params = plotParams(:physical_time)
+    y_plot_params = plotParams(:mass_accretion)
+
+    timeSeriesPlot(
+        simulation_paths,
+        [lines!];
+        pf_kwargs=[(;)],
+        # `timeSeriesPlot` configuration
+        output_path,
+        filename="disc-mass-accretion_with_tracers",
+        output_format=".pdf",
+        warnings=false,
+        show_progress=true,
+        # Data manipulation options
+        slice,
+        da_functions=[daDiscAccretion],
+        da_args=[()],
+        da_kwargs=[(; filter_mode=:halo, max_r, max_z, smooth, warnings=false)],
+        post_processing=ppHorizontalFlags!,
+        pp_args=([0.0],),
+        pp_kwargs=(; colors=[:gray65], line_styles=[nothing], warnings=false),
+        x_unit=x_plot_params.unit,
+        y_unit=y_plot_params.unit,
+        x_exp_factor=x_plot_params.exp_factor,
+        y_exp_factor=y_plot_params.exp_factor,
+        x_trim=(-Inf, Inf),
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label=x_plot_params.axis_label,
+        yaxis_label=y_plot_params.axis_label,
+        xaxis_var_name=x_plot_params.var_name,
+        yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,
         # Plotting options
@@ -3809,8 +3915,8 @@ function rotationCurve(
         output_path,
         base_filename="rotation_curve",
         output_format=".pdf",
-        warnings=true,
-        show_progress=false,
+        warnings=false,
+        show_progress=true,
         # Data manipulation options
         slice,
         filter_function,
@@ -3954,8 +4060,8 @@ function densityProfile(
         output_path,
         base_filename="$(quantity)-profile",
         output_format=".pdf",
-        warnings=true,
-        show_progress=false,
+        warnings=false,
+        show_progress=true,
         # Data manipulation options
         slice,
         filter_function,
@@ -4107,8 +4213,8 @@ function densityProfile(
             output_path,
             base_filename="$(sim_name)-density_profiles",
             output_format=".pdf",
-            warnings=true,
-            show_progress=false,
+            warnings=false,
+            show_progress=true,
             # Data manipulation options
             slice,
             filter_function,
@@ -4279,8 +4385,8 @@ function massProfile(
             output_path,
             base_filename,
             output_format=".pdf",
-            warnings=true,
-            show_progress=false,
+            warnings=false,
+            show_progress=true,
             # Data manipulation options
             slice,
             filter_function,
@@ -4411,8 +4517,8 @@ function velocityProfile(
         output_path,
         base_filename="$(component)-profile",
         output_format=".pdf",
-        warnings=true,
-        show_progress=false,
+        warnings=false,
+        show_progress=true,
         # Data manipulation options
         slice,
         filter_function,
@@ -4470,10 +4576,6 @@ end
     )::Nothing
 
 Plot the evolution of a given stellar `quantity` using the stellar ages at a given instant in time.
-
-!!! note
-
-    This method plots one quantity for several simulations in one figure.
 
 # Arguments
 
@@ -4546,8 +4648,8 @@ function stellarHistory(
         output_path,
         base_filename="$(quantity)-stellar-history",
         output_format=".pdf",
-        warnings=true,
-        show_progress=false,
+        warnings=false,
+        show_progress=true,
         # Data manipulation options
         slice,
         filter_function,
@@ -4583,133 +4685,6 @@ function stellarHistory(
         backup_results=false,
         theme=merge(theme, Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=2,))),
         size=(850, 850),
-        sim_labels,
-        title="",
-        colorbar=false,
-        # Animation options
-        animation=false,
-        animation_filename="animation.mp4",
-        framerate=10,
-    )
-
-    return nothing
-
-end
-
-"""
-    stellarHistory(
-        simulation_path::String,
-        slice::IndexType,
-        quantity::Symbol;
-        <keyword arguments>
-    )::Nothing
-
-Plot the evolution of a given stellar `quantity` using the stellar ages at a given instant in time.
-
-!!! note
-
-    This method plots one quantity for several morphological components of the same simulation in one figure.
-
-# Arguments
-
-  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol`: Quantity for the y axis. The options are:
-
-      + `:sfr`          -> The star formation rate.
-      + `:ssfr`         -> The specific star formation rate.
-      + `:stellar_mass` -> Stellar mass.
-  - `components::Vector{Symbol}=[:disk, :bulge]`: Target morphological components.
-  - `n_bins::Int=20`: Number of bins (time intervals).
-  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
-  - `output_path::String="./"`: Path to the output folder.
-  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-"""
-function stellarHistory(
-    simulation_path::String,
-    slice::IndexType,
-    quantity::Symbol;
-    components::Vector{Symbol}=[:disk, :bulge],
-    n_bins::Int=20,
-    halo_idx::Int=1,
-    subhalo_rel_idx::Int=1,
-    output_path::String="./",
-    theme::Attributes=Theme(),
-)::Nothing
-
-    da_kwargs  = [
-        (;
-            quantity,
-            n_bins,
-            filter_function=data_dict -> filterComponentinSubhalo(
-                data_dict,
-                component;
-                halo_idx,
-                subhalo_rel_idx,
-            )
-        ) for component in components
-    ]
-    sim_labels = [MORPHOLOGICAL_COMPONENTS[component] for component in components]
-
-    x_plot_params = plotParams(:physical_time)
-    y_plot_params = plotParams(quantity)
-
-    _, translation, rotation, request = selectFilter(
-        :subhalo,
-        mergeRequests(
-            plotParams(:stellar_circularity).request,
-            Dict(:stars => ["GAGE"]),
-        ),
-    )
-
-    # Draw the figures with CairoMakie
-    snapshotPlot(
-        fill(simulation_path, length(components)),
-        request,
-        [lines!];
-        pf_kwargs=[(;)],
-        # `snapshotPlot` configuration
-        output_path,
-        base_filename="$(quantity)-stellar-history",
-        output_format=".pdf",
-        warnings=true,
-        show_progress=false,
-        # Data manipulation options
-        slice,
-        filter_function=filterNothing,
-        da_functions=[daStellarHistory],
-        da_args=[()],
-        da_kwargs,
-        post_processing=getNothing,
-        pp_args=(),
-        pp_kwargs=(;),
-        transform_box=true,
-        translation,
-        rotation,
-        smooth=0,
-        x_unit=x_plot_params.unit,
-        y_unit=y_plot_params.unit,
-        x_exp_factor=x_plot_params.exp_factor,
-        y_exp_factor=y_plot_params.exp_factor,
-        x_trim=(-Inf, Inf),
-        y_trim=(-Inf, Inf),
-        x_edges=false,
-        y_edges=false,
-        x_func=identity,
-        y_func=identity,
-        # Axes options
-        xaxis_label=x_plot_params.axis_label,
-        yaxis_label=y_plot_params.axis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
-        xaxis_scale_func=identity,
-        yaxis_scale_func=log10,
-        # Plotting and animation options
-        save_figures=true,
-        backup_results=false,
-        theme=merge(theme, Theme(Legend=(nbanks=1,))),
-        size=(1700, 1000),
         sim_labels,
         title="",
         colorbar=false,
@@ -4796,8 +4771,8 @@ function stellarCircularity(
         output_path,
         base_filename="circularity_histogram",
         output_format=".pdf",
-        warnings=true,
-        show_progress=false,
+        warnings=false,
+        show_progress=true,
         # Data manipulation options
         slice,
         filter_function,
@@ -4950,13 +4925,13 @@ function compareFeldmann2020(
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)-with-Feldmann2020",
         output_format=".pdf",
-        warnings=true,
+        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
         da_functions=[daEvolution],
         da_args=[(x_quantity, y_quantity)],
-        da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=true)],
+        da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=false)],
         post_processing=ppFeldmann2020!,
         pp_args=(x_quantity, y_quantity),
         pp_kwargs=(; scatter),
@@ -5075,8 +5050,8 @@ function compareMolla2015(
         output_path,
         base_filename="$(quantity)-profile-with-Molla2015",
         output_format=".pdf",
-        warnings=true,
-        show_progress=false,
+        warnings=false,
+        show_progress=true,
         # Data manipulation options
         slice,
         filter_function,
@@ -5224,8 +5199,8 @@ function compareKennicuttBigielResolved(
         output_path,
         base_filename="sfr_area_density-vs-$(quantity)-with-$(filename)",
         output_format=".pdf",
-        warnings=true,
-        show_progress=false,
+        warnings=false,
+        show_progress=true,
         # Data manipulation options
         slice,
         filter_function,
@@ -5373,13 +5348,13 @@ function compareKennicuttBigielIntegrated(
         output_path,
         filename="sfr_area_density-vs-$(quantity)-with-$(filename)",
         output_format=".pdf",
-        warnings=true,
+        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
         da_functions=[daEvolution],
         da_args=[(quantity, :sfr_area_density)],
-        da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=true)],
+        da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=false)],
         post_processing,
         pp_args,
         pp_kwargs=(;
@@ -5515,8 +5490,8 @@ function fitKennicuttBigielResolved(
         output_path,
         base_filename="sfr_area_density-vs-$(quantity)-with-linear-fit",
         output_format=".pdf",
-        warnings=true,
-        show_progress=false,
+        warnings=false,
+        show_progress=true,
         # Data manipulation options
         slice,
         filter_function,

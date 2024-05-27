@@ -248,9 +248,49 @@ function tracersWithinR200(data_dict::Dict; halo_idx::Int=1)::Vector{UInt}
         r200 = data_dict[:group]["G_R_Crit200"][halo_idx]
 
         # Construct a filter function that only allows cells and particles within the virial radius
-        filter_function = dd -> filterWithin(dd, (0.0u"kpc", r200), :zero)
+        filter_function = dd -> filterWithinSphere(dd, (0.0u"kpc", r200), :zero)
 
     end
+
+    return findTracers(data_dict; filter_function)
+
+end
+
+"""
+    tracersWithinDisc(data_dict::Dict; <keyword arguments>)::Vector{UInt}
+
+Find the tracers that are within a given cylinder.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `max_r::Unitful.Length=FILTER_R`: Radius of the cylinder.
+  - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
+
+# Returns
+
+  - A vector with the IDs of the tracers.
+"""
+function tracersWithinDisc(
+    data_dict::Dict;
+    max_r::Unitful.Length=FILTER_R,
+    max_z::Unitful.Length=5.0u"kpc",
+)::Vector{UInt}
+
+    # Construct a filter function that only allows cells and particles within a given cylinder
+    filter_function = dd -> filterWithinCylinder(dd, max_r, max_z, :zero)
 
     return findTracers(data_dict; filter_function)
 

@@ -437,9 +437,10 @@ Compute a profile.
       + `:stellar_vcirc`          -> Stellar circular velocity.
       + `:stellar_vradial`        -> Stellar radial speed.
       + `:stellar_vtangential`    -> Stellar tangential speed.
+      + `:stellar_age`            -> Stellar age.
   - `grid::CircularGrid`: Circular grid.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
-  - `total::Bool=false`: If the sum (default) or the mean of `quantity` will be computed for each bin.
+  - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
   - `fractions::Bool=false`: If a profile of the gas mass fractions will be calculated. It is only valid with `quantity` equal to :neutral_mass, :molecular_mass, :atomic_mass or :ionized_mass, and it forces `total` = true, `cumulative` = false, and `density` = false.
@@ -483,7 +484,7 @@ function daProfile(
     quantity::Symbol,
     grid::CircularGrid;
     flat::Bool=true,
-    total::Bool=false,
+    total::Bool=true,
     cumulative::Bool=false,
     density::Bool=false,
     fractions::Bool=false,
@@ -540,28 +541,16 @@ function daProfile(
         values      = scatterQty(filtered_dd, :neutral_mass)
         norm_values = fractions ? scatterQty(filtered_dd, :gas_mass) : Number[]
 
-    elseif quantity == [:sfr, :sfr_area_density]
+    elseif quantity ∈ [:sfr, :sfr_area_density]
 
         positions   = filtered_dd[:stars]["POS "]
         values      = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ)
         norm_values = Number[]
 
-    elseif quantity == :stellar_vradial
+    elseif quantity ∈ [:stellar_vradial, :stellar_vtangential, :stellar_vzstar, :stellar_age]
 
         positions   = filtered_dd[:stars]["POS "]
-        values      = scatterQty(filtered_dd, :stellar_vradial)
-        norm_values = Number[]
-
-    elseif quantity == :stellar_vtangential
-
-        positions   = filtered_dd[:stars]["POS "]
-        values      = scatterQty(filtered_dd, :stellar_vtangential)
-        norm_values = Number[]
-
-    elseif quantity == :stellar_vzstar
-
-        positions   = filtered_dd[:stars]["POS "]
-        values      = scatterQty(filtered_dd, :stellar_vzstar)
+        values      = scatterQty(filtered_dd, quantity)
         norm_values = Number[]
 
     else
@@ -1151,6 +1140,7 @@ function daDensity2DHistogram(
         @info(
             "\nDensity range \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
             \n  Plane:      $(projection_plane) \
             \nlog₁₀(ρ [$(ρ_unit)]) = $(extrema(filter(!isnan, values)))\n\n"
@@ -1275,6 +1265,7 @@ function daTemperature2DHistogram(
         @info(
             "\nTemperature range \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Plane:      $(projection_plane) \
             \nlog₁₀(T [$(T_unit)]) = $(extrema(filter(!isnan, values)))\n\n"
         )
@@ -2391,17 +2382,17 @@ function daEvolution(
 end
 
 """
-    daAccretion(
+    daVirialAccretion(
         sim_data::Simulation;
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
-Compute a accreted gas mass time series.
+Compute the evolution of the accreted mass into the virial radius.
 
 # Arguments
 
   - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
-  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted. Only valis if `tracers` = true. The options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted. Only valid if `tracers` = true. The options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
@@ -2441,7 +2432,7 @@ Compute a accreted gas mass time series.
       + A Vector with the physical times.
       + A Vector with the accreted mass at each time.
 """
-function daAccretion(
+function daVirialAccretion(
     sim_data::Simulation;
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     halo_idx::Int=1,
@@ -2473,8 +2464,8 @@ function daAccretion(
     # Check that there are at least 2 snapshots left
     (
         length(iterator) >= 2 ||
-        throw(ArgumentError("daAccretion: The given slice: $(sim_data.slice), selected for less \
-        than two snapshots. I need at least two snapshots to compute the a time series of \
+        throw(ArgumentError("daVirialAccretion: The given slice: $(sim_data.slice), selected for \
+        less than two snapshots. I need at least two snapshots to compute the a time series of \
         gas accretion. The full simulation table is:\n$(sim_data.table)"))
     )
 
@@ -2597,6 +2588,215 @@ function daAccretion(
             Δm[slice_index] = m_present -  m_past
 
         end
+
+        past_dd = present_dd
+
+    end
+
+    # Compure the time ticks
+    t  = sim_data.table[sim_data.slice, :physical_times]
+
+    # Compure the time axis
+    Δt = deltas(t)[2:end]
+
+    if iszero(smooth)
+        return t[2:end], Δm ./ Δt
+    else
+        return smoothWindow(t[2:end], Δm ./ Δt, smooth)
+    end
+
+end
+
+"""
+    daDiscAccretion(
+        sim_data::Simulation;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the evolution of the accreted mass into the disc.
+
+# Arguments
+
+  - `sim_data::Simulation`: Information about the simulation in a [`Simulation`](@ref) object.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted. The options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `max_r::Unitful.Length=FILTER_R`: Radius of the cylinder.
+  - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
+  - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `warnings::Bool=true`: If a warning will be given when there is missing data.
+
+# Returns
+
+  - A Tuple with two elements:
+
+      + A Vector with the physical times.
+      + A Vector with the accreted mass at each time.
+"""
+function daDiscAccretion(
+    sim_data::Simulation;
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    max_r::Unitful.Length=FILTER_R,
+    max_z::Unitful.Length=5.0u"kpc",
+    smooth::Int=0,
+    warnings::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        Dict(
+            :gas         => ["ID  ", "MASS"],
+            :stars       => ["ID  ", "MASS"],
+            :black_hole  => ["ID  ", "MASS"],
+            :tracer      => ["PAID", "TRID"],
+        ),
+    )
+
+    # Read the metadata table for the simulation
+    simulation_dataframe = DataFrame(sim_data.table[sim_data.slice, :])
+
+    # Delete missing snapshots
+    filter!(row -> !ismissing(row[:snapshot_paths]), simulation_dataframe)
+
+    # Iterate over each snapshot in the slice
+    iterator = eachrow(simulation_dataframe)
+
+    # Check that there are at least 2 snapshots left
+    (
+        length(iterator) >= 2 ||
+        throw(ArgumentError("daDiscAccretion: The given slice: $(sim_data.slice), selected for \
+        less than two snapshots. I need at least two snapshots to compute the a time series of \
+        gas accretion. The full simulation table is:\n$(sim_data.table)"))
+    )
+
+    ################################################################################################
+    # First element of the iteration over the snapshots
+    ################################################################################################
+
+    sim_table_data = iterator[1]
+
+    snapshot_path = sim_table_data[7]
+    groupcat_path = sim_table_data[8]
+
+    # Get the snapshot header
+    snapshot_header = readSnapHeader(snapshot_path)
+
+    # Get the group catalog header
+    groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+
+    # Construct the metadata dictionary
+    metadata = Dict(
+        :sim_data => sim_data,
+        :snap_data => Snapshot(
+            snapshot_path,
+            sim_table_data[1],
+            1,
+            sim_table_data[5],
+            sim_table_data[6],
+            sim_table_data[3],
+            sim_table_data[4],
+            snapshot_header,
+        ),
+        :gc_data => GroupCatalog(groupcat_path, groupcat_header),
+    )
+
+    # Read the data in the snapshot
+    past_dd = merge(
+        metadata,
+        readSnapshot(snapshot_path, request; warnings),
+        readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+    )
+
+    # Filter the data
+    filterData!(past_dd; filter_function)
+
+    # Translate the data
+    translateData!(past_dd, translation)
+
+    # Rotate the data
+    rotateData!(past_dd, rotation)
+
+    # Allocate memory fo the mass axis
+    Δm = Vector{Unitful.Mass}(undef, length(iterator) - 1)
+
+    ################################################################################################
+    # Iteration over the snapshots
+    ################################################################################################
+
+    @inbounds for (slice_index, sim_table_data) in pairs(iterator[2:end])
+
+        global_index  = sim_table_data[1]
+        scale_factor  = sim_table_data[3]
+        redshift      = sim_table_data[4]
+        physical_time = sim_table_data[5]
+        lookback_time = sim_table_data[6]
+        snapshot_path = sim_table_data[7]
+        groupcat_path = sim_table_data[8]
+
+        # Get the snapshot header
+        snapshot_header = readSnapHeader(snapshot_path)
+
+        # Get the group catalog header
+        groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+
+        # Construct the metadata dictionary
+        metadata = Dict(
+            :sim_data => sim_data,
+            :snap_data => Snapshot(
+                snapshot_path,
+                global_index,
+                slice_index + 1,
+                physical_time,
+                lookback_time,
+                scale_factor,
+                redshift,
+                snapshot_header,
+            ),
+            :gc_data => GroupCatalog(groupcat_path, groupcat_header),
+        )
+
+        # Read the data in the snapshot
+        present_dd = merge(
+            metadata,
+            readSnapshot(snapshot_path, request; warnings),
+            readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+        )
+
+        # Filter the data
+        filterData!(present_dd; filter_function)
+
+        # Translate the data
+        translateData!(present_dd, translation)
+
+        # Rotate the data
+        rotateData!(present_dd, rotation)
+
+        Δm[slice_index], _, _ = computeDiscAccretion(present_dd, past_dd; max_r, max_z)
 
         past_dd = present_dd
 

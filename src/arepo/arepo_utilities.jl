@@ -321,14 +321,11 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
     header = readSnapHeader(path)
     cosmological = isCosmological(path)
 
+    a0 = cosmological ? header.time : 1.0
+    h0 = cosmological ? header.h0 : 1.0
+
     # Set up the struct for unit conversion
-    IU = InternalUnits(;
-        l_unit=header.l_unit,
-        m_unit=header.m_unit,
-        v_unit=header.v_unit,
-        a0=cosmological ? header.time : 1.0,
-        h0=cosmological ? header.h0 : 1.0,
-    )
+    IU = InternalUnits(; l_unit=header.l_unit, m_unit=header.m_unit, v_unit=header.v_unit, a0, h0)
 
     dimensions = QUANTITIES[quantity].dimensions
     unit = QUANTITIES[quantity].unit
@@ -390,8 +387,17 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
             with dimensions $(dimensions)")
 
         end
+
+    elseif unit == :gvel
+
+        # Special case for "G_Vel" (velocity of the group)
+        # See the TNG documentation https://www.tng-project.org/data/docs/specifications/
+        return IU.v_cosmo / a0^1.5
+
     else
+
         return unit
+
     end
 
 end

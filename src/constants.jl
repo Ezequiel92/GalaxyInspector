@@ -53,7 +53,7 @@ See the documentation [here](https://www.tng-project.org/data/docs/specification
 const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
 
 """
-Radius of the sphere used for area density calculation.
+Characteristic radius used throughout the code.
 """
 const FILTER_R = 30.0u"kpc"
 
@@ -1083,8 +1083,7 @@ const QUANTITIES = Dict(
     "G_R_Crit500"          => Qty("Group_R_Crit500", Unitful.𝐋, :internal),
     "G_R_Mean200"          => Qty("Group_R_Mean200", Unitful.𝐋, :internal),
     "G_R_TopHat200"        => Qty("Group_R_TopHat200", Unitful.𝐋, :internal),
-    #TODO: check Illustris documentation, needs a factor of 1/a
-    "G_Vel"                => Qty("GroupVel", Unitful.𝐋 * Unitful.𝐓^-1, u"km*s^-1"),
+    "G_Vel"                => Qty("GroupVel", Unitful.𝐋 * Unitful.𝐓^-1, :gvel),
     # Subhalo (subfind) quantities
     "S_BHMass"                       => Qty("SubhaloBHMass", Unitful.𝐌, :internal),
     "S_CM"                           => Qty("SubhaloCM", Unitful.𝐋, :internal),

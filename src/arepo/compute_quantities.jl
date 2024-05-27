@@ -2904,6 +2904,86 @@ function computeVirialAccretion(
 end
 
 """
+    computeDiscAccretion(
+        present_dd::Dict,
+        past_dd::Dict;
+        <keyword arguments>
+    )::NTuple{3,Unitful.Mass}
+
+Compute the inflow, outflow, and net gain of mass for a given cylinder, between two snapshots.
+
+# Arguments
+
+  - `present_dd::Dict`: A dictionary, for the present snapshot, with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `past_dd::Dict`: A dictionary, for the past snapshot, with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `max_r::Unitful.Length=FILTER_R`: Radius of the cylinder.
+  - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
+
+# Returns
+
+  - A tuple with three elements:
+
+      + The net increase in mass.
+      + The inflow mass.
+      + The outflow mass.
+"""
+function computeDiscAccretion(
+    present_dd::Dict,
+    past_dd::Dict;
+    max_r::Unitful.Length=FILTER_R,
+    max_z::Unitful.Length=5.0u"kpc",
+)::NTuple{3,Unitful.Mass}
+
+    # Find the tracers inside a given cylinder in the present snapshot
+    present_tracer_ids = tracersWithinDisc(present_dd; max_r, max_z)
+    # Find the tracers inside a given cylinder in the past snapshot
+    past_tracer_ids    = tracersWithinDisc(past_dd; max_r, max_z)
+
+    # Find the tracers that are inside a given cylinder now, but where outside in the past
+    inflow_ids  = setdiff(present_tracer_ids, past_tracer_ids)
+    # Find the tracers that were inside a given cylinder in the past, but are now outside
+    outflow_ids = setdiff(past_tracer_ids, present_tracer_ids)
+
+    # Compute the mass of each tracer in physical units
+    tracer_mass = TRACER_MASS * internalUnits("MASS", present_dd[:snap_data].path)
+
+    # Compute the inflow mass
+    inflow_mass = length(inflow_ids) * tracer_mass
+    # Compute the outflow mass
+    ouflow_mass = length(outflow_ids) * tracer_mass
+
+    # Compute the net mass
+    net_mass_increase = inflow_mass - ouflow_mass
+
+    return net_mass_increase, inflow_mass, ouflow_mass
+
+end
+
+"""
     findRealStars(path::String)::Vector{Int}
 
 Find the indices of the stars in a snapshot, excluding wind particles.
@@ -3123,7 +3203,7 @@ Compute a profile.
   - `grid::CircularGrid`: Circular grid.
   - `norm_values::Vector{<:Number}=Number[]`: Values to normalize `quantity`.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
-  - `total::Bool=false`: If the sum (default) or the mean of `quantity` will be computed for each bin.
+  - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
 
@@ -3137,7 +3217,7 @@ function computeProfile(
     grid::CircularGrid;
     norm_values::Vector{<:Number}=Number[],
     flat::Bool=true,
-    total::Bool=false,
+    total::Bool=true,
     cumulative::Bool=false,
     density::Bool=false,
 )::Vector{<:Number}

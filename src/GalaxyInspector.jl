@@ -89,7 +89,8 @@ export scatterDensityMap
 export gasFractionsBarPlot
 export timeSeries
 export gasEvolution
-export accretionEvolution
+export virialAccretionEvolution
+export discAccretionEvolution
 export rotationCurve
 export densityProfile
 export massProfile

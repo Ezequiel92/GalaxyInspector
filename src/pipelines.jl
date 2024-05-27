@@ -37,6 +37,8 @@ Some of the features are:
       + `heatmap!`      -> Heatmap.
       + `arrows!`       -> Vector field.
       + `barplot!`      -> Bar plots.
+      + `band!`         -> Band plots.
+      + `errorbars!`    -> Error bars.
   - `pf_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the functions in `plot_functions`.
 
 ### snapshotPlot configuration
@@ -233,9 +235,13 @@ function snapshotPlot(
     # Set up the canvas for the figures.
     ################################################################################################
 
-    # Apply the global theme defined in `./src/constants.jl`
-    current_theme = merge(theme, theme_latexfonts(), DEFAULT_THEME)
+    # Reset the current theme
     set_theme!()
+
+    # Construct a new theme
+    current_theme = merge(theme, theme_latexfonts(), DEFAULT_THEME)
+
+    # Apply the new theme
     set_theme!(current_theme)
 
     # Create the figure
@@ -428,17 +434,17 @@ function snapshotPlot(
                     error("snapshotPlot: For scatter, line and bar plots `data_analysis` should \
                     return two data vectors, and currently is returning $(data_length)")
                 )
-            elseif plot_function isa typeof(heatmap!)
+            elseif plot_function isa Union{typeof(heatmap!), typeof(band!)}
                 (
                     data_length == 3 ||
-                    error("snapshotPlot: For heatmaps `data_analysis` should return three data \
-                    vectors, and currently is returning $(data_length)")
+                    error("snapshotPlot: For heatmaps and bands `data_analysis` should return \
+                    three data vectors, and currently is returning $(data_length)")
                 )
-            elseif plot_function isa typeof(arrows!)
+            elseif plot_function isa Union{typeof(arrows!), typeof(errorbars!)}
                 (
                     data_length == 4 ||
-                    error("snapshotPlot: For vector field plots `data_analysis` should return \
-                    four data vectors, and currently is returning $(data_length)")
+                    error("snapshotPlot: For vector field plots or error bars `data_analysis` \
+                    should return four data vectors, and currently is returning $(data_length)")
                 )
             else
                 throw(ArgumentError("snapshotPlot: `plot_functions` contains $(plot_function), \
@@ -446,10 +452,56 @@ function snapshotPlot(
             end
 
             # Unit conversion
-            axis_data = VecOrMat{<:Number}[
-                ustrip.(unit, quantity) for
-                (unit, quantity) in zip([x_unit, y_unit, Unitful.NoUnits, Unitful.NoUnits], da_output)
-            ]
+            if plot_function isa typeof(hist!)
+
+                axis_data = VecOrMat{<:Number}[ustrip.(x_unit, da_output[1])]
+
+            elseif plot_function isa Union{
+                typeof(scatter!),
+                typeof(scatterlines!),
+                typeof(lines!),
+                typeof(barplot!),
+            }
+
+                axis_data = VecOrMat{<:Number}[
+                    ustrip.(x_unit, da_output[1]), ustrip.(y_unit, da_output[2])
+                ]
+
+            elseif plot_function isa typeof(heatmap!)
+
+                axis_data = VecOrMat{<:Number}[
+                    ustrip.(x_unit, da_output[1]),
+                    ustrip.(y_unit, da_output[2]),
+                    ustrip.(Unitful.NoUnits, da_output[3]),
+                ]
+
+            elseif plot_function isa typeof(band!)
+
+                axis_data = VecOrMat{<:Number}[
+                    ustrip.(x_unit, da_output[1]),
+                    ustrip.(y_unit, da_output[2]),
+                    ustrip.(y_unit, da_output[3]),
+                ]
+
+            elseif plot_function isa typeof(arrows!)
+
+                axis_data = VecOrMat{<:Number}[
+                    ustrip.(x_unit, da_output[1]),
+                    ustrip.(y_unit, da_output[2]),
+                    ustrip.(Unitful.NoUnits, da_output[3]),
+                    ustrip.(Unitful.NoUnits, da_output[4]),
+                ]
+
+            elseif plot_function isa typeof(errorbars!)
+
+                axis_data = VecOrMat{<:Number}[
+                    ustrip.(x_unit, da_output[1]),
+                    ustrip.(y_unit, da_output[2]),
+                    ustrip.(y_unit, da_output[3]),
+                    ustrip.(y_unit, da_output[4]),
+                ]
+
+            end
 
             # Sanitize the data
             if length(axis_data) == 1
@@ -661,7 +713,7 @@ function snapshotPlot(
                     linestyle = ring(linestyles, i)
                     plot_function = ring(plot_functions, i)
 
-                    if plot_function == lines!
+                    if plot_function ∈ [lines!, errorbars!]
                         legend_element[i] = LineElement(; color, linestyle)
                     else
                         legend_element[i] = MarkerElement(; color, marker)
