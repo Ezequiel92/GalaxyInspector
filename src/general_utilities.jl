@@ -582,6 +582,142 @@ function scaledBins(
 end
 
 """
+    listHistogram1D(
+        positions::Vector{<:Number},
+        values::Vector{<:Number},
+        grid::Union{LinearGrid,CircularGrid},
+    )::Vector{Vector{<:Number}}
+
+Compute a 1D histogram of `values`, returning the full list of `values` within each bin.
+
+# Arguments
+
+  - `positions::Vector{<:Number}`: Positions of the `values` within a 1D axis. This determines to which bin each value will be added.
+  - `values::Vector{<:Number}`: The values that will be added up in each bin, according to their `positions`.
+  - `grid::Union{LinearGrid,CircularGrid}`: A linear or circular grid.
+
+# Returns
+
+    - A vector with the lists of `values` within each bin.
+"""
+function listHistogram1D(
+    positions::Vector{<:Number},
+    values::Vector{<:Number},
+    grid::Union{LinearGrid,CircularGrid},
+)::Vector{Vector{<:Number}}
+
+    (
+        length(values) == length(positions) ||
+        throw(ArgumentError("histogram1D: `values` must have as many elements as \
+        `positions`, but I got length(values) = $(length(values)) and \
+        length(positions) = $(length(positions))"))
+    )
+
+    n_bins = length(grid.grid)
+
+    if grid.log
+        l_u = unit(first(grid.ticks))
+        positions = log10.(ustrip.(l_u, positions))
+        p_min = log10(ustrip(grid.ticks[1]))
+        p_max = log10(ustrip(l_u, grid.ticks[end]))
+    else
+        p_min = grid.ticks[1]
+        p_max = grid.ticks[end]
+    end
+
+    # Compute the bin width
+    width = (p_max - p_min) / n_bins
+
+    # Allocate memory
+    histogram = [eltype(values)[] for _ in 1:n_bins]
+
+    # Compute the histogram; ignoring NaNs and positions outside the grid range
+    @inbounds for (position, value) in zip(positions, values)
+
+        if isnan(position) || isnan(value)
+            continue
+        elseif position < p_min || p_max < position
+            continue
+        elseif position == p_min
+            idx = 1
+        elseif position == p_max
+            idx = n_bins
+        else
+            idx = ceil(Int, (position - p_min) / width)
+        end
+
+        push!(histogram[idx], value)
+
+    end
+
+    return histogram
+
+end
+
+"""
+    listHistogram1D(
+        positions::Vector{<:Number},
+        values::Vector{<:Number},
+        edges::Vector{<:Number},
+    )::Vector{Vector{<:Number}}
+
+Compute a 1D histogram of `values`, returning the full list of `values` within each bin.
+
+# Arguments
+
+  - `positions::Vector{<:Number}`: Positions of the `values` within a 1D axis. This determines to which bin each value will be added.
+  - `values::Vector{<:Number}`: The values that will be added up in each bin, according to their `positions`.
+  - `edges::Vector{<:Number}`: A sorted list of bin edges.
+
+# Returns
+
+  - A vector with the lists of `values` within each bin.
+"""
+function listHistogram1D(
+    positions::Vector{<:Number},
+    values::Vector{<:Number},
+    edges::Vector{<:Number},
+)::Vector{Vector{<:Number}}
+
+    (
+        length(values) == length(positions) ||
+        throw(ArgumentError("histogram1D: `values` must have as many elements as \
+        `positions`, but I got length(values) = $(length(values)) and \
+        length(positions) = $(length(positions))"))
+    )
+
+    issorted(edges) || sort!(edges)
+
+    n_bins = length(edges) - 1
+
+    p_min = first(edges)
+    p_max = last(edges)
+
+    # Allocate memory
+    histogram = [eltype(values)[] for _ in 1:n_bins]
+
+    # Compute the histogram; ignoring NaNs and positions outside of range
+    @inbounds for (position, value) in zip(positions, values)
+
+        if isnan(position) || isnan(value)
+            continue
+        elseif position < p_min || p_max < position
+            continue
+        elseif position == p_min
+            idx = 1
+        else
+            idx = searchsortedfirst(edges, position) - 1
+        end
+
+        push!(histogram[idx], value)
+
+    end
+
+    return histogram
+
+end
+
+"""
     histogram1D(
         positions::Vector{<:Number},
         values::Vector{<:Number},

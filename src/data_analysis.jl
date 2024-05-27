@@ -114,7 +114,7 @@ function daRotationCurve(
 end
 
 """
-    function daKennicuttSchmidtLaw(
+    daKennicuttSchmidtLaw(
         data_dict::Dict,
         grid::CircularGrid,
         quantity::Symbol;
@@ -394,7 +394,7 @@ end
 """
     daProfile(
         data_dict::Dict,
-        quantity::Symbol;
+        quantity::Symbol,
         grid::CircularGrid;
         <keyword arguments>
     )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
@@ -578,6 +578,161 @@ function daProfile(
 end
 
 """
+    daBandProfile(
+        data_dict::Dict,
+        quantity::Symbol,
+        grid::CircularGrid;
+        <keyword arguments>
+    )::Union{
+        Tuple{Vector{<:Unitful.Length},Vector{<:Number},Vector{<:Number},Vector{<:Number}},
+        Tuple{Vector{<:Unitful.Length},Vector{<:Number},Vector{<:Number}},
+        Nothing,
+    }
+
+Compute the profile og a mean quantity with error bars or bands.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `quantity::Symbol`: Target quantity. The possibilities are:
+
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+  - `grid::CircularGrid`: Circular grid.
+  - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
+  - `error_bar::Bool=false`: If the returned values will be compatible with `errorbars!` or with `band!` (default).
+  - `filter_function::Function=filterNothing`: A function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the position of each ring or spherical shells.
+      + A vector with the value `quantity` in each each ring or spherical shells.
+
+    It returns `nothing` if any of the necessary quantities are missing.
+"""
+function daBandProfile(
+    data_dict::Dict,
+    quantity::Symbol,
+    grid::CircularGrid;
+    flat::Bool=true,
+    error_bar::Bool=false,
+    filter_function::Function=filterNothing,
+)::Union{
+    Tuple{Vector{<:Unitful.Length},Vector{<:Number},Vector{<:Number},Vector{<:Number}},
+    Tuple{Vector{<:Unitful.Length},Vector{<:Number},Vector{<:Number}},
+    Nothing,
+}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    # Get the cell/particle type
+    type = first(keys(plotParams(quantity).request))
+
+    # Read the positions and values
+    positions = filtered_dd[type]["POS "]
+    values    = scatterQty(filtered_dd, quantity)
+
+    n_pos = size(positions, 2)
+    n_val = length(values)
+
+    # Check consistency in the number of positions and values
+    (
+        n_pos == n_val || throw(ArgumentError("daBandProfile: `positions` and `values` should have \
+        the same number of elements, but `length(positions)` = $(n_pos) != `length(values)` = \
+        $(n_val). Check that the same cell/particle type was selected when using `plotParams` \
+        and `scatterQty`."))
+    )
+
+    # Return `nothing` if any of the necessary quantities are missing
+    !any(iszero, [n_pos, n_val]) || return nothing
+
+    mean, std = computeBandProfile(positions, values, grid; flat)
+
+    !error_bar || return grid.grid, mean, std, std
+
+    return grid.grid, mean .- std, mean .+ std
+
+end
+
+"""
     daStellarHistory(
         data_dict::Dict;
         <keyword arguments>
@@ -699,7 +854,7 @@ function daStellarHistory(
 end
 
 """
-    function daLineHistogram(
+    daLineHistogram(
         data_dict::Dict,
         quantity::Symbol,
         grid::LinearGrid;

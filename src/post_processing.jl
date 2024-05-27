@@ -160,11 +160,7 @@ function ppCross!(
 end
 
 """
-    ppAnnotation!(
-        figure::Makie.Figure,
-        text::String;
-        <keyword arguments>
-    )::Nothing
+    ppAnnotation!(figure::Makie.Figure, text::String)::Nothing
 
 Add an annotation to the plot.
 
@@ -172,36 +168,10 @@ Add an annotation to the plot.
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
   - `text::String`: Text to be written.
-  - `color::ColorType=:black`: Color of the text.
-  - `rel_pos::Union{NTuple{2,Real},Nothing}=nothing`: Relative position for the top left corner of the text box, within the plot. If set to `nothing`, the text will be printed at the top left corner of the plot.
 """
-function ppAnnotation!(
-    figure::Makie.Figure,
-    text::String;
-    color::ColorType=:black,
-    rel_pos::Union{NTuple{2,Real},Nothing}=nothing,
-)::Nothing
+function ppAnnotation!(figure::Makie.Figure, text::String)::Nothing
 
-    if isnothing(rel_pos)
-        pos = absCoor(figure, 0.03, 0.15)
-    else
-        if rel_pos[1] < 0.0 || rel_pos[2] < 0.0 || 1.0 < rel_pos[1] || 1.0 < rel_pos[2]
-            throw(ArgumentError("ppAnnotation!: The values in `rel_pos` should be between 0 and 1"))
-        else
-            pos = absCoor(figure, rel_pos...)
-        end
-    end
-
-    text!(
-        figure.current_axis.x,
-        pos[1],
-        pos[2];
-        text,
-        color,
-        align=(:left, :top),
-        fontsize=40,
-        font=:bold,
-    )
+    text!(figure.current_axis.x, pos[1], pos[2]; text)
 
     return nothing
 

@@ -543,7 +543,7 @@ function groupcatTypes(path::String)::Vector{Symbol}
 end
 
 """
-    function plotParams(quantity::Symbol)::PlotParams
+    plotParams(quantity::Symbol)::PlotParams
 
 Select the plotting parameters for a given `quantity`.
 
@@ -1016,11 +1016,12 @@ function plotParams(quantity::Symbol)::PlotParams
 
     elseif quantity == :stellar_circularity
 
+        # `daBandProfile` expects that the first element in the request dictionary is for the stars
         plot_params = PlotParams(;
             request  = Dict(
+                :stars      => ["MASS", "POS ", "VEL "],
                 :gas        => ["MASS", "POS "],
                 :halo       => ["MASS", "POS "],
-                :stars      => ["MASS", "POS ", "VEL "],
                 :black_hole => ["MASS", "POS "],
             ),
             var_name = L"\epsilon",
@@ -1028,11 +1029,12 @@ function plotParams(quantity::Symbol)::PlotParams
 
     elseif quantity == :stellar_vcirc
 
+        # `daBandProfile` expects that the first element in the request dictionary is for the stars
         plot_params = PlotParams(;
             request  = Dict(
+                :stars      => ["MASS", "POS "],
                 :gas        => ["MASS", "POS "],
                 :halo       => ["MASS", "POS "],
-                :stars      => ["MASS", "POS "],
                 :black_hole => ["MASS", "POS "],
             ),
             var_name = L"v_\mathrm{circ}",

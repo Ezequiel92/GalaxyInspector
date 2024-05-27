@@ -2063,7 +2063,7 @@ function computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 end
 
 """
-    function computeSFR(
+    computeSFR(
         data_dict::Dict;
         <keyword arguments>
     )::Vector{<:Unitful.MassFlow}
@@ -3206,6 +3206,7 @@ Compute a profile.
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
+  - `empty_nan::Bool=true`: If empty bins will be set to NaN, 0 is used otherwise. Be carefull if `empty_nan` = true and `cumulative` = true, because every bin after the first NaN will be set to NaN.
 
 # Returns
 
@@ -3220,6 +3221,7 @@ function computeProfile(
     total::Bool=true,
     cumulative::Bool=false,
     density::Bool=false,
+    empty_nan::Bool=true,
 )::Vector{<:Number}
 
     # Return a null profile if `quantity` is empty
@@ -3235,12 +3237,12 @@ function computeProfile(
     # Compute the histogram of `quantity`
     if isempty(norm_values)
 
-        profile = histogram1D(distances, quantity, grid; total)
+        profile = histogram1D(distances, quantity, grid; total, empty_nan)
 
     else
 
-        quantity_histogram = histogram1D(distances, quantity, grid; total)
-        norm_values_histogram = histogram1D(distances, norm_values, grid; total)
+        quantity_histogram = histogram1D(distances, quantity, grid; total, empty_nan)
+        norm_values_histogram = histogram1D(distances, norm_values, grid; total, empty_nan=false)
 
         replace!(x -> iszero(x) ? oneunit(x) : x, norm_values_histogram)
 
@@ -3255,5 +3257,55 @@ function computeProfile(
     end
 
     return density ? profile ./ region : profile
+
+end
+
+"""
+    computeBandProfile(
+        positions::Matrix{<:Unitful.Length},
+        quantity::Vector{<:Number},
+        grid::CircularGrid;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute a profile of the mean and standard deviation of `quantity`.
+
+Empty bins have a NaN mean and standard deviation.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `quantity::Vector{<:Number}`: The profile will be of this quantity.
+  - `grid::CircularGrid`: Circular grid.
+  - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the mean value for each bin.
+      + A vector with the standard deviation for each bin.
+"""
+function computeBandProfile(
+    positions::Matrix{<:Unitful.Length},
+    quantity::Vector{<:Number},
+    grid::CircularGrid;
+    flat::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    # Return a null profile if `quantity` is empty
+    !isempty(quantity) || return fill(NaN, length(grid.grid))
+
+    # Compute the distances of the cells/particles to the center of the grid
+    if flat
+        distances = computeDistance(positions[1:2, :]; center=grid.center[1:2])
+    else
+        distances = computeDistance(positions; center=grid.center)
+    end
+
+    # Compute the histogram of `quantity`
+    histogram = listHistogram1D(distances, quantity, grid)
+
+    return mean.(histogram), std.(histogram)
 
 end

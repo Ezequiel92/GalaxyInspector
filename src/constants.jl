@@ -445,6 +445,7 @@ const DEFAULT_THEME = Theme(
         cycle=Cycle([:color, :linestyle, :marker], covary=true),
     ),
     Scatter=(markersize=22, cycle=Cycle([:color, :marker], covary=true)),
+    Band=(cycle=[:color],),
     Errorbars=(whiskerwidth=10,),
     Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
     Colorbar=(size=25, ticklabelpad=10, minorticksvisible=true, ticksize=7),
@@ -459,6 +460,7 @@ const DEFAULT_THEME = Theme(
         dodge_gap=0.04,
     ),
     Arrows=(lengthscale=0.02, arrowsize=7.0, linestyle=:solid, color=:white),
+    Text=(color=:white, font=:bold, align=(:left, :top)),
 )
 
 # Structures
