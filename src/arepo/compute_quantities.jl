@@ -532,6 +532,7 @@ function computeTemperature(
 )::Vector{<:Unitful.Temperature}
 
     # xH := mass_fraction_of_hydrogen
+    # It should be similar to the constant [`HYDROGEN_MASSFRAC`](@ref) used in Arepo
     xH = metals[ELEMENT_INDEX[:H], :]
 
     # yHe := number_of_helium_atoms / number_of_hydrogen_atoms
@@ -1767,9 +1768,11 @@ function computeStellarAge(data_dict::Dict)::Vector{<:Unitful.Time}
 end
 
 """
-    computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+    computeIonizedMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
 Compute the ionized hydrogen mass of every gas cell in `data`.
+
+The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
 
 # Arguments
 
@@ -1786,12 +1789,13 @@ Compute the ionized hydrogen mass of every gas cell in `data`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our routine, and for cells that have entered it at least once.
 
 # Returns
 
   - The mass of ionized hydrogen in every gas cell.
 """
-function computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
@@ -1800,29 +1804,43 @@ function computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of ionized hydrogen according to our model
-        f_HII = @. dg["FRAC"][1, :] / (1.0 - dg["FRAC"][4, :])
+        if normalize
+            f_HII = dg["FRAC"][1, :] ./ (1.0 .- dg["FRAC"][4, :])
+        else
+            f_HII = dg["FRAC"][1, :]
+        end
+
+        # Allocate memory
+        fi = copy(f_HII)
 
         # When there is no data from our model, use the fraction of ionized hydrogen from Arepo
-        fi = [
-            isnan(fhii) ? nhp / (nhp + nh) : fhii for
-            (fhii, nh, nhp) in zip(f_HII, dg["NH  "], dg["NHP "])
-        ]
+        @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
+
+            @inbounds if isnan(fi[i])
+                fi[i] = nhp / (nhp + nh)
+            end
+
+        end
 
     else
 
-        # Fraction of ionized hydrogen according to Arepo
-        fi = @. dg["NHP "] / (dg["NHP "] + dg["NH  "])
+        # For simulations without our routine use the fraction of ionized hydrogen according to Arepo
+        fi = dg["NHP "] ./ (dg["NHP "] .+ dg["NH  "])
 
     end
 
-    return fi .* dg["MASS"]
+    return fi .* dg["MASS"] .* HYDROGEN_MASSFRAC
 
 end
 
 """
-    computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+    computeAtomicMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
 Compute the atomic hydrogen mass of every gas cell in `data`.
+
+The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
+
+For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate atomic from molecular gas in the neutral phase given by Arepo.
 
 # Arguments
 
@@ -1839,6 +1857,7 @@ Compute the atomic hydrogen mass of every gas cell in `data`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our routine, and for cells that have entered it at least once.
 
 # Returns
 
@@ -1848,7 +1867,7 @@ Compute the atomic hydrogen mass of every gas cell in `data`.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
@@ -1857,25 +1876,35 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of atomic hydrogen according to our model
-        f_HI = @. dg["FRAC"][2, :] / (1.0 - dg["FRAC"][4, :])
+        if normalize
+            f_HI = dg["FRAC"][2, :] ./ (1.0 .- dg["FRAC"][4, :])
+        else
+            f_HI = dg["FRAC"][2, :]
+        end
+
+        # Allocate memory
+        fa = copy(f_HI)
 
         # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
         # assuming that the fraction of molecular hydrogen is 0
-        fa = [
-            isnan(fhi) ? nh / (nhp + nh) : fhi for
-            (fhi, nh, nhp) in zip(f_HI, dg["NH  "], dg["NHP "])
-        ]
+        @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
+
+            @inbounds if isnan(fa[i])
+                fa[i] = nh / (nhp + nh)
+            end
+
+        end
 
     elseif !isempty(dg["PRES"])
 
         # Fraction of neutral hydrogen according to Arepo
-        fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
+        fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
 
         # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
-        fm = @. 1.0 / (1.0 + (P0 / dg["PRES"]))
+        fm = 1.0 ./ (1.0 .+ (P0 ./ dg["PRES"]))
 
         # Use the fraction of neutral hydrogen that is not molecular according to the pressure relation,
-        # unless that value is negative, in that case use 0 assuming all neutral hydrogen is molecular
+        # unless that value is negative, in which case assume taht all neutral hydrogen is molecular
         fa = setPositive(fn .- fm)
 
     else
@@ -1884,14 +1913,18 @@ function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     end
 
-    return fa .* dg["MASS"]
+    return fa .* dg["MASS"] .* HYDROGEN_MASSFRAC
 
 end
 
 """
-    computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+    computeMolecularMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
 Compute the molecular hydrogen mass of every gas cell in `data`.
+
+The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
+
+For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate molecular from atomic gas in the neutral phase given by Arepo.
 
 # Arguments
 
@@ -1908,6 +1941,7 @@ Compute the molecular hydrogen mass of every gas cell in `data`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our routine, and for cells that have entered it at least once.
 
 # Returns
 
@@ -1917,7 +1951,7 @@ Compute the molecular hydrogen mass of every gas cell in `data`.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
@@ -1926,22 +1960,26 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
         # Fraction of molecular hydrogen according to our model
-        f_H2 = @. dg["FRAC"][3, :] / (1.0 - dg["FRAC"][4, :])
+        if normalize
+            f_H2 = dg["FRAC"][3, :] ./ (1.0 .- dg["FRAC"][4, :])
+        else
+            f_H2 = dg["FRAC"][3, :]
+        end
 
-        # When there is no data from our model, use 0
+        # When there is no data from our model, asume 0 molecular hydrogen
         fm = replace!(f_H2, NaN => 0.0)
 
     elseif !isempty(dg["PRES"]) && !isempty(dg["NHP "]) && !isempty(dg["NH  "])
 
         # Fraction of neutral hydrogen according to Arepo
-        fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
+        fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
 
         # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
-        fp = @. 1.0 / (1.0 + (P0 / dg["PRES"]))
+        fp = 1.0 ./ (1.0 .+ (P0 ./ dg["PRES"]))
 
         # Use the fraction of molecular hydrogen according to the pressure relation, unless
         # that value is larger than the fraction of neutral hydrogen according to Arepo,
-        # in that case use the neutral fraction assuming it is all molecular hydrogen
+        # in which case assume taht all neutral hydrogen is molecular
         fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
 
     else
@@ -1950,14 +1988,16 @@ function computeMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     end
 
-    return fm .* dg["MASS"]
+    return fm .* dg["MASS"] .* HYDROGEN_MASSFRAC
 
 end
 
 """
-    computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+    computeNeutralMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
 Compute the neutral hydrogen mass of every gas cell in `data`.
+
+The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
 
 # Arguments
 
@@ -1974,12 +2014,13 @@ Compute the neutral hydrogen mass of every gas cell in `data`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our routine, and for cells that have entered it at least once.
 
 # Returns
 
   - The mass of neutral hydrogen in every gas cell.
 """
-function computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
@@ -1987,20 +2028,28 @@ function computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
-        # Fraction of atomic hydrogen according to our model
-        f_HI = @. dg["FRAC"][2, :] / (1.0 - dg["FRAC"][4, :])
+        # Fraction of atomic and molecular hydrogen according to our model
+        if normalize
+            f_HI = dg["FRAC"][2, :] ./ (1.0 .- dg["FRAC"][4, :])
+            f_H2 = dg["FRAC"][3, :] ./ (1.0 .- dg["FRAC"][4, :])
+        else
+            f_HI = dg["FRAC"][2, :]
+            f_H2 = dg["FRAC"][3, :]
+        end
 
-        # Fraction of molecular hydrogen according to our model
-        f_H2 = @. dg["FRAC"][3, :] / (1.0 - dg["FRAC"][4, :])
-
+        # Allocate memory
+        fa = copy(f_HI)
         # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
         # assuming that the fraction of molecular hydrogen is 0
-        fa = [
-            isnan(fhi) ? nh / (nhp + nh) : fhi for
-            (fhi, nh, nhp) in zip(f_HI, dg["NH  "], dg["NHP "])
-        ]
+        @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
 
-        # When there is no data from our model, use 0
+            @inbounds if isnan(fhii)
+                fa[i] = nh / (nhp + nh)
+            end
+
+        end
+
+        # When there is no data from our model, asume 0 molecular hydrogen
         fm = replace!(f_H2, NaN => 0.0)
 
         fn = fa .+ fm
@@ -2012,14 +2061,16 @@ function computeNeutralMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     end
 
-    return fn .* dg["MASS"]
+    return fn .* dg["MASS"] .* HYDROGEN_MASSFRAC
 
 end
 
 """
     computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
-Compute the "stellar mass" of every gas cell in `data`, which will be different than 0 only for cells in our model.
+Compute the "stellar mass" of every gas cell in `data`, which will be other than 0 only for simulation with our routine, and for cells that have entered it at least once.
+
+The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen. This is applied only for consistency with the other mass rutines ([`computeIonizedMass`](@ref), [`computeAtomicMass`](@ref), [`computeMolecularMass`](@ref), and [`computeNeutralMass`](@ref)). Notice that there is no physical meaning to the "stellar mass" of a gas cell as used in our model. So, it makes no sense to question if the "stellar fraction" computed here is a fraction of the total gas mass or only of the hydrogen mass.
 
 # Arguments
 
@@ -2049,7 +2100,7 @@ function computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
-        # When there is no data from our model, use 0
+        # When there is no data from our model, use a stellar fraction of 0
         fm = replace!(dg["FRAC"][4, :], NaN => 0.0)
 
     else
@@ -2058,7 +2109,7 @@ function computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     end
 
-    return fm .* dg["MASS"]
+    return fm .* dg["MASS"] .* HYDROGEN_MASSFRAC
 
 end
 
@@ -2140,6 +2191,7 @@ Compute an integrated quantity for the whole system in `data_dict`.
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
+      + `:hydrogen_mass`          -> Hydrogen mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -2191,6 +2243,10 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
         integrated_qty = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
+    elseif quantity == :hydrogen_mass
+
+        integrated_qty = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
+
     elseif quantity == :dm_mass
 
         integrated_qty = sum(data_dict[:halo]["MASS"]; init=0.0u"Msun")
@@ -2234,45 +2290,45 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
     elseif quantity == :molecular_fraction
 
         molecular_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
 
-        if iszero(gas_mass)
+        if iszero(hydrogen_mass)
             integrated_qty = NaN
         else
-            integrated_qty = molecular_mass / gas_mass
+            integrated_qty = molecular_mass / hydrogen_mass
         end
 
     elseif quantity == :atomic_fraction
 
         atomic_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
 
-        if iszero(gas_mass)
+        if iszero(hydrogen_mass)
             integrated_qty = NaN
         else
-            integrated_qty = atomic_mass / gas_mass
+            integrated_qty = atomic_mass / hydrogen_mass
         end
 
     elseif quantity == :ionized_fraction
 
         ionized_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
 
-        if iszero(gas_mass)
+        if iszero(hydrogen_mass)
             integrated_qty = NaN
         else
-            integrated_qty = ionized_mass / gas_mass
+            integrated_qty = ionized_mass / hydrogen_mass
         end
 
     elseif quantity == :neutral_fraction
 
         neutral_mass = sum(computeNeutralMass(data_dict); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
 
-        if iszero(gas_mass)
+        if iszero(hydrogen_mass)
             integrated_qty = NaN
         else
-            integrated_qty = neutral_mass / gas_mass
+            integrated_qty = neutral_mass / hydrogen_mass
         end
 
     elseif quantity == :stellar_area_density
@@ -2492,6 +2548,7 @@ Compute a quantity for each cell/particle in `data_dict`.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -2504,6 +2561,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -2545,6 +2603,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         scatter_qty = data_dict[:gas]["MASS"]
 
+    elseif quantity == :hydrogen_mass
+
+        scatter_qty = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
+
     elseif quantity == :dm_mass
 
         scatter_qty = data_dict[:halo]["MASS"]
@@ -2572,30 +2634,30 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :molecular_fraction
 
         molecular_mass = computeMolecularMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
+        hydrogen_mass = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
 
-        scatter_qty = molecular_mass ./ gas_mass
+        scatter_qty = molecular_mass ./ hydrogen_mass
 
     elseif quantity == :atomic_fraction
 
         atomic_mass = computeAtomicMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
+        hydrogen_mass = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
 
-        scatter_qty = atomic_mass ./ gas_mass
+        scatter_qty = atomic_mass ./ hydrogen_mass
 
     elseif quantity == :ionized_fraction
 
         ionized_mass = computeIonizedMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
+        hydrogen_mass = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
 
-        scatter_qty = ionized_mass ./ gas_mass
+        scatter_qty = ionized_mass ./ hydrogen_mass
 
     elseif quantity == :neutral_fraction
 
         neutral_mass = computeNeutralMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
+        hydrogen_mass = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
 
-        scatter_qty = neutral_mass ./ gas_mass
+        scatter_qty = neutral_mass ./ hydrogen_mass
 
     elseif quantity == :molecular_neutral_fraction
 
@@ -2608,6 +2670,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         scatter_qty = data_dict[:gas]["RHO "]
 
+    elseif quantity == :hydrogen_mass_density
+
+        scatter_qty = data_dict[:gas]["RHO "] .* HYDROGEN_MASSFRAC
+
     elseif quantity == :gas_number_density
 
         scatter_qty = data_dict[:gas]["RHO "] ./ Unitful.mp
@@ -2615,34 +2681,30 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :molecular_number_density
 
         molecular_mass = computeMolecularMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
-        gas_density = data_dict[:gas]["RHO "]
+        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
 
-        scatter_qty = gas_density .* (molecular_mass ./ gas_mass) ./ (2 * Unitful.mp)
+        scatter_qty = (molecular_mass ./ volumes) ./ (2 * Unitful.mp)
 
     elseif quantity == :atomic_number_density
 
         atomic_mass = computeAtomicMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
-        gas_density = data_dict[:gas]["RHO "]
+        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
 
-        scatter_qty = gas_density .* (atomic_mass ./ gas_mass) ./ Unitful.mp
+        scatter_qty = (atomic_mass ./ volumes) ./ Unitful.mp
 
     elseif quantity == :ionized_number_density
 
         ionized_mass = computeIonizedMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
-        gas_density = data_dict[:gas]["RHO "]
+        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
 
-        scatter_qty = gas_density .* (ionized_mass ./ gas_mass) ./ Unitful.mp
+        scatter_qty = (ionized_mass ./ volumes) ./ Unitful.mp
 
     elseif quantity == :neutral_number_density
 
         neutral_mass = computeNeutralMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
-        gas_density = data_dict[:gas]["RHO "]
+        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
 
-        scatter_qty = gas_density .* (neutral_mass ./ gas_mass) ./ Unitful.mp
+        scatter_qty = (neutral_mass ./ volumes) ./ Unitful.mp
 
     elseif quantity == :gas_metallicity
 

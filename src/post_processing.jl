@@ -160,7 +160,7 @@ function ppCross!(
 end
 
 """
-    ppAnnotation!(figure::Makie.Figure, text::String)::Nothing
+    ppAnnotation!(figure::Makie.Figure, text::String; <keyword arguments>)::Nothing
 
 Add an annotation to the plot.
 
@@ -168,10 +168,28 @@ Add an annotation to the plot.
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
   - `text::String`: Text to be written.
+  - `position::Tuple{<:Real,<:Real}=(0, 1)`: Relative position of the top left corner of the text box.
 """
-function ppAnnotation!(figure::Makie.Figure, text::String)::Nothing
+function ppAnnotation!(
+    figure::Makie.Figure,
+    text::String;
+    position::Tuple{<:Real,<:Real}=(0, 1),
+)::Nothing
 
-    text!(figure.current_axis.x, pos[1], pos[2]; text)
+    text!(
+        figure.current_axis.x,
+        position[1],
+        position[2];
+        text,
+        align=(:left, :top),
+        offset=(4, -2),
+        color=:white,
+        strokecolor=:black,
+        strokewidth=1,
+        space=:relative,
+        fontsize=45,
+        font=:bold,
+    )
 
     return nothing
 

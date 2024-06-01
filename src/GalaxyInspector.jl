@@ -69,6 +69,7 @@ export readSnapshot
 export getBlock
 export readSfrFile
 export readCpuFile
+export makeDataDict
 
 # From `pipelines.jl`
 export snapshotPlot

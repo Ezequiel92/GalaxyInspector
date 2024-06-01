@@ -128,8 +128,7 @@ Some of the features are:
   - `save_figures::Bool=true`: If every figure will be saved as an image.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-  - `size::NTuple{2,Int}=(1000, 1000)`: Size of the figures in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
-  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -189,8 +188,7 @@ function snapshotPlot(
     save_figures::Bool=true,
     backup_results::Bool=false,
     theme::Attributes=Theme(),
-    size::NTuple{2,Int}=(1000, 1000),
-    sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
+    sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
     colorbar::Bool=false,
     # Animation options
@@ -245,7 +243,7 @@ function snapshotPlot(
     set_theme!(current_theme)
 
     # Create the figure
-    figure = Figure(; size)
+    figure = Figure()
 
     # Create the labels
     xlabel = LaTeXString(
@@ -593,11 +591,7 @@ function snapshotPlot(
             if backup_results
 
                 # Save data in a JLD2 file
-                if isnothing(sim_labels)
-                    sim_name = "simulation_$(lpad(string(simulation_index), 3, "0"))"
-                else
-                    sim_name = sim_labels[simulation_index]
-                end
+                sim_name = "simulation_$(lpad(string(simulation_index), 3, "0"))"
 
                 jldopen(joinpath(output_path, base_filename * ".jld2"), "a+"; compress=true) do f
                     address = "$(base_filename)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
@@ -689,7 +683,7 @@ function snapshotPlot(
             pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
             legend_elements = Vector{Makie.LegendElement}[]
-            legend_labels = Vector{AbstractString}[]
+            legend_labels = Vector{<:Union{AbstractString,Nothing}}[]
 
             if !isnothing(sim_labels)
                 # Add the main legend
@@ -850,8 +844,7 @@ Some of the features are:
   - `save_figures::Bool=true`: If the plot will be saved as an image.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-  - `size::NTuple{2,Int}=(1000, 1000)`: Size of the figures in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
-  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
 
 # Returns
@@ -897,8 +890,7 @@ function timeSeriesPlot(
     save_figures::Bool=true,
     backup_results::Bool=false,
     theme::Attributes=Theme(),
-    size::NTuple{2,Int}=(1000, 1000),
-    sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
+    sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing,
     title::AbstractString="",
 )::Tuple{Makie.Axis,Figure}
 
@@ -918,7 +910,7 @@ function timeSeriesPlot(
     set_theme!(current_theme)
 
     # Create the figure
-    figure = Figure(; size)
+    figure = Figure()
 
     # Create the labels
     xlabel = LaTeXString(
@@ -1048,11 +1040,7 @@ function timeSeriesPlot(
         if backup_results
 
             # Save data in a JLD2 file
-            if isnothing(sim_labels)
-                sim_name = "simulation-$(lpad(string(simulation_index), 3, "0"))"
-            else
-                sim_name = sim_labels[simulation_index]
-            end
+            sim_name = "simulation-$(lpad(string(simulation_index), 3, "0"))"
 
             jldopen(joinpath(output_path, "$(filename).jld2"), "a+"; compress=true) do f
                 address = "$(filename)/$sim_name"
@@ -1086,7 +1074,7 @@ function timeSeriesPlot(
         pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
         legend_elements = Vector{Makie.LegendElement}[]
-        legend_labels = Vector{AbstractString}[]
+        legend_labels = Vector{<:Union{AbstractString,Nothing}}[]
 
         if !isnothing(sim_labels)
             # Add the main legend

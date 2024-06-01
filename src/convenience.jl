@@ -297,23 +297,23 @@ function snapshotReport(
 
             println(file, "\tHydrogen masses:\n")
 
-            gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+            hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
 
             hii_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
-            hii_percent = round((hii_mass / gas_mass) * 100, sigdigits=3)
+            hii_percent = round((hii_mass / hydrogen_mass) * 100, sigdigits=3)
 
             hi_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
-            hi_percent = round((hi_mass / gas_mass) * 100, sigdigits=3)
+            hi_percent = round((hi_mass / hydrogen_mass) * 100, sigdigits=3)
 
             h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
-            h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
+            h2_percent = round((h2_mass / hydrogen_mass) * 100, sigdigits=3)
 
             title = "Ionized mass:"
             title *= " "^(25 - length(title))
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hii_mass, sigdigits=3)) \
-                ($(hii_percent)% of total gas mass)",
+                ($(hii_percent)% of total hydrogen mass)",
             )
 
             title = "Atomic mass:"
@@ -321,7 +321,7 @@ function snapshotReport(
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
-                ($(hi_percent)% of total gas mass)",
+                ($(hi_percent)% of total hydrogen mass)",
             )
 
             title = "Molecular mass:"
@@ -329,7 +329,7 @@ function snapshotReport(
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
-                ($(h2_percent)% of total gas mass)\n",
+                ($(h2_percent)% of total hydrogen mass)\n",
             )
 
         end
@@ -414,23 +414,23 @@ function snapshotReport(
 
             println(file, "\tHydrogen masses:\n")
 
-            gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+            hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
 
             hii_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
-            hii_percent = round((hii_mass / gas_mass) * 100, sigdigits=3)
+            hii_percent = round((hii_mass / hydrogen_mass) * 100, sigdigits=3)
 
             hi_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
-            hi_percent = round((hi_mass / gas_mass) * 100, sigdigits=3)
+            hi_percent = round((hi_mass / hydrogen_mass) * 100, sigdigits=3)
 
             h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
-            h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
+            h2_percent = round((h2_mass / hydrogen_mass) * 100, sigdigits=3)
 
             title = "Ionized mass:"
             title *= " "^(25 - length(title))
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hii_mass, sigdigits=3)) \
-                ($(hii_percent)% of total gas mass)",
+                ($(hii_percent)% of total hydrogen mass)",
             )
 
             title = "Atomic mass:"
@@ -438,7 +438,7 @@ function snapshotReport(
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), hi_mass, sigdigits=3)) \
-                ($(hi_percent)% of total gas mass)",
+                ($(hi_percent)% of total hydrogen mass)",
             )
 
             title = "Molecular mass:"
@@ -446,7 +446,7 @@ function snapshotReport(
             println(
                 file,
                 "\t\t$(title)$(round(typeof(1.0u"Msun"), h2_mass, sigdigits=3)) \
-                ($(h2_percent)% of total gas mass)\n",
+                ($(h2_percent)% of total hydrogen mass)\n",
             )
 
         end
@@ -983,6 +983,8 @@ function snapshotReport(
                     ($(round(g_outside_percent, sigdigits=3))% of the total gas mass)\n",
                 )
 
+                total_hydrogen_mass = total_gas_mass * HYDROGEN_MASSFRAC
+
                 #############################
                 # Ionized gas
                 #############################
@@ -992,8 +994,8 @@ function snapshotReport(
                     total_ion_mass_inside  = sum(ionized_mass_inside; init=0.0u"Msun")
                     total_ion_mass_outside = sum(ionized_mass_outside; init=0.0u"Msun")
 
-                    i_inside_percent  = (total_ion_mass_inside  / total_gas_mass) * 100.0
-                    i_outside_percent = (total_ion_mass_outside / total_gas_mass) * 100.0
+                    i_inside_percent  = (total_ion_mass_inside  / total_hydrogen_mass) * 100.0
+                    i_outside_percent = (total_ion_mass_outside / total_hydrogen_mass) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tIonized gas:")
@@ -1003,14 +1005,14 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ion_mass_inside, sigdigits=3)) \
-                        ($(round(i_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(i_inside_percent, sigdigits=3))% of the total hydrogen mass)\n",
                     )
 
                     println(file, "\tIonized mass outside the disc ($(radial_limit) < r < R200):\n")
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ion_mass_outside, sigdigits=3)) \
-                        ($(round(i_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(i_outside_percent, sigdigits=3))% of the total hydrogen mass)\n",
                     )
 
                 end
@@ -1024,8 +1026,8 @@ function snapshotReport(
                     total_ato_mass_inside  = sum(atomic_mass_inside; init=0.0u"Msun")
                     total_ato_mass_outside = sum(atomic_mass_outside; init=0.0u"Msun")
 
-                    a_inside_percent  = (total_ato_mass_inside  / total_gas_mass) * 100.0
-                    a_outside_percent = (total_ato_mass_outside / total_gas_mass) * 100.0
+                    a_inside_percent  = (total_ato_mass_inside  / total_hydrogen_mass) * 100.0
+                    a_outside_percent = (total_ato_mass_outside / total_hydrogen_mass) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tAtomic gas:")
@@ -1035,14 +1037,14 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_inside, sigdigits=3)) \
-                        ($(round(a_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(a_inside_percent, sigdigits=3))% of the total hydrogen mass)\n",
                     )
 
                     println(file, "\tAtomic mass outside the disc ($(radial_limit) < r < R200):\n")
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_outside, sigdigits=3)) \
-                        ($(round(a_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(a_outside_percent, sigdigits=3))% of the total hydrogen mass)\n",
                     )
 
                 end
@@ -1056,8 +1058,8 @@ function snapshotReport(
                     total_mol_mass_inside  = sum(molecular_mass_inside; init=0.0u"Msun")
                     total_mol_mass_outside = sum(molecular_mass_outside; init=0.0u"Msun")
 
-                    m_inside_percent  = (total_mol_mass_inside  / total_gas_mass) * 100.0
-                    m_outside_percent = (total_mol_mass_outside / total_gas_mass) * 100.0
+                    m_inside_percent  = (total_mol_mass_inside  / total_hydrogen_mass) * 100.0
+                    m_outside_percent = (total_mol_mass_outside / total_hydrogen_mass) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tMolecular gas:")
@@ -1067,14 +1069,14 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_inside, sigdigits=3)) \
-                        ($(round(m_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(m_inside_percent, sigdigits=3))% of the total hydrogen mass)\n",
                     )
 
                     println(file, "\tMolecular mass outside the disc ($(radial_limit) < r < R200):\n")
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_outside, sigdigits=3)) \
-                        ($(round(m_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(m_outside_percent, sigdigits=3))% of the total hydrogen mass)\n",
                     )
 
                 end
@@ -1715,8 +1717,7 @@ function sfrTXT(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(Legend=(valign=:top,),)),
-        size=(1700, 1000),
+        theme,
         sim_labels,
         title="",
     )
@@ -1821,8 +1822,7 @@ function cpuTXT(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(Legend=(halign=:left, valign=:top),)),
-        size=(1700, 1000),
+        theme,
         sim_labels,
         title=L"\mathrm{Process: \,\, %$(safe_str_target)}",
     )
@@ -1848,6 +1848,7 @@ Plot a 2D histogram of the density.
 
       + `:stellar_mass`   -> Stellar mass.
       + `:gas_mass`       -> Gas mass.
+      + `:hydrogen_mass`  -> Hydrogen mass.
       + `:dm_mass`        -> Dark matter mass.
       + `:bh_mass`        -> Black hole mass.
       + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -1886,11 +1887,9 @@ Plot a 2D histogram of the density.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
-  - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
+  - `smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,`: If set to nothing no smoothing is applied. If the (`smoothing length`, `number of neighbors`) are given instead, the result will be smooth out using the [`cubicSplineKernel`](@ref) kernel. The smoothing length can be set to `nothing`, in which case, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used. The number of neighbors for the 2D smoothing has a recommended value of 18, wich comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-  - `size::NTuple{2,Int}=(880, 640)`: Size of the figure in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1935,11 +1934,9 @@ function densityMap(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
-    smooth::Bool=false,
-    smoothing_length::Union{Unitful.Length,Nothing}=nothing,
+    smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,
     print_range::Bool=false,
     theme::Attributes=Theme(),
-    size::NTuple{2,Int}=(880, 640),
     title::Union{Symbol,<:AbstractString}="",
     annotation::String="",
     colorbar::Bool=false,
@@ -1994,8 +1991,7 @@ function densityMap(
                     da_kwargs=[
                         (;
                             projection_plane,
-                            smooth,
-                            smoothing_length,
+                            smoothing,
                             print_range,
                             filter_function=da_ff,
                         ),
@@ -2030,12 +2026,11 @@ function densityMap(
                     theme=merge(
                         theme,
                         Theme(
+                            size=colorbar ? (880, 640) : (880, 880),
                             figure_padding=(1, 70, 1, 15),
-                            Axis=(aspect=AxisAspect(1), limits=(-limit, limit, -limit, limit)),
-                            Colorbar=(labelpadding=2,),
+                            Axis=(limits=(-limit, limit, -limit, limit),),
                         ),
                     ),
-                    size,
                     sim_labels=nothing,
                     title,
                     colorbar,
@@ -2102,7 +2097,6 @@ Plot a 2D histogram of the temperature.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-  - `size::NTuple{2,Int}=(880, 640)`: Size of the figure in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -2123,7 +2117,6 @@ function temperatureMap(
     pixel_length::Unitful.Length=0.1u"kpc",
     print_range::Bool=false,
     theme::Attributes=Theme(),
-    size::NTuple{2,Int}=(880, 640),
     title::Union{Symbol,<:AbstractString}="",
     annotation::String="",
     colorbar::Bool=false,
@@ -2203,12 +2196,11 @@ function temperatureMap(
                 theme=merge(
                     theme,
                     Theme(
+                        size=colorbar ? (880, 640) : (880, 880),
                         figure_padding=(1, 70, 1, 15),
-                        Axis=(aspect=AxisAspect(1), limits=(-limit, limit, -limit, limit)),
-                        Colorbar=(labelpadding=2,),
+                        Axis=(limits=(-limit, limit, -limit, limit),),
                     ),
                 ),
-                size,
                 sim_labels=nothing,
                 title,
                 colorbar,
@@ -2243,6 +2235,7 @@ Plot a 2D histogram of the density, with the velocity field.
 
       + `:stellar_mass`   -> Stellar mass.
       + `:gas_mass`       -> Gas mass.
+      + `:hydrogen_mass`  -> Hydrogen mass.
       + `:dm_mass`        -> Dark matter mass.
       + `:bh_mass`        -> Black hole mass.
       + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -2281,11 +2274,9 @@ Plot a 2D histogram of the density, with the velocity field.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `smooth::Bool=false`: If the results will be smooth out using the kernel function [`cubicSplineKernel`](@ref).
-  - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
+  - `smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,`: If set to nothing no smoothing is applied. If the (`smoothing length`, `number of neighbors`) are given instead, the result will be smooth out using the [`cubicSplineKernel`](@ref) kernel. The smoothing length can be set to `nothing`, in which case, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used. The number of neighbors for the 2D smoothing has a recommended value of 18, wich comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-  - `size::NTuple{2,Int}=(880, 640)`: Size of the figure in points. For PDFs and SVGs, 1 point = 0.1 mm. For PNGs, when strech assuming 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -2305,12 +2296,10 @@ function densityMapVelField(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
-    smooth::Bool=false,
-    smoothing_length::Union{Unitful.Length,Nothing}=nothing,
+    smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,
     print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
-    size::NTuple{2,Int}=(880, 640),
     annotation::String="",
     colorbar::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
@@ -2337,7 +2326,14 @@ function densityMapVelField(
             plotParams(quantity).request,
         )
 
-        if quantity ∈ [:gas_mass, :molecular_mass, :atomic_mass, :ionized_mass, :neutral_mass]
+        if quantity ∈ [
+            :gas_mass,
+            :hydrogen_mass,
+            :molecular_mass,
+            :atomic_mass,
+            :ionized_mass,
+            :neutral_mass,
+        ]
             type_symbol = :gas
         elseif quantity == :stellar_mass
             type_symbol = :stars
@@ -2377,7 +2373,7 @@ function densityMapVelField(
                     da_functions=[daDensity2DHistogram, daVelocityField],
                     da_args=[(grid_hm, quantity), (grid_vf, type_symbol)],
                     da_kwargs=[
-                        (; projection_plane, smooth, smoothing_length, print_range),
+                        (; projection_plane, smoothing, print_range),
                         (; projection_plane),
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
@@ -2410,15 +2406,14 @@ function densityMapVelField(
                     theme=merge(
                         theme,
                         Theme(
+                            size=colorbar ? (880, 640) : (880, 880),
                             figure_padding=(1, 50, 1, 1),
-                            Axis=(aspect=AxisAspect(1), limits=(-limit, limit, -limit, limit)),
+                            Axis=(limits=(-limit, limit, -limit, limit),),
                             Colorbar=(
                                 label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
-                                labelpadding=2,
                             ),
                         ),
                     ),
-                    size,
                     sim_labels=nothing,
                     title,
                     colorbar,
@@ -2457,6 +2452,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -2469,6 +2465,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -2499,6 +2496,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -2511,6 +2509,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -2636,7 +2635,6 @@ function scatterPlot(
             save_figures=true,
             backup_results=false,
             theme,
-            size=(1700, 1000),
             sim_labels=nothing,
             title="",
             colorbar=false,
@@ -2754,11 +2752,7 @@ function atomicMolecularTransitionHeatmap(
                 # Plotting and animation options
                 save_figures=true,
                 backup_results=false,
-                theme=merge(
-                    theme,
-                    Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=1, valign=:top)),
-                ),
-                size=(880, 880),
+                theme,
                 sim_labels=nothing,
                 title=L"%$(range[1]) \, < \, Z \, < \, %$(range[2])",
                 colorbar=false,
@@ -2875,21 +2869,7 @@ function atomicMolecularTransitionScatter(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=merge(
-                theme,
-                Theme(
-                    Axis=(aspect=AxisAspect(1),),
-                    Legend=(
-                        nbanks=1,
-                        valign=:top,
-                        halign=:left,
-                        labelsize=20,
-                        rowgap=-5,
-                        markersize=20,
-                    ),
-                ),
-            ),
-            size=(880, 880),
+            theme,
             sim_labels,
             title="",
             colorbar=false,
@@ -2924,6 +2904,7 @@ Plot two quantities as a density scatter plot (2D histogram).
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -2936,6 +2917,7 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -2966,6 +2948,7 @@ Plot two quantities as a density scatter plot (2D histogram).
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -2978,6 +2961,7 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -3116,8 +3100,7 @@ function scatterDensityMap(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=merge(theme, Theme(figure_padding=(1, 20, 5, 15), Axis=(aspect=AxisAspect(1),),)),
-            size=(850, 850),
+            theme,
             sim_labels=nothing,
             title="",
             colorbar=false,
@@ -3144,6 +3127,8 @@ end
 
 Plot a bar plot of the gas fractions for different bins of a given quantity.
 
+Only for gas cells that have entered out routine.
+
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
@@ -3151,6 +3136,7 @@ Plot a bar plot of the gas fractions for different bins of a given quantity.
   - `quantity::Symbol`: Target quantity. The possibilities are:
 
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
@@ -3161,6 +3147,7 @@ Plot a bar plot of the gas fractions for different bins of a given quantity.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -3320,8 +3307,10 @@ function gasFractionsBarPlot(
             theme=merge(
                 theme,
                 Theme(
+                    size=(1700, 1200),
                     Legend=(nbanks=include_stars ? 2 : 3,),
                     Axis=(
+                        aspect=nothing,
                         limits=(nothing, 105, nothing, nothing),
                         xticks=([0, 50, 100], [L"0.0", L"50", L"100"]),
                         yticks=(1:n_bins, ticks),
@@ -3329,11 +3318,10 @@ function gasFractionsBarPlot(
                     BarPlot=(
                         flip_labels_at=10,
                         label_formatter=barPlotLabelFormater,
-                        label_size= include_stars ? 25 : 35,
+                        label_size=include_stars ? 25 : 35,
                     ),
                 ),
             ),
-            size=(1700, 1200),
             sim_labels=nothing,
             title="",
             colorbar=false,
@@ -3366,6 +3354,7 @@ Plot a time series.
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
+      + `:hydrogen_mass`          -> Hydrogen mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -3406,6 +3395,7 @@ Plot a time series.
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
+      + `:hydrogen_mass`          -> Hydrogen mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -3500,7 +3490,10 @@ function timeSeries(
     end
 
     if fraction
-        y_var_name = "Fraction of $(y_var_name)"
+        y_var_name = "Fractional $(y_var_name)"
+        filename = "$(y_quantity)-vs-$(x_quantity)_fractional"
+    else
+        filename = "$(y_quantity)-vs-$(x_quantity)"
     end
 
     timeSeriesPlot(
@@ -3509,7 +3502,7 @@ function timeSeries(
         pf_kwargs=[(;)],
         # `timeSeriesPlot` configuration
         output_path,
-        filename=fraction ? "$(y_quantity)-vs-$(x_quantity)_fraction" : "$(y_quantity)-vs-$(x_quantity)",
+        filename,
         output_format=".pdf",
         warnings=false,
         show_progress=true,
@@ -3541,8 +3534,7 @@ function timeSeries(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(Axis=(aspect=AxisAspect(1),),)),
-        size=(880, 880),
+        theme,
         sim_labels,
         title="",
     )
@@ -3608,11 +3600,11 @@ function gasEvolution(
 
     if fractions
         quantities = [:ionized_fraction, :atomic_fraction, :molecular_fraction]
-        sim_labels = ["Ionized fraction", "Atomic fraction", "Molecular fraction",]
+        sim_labels = ["Ionized fraction", "Atomic fraction", "Molecular fraction"]
         y_plot_params = plotParams(:generic_fraction)
     else
-        quantities = [:gas_mass, :ionized_mass, :atomic_mass, :molecular_mass]
-        sim_labels = ["Total gas", "Ionized gas", "Atomic gas", "Molecular gas",]
+        quantities = [:hydrogen_mass, :ionized_mass, :atomic_mass, :molecular_mass]
+        sim_labels = ["Hydrogen mass", "Ionized mass", "Atomic mass", "Molecular mass"]
         y_plot_params = plotParams(:generic_mass)
     end
 
@@ -3663,7 +3655,6 @@ function gasEvolution(
             save_figures=true,
             backup_results=false,
             theme,
-            size=(880, 880),
             sim_labels,
             title="",
         )
@@ -3751,8 +3742,7 @@ function virialAccretionEvolution(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(Axis=(aspect=AxisAspect(1),),)),
-        size=(880, 880),
+        theme,
         sim_labels,
         title="",
     )
@@ -3832,8 +3822,7 @@ function discAccretionEvolution(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(Axis=(aspect=AxisAspect(1),),)),
-        size=(880, 880),
+        theme,
         sim_labels,
         title="",
     )
@@ -3950,11 +3939,7 @@ function rotationCurve(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=merge(
-            theme,
-            Theme(Axis=(limits=(nothing, nothing, 0.0, nothing),), Legend=(nbanks=2,)),
-        ),
-        size=(880, 880),
+        theme,
         sim_labels,
         title="",
         colorbar=false,
@@ -3986,15 +3971,21 @@ Plot a density profile.
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol`: Quantity for the y axis. The options are:
+  - `quantities::Vector{Symbol}`: Quantities for the y axis. The options are:
 
-      + `:stellar_area_density`    -> Stellar area mass density, up to a radius of `FILTER_R`.
-      + `:gas_area_density`        -> Gas area mass density, up to a radius of `FILTER_R`.
-      + `:molecular_area_density`  -> Molecular hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:atomic_area_density`     -> Atomic hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:ionized_area_density`    -> Ionized hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:neutral_area_density`    -> Neutral hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:sfr_area_density`        -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
@@ -4048,6 +4039,56 @@ function densityProfile(
     plot_params = plotParams(quantity)
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
+    if quantity == :stellar_mass
+
+        yaxis_var_name = L"\Sigma_\star"
+
+    elseif quantity == :dm_mass
+
+        yaxis_var_name = L"\Sigma_\mathrm{DM}"
+
+    elseif quantity == :bh_mass
+
+        yaxis_var_name = L"\Sigma_\mathrm{BH}"
+
+    elseif quantity == :gas_mass
+
+        yaxis_var_name = L"\Sigma_\mathrm{gas}"
+
+    elseif quantity == :hydrogen_mass
+
+        yaxis_var_name = L"\Sigma_\mathrm{H}"
+
+    elseif quantity == :molecular_mass
+
+        yaxis_var_name = L"\Sigma_\mathrm{H2}"
+
+    elseif quantity == :atomic_mass
+
+        yaxis_var_name = L"\Sigma_\mathrm{HI}"
+
+    elseif quantity == :ionized_mass
+
+        yaxis_var_name = L"\Sigma_\mathrm{HII}"
+
+    elseif quantity == :neutral_mass
+
+        yaxis_var_name = L"\Sigma_\mathrm{H2 + HI}"
+
+    elseif quantity ∈ [:sfr, :observational_sfr]
+
+        yaxis_var_name = L"\Sigma_\mathrm{SFR}"
+
+    elseif quantity ∈ [:ssfr, :observational_ssfr]
+
+        yaxis_var_name = L"\Sigma_\mathrm{sSFR}"
+
+    else
+
+        throw(ArgumentError("densityProfile: I don't know the quantity :$(quantity)"))
+
+    end
+
     grid = CircularGrid(radius, n_bins)
 
     # Draw the figures with CairoMakie
@@ -4058,7 +4099,7 @@ function densityProfile(
         pf_kwargs=[(;)],
         # `snapshotPlot` configuration
         output_path,
-        base_filename="$(quantity)-profile",
+        base_filename="$(quantity)-density_profile",
         output_format=".pdf",
         warnings=false,
         show_progress=true,
@@ -4076,7 +4117,7 @@ function densityProfile(
         rotation,
         smooth=0,
         x_unit=u"kpc",
-        y_unit=plot_params.unit,
+        y_unit=plot_params.unit * u"kpc^-2",
         x_exp_factor=0,
         y_exp_factor=0,
         x_trim=(-Inf, Inf),
@@ -4089,20 +4130,13 @@ function densityProfile(
         xaxis_label="auto_label",
         yaxis_label=plot_params.axis_label,
         xaxis_var_name=L"r",
-        yaxis_var_name=plot_params.var_name,
+        yaxis_var_name,
         xaxis_scale_func=identity,
         yaxis_scale_func=yscale,
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=merge(
-            theme,
-            Theme(
-                Axis=(aspect=AxisAspect(1),),
-                Legend=(valign=:top,),
-            ),
-        ),
-        size=(850, 850),
+        theme,
         sim_labels,
         title="",
         colorbar=false,
@@ -4136,13 +4170,19 @@ Plot a density profile.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantities::Vector{Symbol}`: Quantities for the y axis. The options are:
 
-      + `:stellar_area_density`    -> Stellar area mass density, up to a radius of `FILTER_R`.
-      + `:gas_area_density`        -> Gas area mass density, up to a radius of `FILTER_R`.
-      + `:molecular_area_density`  -> Molecular hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:atomic_area_density`     -> Atomic hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:ionized_area_density`    -> Ionized hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:neutral_area_density`    -> Neutral hydrogen area mass density, up to a radius of `FILTER_R`.
-      + `:sfr_area_density`        -> Star formation rate area density, up to the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
@@ -4248,14 +4288,7 @@ function densityProfile(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=merge(
-                theme,
-                Theme(
-                    Axis=(aspect=AxisAspect(1),),
-                    Legend=(valign=:top, nbanks=1),
-                ),
-            ),
-            size=(880, 880),
+            theme,
             sim_labels,
             title="",
             colorbar=false,
@@ -4293,6 +4326,7 @@ Plot a mass profile.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -4420,11 +4454,7 @@ function massProfile(
             # Plotting and animation options
             save_figures=true,
             backup_results=false,
-            theme=merge(
-                theme,
-                Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=2, halign=:right, valign=:top)),
-            ),
-            size=(880, 880),
+            theme,
             sim_labels,
             title="",
             colorbar=false,
@@ -4553,7 +4583,6 @@ function velocityProfile(
         save_figures=true,
         backup_results=false,
         theme,
-        size=(1700, 1000),
         sim_labels,
         title="",
         colorbar=false,
@@ -4646,7 +4675,7 @@ function stellarHistory(
         pf_kwargs=[(;)],
         # `snapshotPlot` configuration
         output_path,
-        base_filename="$(quantity)-stellar-history",
+        base_filename="$(quantity)_history",
         output_format=".pdf",
         warnings=false,
         show_progress=true,
@@ -4683,8 +4712,7 @@ function stellarHistory(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(Axis=(aspect=AxisAspect(1),), Legend=(nbanks=2,))),
-        size=(850, 850),
+        theme,
         sim_labels,
         title="",
         colorbar=false,
@@ -4808,12 +4836,8 @@ function stellarCircularity(
         backup_results=false,
         theme=merge(
             theme,
-            Theme(
-                Axis=(aspect=AxisAspect(1),),
-                Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),
-            ),
+            Theme(Legend=(nbanks=1, halign=:left, valign=:top, padding=(40, 0, 0, 0)),),
         ),
-        size=(850, 850),
         sim_labels,
         title="",
         colorbar=false,
@@ -4955,8 +4979,10 @@ function compareFeldmann2020(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(Legend=(nbanks=2,),)),
-        size=(1700, 1000),
+        theme=merge(
+            theme,
+            Theme(size=(1700, 1000), Axis=(aspect=nothing,), Legend=(nbanks=2,)),
+        ),
         sim_labels,
         title="",
     )
@@ -5085,8 +5111,7 @@ function compareMolla2015(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme,
-        size=(1700, 1000),
+        theme=merge(theme, Theme(size=(1700, 1000), Axis=(aspect=nothing,))),
         sim_labels,
         title="",
         colorbar=false,
@@ -5241,8 +5266,7 @@ function compareKennicuttBigielResolved(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme,
-        size=(1700, 1000),
+        theme=merge(theme, Theme(size=(1700, 1000), Axis=(aspect=nothing,))),
         sim_labels,
         title="",
         colorbar=false,
@@ -5385,8 +5409,7 @@ function compareKennicuttBigielIntegrated(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme,
-        size=(1700, 1000),
+        theme=merge(theme, Theme(size=(1700, 1000), Axis=(aspect=nothing,))),
         sim_labels,
         title="",
     )
@@ -5528,8 +5551,10 @@ function fitKennicuttBigielResolved(
         ##########################
         # left, right, bottom, top
         ##########################
-        theme=merge(theme, Theme(Legend=(padding=(0, 0, 150, 0),),)),
-        size=(1700, 1000),
+        theme=merge(
+            theme,
+            Theme(size=(1700, 1000), Axis=(aspect=nothing,), Legend=(padding=(0, 0, 150, 0),),),
+        ),
         sim_labels,
         title="",
         colorbar=false,

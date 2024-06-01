@@ -553,6 +553,7 @@ Select the plotting parameters for a given `quantity`.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -571,6 +572,7 @@ Select the plotting parameters for a given `quantity`.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:generic_fraction`           -> Parameters for plots with several diferent fraction.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -640,6 +642,15 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request    = Dict(:gas => ["MASS", "POS ", "RHO "]),
             var_name   = L"M_\mathrm{gas}",
+            exp_factor = 10,
+            unit       = u"Msun",
+        )
+
+    elseif quantity == :hydrogen_mass
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "POS ", "RHO "]),
+            var_name   = L"M_\mathrm{H}",
             exp_factor = 10,
             unit       = u"Msun",
         )
@@ -786,6 +797,14 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(:gas => ["MASS", "POS ", "RHO "]),
             var_name = L"\rho_\mathrm{gas}",
+            unit     = u"Msun*kpc^-3",
+        )
+
+    elseif quantity == :hydrogen_mass_density
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["MASS", "POS ", "RHO "]),
+            var_name = L"\rho_\mathrm{H}",
             unit     = u"Msun*kpc^-3",
         )
 

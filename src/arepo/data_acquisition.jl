@@ -1258,3 +1258,77 @@ function makeSimulationTable(simulation_path::String; warnings::Bool=true)::Data
     return identity.(DataFrame(source_table))
 
 end
+
+function makeDataDict(
+    simulation_path::String,
+    slice_index::Int,
+    request::Dict{Symbol,Vector{String}};
+    warnings::Bool=true,
+)::Dict
+
+    # Make a dataframe for every simulation, with the following columns:
+    #   - 1. DataFrame index
+    #   - 2. Number in the file name
+    #   - 3. Scale factor
+    #   - 4. Redshift
+    #   - 5. Physical time
+    #   - 6. Lookback time
+    #   - 7. Snapshot path
+    #   - 8. Group catalog path
+    simulation_table = makeSimulationTable(simulation_path; warnings)
+
+    snapshot_numbers = simulation_table[!, :numbers]
+
+    (
+        length(snapshot_numbers) >= slice_index ||
+        throw(ArgumentError("makeDataDict: The snapshot number $(slice_index) does not exist in  \
+        $(simulation_path). There are only $(length(snapshot_numbers)) snapshots. \
+        The full simulation table is:\n\n$(simulation_table)"))
+    )
+
+    global_index = snapshot_numbers[slice_index]
+
+    snapshot_row = filter(:numbers => ==(global_index), simulation_table)
+
+    ################################################################################################
+    # Compute the metadata for the current snapshot and simulation.
+    ################################################################################################
+
+    # Get the snapshot file path
+    snapshot_path = snapshot_row[1, :snapshot_paths]
+    # Get the group catalog file path
+    groupcat_path = snapshot_row[1, :groupcat_paths]
+
+    # Store the metadata of the current snapshot and simulation
+    metadata = Dict(
+        :sim_data => Simulation(
+            simulation_path,
+            1,
+            slice_index,
+            isCosmological(snapshot_path),
+            simulation_table,
+        ),
+        :snap_data => Snapshot(
+            snapshot_path,
+            parse(Int, global_index),
+            slice_index,
+            snapshot_row[1, :physical_times],
+            snapshot_row[1, :lookback_times],
+            snapshot_row[1, :scale_factors],
+            snapshot_row[1, :redshifts],
+            readSnapHeader(snapshot_path),
+        ),
+
+        :gc_data => GroupCatalog(
+            groupcat_path,
+            readGroupCatHeader(groupcat_path; warnings),
+        ),
+    )
+
+    return merge(
+        metadata,
+        readSnapshot(snapshot_path, request; warnings),
+        readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+    )
+
+end

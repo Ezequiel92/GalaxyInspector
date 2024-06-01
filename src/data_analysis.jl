@@ -416,28 +416,50 @@ Compute a profile.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `quantity::Symbol`: Target quantity. The options are:
+  - `quantity::Symbol`: Target quantity. The options are the same as for [`scatterQty`](@ref):
 
-      + `:stellar_mass`           -> Stellar mass.
-      + `:gas_mass`               -> Gas mass.
-      + `:dm_mass`                -> Dark matter mass.
-      + `:bh_mass`                -> Black hole mass.
-      + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar_area_density`   -> Stellar mass.
-      + `:gas_area_density`       -> Gas mass.
-      + `:molecular_area_density` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_area_density`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_area_density`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_area_density`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:sfr`                    -> Star formation rate, for the last `AGE_RESOLUTION_ρ`.
-      + `:sfr_area_density`       -> Star formation rate, for the last `AGE_RESOLUTION_ρ`.
-      + `:stellar_vcirc`          -> Stellar circular velocity.
-      + `:stellar_vradial`        -> Stellar radial speed.
-      + `:stellar_vtangential`    -> Stellar tangential speed.
-      + `:stellar_age`            -> Stellar age.
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `grid::CircularGrid`: Circular grid.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
@@ -493,74 +515,46 @@ function daProfile(
 
     filtered_dd = filterData(data_dict; filter_function)
 
+    # Get the cell/particle type
+    type = first(keys(plotParams(quantity).request))
+
+    # Read the positions and values
+    positions = filtered_dd[type]["POS "]
+    values    = scatterQty(filtered_dd, quantity)
+
+    n_pos = size(positions, 2)
+    n_val = length(values)
+
+    # Check consistency in the number of positions and values
+    (
+        n_pos == n_val || throw(ArgumentError("daProfile: `positions` and `values` should have \
+        the same number of elements, but `length(positions)` = $(n_pos) != `length(values)` = \
+        $(n_val). Check that the same cell/particle type was selected when using `plotParams` \
+        and `scatterQty`."))
+    )
+
+    # Return `nothing` if any of the necessary quantities are missing
+    !any(iszero, [n_pos, n_val]) || return nothing
+
     if fractions
+
         (
             quantity ∈ [:molecular_mass, :atomic_mass, :ionized_mass] ||
             throw(ArgumentError("daProfile: If `fractions``= true, quantity must be \
-            :neutral_mass, :molecular_mass, :atomic_mass or :ionized_mass, \
-            but I got `quantity` = :$(quantity)"))
+            :neutral_mass, :molecular_mass, :atomic_mass or :ionized_mass, but \
+            I got `quantity` = :$(quantity)"))
         )
-        total      = true
-        cumulative = false
-        density    = false
-    end
 
-    if quantity ∈ [:stellar_area_density, :stellar_mass]
-
-        positions   = filtered_dd[:stars]["POS "]
-        values      = scatterQty(filtered_dd, :stellar_mass)
-        norm_values = Number[]
-
-    elseif quantity ∈ [:gas_area_density, :gas_mass]
-
-        positions   = filtered_dd[:gas]["POS "]
-        values      = scatterQty(filtered_dd, :gas_mass)
-        norm_values = Number[]
-
-    elseif quantity ∈ [:molecular_area_density, :molecular_mass]
-
-        positions   = filtered_dd[:gas]["POS "]
-        values      = scatterQty(filtered_dd, :molecular_mass)
-        norm_values = fractions ? scatterQty(filtered_dd, :gas_mass) : Number[]
-
-    elseif quantity ∈ [:atomic_area_density, :atomic_mass]
-
-        positions   = filtered_dd[:gas]["POS "]
-        values      = scatterQty(filtered_dd, :atomic_mass)
-        norm_values = fractions ? scatterQty(filtered_dd, :gas_mass) : Number[]
-
-    elseif quantity ∈ [:ionized_area_density, :ionized_mass]
-
-        positions   = filtered_dd[:gas]["POS "]
-        values      = scatterQty(filtered_dd, :ionized_mass)
-        norm_values = fractions ? scatterQty(filtered_dd, :gas_mass) : Number[]
-
-    elseif quantity ∈ [:neutral_area_density, :neutral_mass]
-
-        positions   = filtered_dd[:gas]["POS "]
-        values      = scatterQty(filtered_dd, :neutral_mass)
-        norm_values = fractions ? scatterQty(filtered_dd, :gas_mass) : Number[]
-
-    elseif quantity ∈ [:sfr, :sfr_area_density]
-
-        positions   = filtered_dd[:stars]["POS "]
-        values      = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ)
-        norm_values = Number[]
-
-    elseif quantity ∈ [:stellar_vradial, :stellar_vtangential, :stellar_vzstar, :stellar_age]
-
-        positions   = filtered_dd[:stars]["POS "]
-        values      = scatterQty(filtered_dd, quantity)
-        norm_values = Number[]
+        total       = true
+        cumulative  = false
+        density     = false
+        norm_values = scatterQty(filtered_dd, :hydrogen_mass)
 
     else
 
-        throw(ArgumentError("daProfile: I don't recognize the quantity :$(quantity)"))
+        norm_values = Number[]
 
     end
-
-    # Return `nothing` if any of the necessary quantities are missing
-    !any(isempty, [positions, values]) || return nothing
 
     profile = computeProfile(
         positions,
@@ -610,6 +604,7 @@ Compute the profile og a mean quantity with error bars or bands.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -622,6 +617,7 @@ Compute the profile og a mean quantity with error bars or bands.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -882,6 +878,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -894,6 +891,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -1114,6 +1112,7 @@ Compute a 2D density histogram.
 
       + `:stellar_mass`   -> Stellar mass.
       + `:gas_mass`       -> Gas mass.
+      + `:hydrogen_mass`  -> Hydrogen mass.
       + `:dm_mass`        -> Dark matter mass.
       + `:bh_mass`        -> Black hole mass.
       + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -1121,9 +1120,7 @@ Compute a 2D density histogram.
       + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
-  - `smooth::Bool=false`: If the results will be smooth out using the [`cubicSplineKernel`](@ref) kernel.
-  - `neighbors::Int=18`: Number of neighbors for the 2D smoothing (only relevant if `smooth` = true). The default value comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
-  - `smoothing_length::Union{Unitful.Length,Nothing}=nothing`: Smoothing length. If set to `nothing`, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used.
+  - `smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,`: If set to nothing no smoothing is applied. If the (`smoothing length`, `number of neighbors`) are given instead, the result will be smooth out using the [`cubicSplineKernel`](@ref) kernel. The smoothing length can be set to `nothing`, in which case, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used. The number of neighbors for the 2D smoothing has a recommended value of 18, wich comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1164,9 +1161,7 @@ function daDensity2DHistogram(
     grid::SquareGrid,
     quantity::Symbol;
     projection_plane::Symbol=:xy,
-    smooth::Bool=false,
-    neighbors::Int=18,
-    smoothing_length::Union{Unitful.Length,Nothing}=nothing,
+    smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
@@ -1174,7 +1169,14 @@ function daDensity2DHistogram(
     filtered_dd = filterData(data_dict; filter_function)
 
     # Set the cell/particle type
-    if quantity ∈ [:gas_mass, :molecular_mass, :atomic_mass, :ionized_mass, :neutral_mass]
+    if quantity ∈ [
+        :gas_mass,
+        :hydrogen_mass,
+        :molecular_mass,
+        :atomic_mass,
+        :ionized_mass,
+        :neutral_mass,
+    ]
         type_symbol = :gas
     elseif quantity == :stellar_mass
         type_symbol = :stars
@@ -1212,7 +1214,9 @@ function daDensity2DHistogram(
         :xy, :xz or :yz, but I got :$(projection_plane)"))
     end
 
-    if smooth
+    if !isnothing(smoothing)
+
+        smoothing_length, neighbors = smoothing
 
         # Spline kernel used in Arepo
         #
@@ -1224,11 +1228,15 @@ function daDensity2DHistogram(
         # Astronomical Society, 364(4), 1105–1134. https://doi.org/10.1111/j.1365-2966.2005.09655.x
         kernel(q, h) = cubicSplineKernel(q, h)
 
-        # Reshape the grid
+        # Allocate memory
         physical_grid = Matrix{Float64}(undef, 2, grid.n_bins * grid.n_bins)
+
+        # Reshape the grid to conform to the way knn expect the matrix to be structured
         @inbounds for i in eachindex(grid.grid)
+
             physical_grid[1, i] = ustrip(u"kpc", grid.grid[i][1])
             physical_grid[2, i] = ustrip(u"kpc", grid.grid[i][2])
+
         end
 
         # Compute the tree for a nearest neighbor search
@@ -1260,6 +1268,8 @@ function daDensity2DHistogram(
 
         end
 
+        h = ustrip(u"kpc", smoothing_length)
+
         # Allocate memory
         density = similar(grid.grid, Number)
 
@@ -1268,7 +1278,6 @@ function daDensity2DHistogram(
             n_idx  = n_idxs[i]
             n_dist = n_dists[i]
 
-            h  = ustrip(u"kpc", smoothing_length)
             qs = n_dist / h
             ws = kernel.(qs, h) * u"kpc^-2"
 
@@ -1462,6 +1471,7 @@ Turn a scatter plot into a 2D histogram.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -1474,6 +1484,7 @@ Turn a scatter plot into a 2D histogram.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -1504,6 +1515,7 @@ Turn a scatter plot into a 2D histogram.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -1516,6 +1528,7 @@ Turn a scatter plot into a 2D histogram.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -1817,6 +1830,7 @@ Compute two global quantities of the simulation.
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
+      + `:hydrogen_mass`          -> Hydrogen mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -1857,6 +1871,7 @@ Compute two global quantities of the simulation.
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
+      + `:hydrogen_mass`          -> Hydrogen mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -1968,6 +1983,7 @@ Compute two quantities for every cell/particle in the simulation.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -1980,6 +1996,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -2010,6 +2027,7 @@ Compute two quantities for every cell/particle in the simulation.
 
       + `:stellar_mass`               -> Stellar mass.
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:dm_mass`                    -> Dark matter mass.
       + `:bh_mass`                    -> Black hole mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -2022,6 +2040,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -2133,6 +2152,7 @@ Compute the values for a gas fraction bar plot.
   - `quantity::Symbol`: Target quantity. The possibilities are:
 
       + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
       + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
@@ -2143,6 +2163,7 @@ Compute the values for a gas fraction bar plot.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
       + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
       + `:molecular_number_density`   -> Molecular hydrogen number density.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
@@ -2154,7 +2175,7 @@ Compute the values for a gas fraction bar plot.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
   - `edges::Vector{<:Number}`: A sorted list of bin edges.
-  - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
+  - `include_stars::Bool=false`: If the stars will be included as one of the gas phases. It will only work for simulations with our routine.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -2196,49 +2217,38 @@ function daGasFractions(
     filter_function::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Number}},Nothing}
 
-    dd = filterData(data_dict; filter_function)
-
-    # Compute the gas quantities
-    gas_qty  = scatterQty(dd, quantity)
-    gas_mass = dd[:gas]["MASS"]
-    gas_frac = dd[:gas]["FRAC"]
-
-    #TODO
-    # Compute the mass of each gas phase
-    if include_stars
-        ionized_mass   = [
-            isnan(fhii) ? nhp / (nhp + nh) : fhii for
-            (fhii, nh, nhp) in zip(gas_frac[1, :], dd[:gas]["NH  "], dd[:gas]["NHP "])
-        ] .* gas_mass
-        atomic_mass    = [
-            isnan(fhi) ? nh / (nhp + nh) : fhi for
-            (fhi, nh, nhp) in zip(gas_frac[2, :], dd[:gas]["NH  "], dd[:gas]["NHP "])
-        ] .* gas_mass
-        molecular_mass = replace!(gas_frac[3, :], NaN => 0.0) .* gas_mass
-        stellar_mass   = replace!(gas_frac[4, :], NaN => 0.0) .* gas_mass
-    else
-        ionized_mass   = computeIonizedMass(data_dict)
-        atomic_mass    = computeAtomicMass(data_dict)
-        molecular_mass = computeMolecularMass(data_dict)
-        # ionized_mass   = [
-        #     isnan(fhii) ? nhp / (nhp + nh) : fhii for
-        #     (fhii, nh, nhp) in zip(gas_frac[1, :], dd[:gas]["NH  "], dd[:gas]["NHP "])
-        # ] .* gas_mass
-        # atomic_mass    = [
-        #     isnan(fhi) ? nh / (nhp + nh) : fhi for
-        #     (fhi, nh, nhp) in zip(gas_frac[2, :], dd[:gas]["NH  "], dd[:gas]["NHP "])
-        # ] .* gas_mass
-        # molecular_mass = replace!(gas_frac[3, :], NaN => 0.0) .* gas_mass
-    end
-
-    # If any of the necessary quantities are missing return nothing
-    !any(isempty, [gas_qty, ionized_mass, atomic_mass, molecular_mass]) || return nothing
+    filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the number of bins for the gas quantity
     n_bins = length(edges) - 1
 
     # Compute the number of bars per bin
     n_bars = include_stars ? 4 : 3
+
+    # Compute the gas quantities
+    gas_qty  = scatterQty(filtered_dd, quantity)
+
+    # If any of the necessary quantities are missing return nothing
+    !isempty(gas_qty) || return nothing
+
+    # Compute the mass of each gas phase
+    if include_stars
+
+        ionized_mass   = computeIonizedMass(filtered_dd; normalize=false)
+        atomic_mass    = computeAtomicMass(filtered_dd; normalize=false)
+        molecular_mass = computeMolecularMass(filtered_dd; normalize=false)
+        stellar_mass   = computeStellarGasMass(filtered_dd)
+
+    else
+
+        ionized_mass   = computeIonizedMass(filtered_dd)
+        atomic_mass    = computeAtomicMass(filtered_dd)
+        molecular_mass = computeMolecularMass(filtered_dd)
+
+    end
+
+    # If any of the necessary quantities are missing return nothing
+    !any(isempty, [ionized_mass, atomic_mass, molecular_mass]) || return nothing
 
     # Allocate memory
     percents = Vector{Float64}(undef, n_bins * n_bars)
@@ -2320,6 +2330,7 @@ Compute the time series of two quantities.
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
+      + `:hydrogen_mass`          -> Hydrogen mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
@@ -2360,6 +2371,7 @@ Compute the time series of two quantities.
 
       + `:stellar_mass`           -> Stellar mass.
       + `:gas_mass`               -> Gas mass.
+      + `:hydrogen_mass`          -> Hydrogen mass.
       + `:dm_mass`                -> Dark matter mass.
       + `:bh_mass`                -> Black hole mass.
       + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.

@@ -5,6 +5,11 @@
 # Configuration
 
 """
+If physical lengths will be used throughout, instead of comoving lengths.
+"""
+PHYSICAL_UNITS = false
+
+"""
 Base name of the snapshot files, set in the code variable `SnapshotFileBase`.
 """
 const SNAP_BASENAME = "snap"
@@ -25,9 +30,9 @@ Relative path, within the simulation directory, to the `cpu.txt` file.
 const CPU_REL_PATH = "output/cpu.txt"
 
 """
-If physical lengths will be used throughout, instead of comoving lengths.
+Mass fraction of hydrogen for the gas cells.
 """
-const PHYSICAL_UNITS = false
+const HYDROGEN_MASSFRAC = 0.76
 
 """
 Mass of the tracers in internal units. It values comes from `All.TargetGasMass = All.TargetGasMassFactor * All.ReferenceGasPartMass` in the Arepo code.
@@ -376,6 +381,12 @@ We know that 1 mm = 2.83466 pt and 1 in = 25,4 mm. Then, if we want 1 [code ]uni
 For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is 600, so, using `px_per_unit` = 2.3622 we get 23.622 px/mm ~ 600 px/in (remember that 1 [code ]unit = 0.1 mm).
 """
 const DEFAULT_THEME = Theme(
+    ################################################################################################
+    # Size of the figures in code units.
+    # For PDFs and SVGs, 880 [code ]unit = 8.8 cm.
+    # For PNGs, when printed to a size of 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm).
+    ################################################################################################
+    size=(880, 880),
     #####################################
     # 35 unit * 0.283466 pt/unit ~ 9.9 pt
     #####################################
@@ -400,21 +411,17 @@ const DEFAULT_THEME = Theme(
         ygridvisible=false,
         yminorticksvisible=true,
         yminorticks=IntervalsBetween(5),
-        ###############################################################################################
+        ############################################################################################
         # Aspect ratio of the figures. The options are:
-        # nothing: Default, the aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
+        # nothing: The aspect ratio will be chosen by [Makie](https://docs.makie.org/stable/).
         # AxisAspect(n): The aspect ratio will be given by the number `n` = width / height.
         # DataAspect(): The aspect ratio of the data will be used.
-        ###############################################################################################
-        aspect=nothing,
+        ############################################################################################
+        aspect=AxisAspect(1),
     ),
     Legend=(
         tellheight=false,
         tellwidth=false,
-        ##########################
-        # left, right, bottom, top
-        ##########################
-        margin=(15, 15, 10, 10),
         framevisible=false,
         colgap=20,
         halign=:right,
@@ -448,7 +455,7 @@ const DEFAULT_THEME = Theme(
     Band=(cycle=[:color],),
     Errorbars=(whiskerwidth=10,),
     Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
-    Colorbar=(size=25, ticklabelpad=10, minorticksvisible=true, ticksize=7),
+    Colorbar=(size=25, ticklabelpad=10, minorticksvisible=true, ticksize=7, labelpadding=2),
     BarPlot=(
         color_over_background=:black,
         color_over_bar=:black,
@@ -460,7 +467,6 @@ const DEFAULT_THEME = Theme(
         dodge_gap=0.04,
     ),
     Arrows=(lengthscale=0.02, arrowsize=7.0, linestyle=:solid, color=:white),
-    Text=(color=:white, font=:bold, align=(:left, :top)),
 )
 
 # Structures
