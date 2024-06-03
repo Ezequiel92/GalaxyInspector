@@ -5551,10 +5551,7 @@ function fitKennicuttBigielResolved(
         ##########################
         # left, right, bottom, top
         ##########################
-        theme=merge(
-            theme,
-            Theme(size=(1700, 1000), Axis=(aspect=nothing,), Legend=(padding=(0, 0, 150, 0),),),
-        ),
+        theme=merge(theme, Theme(size=(1700, 1000), Axis=(aspect=nothing,),)),
         sim_labels,
         title="",
         colorbar=false,
