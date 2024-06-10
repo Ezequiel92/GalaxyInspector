@@ -160,19 +160,19 @@ function ppCross!(
 end
 
 """
-    ppAnnotation!(figure::Makie.Figure, text::String; <keyword arguments>)::Nothing
+    ppAnnotation!(figure::Makie.Figure, text::AbstractString; <keyword arguments>)::Nothing
 
 Add an annotation to the plot.
 
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
-  - `text::String`: Text to be written.
+  - `text::AbstractString`: Text to be written.
   - `position::Tuple{<:Real,<:Real}=(0, 1)`: Relative position of the top left corner of the text box.
 """
 function ppAnnotation!(
     figure::Makie.Figure,
-    text::String;
+    text::AbstractString;
     position::Tuple{<:Real,<:Real}=(0, 1),
 )::Nothing
 
@@ -184,11 +184,8 @@ function ppAnnotation!(
         align=(:left, :top),
         offset=(4, -2),
         color=:white,
-        strokecolor=:black,
-        strokewidth=1,
         space=:relative,
-        fontsize=45,
-        font=:bold,
+        fontsize=40,
     )
 
     return nothing
@@ -300,11 +297,12 @@ function ppFitLine!(
     # Draw the annotation
     text!(
         figure.current_axis.x,
-        [absCoor(figure, 0.81, 0.11), absCoor(figure, 0.81, 0.06), absCoor(figure, 0.81, 0.01)];
+        [(0.77, 0.15), (0.77, 0.09), (0.77, 0.03)];
         text=[L"y = a \, x + b", L"a = %$slope \pm %$δslope", L"b = %$intercept \pm %$δintercept"],
         align=(:left, :bottom),
-        fontsize=30,
         color,
+        space=:relative,
+        fontsize=30,
     )
 
     return nothing

@@ -80,6 +80,7 @@ export snapshotReport
 export simulationReport
 export sfrTXT
 export cpuTXT
+export stellarBirthHalos
 export densityMap
 export temperatureMap
 export densityMapVelField
@@ -103,5 +104,6 @@ export compareMolla2015
 export compareKennicuttBigielResolved
 export compareKennicuttBigielIntegrated
 export fitKennicuttBigielResolved
+
 
 end

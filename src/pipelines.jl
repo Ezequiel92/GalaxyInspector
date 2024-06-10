@@ -593,7 +593,7 @@ function snapshotPlot(
                 # Save data in a JLD2 file
                 sim_name = "simulation_$(lpad(string(simulation_index), 3, "0"))"
 
-                jldopen(joinpath(output_path, base_filename * ".jld2"), "a+"; compress=true) do f
+                jldopen(joinpath(output_path, base_filename * ".jld2"), "a+") do f
                     address = "$(base_filename)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                     f[address] = axis_data
                 end

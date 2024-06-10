@@ -41,21 +41,21 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
     halo_idx, subhalo_rel_idx = subfind_idx
 
     # Load the necessary data
-    g_n_subs = data_dict[:group]["G_Nsubs"]
+    n_subhalos_in_halo = data_dict[:group]["G_Nsubs"]
     g_pos = data_dict[:group]["G_Pos"]
     s_pos = data_dict[:subhalo]["S_Pos"]
 
     # Check that the requested halo index is within bounds
-    n_groups_total = data_dict[:gc_data].header.n_groups_total
+    n_halos = data_dict[:gc_data].header.n_groups_total
 
     (
-        !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_pos, s_pos]) ||
+        !iszero(n_halos) && !any(isempty, [n_subhalos_in_halo, g_pos, s_pos]) ||
         return zeros(typeof(1.0u"kpc"), 3)
     )
 
     (
-        0 < halo_idx <= n_groups_total ||
-        throw(ArgumentError("computeCenter: There is only $(n_groups_total) FoF goups in \
+        0 < halo_idx <= n_halos ||
+        throw(ArgumentError("computeCenter: There is only $(n_halos) FoF goups in \
         $(data_dict[:gc_data].path), so halo_idx = $(halo_idx) is out of bounds"))
     )
 
@@ -63,7 +63,7 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
     isPositive(subhalo_rel_idx) || return g_pos[:, halo_idx]
 
     # Check that the requested subhalo index is within bounds
-    n_subfinds = g_n_subs[halo_idx]
+    n_subfinds = n_subhalos_in_halo[halo_idx]
     (
         subhalo_rel_idx <= n_subfinds ||
         throw(ArgumentError("computeCenter: There is only $(n_subfinds) subhalos for the FoF \
@@ -75,7 +75,7 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
     if isone(halo_idx)
         n_subs_floor = 0
     else
-        n_subs_floor = sum(g_n_subs[1:(halo_idx - 1)]; init=0)
+        n_subs_floor = sum(n_subhalos_in_halo[1:(halo_idx - 1)]; init=0)
     end
 
     # Compute the subhalo absolute index
@@ -227,21 +227,21 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
     halo_idx, subhalo_rel_idx = subfind_idx
 
     # Load the necessary data
-    g_n_subs = data_dict[:group]["G_Nsubs"]
+    n_subhalos_in_halo = data_dict[:group]["G_Nsubs"]
     g_vel = data_dict[:group]["G_Vel"]
     s_vel = data_dict[:subhalo]["S_Vel"]
 
     # Check that the requested halo index is within bounds
-    n_groups_total = data_dict[:gc_data].header.n_groups_total
+    n_halos = data_dict[:gc_data].header.n_groups_total
 
     (
-        !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_vel, s_vel]) ||
+        !iszero(n_halos) && !any(isempty, [n_subhalos_in_halo, g_vel, s_vel]) ||
         return zeros(typeof(1.0u"km*s^-1"), 3)
     )
 
     (
-        0 < halo_idx <= n_groups_total ||
-        throw(ArgumentError("computeCenter: There is only $(n_groups_total) FoF goups in \
+        0 < halo_idx <= n_halos ||
+        throw(ArgumentError("computeCenter: There is only $(n_halos) FoF goups in \
         $(data_dict[:gc_data].path), so halo_idx = $(halo_idx) is out of bounds"))
     )
 
@@ -249,7 +249,7 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
     isPositive(subhalo_rel_idx) || return g_vel[:, halo_idx]
 
     # Check that the requested subhalo index is within bounds
-    n_subfinds = g_n_subs[halo_idx]
+    n_subfinds = n_subhalos_in_halo[halo_idx]
     (
         subhalo_rel_idx <= n_subfinds ||
         throw(ArgumentError("computeCenter: There is only $(n_subfinds) subhalos for the FoF \
@@ -261,7 +261,7 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
     if isone(halo_idx)
         n_subs_floor = 0
     else
-        n_subs_floor = sum(g_n_subs[1:(halo_idx - 1)]; init=0)
+        n_subs_floor = sum(n_subhalos_in_halo[1:(halo_idx - 1)]; init=0)
     end
 
     # Compute the subhalo absolute index
@@ -1900,8 +1900,10 @@ function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unit
         # Fraction of neutral hydrogen according to Arepo
         fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
 
+        relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
+
         # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
-        fm = 1.0 ./ (1.0 .+ (P0 ./ dg["PRES"]))
+        fm = 1.0 ./ (1.0 .+ relative_pressure)
 
         # Use the fraction of neutral hydrogen that is not molecular according to the pressure relation,
         # unless that value is negative, in which case assume taht all neutral hydrogen is molecular
@@ -1974,8 +1976,10 @@ function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:U
         # Fraction of neutral hydrogen according to Arepo
         fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
 
+        relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
+
         # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
-        fp = 1.0 ./ (1.0 .+ (P0 ./ dg["PRES"]))
+        fp = 1.0 ./ (1.0 .+ relative_pressure)
 
         # Use the fraction of molecular hydrogen according to the pressure relation, unless
         # that value is larger than the fraction of neutral hydrogen according to Arepo,
@@ -3046,9 +3050,9 @@ function computeDiscAccretion(
 end
 
 """
-    findRealStars(path::String)::Vector{Int}
+    findRealStars(path::String)::Vector{Bool}
 
-Find the indices of the stars in a snapshot, excluding wind particles.
+Find which stellar particles are real stars and not wind particles.
 
 # Arguments
 
@@ -3056,7 +3060,7 @@ Find the indices of the stars in a snapshot, excluding wind particles.
 
 # Returns
 
-  - A vector with the indices of the stars.
+  - A boolean vector with true for stars and false for wind particles.
 """
 function findRealStars(path::String)::Vector{Bool}
 
@@ -3369,5 +3373,367 @@ function computeBandProfile(
     histogram = listHistogram1D(distances, quantity, grid)
 
     return mean.(histogram), std.(histogram)
+
+end
+
+"""
+    findHaloSubhalo(
+        data_dict::Dict,
+        star_idxs::Vector{Int},
+        real_stars_idxs::Vector{Bool},
+    )::NTuple{2,Vector{Int}}
+
+Find in which halo and subhalo of `data_dict` each star in `star_idxs` was born.
+
+For stars with no halo or subhalo, an index of -1 is given. The subhalo index is relative to the corresponding halo.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `star_idxs::Vector{Int}`: Indices of the target stars in `data_dict`.
+  - `real_stars_idxs::Vector{Bool}`: Boolean list of stellar particles. True for a real star and false for a wind particle.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the birth halo (index starting at 1) of each star (in the order of `star_idxs`).
+      + A vector with the birth subhalo (index starting at 1) of each star (in the order of `star_idxs`).
+"""
+function findHaloSubhalo(
+    data_dict::Dict,
+    star_idxs::Vector{Int},
+    real_stars_idxs::Vector{Bool},
+)::NTuple{2,Vector{Int}}
+
+    ################################################################################################
+    # Read the subfind metadata
+    ################################################################################################
+
+    # Read the total number of halos
+    n_halos = data_dict[:gc_data].header.n_groups_total
+
+    # Read the number of subhalos in each halo
+    n_subhalos_in_halo = data_dict[:group]["G_Nsubs"]
+
+    # Read the number of stars in each halo
+    n_stars_in_halo = data_dict[:group]["G_LenType"][PARTICLE_INDEX[:stars] + 1, :]
+
+    # Read the number of stars in each subhalo
+    n_stars_in_subhalo = data_dict[:subhalo]["S_LenType"][PARTICLE_INDEX[:stars] + 1, :]
+
+    ################################################################################################
+    # Allocate memory
+    ################################################################################################
+
+    # If each halo was the birth place of a star form `star_idxs`
+    # So as to compute the relevant indices of each halo only once
+    born_in_this_halo = fill(false, n_halos)
+
+    # Index of the last real star particle belonging to each subhalo
+    # Each element of this vector corresponds to a halo
+    last_idxs_in_subhalo_list = Vector{Vector{Int}}(undef, n_halos)
+
+    for i in 1:n_halos
+
+        # Number of subhalos in halo `i`
+        n_subfinds = n_subhalos_in_halo[i]
+
+        # Index of the last real star particle belonging to each subhalo
+        # Each element of this vector corresponds to a subhalo of halo `i`
+        last_idxs_in_subhalo_list[i] = Vector{Int}(undef, n_subfinds)
+
+    end
+
+    # Output vectors
+    halo_idxs = fill(-1, length(star_idxs))
+    subhalo_idxs = fill(-1, length(star_idxs))
+
+    ################################################################################################
+    # Compute the index of the last real star particle belonging to each halo
+    ################################################################################################
+
+    # Compute the index of the last star/wind particle in each of the halos
+    last_idxs_in_halo = cumsum(n_stars_in_halo)
+
+    for (i, idx) in enumerate(last_idxs_in_halo)
+
+        # Compute the number of wind particles up to the particle with index `idx`
+        n_wind = count(x -> !(x), real_stars_idxs[1:idx])
+
+        # Shift `last_idxs_in_halo` to ignore wind particles
+        last_idxs_in_halo[i] = idx - n_wind
+
+    end
+
+    ############################################################################################
+    # Compute in which halo and subhalo each star was born
+    ############################################################################################
+    @inbounds for (i, star_idx) in enumerate(star_idxs)
+
+        ############################################################################################
+        # Compute in which halo each star was born
+        ############################################################################################
+
+        # Find the halo where the target star was born
+        halo_idx = searchsortedfirst(last_idxs_in_halo, star_idx)
+
+        # If the star does not belong to any halo, leave the index as -1
+        halo_idx <= length(last_idxs_in_halo) || continue
+
+        halo_idxs[i] = halo_idx
+
+        ############################################################################################
+        # Compute in which subhalo each star was born
+        ############################################################################################
+
+        # Index of the last real star particle belonging to each subhalo
+        # Each element of this vector corresponds to a subhalo of halo `halo_idx`
+        last_idxs_in_subhalo = last_idxs_in_subhalo_list[halo_idx]
+
+        # If it is the first time checking a star born in the halo `halo_idx`,
+        # compute the index of the last real star particle in each subhalo of halo `halo_idx`
+        if !born_in_this_halo[halo_idx]
+
+            @inbounds if isone(halo_idx)
+                # Absolute index of the first subhalo
+                first_subhalo_abs_idx = 1
+
+                # Absolute index of the last subhalo
+                last_subhalo_abs_idx = n_subhalos_in_halo[1]
+
+                # Number of stars up to, but not including, the halo `halo_idx`
+                n_star_floor = 0
+            else
+                # Absolute index of the first subhalo
+                first_subhalo_abs_idx = sum(n_subhalos_in_halo[1:(halo_idx - 1)]) + 1
+
+                # Absolute index of the last subhalo
+                last_subhalo_abs_idx = sum(n_subhalos_in_halo[1:halo_idx])
+
+                # Number of stars up to, but not including, the halo `halo_idx`
+                n_star_floor = sum(n_stars_in_halo[1:(halo_idx - 1)])
+            end
+
+            # Compute the index of the last star/wind particle in each of the subhalos of the halo `halo_idx`
+            cumsum!(last_idxs_in_subhalo, n_stars_in_subhalo[first_subhalo_abs_idx:last_subhalo_abs_idx])
+            map!(x -> x + n_star_floor, last_idxs_in_subhalo, last_idxs_in_subhalo)
+
+            # Compute the index of the last real star particle in each of the subhalos of the halo `halo_idx`
+            @inbounds for (i, idx) in enumerate(last_idxs_in_subhalo)
+
+                # Compute the number of wind particles up to the particle with index `idx`
+                n_wind = count(x -> !(x), real_stars_idxs[(n_star_floor + 1):idx])
+
+                # Shift `last_idxs_in_subhalo` to ignore wind particles
+                last_idxs_in_subhalo[i] = idx - n_wind
+
+            end
+
+            # Set to true to compute the relevant indices of this halo only once
+            born_in_this_halo[halo_idx] = true
+
+        end
+
+        # Find the (relative index of the) subhalo where the target star was born
+        subhalo_idx = searchsortedfirst(last_idxs_in_subhalo, star_idx)
+
+        # If the star does not belong to any subhalo, leave the index as -1
+        subhalo_idx <= length(last_idxs_in_subhalo) || continue
+
+        subhalo_idxs[i] = subhalo_idx
+
+    end
+
+    return halo_idxs, subhalo_idxs
+
+end
+
+"""
+    locateStellarBirthPlace(data_dict::Dict; <keyword arguments>)::NTuple{2,Vector{Int}}
+
+Find in which halo and subhalo each star in `data_dict` was born.
+
+For stars with no halo or subhalo, an index of -1 is given. The subhalo index is relative to the corresponding halo.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `warnings::Bool=true`: If a warning will be given when there is missing data.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the birth halo (index starting at 1) of each star (in the order of `data_dict`).
+      + A vector with the birth subhalo (index starting at 1) of each star (in the order of `data_dict`).
+"""
+function locateStellarBirthPlace(data_dict::Dict; warnings::Bool=true)::NTuple{2,Vector{Int}}
+
+    ################################################################################################
+    # Read the data in `data_dict`
+    ################################################################################################
+
+    # Read the birth time of each star
+    birth_ticks = data_dict[:stars]["GAGE"]
+
+    if data_dict[:sim_data].cosmological
+        # Go from scale factor to physical time
+        birth_times = computeTime(birth_ticks, data_dict[:snap_data].header)
+    else
+        birth_times = birth_ticks
+    end
+
+    # Read the time stamp of each snapshot
+    times = data_dict[:sim_data].table[!, :physical_times]
+
+    # Read the ID of each star
+    ids = data_dict[:stars]["ID  "]
+
+    # Compute the number of snapshots
+    n_snaps = length(times)
+
+    ################################################################################################
+    # Compute the indices and IDs of the stars born between each of the snapshots
+    ################################################################################################
+
+    # Allocate memory
+    present_star_idxs = [Int[] for _ in 1:n_snaps]
+
+    @inbounds for (star_idx, birth_time) in enumerate(birth_times)
+
+        snap_idx = searchsortedfirst(times, birth_time)
+
+        @inbounds if snap_idx > n_snaps
+            push!(present_star_idxs[n_snaps], star_idx)
+        else
+            push!(present_star_idxs[snap_idx], star_idx)
+        end
+
+    end
+
+    # Read the IDs of the stars born between each of the snapshots
+    star_ids = [ids[idxs] for idxs in present_star_idxs]
+
+    ################################################################################################
+    # Read each snapshot and find the original halo and subhalos of the stars born there
+    ################################################################################################
+
+    # Make a dataframe with the following columns:
+    #   - 1. DataFrame index
+    #   - 2. Number in the file name
+    #   - 3. Scale factor
+    #   - 4. Redshift
+    #   - 5. Physical time
+    #   - 6. Lookback time
+    #   - 7. Snapshot path
+    #   - 8. Group catalog path
+    simulation_table = makeSimulationTable(data_dict[:sim_data].path; warnings)
+
+    # Allocate memory
+    birth_halo    = fill(-1, length(birth_times))
+    birth_subhalo = fill(-1, length(birth_times))
+
+    request = Dict(
+        :stars => ["ID  "],
+        :group => ["G_Nsubs", "G_LenType"],
+        :subhalo => ["S_LenType"],
+    )
+
+    @inbounds for (global_idx, snapshot_row) in pairs(eachrow(simulation_table))
+
+        # Select the IDs of the stars born in this snapshot
+        ids = star_ids[global_idx]
+
+        # Select the present index of the stars born in this snapshot
+        present_idxs = present_star_idxs[global_idx]
+
+        # Skip snapshots with no stars born in them
+        !isempty(ids) || continue
+
+        # Get the snapshot file path
+        snapshot_path = snapshot_row[:snapshot_paths]
+
+        # Get the group catalog file path
+        groupcat_path = snapshot_row[:groupcat_paths]
+
+        # Skip missing snapshots
+        !ismissing(snapshot_path) || continue
+
+        # Store the metadata of the current snapshot and simulation
+        metadata = Dict(
+            :sim_data => data_dict[:sim_data],
+            :snap_data => Snapshot(
+                snapshot_path,
+                global_idx,
+                global_idx,
+                snapshot_row[:physical_times],
+                snapshot_row[:lookback_times],
+                snapshot_row[:scale_factors],
+                snapshot_row[:redshifts],
+                readSnapHeader(snapshot_path),
+            ),
+            :gc_data => GroupCatalog(
+                groupcat_path,
+                readGroupCatHeader(groupcat_path; warnings),
+            ),
+        )
+
+        # Read the data in the snapshot
+        past_data_dict = merge(
+            metadata,
+            readSnapshot(snapshot_path, request; warnings),
+            readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+        )
+
+        # Get the birth index of the stars born in this snapshot
+        past_idxs = parentIDToIndex(past_data_dict, ids)[:stars]
+
+        # Sanity check
+        (
+            length(ids) == length(past_idxs) ||
+            throw(DimensionMismatch("locateStellarBirthPlace: There are IDs in `ids` that are not \
+            present in the birth snapshot or are from other cell/particle type. \
+            This should be impossible!"))
+        )
+
+        # Find the halo and subhalo where each star was born, for the stars born in this snapshot
+        halo_idxs, subhalo_idxs = findHaloSubhalo(
+            past_data_dict,
+            past_idxs,
+            findRealStars(past_data_dict[:snap_data].path),
+        )
+
+        # Store the halo and subhalos indices in the current position of each star
+        birth_halo[present_idxs] .= halo_idxs
+        birth_subhalo[present_idxs] .= subhalo_idxs
+
+    end
+
+    return birth_halo, birth_subhalo
 
 end

@@ -1259,9 +1259,42 @@ function makeSimulationTable(simulation_path::String; warnings::Bool=true)::Data
 
 end
 
+"""
+    makeDataDict(
+        simulation_path::String,
+        slice_n::Int,
+        request::Dict{Symbol,Vector{String}};
+        <keyword arguments>
+    )::Dict
+
+Construct a data dictionary for a single snapshot.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects the target snapshot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref).
+  - `warnings::Bool=true`: If a warning will be raised when there is messing data.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+"""
 function makeDataDict(
     simulation_path::String,
-    slice_index::Int,
+    slice_n::Int,
     request::Dict{Symbol,Vector{String}};
     warnings::Bool=true,
 )::Dict
@@ -1280,42 +1313,41 @@ function makeDataDict(
     snapshot_numbers = simulation_table[!, :numbers]
 
     (
-        length(snapshot_numbers) >= slice_index ||
-        throw(ArgumentError("makeDataDict: The snapshot number $(slice_index) does not exist in  \
+        length(snapshot_numbers) >= slice_n ||
+        throw(ArgumentError("makeDataDict: The snapshot number $(slice_n) does not exist in  \
         $(simulation_path). There are only $(length(snapshot_numbers)) snapshots. \
         The full simulation table is:\n\n$(simulation_table)"))
     )
 
-    global_index = snapshot_numbers[slice_index]
-
-    snapshot_row = filter(:numbers => ==(global_index), simulation_table)
+    # Select the target snapshot
+    snapshot_row = simulation_table[slice_n, :]
 
     ################################################################################################
     # Compute the metadata for the current snapshot and simulation.
     ################################################################################################
 
     # Get the snapshot file path
-    snapshot_path = snapshot_row[1, :snapshot_paths]
+    snapshot_path = snapshot_row[:snapshot_paths]
     # Get the group catalog file path
-    groupcat_path = snapshot_row[1, :groupcat_paths]
+    groupcat_path = snapshot_row[:groupcat_paths]
 
     # Store the metadata of the current snapshot and simulation
     metadata = Dict(
         :sim_data => Simulation(
             simulation_path,
             1,
-            slice_index,
+            slice_n,
             isCosmological(snapshot_path),
             simulation_table,
         ),
         :snap_data => Snapshot(
             snapshot_path,
-            parse(Int, global_index),
-            slice_index,
-            snapshot_row[1, :physical_times],
-            snapshot_row[1, :lookback_times],
-            snapshot_row[1, :scale_factors],
-            snapshot_row[1, :redshifts],
+            slice_n,
+            slice_n,
+            snapshot_row[:physical_times],
+            snapshot_row[:lookback_times],
+            snapshot_row[:scale_factors],
+            snapshot_row[:redshifts],
             readSnapHeader(snapshot_path),
         ),
 

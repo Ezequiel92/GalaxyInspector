@@ -1214,6 +1214,16 @@ function daDensity2DHistogram(
         :xy, :xz or :yz, but I got :$(projection_plane)"))
     end
 
+    # For comological simulations with comoving units, correct
+    # the density so it is always in physical units
+    if !PHYSICAL_UNITS && data_dict[:sim_data].cosmological
+        # Correction factor for the area
+        # A [physical units] = A [comoving units] * a0^2
+        physical_factor = data_dict[:snap_data].scale_factor^2
+    else
+        physical_factor = 1.0
+    end
+
     if !isnothing(smoothing)
 
         smoothing_length, neighbors = smoothing
@@ -1275,20 +1285,22 @@ function daDensity2DHistogram(
 
         # Compute the density in each bin
         @inbounds for i in eachindex(grid.grid)
+
             n_idx  = n_idxs[i]
             n_dist = n_dists[i]
 
             qs = n_dist / h
-            ws = kernel.(qs, h) * u"kpc^-2"
+            ws = kernel.(qs, h) * u"kpc^-2" / physical_factor
 
             density[i] = sum(masses[n_idx] .* ws; init=zero(1.0 * ρ_unit))
+
         end
 
     else
 
         # Compute the 2D histogram
         total = histogram2D(pos_2D, masses, grid; empty_nan=false)
-        density = total ./ grid.bin_area
+        density = total ./ (grid.bin_area * physical_factor)
 
     end
 
@@ -1300,6 +1312,10 @@ function daDensity2DHistogram(
     values = log10.(ustrip.(ρ_unit, density))
 
     if print_range
+
+        # Compute the min and max values of density
+        min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
+
         # Print the density range
         @info(
             "\nDensity range \
@@ -1307,8 +1323,9 @@ function daDensity2DHistogram(
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
             \n  Plane:      $(projection_plane) \
-            \nlog₁₀(ρ [$(ρ_unit)]) = $(extrema(filter(!isnan, values)))\n\n"
+            \nlog₁₀(ρ [$(ρ_unit)]) = $(min_max)\n\n"
         )
+
     end
 
     # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured
@@ -2436,6 +2453,7 @@ Compute the time series of two quantities.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `fraction::Bool=false`: If the `y_quantity` will be represented as a fraction of the last value. If `cumulative` = true, this will apply to the accumulated values.
@@ -2454,6 +2472,7 @@ function daEvolution(
     x_quantity::Symbol,
     y_quantity::Symbol;
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    extra_filter::Function=filterNothing,
     smooth::Int=0,
     cumulative::Bool=false,
     fraction::Bool=false,
@@ -2517,6 +2536,8 @@ function daEvolution(
 
         # Filter the data
         filterData!(data_dict; filter_function)
+        # Filter the data again
+        filterData!(data_dict; filter_function=extra_filter)
 
         # Translate the data
         translateData!(data_dict, translation)

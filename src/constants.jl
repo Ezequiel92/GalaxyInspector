@@ -320,9 +320,22 @@ Reference pressure for the molecular fraction-pressure relation, taken from Blit
 
 # References
 
+Table 2 - `Mean` row - Third column.
+
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-const P0 = 2.0e4u"K*cm^-3" * Unitful.k
+const P0 = 3.5e4u"K*cm^-3" * Unitful.k
+
+"""
+Reference exponent for the molecular fraction-pressure relation, taken from Blitz et al. (2006).
+
+# References
+
+Table 2 - `Mean` row - Second column. (We use -α here).
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
+"""
+const ALPHA_BLITZ = -0.92
 
 # Type aliases
 

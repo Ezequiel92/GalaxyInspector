@@ -1832,6 +1832,95 @@ function cpuTXT(
 end
 
 """
+    stellarBirthHalos(
+        simulation_path::String,
+        slice_n::Int;
+        <keyword arguments>
+    )::Nothing
+
+Write in which halo and subhalo every star was born to a pair of CSV files.
+
+# Arguments
+
+  - `simulation_paths::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects the target snapshot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `warnings::Bool=true`: If a warning will be given when there is missing files or data.
+"""
+function stellarBirthHalos(
+    simulation_path::String,
+    slice_n::Int;
+    output_path::String="./",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    warnings::Bool=true,
+)::Nothing
+
+    # Select the filter function and request dictionary
+    filter_function, _, _, request = selectFilter(filter_mode, Dict(:stars=>["ID  "]))
+
+    # Read the relevant data of the snapshot
+    data_dict = makeDataDict(
+        simulation_path,
+        slice_n,
+        request;
+        warnings,
+    )
+
+    # Filter the data
+    filterData!(data_dict; filter_function)
+
+    # Find the birth place of every star
+    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict; warnings)
+
+    # Write the results to CSV files
+    CSV.write(
+        joinpath(output_path, "stellar_birth_halos.gz"),
+        Tables.table(birth_halo);
+        newline=',',
+        writeheader=false,
+        compress=true,
+    )
+    CSV.write(
+        joinpath(output_path, "stellar_birth_subhalos.gz"),
+        Tables.table(birth_subhalo);
+        newline=',',
+        writeheader=false,
+        compress=true,
+    )
+
+    return nothing
+
+end
+
+"""
     densityMap(
         simulation_paths::Vector{String},
         slice::IndexType;
@@ -1896,7 +1985,7 @@ Plot a 2D histogram of the density.
       + `:lookback_time` -> Physical time left to reach the last snapshot.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
-  - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
+  - `annotation::AbstractString=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
   - `da_ff::Function=filterNothing`: Filter function for the data analysis function. It must be a function with the signature:
@@ -1938,7 +2027,7 @@ function densityMap(
     print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
-    annotation::String="",
+    annotation::AbstractString="",
     colorbar::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
     da_ff::Function=filterNothing,
@@ -2103,7 +2192,7 @@ Plot a 2D histogram of the temperature.
       + `:lookback_time` -> Physical time left to reach the last snapshot.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
-  - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
+  - `annotation::AbstractString=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
 """
@@ -2118,7 +2207,7 @@ function temperatureMap(
     print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
-    annotation::String="",
+    annotation::AbstractString="",
     colorbar::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
 )::Nothing
@@ -2283,7 +2372,7 @@ Plot a 2D histogram of the density, with the velocity field.
       + `:lookback_time` -> Physical time left to reach the last snapshot.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
-  - `annotation::String=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
+  - `annotation::AbstractString=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
 """
@@ -2300,7 +2389,7 @@ function densityMapVelField(
     print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
-    annotation::String="",
+    annotation::AbstractString="",
     colorbar::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
 )::Nothing
@@ -3307,10 +3396,10 @@ function gasFractionsBarPlot(
             theme=merge(
                 theme,
                 Theme(
-                    size=(1700, 1200),
-                    Legend=(nbanks=include_stars ? 2 : 3,),
+                    size=(850, 850),
+                    Legend=(nbanks=1,),
                     Axis=(
-                        aspect=nothing,
+                        aspect=AxisAspect(1),
                         limits=(nothing, 105, nothing, nothing),
                         xticks=([0, 50, 100], [L"0.0", L"50", L"100"]),
                         yticks=(1:n_bins, ticks),
@@ -3585,6 +3674,8 @@ Plot a time series of the gas components. Either their masses or their fractions
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
+  - `filename::Union{String,Nothing}=nothing`: Name for the output file. If left as `nothing`, the filename will be chosen automaticaly.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function gasEvolution(
@@ -3593,6 +3684,8 @@ function gasEvolution(
     slice::IndexType=(:),
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    extra_filter::Function=filterNothing,
+    filename::Union{String,Nothing}=nothing,
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -3603,17 +3696,25 @@ function gasEvolution(
         sim_labels = ["Ionized fraction", "Atomic fraction", "Molecular fraction"]
         y_plot_params = plotParams(:generic_fraction)
     else
-        quantities = [:hydrogen_mass, :ionized_mass, :atomic_mass, :molecular_mass]
-        sim_labels = ["Hydrogen mass", "Ionized mass", "Atomic mass", "Molecular mass"]
+        quantities = [:stellar_mass, :hydrogen_mass, :ionized_mass, :atomic_mass, :molecular_mass]
+        sim_labels = [
+            "Stellar mass",
+            "Hydrogen mass",
+            "Ionized mass",
+            "Atomic mass",
+            "Molecular mass",
+        ]
         y_plot_params = plotParams(:generic_mass)
     end
 
     for simulation_path in simulation_paths
 
-        if fractions
-            filename = "gas_fractions-vs-physical_time-$(basename(simulation_path))"
-        else
-            filename = "gas_masses-vs-physical_time-$(basename(simulation_path))"
+        if isnothing(filename)
+            if fractions
+                filename = "gas_fractions-vs-physical_time-$(basename(simulation_path))"
+            else
+                filename = "gas_masses-vs-physical_time-$(basename(simulation_path))"
+            end
         end
 
         timeSeriesPlot(
@@ -3630,7 +3731,7 @@ function gasEvolution(
             slice,
             da_functions=[daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
-            da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=false)],
+            da_kwargs=[(; filter_mode, extra_filter, smooth=0, scaling=identity, warnings=false)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -5266,7 +5367,7 @@ function compareKennicuttBigielResolved(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(size=(1700, 1000), Axis=(aspect=nothing,))),
+        theme=merge(theme, Theme(size=(1400, 820), Axis=(aspect=nothing,))),
         sim_labels,
         title="",
         colorbar=false,
@@ -5551,7 +5652,7 @@ function fitKennicuttBigielResolved(
         ##########################
         # left, right, bottom, top
         ##########################
-        theme=merge(theme, Theme(size=(1700, 1000), Axis=(aspect=nothing,),)),
+        theme=merge(theme, Theme(size=(1400, 820), Axis=(aspect=nothing,),)),
         sim_labels,
         title="",
         colorbar=false,
