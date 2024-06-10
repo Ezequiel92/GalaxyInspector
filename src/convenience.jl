@@ -2013,6 +2013,7 @@ Plot a 2D histogram of the density.
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
         * ...
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `da_ff` filter function.
 """
 function densityMap(
     simulation_paths::Vector{String},
@@ -2031,6 +2032,7 @@ function densityMap(
     colorbar::Bool=false,
     colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
     da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
 )::Nothing
 
     # Compute the axes limits, to avoid white padding around the heatmap grid
@@ -2048,7 +2050,7 @@ function densityMap(
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,
-            plotParams(quantity).request,
+            mergeRequests(plotParams(quantity).request, ff_request),
         )
 
         @inbounds for simulation_path in simulation_paths

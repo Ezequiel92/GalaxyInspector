@@ -3611,6 +3611,12 @@ function locateStellarBirthPlace(data_dict::Dict; warnings::Bool=true)::NTuple{2
     # Read the time stamp of each snapshot
     times = data_dict[:sim_data].table[!, :physical_times]
 
+    (
+        length(times) >= 2 ||
+        throw(ArgumentError("locateStellarBirthPlace: I found less that two snapshots in \
+        $(data_dict[:sim_data].path). But I need more to locate the birth place of the stars."))
+    )
+
     # Read the ID of each star
     ids = data_dict[:stars]["ID  "]
 

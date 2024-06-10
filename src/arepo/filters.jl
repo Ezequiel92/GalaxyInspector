@@ -626,7 +626,7 @@ function filterHotGas(data_dict::Dict, max_temp::Unitful.Temperature)::Dict{Symb
 end
 
 """
-    filterNewStars(data_dict::Dict)::Dict{Symbol,IndexType}
+    filterYoungStars(data_dict::Dict)::Dict{Symbol,IndexType}
 
 Filter out stars that where born one or more snapshots ago.
 
@@ -655,7 +655,7 @@ Filter out stars that where born one or more snapshots ago.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterNewStars(data_dict::Dict)::Dict{Symbol,IndexType}
+function filterYoungStars(data_dict::Dict)::Dict{Symbol,IndexType}
 
     birth_ticks = data_dict[:stars]["GAGE"]
 
@@ -690,6 +690,165 @@ function filterNewStars(data_dict::Dict)::Dict{Symbol,IndexType}
 
         @inbounds if type_symbol == :stars
             indices[type_symbol] = new_stars_idxs
+        else
+            indices[type_symbol] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterInsituStars(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out stars that where born outside the given halo and subhalo (exsitu), leaving only the ones born there (insitu).
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are consider insitu.
+  - `warnings::Bool=true`: If a warning will be given when there is missing data.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterInsituStars(
+    data_dict::Dict;
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+    warnings::Bool=true,
+)::Dict{Symbol,IndexType}
+
+    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict; warnings)
+
+    # Sanity check
+    n_stars = length(data_dict[:stars]["MASS"])
+    (
+        length(birth_halo) == length(birth_subhalo) == n_stars ||
+        throw(ArgumentError("filterInsituStars: The vectors given by `locateStellarBirthPlace` \
+        do not have as many elements as there are stars. That should not be possible!"))
+
+    )
+
+    stars_born_in_halo = map(isequal(halo_idx), birth_halo)
+
+    if iszero(subhalo_rel_idx)
+        stars_born_in_subhalo = (:)
+    else
+        stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
+    end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+
+        @inbounds if type_symbol == :stars
+            indices[type_symbol] = stars_born_in_halo ∩ stars_born_in_subhalo
+        else
+            indices[type_symbol] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterExsituStars(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out stars that where born inside the given halo and subhalo (insitu), leaving only the ones born outside (exsitu).
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, only stars born outside halo `halo_idx` are consider exsitu.
+  - `warnings::Bool=true`: If a warning will be given when there is missing data.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterExsituStars(
+    data_dict::Dict;
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+    warnings::Bool=true,
+)::Dict{Symbol,IndexType}
+
+
+    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict; warnings)
+
+    # Sanity check
+    n_stars = length(data_dict[:stars]["MASS"])
+    (
+        length(birth_halo) == length(birth_subhalo) == n_stars ||
+        throw(ArgumentError("filterExsituStars: The vectors given by `locateStellarBirthPlace` \
+        do not have as many elements as there are stars. That should not be possible!"))
+
+    )
+
+    stars_born_in_halo = map(isequal(halo_idx), birth_halo)
+
+    if iszero(subhalo_rel_idx)
+        stars_born_in_subhalo = (:)
+    else
+        stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
+    end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+
+        @inbounds if type_symbol == :stars
+            indices[type_symbol] = Vector{Bool}(.!(stars_born_in_halo ∩ stars_born_in_subhalo))
         else
             indices[type_symbol] = (:)
         end
