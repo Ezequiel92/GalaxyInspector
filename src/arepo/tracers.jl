@@ -213,7 +213,7 @@ end
 """
     tracersWithinR200(data_dict::Dict; <keyword arguments>)::Vector{UInt}
 
-Find the tracers that are within the virial radius (R200).
+Find the tracers that are within the virial radius (``R_{200}``).
 
 # Arguments
 

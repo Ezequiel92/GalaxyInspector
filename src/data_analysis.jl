@@ -1716,7 +1716,7 @@ Compute a 2D mean velocity field.
   - `grid::SquareGrid`: Square grid.
   - `type_symbol::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
-  - `velocity_units::Bool=false`: If the velocity will be given as an `Unitful.Quantity` with units or as a `Flot64` (in which case the underlying unit is `km * s^-1`).
+  - `velocity_units::Bool=false`: If the velocity will be given as an `Unitful.Quantity` with units or as a `Flot64` (in which case the underlying unit is ``\matjrm{km} \, \mathrm{s}^{-1}``).
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`

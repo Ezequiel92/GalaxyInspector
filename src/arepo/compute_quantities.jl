@@ -1384,7 +1384,7 @@ v_\tau = \frac{x \, v_y - y \, v_x}{\sqrt(x^2 + y^2)} \, ,
 and the speed in the z direction will be computes as
 
 ```math
-v^*_z = v_z \, \sign(z) \, ,
+v^*_z = v_z \, \mathrm{sign}(z) \, ,
 ```
 
 in order to distinguish between inflows ($v^*_z < 0$) and outflows ($v^*_z > 0$).
@@ -1408,7 +1408,7 @@ in order to distinguish between inflows ($v^*_z < 0$) and outflows ($v^*_z > 0$)
 
       + `:radial`     -> Stellar radial speed ($v_r$).
       + `:tangential` -> Stellar tangential speed ($v_\theta$).
-      + `:zstar`      -> Stellar speed in the z direction, computed as $v_z \, \sign(z)$.
+      + `:zstar`      -> Stellar speed in the z direction, computed as $v_z \, \mathrm{sign}(z)$.
 
 # Returns
 
@@ -2898,7 +2898,7 @@ end
         <keyword arguments>
     )::NTuple{3,Unitful.Mass}
 
-Compute the inflow, outflow, and net gain of mass for a given halo virial radius (R200), between two snapshots.
+Compute the inflow, outflow, and net gain of mass for a given halo virial radius (``R_{200}``), between two snapshots.
 
 # Arguments
 
