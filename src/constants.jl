@@ -467,7 +467,9 @@ const DEFAULT_THEME = Theme(
     Scatter=(markersize=22, cycle=Cycle([:color, :marker], covary=true)),
     Band=(cycle=[:color],),
     Errorbars=(whiskerwidth=10,),
-    Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
+    # Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
+    Heatmap=(colormap=:nipy_spectral, nan_color=ColorSchemes.nipy_spectral[1]),
+    # Heatmap=(colormap=:cubehelix, nan_color=ColorSchemes.cubehelix[1]),
     Colorbar=(size=25, ticklabelpad=10, minorticksvisible=true, ticksize=7, labelpadding=2),
     BarPlot=(
         color_over_background=:black,
