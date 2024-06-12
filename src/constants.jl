@@ -75,7 +75,7 @@ const AGE_RESOLUTION_ρ = 200.0u"Myr"
 """
 Threshold density, above which the gas particles enter the star formation routine.
 
-This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `PhysDensThresh = CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`. Then, to go to physical units again ones does: PhysDensThresh * UnitDensity_in_cgs * cf_a3inv * HubbleParam * HubbleParam. For a cosmological simulation at readshift 0 (cf_a3inv = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
+This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `PhysDensThresh = CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`. Then, to go to physical units again ones does: `PhysDensThresh * UnitDensity_in_cgs * cf_a3inv * HubbleParam * HubbleParam`. For a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
 """
 const THRESHOLD_DENSITY = 4.749326307150211e6u"Msun*kpc^-3"
 
@@ -320,7 +320,7 @@ Reference pressure for the molecular fraction-pressure relation, taken from Blit
 
 # References
 
-Table 2 - `Mean` row - Third column.
+Table 2 - "Mean" row - Third column.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
@@ -331,7 +331,7 @@ Reference exponent for the molecular fraction-pressure relation, taken from Blit
 
 # References
 
-Table 2 - `Mean` row - Second column. (We use -α here).
+Table 2 - "Mean" row - Second column. (We use -α here).
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
@@ -390,8 +390,8 @@ Global plot theme.
 
 On the graphic units used:
 
-We know that 1 mm = 2.83466 pt and 1 in = 25,4 mm. Then, if we want 1 [code ]unit = 0.1 mm in vector graphics, we have to use `pt_per_unit` = 0.283466.
-For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is 600, so, using `px_per_unit` = 2.3622 we get 23.622 px/mm ~ 600 px/in (remember that 1 [code ]unit = 0.1 mm).
+We know that ``1 \, \mathrm{mm} = 2.83466 \, \mathrm{pt}`` and ``1 \, \mathrm{in} = 25,4 \, \mathrm{mm}``. Then, if we want ``1 \, \mathrm{[code\,\,]unit} = 0.1 \, \mathrm{mm}`` in vector graphics, we have to use `pt_per_unit` = 0.283466.
+For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is 600, so, using `px_per_unit` = ``2.3622`` we get ``23.622 \, \mathrm{px/mm} \sim 600 \, \mathrm{px/in}`` (remember that ``1 \, \mathrm{[code\,\,]unit} = 0.1 \, \mathrm{mm}``).
 """
 const DEFAULT_THEME = Theme(
     ################################################################################################

@@ -112,7 +112,7 @@ end
 
 Format a number to be a barplot label.
 
-For values between 0 and 0.01 the label will be `< 0.01`, otherwise it will be the value itself with 2 digits.
+For values between 0 and 0.01 the label will be "< 0.01", otherwise it will be the value itself with 2 digits.
 
 # Arguments
 
@@ -604,7 +604,7 @@ Select the plotting parameters for a given `quantity`.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.

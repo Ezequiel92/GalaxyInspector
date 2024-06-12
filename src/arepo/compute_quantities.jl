@@ -2585,7 +2585,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.

@@ -453,7 +453,7 @@ Compute a profile.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -633,13 +633,11 @@ Compute the profile og a mean quantity with error bars or bands.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
-
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
-
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -911,7 +909,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -1521,7 +1519,7 @@ Turn a scatter plot into a 2D histogram.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -1565,7 +1563,7 @@ Turn a scatter plot into a 2D histogram.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -2033,7 +2031,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -2077,7 +2075,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.

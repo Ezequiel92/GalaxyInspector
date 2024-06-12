@@ -1561,7 +1561,7 @@ Compute the absolute x and y coordinates of a plot, from the relative ones.
 
 # Returns
 
-  - A tuple with the absolute coordinates, (a_x, a_y).
+  - A tuple with the absolute coordinates, (x, y).
 
 # Examples
 

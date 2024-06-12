@@ -2576,7 +2576,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -2620,7 +2620,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -3028,7 +3028,7 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -3072,7 +3072,7 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
       + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                -> Stellar age.
       + `:sfr`                        -> The star formation rate.
       + `:ssfr`                       -> The specific star formation rate.
@@ -4590,7 +4590,7 @@ Plot a velocity profile.
 
       + `:stellar_vradial`     -> Stellar radial speed (``v_r``).
       + `:stellar_vtangential` -> Stellar tangential speed (``v_\\theta``).
-      + `:stellar_vzstar`      -> Stellar speed in the z direction, computed as ``v_z \\, \\sign(z)``.
+      + `:stellar_vzstar`      -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
