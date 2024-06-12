@@ -390,8 +390,8 @@ Global plot theme.
 
 On the graphic units used:
 
-We know that ``1 \, \mathrm{mm} = 2.83466 \, \mathrm{pt}`` and ``1 \, \mathrm{in} = 25,4 \, \mathrm{mm}``. Then, if we want ``1 \, \mathrm{[code\,\,]unit} = 0.1 \, \mathrm{mm}`` in vector graphics, we have to use `pt_per_unit` = 0.283466.
-For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is 600, so, using `px_per_unit` = ``2.3622`` we get ``23.622 \, \mathrm{px/mm} \sim 600 \, \mathrm{px/in}`` (remember that ``1 \, \mathrm{[code\,\,]unit} = 0.1 \, \mathrm{mm}``).
+We know that ``1 \\, \\mathrm{mm} = 2.83466 \\, \\mathrm{pt}`` and ``1 \\, \\mathrm{in} = 25,4 \\, \\mathrm{mm}``. Then, if we want ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}`` in vector graphics, we have to use `pt_per_unit` = 0.283466.
+For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is 600, so, using `px_per_unit` = ``2.3622`` we get ``23.622 \\, \\mathrm{px/mm} \\sim 600 \\, \\mathrm{px/in}`` (remember that ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}``).
 """
 const DEFAULT_THEME = Theme(
     ################################################################################################
