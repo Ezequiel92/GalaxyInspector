@@ -195,7 +195,7 @@ Delete every element in `raw_values` that is outside the given `range`.
   - `raw_values::Vector{<:Number}`: Dataset that will be pruned.
   - `range::Tuple{<:Number,<:Number}`: The range in question.
   - `keep_edges::Bool=true`: If the edges of the range will be kept.
-  - `min_left::Int=0`: Minimum number of values that need to be left after pruning to proceed with the transformation.
+  - `min_left::Int=1`: Minimum number of values that need to be left after pruning to proceed with the transformation.
 
 # Returns
 
@@ -205,7 +205,7 @@ function rangeCut!(
     raw_values::Vector{<:Number},
     range::Tuple{<:Number,<:Number};
     keep_edges::Bool=true,
-    min_left::Int=0,
+    min_left::Int=1,
 )::Bool
 
     # Shortcut computation for special cases
@@ -251,7 +251,7 @@ Every corresponding element in `s_data` (i.e. with the same index) will be delet
   - `s_data::Vector`: Slave dataset that will be pruned according to which values of `m_data` are outside `range`.
   - `range::Tuple{<:Number,<:Number}`: The range in question.
   - `keep_edges::Bool=true`: If the edges of the range will be kept.
-  - `min_left::Int=0`: Minimum number of values that need to be left in the master dataset after pruning to proceed with the transformation.
+  - `min_left::Int=1`: Minimum number of values that need to be left in the master dataset after pruning to proceed with the transformation.
 
 # Returns
 
@@ -262,7 +262,7 @@ function rangeCut!(
     s_data::Vector,
     range::Tuple{<:Number,<:Number};
     keep_edges::Bool=true,
-    min_left::Int=0,
+    min_left::Int=1,
 )::Bool
 
     # Shortcut computation for special cases
@@ -324,7 +324,7 @@ By default, no transformation is done.
   - `func_domain::Function=identity`: `raw_values` will be trimmed to fit within the domain of the function `func_domain`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `range::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Every element in `raw_values` that falls outside of `range` will be deleted.
   - `keep_edges::Bool=true`: If the edges of `range` will be kept.
-  - `min_left::Int=0`: Minimum number of values that need to be left after each transformation to procced with it.
+  - `min_left::Int=1`: Minimum number of values that need to be left after each transformation to procced with it.
   - `exp_factor::Int=0`: Every element in `raw_values` will be divided by 10^`exp_factor`.
   - `warnings::Bool=true`: If a warning will be given when `raw_values` is a vector of Integers, which may cause wrong results when dividing by 10^`exp_factor`.
 
@@ -340,7 +340,7 @@ function sanitizeData!(
     func_domain::Function=identity,
     range::Tuple{<:Number,<:Number}=(-Inf, Inf),
     keep_edges::Bool=true,
-    min_left::Int=0,
+    min_left::Int=1,
     exp_factor::Int=0,
     warnings::Bool=true,
 )::NTuple{2,Bool}
@@ -416,7 +416,7 @@ By default, no transformation is done.
   - `func_domain::NTuple{2,Function}=(identity, identity)`: `x_data` will be trimmed to fit within the domain of the function `func_domain[1]`, and `y_data` will be trimmed to fit within the domain of the function `func_domain[2]`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `range::Tuple{Tuple{<:Number,<:Number},Tuple{<:Number,<:Number}}=((-Inf, Inf), (-Inf, Inf))`: Every element in `x_data` that falls outside of `range[1]` will be deleted, and every element in `y_data` that falls outside of `range[2]` will be deleted.
   - `keep_edges::NTuple{2,Bool}=(true, true)`: If the edges of each corresponding `range` will be kept.
-  - `min_left::Int=0`: Minimum number of values that need to be left in each dataset after any of the transformations to procced with them.
+  - `min_left::Int=1`: Minimum number of values that need to be left in each dataset after any of the transformations to procced with them.
   - `exp_factor::NTuple{2,Int}=(0, 0)`: Every element in `x_data` will be divided by 10^`exp_factor[1]`, and every element in `y_data` will be divided by 10^`exp_factor[2]`.
   - `warnings::Bool=true`: If a warning will be given when any of the datasets is a vector of Integers, which may cause wrong results when dividing by 10^`exp_factor`.
 
@@ -435,7 +435,7 @@ function sanitizeData!(
     func_domain::NTuple{2,Function}=(identity, identity),
     range::Tuple{Tuple{<:Number,<:Number},Tuple{<:Number,<:Number}}=((-Inf, Inf), (-Inf, Inf)),
     keep_edges::NTuple{2,Bool}=(true, true),
-    min_left::Int=0,
+    min_left::Int=1,
     exp_factor::NTuple{2,Int}=(0, 0),
     warnings::Bool=true,
 )::NTuple{4,Bool}

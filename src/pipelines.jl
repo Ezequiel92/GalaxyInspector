@@ -509,7 +509,7 @@ function snapshotPlot(
                     func_domain=xaxis_scale_func,
                     range=x_trim,
                     keep_edges=x_edges,
-                    min_left=0,
+                    min_left=1,
                     exp_factor=x_exp_factor,
                     warnings,
                 )
@@ -540,7 +540,7 @@ function snapshotPlot(
                     func_domain=(xaxis_scale_func, yaxis_scale_func),
                     range=(x_trim, y_trim),
                     keep_edges=(x_edges, y_edges),
-                    min_left=0,
+                    min_left=1,
                     exp_factor=(x_exp_factor, y_exp_factor),
                     warnings,
                 )
@@ -569,7 +569,7 @@ function snapshotPlot(
                     axis_data[2];
                     range=(x_trim, y_trim),
                     keep_edges=(x_edges, y_edges),
-                    min_left=0,
+                    min_left=1,
                     exp_factor=(x_exp_factor, y_exp_factor),
                     warnings,
                 )
