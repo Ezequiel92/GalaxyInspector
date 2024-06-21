@@ -467,8 +467,8 @@ const DEFAULT_THEME = Theme(
     Scatter=(markersize=22, cycle=Cycle([:color, :marker], covary=true)),
     Band=(cycle=[:color],),
     Errorbars=(whiskerwidth=10,),
-    # Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
-    Heatmap=(colormap=:nipy_spectral, nan_color=ColorSchemes.nipy_spectral[1]),
+    Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
+    # Heatmap=(colormap=:nipy_spectral, nan_color=ColorSchemes.nipy_spectral[1]),
     # Heatmap=(colormap=:cubehelix, nan_color=ColorSchemes.cubehelix[1]),
     Colorbar=(size=25, ticklabelpad=10, minorticksvisible=true, ticksize=7, labelpadding=2),
     BarPlot=(
@@ -812,7 +812,7 @@ Square grid (2D).
   - `grid::Matrix{NTuple{2,<:Number}}`: Matrix with the physical coordinates of the center of each pixel in the grid.
   - `x_ticks::Vector{<:Number}`: Full set of possible values for the x coordinate.
   - `y_ticks::Vector{<:Number}`: Full set of possible values for the y coordinate.
-  - `size::Number`: Side length of the square grid.
+  - `physical_size::Number`: Side length of the square grid.
   - `n_bins::Int`: Number of bins per side of the grid.
   - `bin_width::Number`: Side length of each bin.
   - `bin_area::Number`: Area of each bin.
@@ -821,14 +821,14 @@ struct SquareGrid
     grid::Matrix{NTuple{2,<:Number}}
     x_ticks::Vector{<:Number}
     y_ticks::Vector{<:Number}
-    size::Number
+    physical_size::Number
     n_bins::Int
     bin_width::Number
     bin_area::Number
 
     """
         SquareGrid(
-            size::Number,
+            physical_size::Number,
             n_bins::Int;
             <keyword arguments>
         )
@@ -837,14 +837,14 @@ struct SquareGrid
 
     # Arguments
 
-      - `size::Number`: Side length of the square grid.
+      - `physical_size::Number`: Side length of the square grid.
       - `n_bins::Int`: Number of bins per dimesion of the grid.
-      - `center::Vector{<:Number}=zeros(typeof(size), 3)`: 3D location of the center of the grid. The z axis is taken as the normal vector of the grid.
+      - `center::Vector{<:Number}=zeros(typeof(physical_size),3)`: 3D location of the center of the grid. The z axis is taken as the normal vector of the grid.
     """
     function SquareGrid(
-        size::Number,
+        physical_size::Number,
         n_bins::Int;
-        center::Vector{<:Number}=zeros(typeof(size), 3),
+        center::Vector{<:Number}=zeros(typeof(physical_size), 3),
     )
 
         # Example of a 3x3 grid:
@@ -860,15 +860,15 @@ struct SquareGrid
         # | grid[2] = (0, 1) | grid[5] = (1, 1) | grid[8] = (2, 1) |
         # +------------------+------------------+------------------+
         # |      i = 3       |      i = 6       |      i = 9       |
-        # | grid[3] = (0, 0) | grid[6] = (1, 2) | grid[9] = (2, 2) |
+        # | grid[3] = (0, 0) | grid[6] = (1, 0) | grid[9] = (2, 0) |
         # +------------------+------------------+------------------+
 
         # Compute the bin dimensions
-        bin_width = size / n_bins
+        bin_width = physical_size / n_bins
         bin_area = bin_width * bin_width
 
         # Compute the x and y coordinates of the center of each square bin
-        shift = 0.5 * (size - bin_width)
+        shift = 0.5 * (physical_size - bin_width)
         x_ticks = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
         y_ticks = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
 
@@ -877,16 +877,137 @@ struct SquareGrid
 
         # Compute the position of each grid point
         @inbounds for i in eachindex(grid)
+
             # The grid index `i` goes from top to bottom first, and then left to right,
             # starting at the top left of the grid
             i_x = ceil(Int, i / n_bins)
             i_y = mod1(i, n_bins) - 1
+
             # The coordinates are cartesian, so `y` goes from bottom to top and `x` goes from left to right,
             # starting at the bottom left of the grid
             grid[i] = (x_ticks[i_x], y_ticks[end - i_y])
+
         end
 
-        new(grid, x_ticks, y_ticks, size, n_bins, bin_width, bin_area)
+        new(grid, x_ticks, y_ticks, physical_size, n_bins, bin_width, bin_area)
+
+    end
+end
+
+"""
+Cubic grid (3D).
+
+# Fields
+
+  - `grid::Array{NTuple{3,<:Number},3}`: Matrix with the physical coordinates of the center of each voxel in the grid.
+  - `x_ticks::Vector{<:Number}`: Full set of possible values for the x coordinate.
+  - `y_ticks::Vector{<:Number}`: Full set of possible values for the y coordinate.
+  - `z_ticks::Vector{<:Number}`: Full set of possible values for the z coordinate.
+  - `physical_size::Number`: Side length of the cubic grid.
+  - `n_bins::Int`: Number of bins per side of the grid.
+  - `bin_width::Number`: Side length of each bin.
+  - `bin_area::Number`: Face area of each bin.
+  - `bin_volume::Number`: Volume of each bin.
+"""
+struct CubicGrid
+    grid::Array{NTuple{3,<:Number},3}
+    x_ticks::Vector{<:Number}
+    y_ticks::Vector{<:Number}
+    z_ticks::Vector{<:Number}
+    physical_size::Number
+    n_bins::Int
+    bin_width::Number
+    bin_area::Number
+    bin_volume::Number
+
+    """
+        CubicGrid(
+            physical_size::Number,
+            n_bins::Int;
+            <keyword arguments>
+        )
+
+    Constructor for `CubicGrid`.
+
+    # Arguments
+
+      - `physical_size::Number`: Side length of the cubic grid.
+      - `n_bins::Int`: Number of bins per dimesion of the grid.
+      - `center::Vector{<:Number}=zeros(typeof(physical_size),3)`: 3D location of the center of the grid.
+    """
+    function CubicGrid(
+        physical_size::Number,
+        n_bins::Int;
+        center::Vector{<:Number}=zeros(typeof(physical_size),3),
+    )
+
+        # Example of a 3x3x3 grid:
+        #
+        # x_ticks = [0, 1, 2]
+        # y_ticks = [0, 1, 2]
+        # z_ticks = [0, 1, 2]
+        #
+        # +----------------------+----------------------+----------------------+
+        # |        i = 1         |        i = 4         |        i = 7         |
+        # |  grid[1] = (0, 2, 0) |  grid[4] = (1, 2, 0) |  grid[7] = (2, 2, 0) |
+        # +----------------------+----------------------+----------------------+
+        # |        i = 2         |        i = 5         |        i = 8         |
+        # |  grid[2] = (0, 1, 0) |  grid[5] = (1, 1, 0) |  grid[8] = (2, 1, 0) |
+        # +----------------------+----------------------+----------------------+
+        # |        i = 3         |        i = 6         |        i = 9         |
+        # |  grid[3] = (0, 0, 0) |  grid[6] = (1, 0, 0) |  grid[9] = (2, 0, 0) |
+        # +----------------------+----------------------+----------------------+
+        #
+        # +----------------------+----------------------+----------------------+
+        # |        i = 10        |          i = 13      |          i = 16      |
+        # | grid[10] = (0, 2, 1) | grid[13] = (1, 2, 1) | grid[16] = (2, 2, 1) |
+        # +----------------------+----------------------+----------------------+
+        # |        i = 11        |        i = 14        |        i = 17        |
+        # | grid[11] = (0, 1, 1) | grid[14] = (1, 1, 1) | grid[17] = (2, 1, 1) |
+        # +----------------------+----------------------+----------------------+
+        # |        i = 12        |        i = 15        |        i = 18        |
+        # | grid[12] = (0, 0, 1) | grid[15] = (1, 0, 1) | grid[18] = (2, 0, 1) |
+        # +----------------------+----------------------+----------------------+
+        #
+        # +----------------------+----------------------+----------------------+
+        # |        i = 19        |        i = 22        |        i = 25        |
+        # | grid[19] = (0, 2, 2) | grid[22] = (1, 2, 2) | grid[25] = (2, 2, 2) |
+        # +----------------------+----------------------+----------------------+
+        # |        i = 22        |        i = 23        |        i = 26        |
+        # | grid[20] = (0, 1, 2) | grid[23] = (1, 1, 2) | grid[26] = (2, 1, 2) |
+        # +----------------------+----------------------+----------------------+
+        # |        i = 21        |        i = 24        |        i = 27        |
+        # | grid[21] = (0, 0, 2) | grid[24] = (1, 0, 2) | grid[27] = (2, 0, 2) |
+        # +----------------------+----------------------+----------------------+
+
+        # Compute the bin dimensions
+        bin_width  = physical_size / n_bins
+        bin_area   = bin_width * bin_width
+        bin_volume = bin_area * bin_width
+
+        # Compute the x, y, and z coordinates of the center of each square bin
+        shift = 0.5 * (physical_size - bin_width)
+        x_ticks = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
+        y_ticks = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
+        z_ticks = [(i - 1) * bin_width - shift + center[3] for i in 1:n_bins]
+
+        # Allocate memory
+        grid = Array{NTuple{3,<:Number},3}(undef, n_bins, n_bins, n_bins)
+
+        # Compute the position of each grid point
+        @inbounds for i in eachindex(grid)
+
+            flat_idx = mod1(i, n_bins * n_bins)
+
+            i_x = ceil(Int, flat_idx / n_bins)
+            i_y = mod1(flat_idx, n_bins) - 1
+            i_z = ceil(Int, i / (n_bins * n_bins))
+
+            grid[i] = (x_ticks[i_x], y_ticks[end - i_y], z_ticks[i_z])
+
+        end
+
+        new(grid, x_ticks, y_ticks, z_ticks, physical_size, n_bins, bin_width, bin_area, bin_volume)
 
     end
 end

@@ -233,6 +233,33 @@ function formatError(q_mean::Number, q_error::Number)::NTuple{2,<:Number}
 end
 
 """
+    flattenGrid(cubic_grid::CubicGrid)::SquareGrid
+
+Using a `CubicGrid` construct a `SquareGrid` with the same center, number of bins, and physical side length.
+
+# Arguments
+
+  - `cubic_grid::CubicGrid`: Cubic grid.
+
+# Returns
+
+  - A square grid.
+"""
+function flattenGrid(cubic_grid::CubicGrid)::SquareGrid
+
+    physical_size = cubic_grid.physical_size
+    n_bins = cubic_grid.n_bins
+
+    bin_width  = physical_size / n_bins
+    shift = 0.5 * (physical_size - bin_width)
+
+    center = [cubic_grid.x_ticks[1], cubic_grid.y_ticks[1], cubic_grid.z_ticks[1]] .+ shift
+
+    return SquareGrid(physical_size, n_bins; center)
+
+end
+
+"""
     isCosmological(path::String)::Bool
 
 Check if the snapshot in `path` comes from a cosmological simulation.

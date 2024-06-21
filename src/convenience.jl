@@ -706,7 +706,7 @@ function snapshotReport(
             g_r_crit_200    = gc_data[:group]["G_R_Crit200"][halo_idx]
 
             ########################################################################################
-            # Print the mass of each hydrogen phase between 50 kpc y and the virial radius.
+            # Print the mass of each hydrogen phase between `radial_limit` y and the virial radius.
             ########################################################################################
 
             if :gas in component_list
@@ -715,7 +715,7 @@ function snapshotReport(
                 # Disc external radius
                 ####################################################################################
 
-                radial_limit = 50.0u"kpc"
+                radial_limit = 40.0u"kpc"
 
                 ####################################################################################
                 # Indices of cells and particles within the disc radius and
@@ -755,9 +755,9 @@ function snapshotReport(
                 println(file, "#"^100)
                 println(file, "\nCharacteristic radii:\n")
 
-                ####################################################################################
-                # Print the radius containing 90% and 95% of the mass, withing de disc (r < 50 kpc)
-                ####################################################################################
+                ############################################################################################
+                # Print the radius containing 90% and 95% of the mass, withing de disc (r < `radial_limit`)
+                ############################################################################################
 
                 #############################
                 # Stars
@@ -914,8 +914,8 @@ function snapshotReport(
                 end
 
                 ####################################################################################
-                # Print the masses withing de disc (r < 50 kpc) and
-                # outside the disc (50 kpc < r < R200)
+                # Print the masses withing de disc (r < `radial_limit`) and
+                # outside the disc (`radial_limit` < r < R200)
                 ####################################################################################
 
                 println(file, "#"^100)
@@ -1976,7 +1976,6 @@ Plot a 2D histogram of the density.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,`: If set to nothing no smoothing is applied. If the (`smoothing length`, `number of neighbors`) are given instead, the result will be smooth out using the [`cubicSplineKernel`](@ref) kernel. The smoothing length can be set to `nothing`, in which case, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used. The number of neighbors for the 2D smoothing has a recommended value of 18, wich comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
@@ -2024,7 +2023,6 @@ function densityMap(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
-    smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,
     print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
@@ -2042,7 +2040,7 @@ function densityMap(
     resolution = round(Int, box_size / pixel_length)
 
     # Set up the grid
-    grid = SquareGrid(box_size, resolution)
+    grid = CubicGrid(box_size, resolution)
 
     pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
 
@@ -2077,12 +2075,11 @@ function densityMap(
                     # Data manipulation options
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
-                    da_functions=[daDensity2DHistogram],
+                    da_functions=[daDensity2DProjection],
                     da_args=[(grid, quantity)],
                     da_kwargs=[
                         (;
                             projection_plane,
-                            smoothing,
                             print_range,
                             filter_function=da_ff,
                         ),
@@ -2221,7 +2218,7 @@ function temperatureMap(
     resolution = round(Int, box_size / pixel_length)
 
     # Set up the grid
-    grid = SquareGrid(box_size, resolution)
+    grid = CubicGrid(box_size, resolution)
 
     pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
 
@@ -2254,7 +2251,7 @@ function temperatureMap(
                 # Data manipulation options
                 slice=iszero(slice) ? (:) : slice,
                 filter_function,
-                da_functions=[daTemperature2DHistogram],
+                da_functions=[daTemperature2DProjection],
                 da_args=[(grid,)],
                 da_kwargs=[(; projection_plane, print_range)],
                 post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
@@ -2365,7 +2362,6 @@ Plot a 2D histogram of the density, with the velocity field.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,`: If set to nothing no smoothing is applied. If the (`smoothing length`, `number of neighbors`) are given instead, the result will be smooth out using the [`cubicSplineKernel`](@ref) kernel. The smoothing length can be set to `nothing`, in which case, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used. The number of neighbors for the 2D smoothing has a recommended value of 18, wich comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
@@ -2387,7 +2383,6 @@ function densityMapVelField(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
-    smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,
     print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
@@ -2403,7 +2398,7 @@ function densityMapVelField(
     resolution = round(Int, box_size / pixel_length)
 
     # Set up the grid for the heatmap
-    grid_hm = SquareGrid(box_size, resolution)
+    grid_hm = CubicGrid(box_size, resolution)
 
     # Set up the grid for the velocity field
     grid_vf = SquareGrid(box_size, 25)
@@ -2461,10 +2456,10 @@ function densityMapVelField(
                     # Data manipulation options
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
-                    da_functions=[daDensity2DHistogram, daVelocityField],
+                    da_functions=[daDensity2DProjection, daVelocityField],
                     da_args=[(grid_hm, quantity), (grid_vf, type_symbol)],
                     da_kwargs=[
-                        (; projection_plane, smoothing, print_range),
+                        (; projection_plane, print_range),
                         (; projection_plane),
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
@@ -3401,7 +3396,6 @@ function gasFractionsBarPlot(
                     size=(850, 850),
                     Legend=(nbanks=1,),
                     Axis=(
-                        aspect=AxisAspect(1),
                         limits=(nothing, 105, nothing, nothing),
                         xticks=([0, 50, 100], [L"0.0", L"50", L"100"]),
                         yticks=(1:n_bins, ticks),
@@ -5084,7 +5078,7 @@ function compareFeldmann2020(
         backup_results=false,
         theme=merge(
             theme,
-            Theme(size=(1700, 1000), Axis=(aspect=nothing,), Legend=(nbanks=2,)),
+            Theme(size=(850, 850), Legend=(nbanks=1,)),
         ),
         sim_labels,
         title="",
@@ -5369,7 +5363,7 @@ function compareKennicuttBigielResolved(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(size=(1400, 820), Axis=(aspect=nothing,))),
+        theme=merge(theme, Theme(size=(850, 850),)),
         sim_labels,
         title="",
         colorbar=false,
@@ -5512,7 +5506,7 @@ function compareKennicuttBigielIntegrated(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(size=(1700, 1000), Axis=(aspect=nothing,))),
+        theme=merge(theme, Theme(size=(850,850),)),
         sim_labels,
         title="",
     )

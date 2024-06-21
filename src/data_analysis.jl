@@ -1077,14 +1077,16 @@ function daStellarCircHistogram(
 end
 
 """
-    daDensity2DHistogram(
+    daDensity2DProjection(
         data_dict::Dict,
-        grid::SquareGrid,
+        grid::CubicGrid,
         quantity::Symbol;
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
-Compute a 2D density histogram.
+Project the 3D density field to a given plane.
+
+If the source of the field are particles (stars, black holes, dark matter, etc.) a simple 2D histogram is used. If the source of the field are Voronoi cells (i.e. gas) the density of the cells that cross the line of sight of each pixel are summed.
 
 !!! note
 
@@ -1105,7 +1107,7 @@ Compute a 2D density histogram.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `grid::SquareGrid`: Square grid.
+  - `grid::CubicGrid`: Cubic grid.
   - `quantity::Symbol`: For which quantity the density will be calculated. The options are:
 
       + `:stellar_mass`   -> Stellar mass.
@@ -1118,7 +1120,6 @@ Compute a 2D density histogram.
       + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
-  - `smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,`: If set to nothing no smoothing is applied. If the (`smoothing length`, `number of neighbors`) are given instead, the result will be smooth out using the [`cubicSplineKernel`](@ref) kernel. The smoothing length can be set to `nothing`, in which case, the mean value of the "SOFT" block will be used. If the "SOFT" block is no available, the mean of the cell characteristic size will be used. The number of neighbors for the 2D smoothing has a recommended value of 18, wich comes form [Price2010](https://doi.org/10.1016/j.jcp.2010.12.011): ``N_{2D} = \\pi \\, (\\zeta \\, \\eta)^2``, where we use ``\\zeta = 2`` and ``\\eta = 1.2``.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1152,14 +1153,13 @@ Compute a 2D density histogram.
 
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
-      + A matrix with the values of density at each grid point.
+      + A matrix with the values of density at each point of the 2D grid.
 """
-function daDensity2DHistogram(
+function daDensity2DProjection(
     data_dict::Dict,
-    grid::SquareGrid,
+    grid::CubicGrid,
     quantity::Symbol;
     projection_plane::Symbol=:xy,
-    smoothing::Union{Tuple{Union{Unitful.Length,Nothing},Int},Nothing}=nothing,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
@@ -1183,33 +1183,7 @@ function daDensity2DHistogram(
     elseif quantity == :bh_mass
         type_symbol = :black_hole
     else
-        throw(ArgumentError("daDensity2DHistogram: I don't recognize the quantity :$(quantity)"))
-    end
-
-    # Compute the masses
-    masses = scatterQty(filtered_dd, quantity)
-
-    # Load the positions
-    positions = filtered_dd[type_symbol]["POS "]
-
-    # If any of the necessary quantities are missing return an empty density field
-    if any(isempty, [masses, positions])
-        return grid.x_ticks, grid.y_ticks, fill(NaN, size(grid.grid))
-    end
-
-    # Set the density unit
-    ρ_unit = u"Msun*kpc^-2"
-
-    # Project the cell/particles to the chosen plane
-    if projection_plane == :xy
-        pos_2D = positions[[1, 2], :]
-    elseif projection_plane == :xz
-        pos_2D = positions[[1, 3], :]
-    elseif projection_plane == :yz
-        pos_2D = positions[[2, 3], :]
-    else
-        throw(ArgumentError("daDensity2DHistogram: The argument `projection_plane` must be \
-        :xy, :xz or :yz, but I got :$(projection_plane)"))
+        throw(ArgumentError("daDensity2DProjection: I don't recognize the quantity :$(quantity)"))
     end
 
     # For comological simulations with comoving units, correct
@@ -1222,92 +1196,96 @@ function daDensity2DHistogram(
         physical_factor = 1.0
     end
 
-    if !isnothing(smoothing)
+    # Load the positions
+    positions = filtered_dd[type_symbol]["POS "]
 
-        smoothing_length, neighbors = smoothing
+    # Compute the masses
+    masses = scatterQty(filtered_dd, quantity)
 
-        # Spline kernel used in Arepo
-        #
-        # Monaghan, J. J., & Lattanzio, J. C. (1985). A refined particle method for astrophysical
-        # problems. Astronomy and Astrophysics, 149(1), 135–143.
-        # https://ui.adsabs.harvard.edu/abs/1985A&A...149..135M
-        #
-        # Springel, V. (2005). The cosmological simulation code gadget-2. Monthly Notices of the Royal
-        # Astronomical Society, 364(4), 1105–1134. https://doi.org/10.1111/j.1365-2966.2005.09655.x
-        kernel(q, h) = cubicSplineKernel(q, h)
+    # If any of the necessary quantities are missing return an empty density field
+    if any(isempty, [masses, positions])
+        return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
+    end
+
+    # Set the units
+    m_unit = u"Msun"
+    l_unit = u"kpc"
+
+    if type_symbol == :gas
+
+        # Compute the volume of each cell
+        gas_density = filtered_dd[:gas]["RHO "]
+        gas_masses  = filtered_dd[type_symbol]["MASS"]
+        gas_volumes = gas_masses ./ gas_density
+
+        # Compute the densities for the target quantity
+        densities = ustrip.(m_unit*l_unit^-3, masses ./ gas_volumes)
+
+        # Load the volume and area of the voxels
+        voxel_volume = ustrip(l_unit^3, grid.bin_volume)
+        voxel_area = ustrip(l_unit^2, grid.bin_area)
 
         # Allocate memory
-        physical_grid = Matrix{Float64}(undef, 2, grid.n_bins * grid.n_bins)
+        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
 
-        # Reshape the grid to conform to the way knn expect the matrix to be structured
+        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
         @inbounds for i in eachindex(grid.grid)
-
             physical_grid[1, i] = ustrip(u"kpc", grid.grid[i][1])
             physical_grid[2, i] = ustrip(u"kpc", grid.grid[i][2])
-
+            physical_grid[3, i] = ustrip(u"kpc", grid.grid[i][3])
         end
 
         # Compute the tree for a nearest neighbor search
-        kdtree = KDTree(ustrip.(u"kpc", pos_2D))
+        kdtree = KDTree(ustrip.(u"kpc", positions))
 
-        # Find nearest neighbors
-        n_idxs, n_dists = knn(kdtree, physical_grid, neighbors)
-
-        if isnothing(smoothing_length)
-
-            # Compute the smoothing lengths
-            if "SOFT" ∈ keys(filtered_dd[type_symbol])
-
-                smoothing_length = mean(filtered_dd[type_symbol]["SOFT"])
-
-            elseif "RHO " ∈ keys(filtered_dd[type_symbol])
-
-                densities = filtered_dd[type_symbol]["RHO "]
-                masses = filtered_dd[type_symbol]["MASS"]
-                smoothing_length = mean(
-                    cbrt(m / (1.333 * π * ρ)) for (m, ρ) in zip(masses, densities)
-                )
-
-            else
-                throw(ArgumentError("daDensity2DHistogram: Neither the \"SOFT\" or \"RHO \" blocks \
-                where present for the cell/particle type :$(type_symbol), and I need one of them \
-                to smooth out the density histogram as requested"))
-            end
-
-        end
-
-        h = ustrip(u"kpc", smoothing_length)
+        # Find the nearest neighbor to each point in the grid
+        idxs, _ = nn(kdtree, physical_grid)
 
         # Allocate memory
-        density = similar(grid.grid, Number)
+        mass_grid = similar(grid.grid, Float64)
 
-        # Compute the density in each bin
+        # Compute the density of each voxel
         @inbounds for i in eachindex(grid.grid)
+            mass_grid[i] = densities[idxs[i]] * voxel_volume
+        end
 
-            n_idx  = n_idxs[i]
-            n_dist = n_dists[i]
-
-            qs = n_dist / h
-            ws = kernel.(qs, h) * u"kpc^-2" / physical_factor
-
-            density[i] = sum(masses[n_idx] .* ws; init=zero(1.0 * ρ_unit))
-
+        # Project the grid to the chosen plane
+        if projection_plane == :xy
+            density = dropdims(sum(mass_grid; dims=3) ./ voxel_area; dims=3)
+        elseif projection_plane == :xz
+            density = transpose(dropdims(sum(mass_grid; dims=2) ./ voxel_area; dims=2))
+        elseif projection_plane == :yz
+            density = dropdims(sum(mass_grid; dims=1) ./ voxel_area; dims=1)
+        else
+            throw(ArgumentError("daDensity2DProjection: The argument `projection_plane` must be \
+            :xy, :xz or :yz, but I got :$(projection_plane)"))
         end
 
     else
 
+        # Project the particles to the chosen plane
+        if projection_plane == :xy
+            pos_2D = positions[[1, 2], :]
+        elseif projection_plane == :xz
+            pos_2D = positions[[1, 3], :]
+        elseif projection_plane == :yz
+            pos_2D = positions[[2, 3], :]
+        else
+            throw(ArgumentError("daDensity2DProjection: The argument `projection_plane` must be \
+            :xy, :xz or :yz, but I got :$(projection_plane)"))
+        end
+
         # Compute the 2D histogram
-        total = histogram2D(pos_2D, masses, grid; empty_nan=false)
-        density = total ./ (grid.bin_area * physical_factor)
+        total = histogram2D(pos_2D, masses, flattenGrid(grid); empty_nan=false)
+        density = ustrip.(m_unit*l_unit^-2, total ./ grid.bin_area)
 
     end
 
     # Set bins with a value of 0 to NaN
-    nan = NaN * unit(first(density))
-    replace!(x -> iszero(x) ? nan : x, density)
+    replace!(x -> iszero(x) ? NaN : x, density)
 
     # Apply log10 to enhance the contrast
-    values = log10.(ustrip.(ρ_unit, density))
+    values = log10.(density ./ physical_factor)
 
     if print_range
 
@@ -1321,7 +1299,7 @@ function daDensity2DHistogram(
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
             \n  Plane:      $(projection_plane) \
-            \nlog₁₀(ρ [$(ρ_unit)]) = $(min_max)\n\n"
+            \nlog₁₀(ρ [$(m_unit*l_unit^-2)]) = $(min_max)\n\n"
         )
 
     end
@@ -1334,13 +1312,13 @@ function daDensity2DHistogram(
 end
 
 """
-    daTemperature2DHistogram(
+    daTemperature2DProjection(
         data_dict::Dict,
-        grid::SquareGrid;
+        grid::CubicGrid;
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
-Compute a 2D temperature histogram.
+Project the 3D temperature field to a given plane.
 
 !!! note
 
@@ -1361,7 +1339,7 @@ Compute a 2D temperature histogram.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `grid::SquareGrid`: Square grid.
+  - `grid::CubicGrid`: Cubic grid.
   - `projection_plane::Symbol=:xy`: To which plane the cells will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic temperature range.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -1398,9 +1376,9 @@ Compute a 2D temperature histogram.
       + A vector with the y coordinates of the grid.
       + A matrix with the values of temperature at each grid point.
 """
-function daTemperature2DHistogram(
+function daTemperature2DProjection(
     data_dict::Dict,
-    grid::SquareGrid;
+    grid::CubicGrid;
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
@@ -1409,45 +1387,66 @@ function daTemperature2DHistogram(
     filtered_dd = filterData(data_dict; filter_function)
 
     # Load the temperatures
-    temperatures = filtered_dd[:gas]["TEMP"]
+    temperatures = ustrip.(u"K", filtered_dd[:gas]["TEMP"])
+
     # Load the positions
     positions = filtered_dd[:gas]["POS "]
 
     # If any of the necessary quantities are missing return an empty temperature field
     if any(isempty, [temperatures, positions])
-        return grid.x_ticks, grid.y_ticks, fill(NaN, size(grid.grid))
+        return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
-    # Set the temperature unit
-    T_unit = u"K"
+    # Allocate memory
+    physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
 
-    # Project the cell/particles to the chosen plane
+    # Reshape the grid to conform to the way `nn` expect the matrix to be structured
+    @inbounds for i in eachindex(grid.grid)
+        physical_grid[1, i] = ustrip(u"kpc", grid.grid[i][1])
+        physical_grid[2, i] = ustrip(u"kpc", grid.grid[i][2])
+        physical_grid[3, i] = ustrip(u"kpc", grid.grid[i][3])
+    end
+
+    # Compute the tree for a nearest neighbor search
+    kdtree = KDTree(ustrip.(u"kpc", positions))
+
+    # Find the nearest neighbor to each point in the grid
+    idxs, _ = nn(kdtree, physical_grid)
+
+    # Allocate memory
+    temperature_grid = similar(grid.grid, Float64)
+
+    # Compute the temperature of each voxel
+    @inbounds for i in eachindex(grid.grid)
+        temperature_grid[i] = temperatures[idxs[i]]
+    end
+
+    # Project the grid to the chosen plane
     if projection_plane == :xy
-        pos_2D = positions[[1, 2], :]
+        temperature = dropdims(sum(temperature_grid; dims=3) ./ grid.n_bins; dims=3)
     elseif projection_plane == :xz
-        pos_2D = positions[[1, 3], :]
+        temperature = transpose(dropdims(sum(temperature_grid; dims=2) ./ grid.n_bins; dims=2))
     elseif projection_plane == :yz
-        pos_2D = positions[[2, 3], :]
+        temperature = dropdims(sum(temperature_grid; dims=1) ./ grid.n_bins; dims=1)
     else
-        throw(ArgumentError("daTemperature2DHistogram: The argument `projection_plane` must be \
+        throw(ArgumentError("daTemperature2DProjection: The argument `projection_plane` must be \
         :xy, :xz or :yz, but I got :$(projection_plane)"))
     end
 
-    # Compute the 2D histogram
-    temperature = histogram2D(pos_2D, temperatures, grid; total=false, empty_nan=true)
-
     # Apply log10 to enhance the contrast
-    values = log10.(ustrip.(T_unit, temperature))
+    values = log10.(temperature)
 
     if print_range
+
         # Print the temperature range
         @info(
-            "\nTemperature range \
+            "\nDensity range \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Plane:      $(projection_plane) \
-            \nlog₁₀(T [$(T_unit)]) = $(extrema(filter(!isnan, values)))\n\n"
+            \nlog₁₀(T [K]) = $(extrema(values))\n\n"
         )
+
     end
 
     # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured
