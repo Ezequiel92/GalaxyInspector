@@ -1471,7 +1471,7 @@ Compute the radius containing `percet`% of the total mass.
 
 # Returns
 
-  - The radius containing `percet` of the total mass.
+  - The radius containing `percet`% of the total mass.
 """
 function computeMassRadius(
     positions::Matrix{<:Unitful.Length},
@@ -1526,7 +1526,7 @@ Compute the total height of a cylinder, of infinite radius, containing `percet`%
 
 # Returns
 
-  - The height containing `percet` of the total mass.
+  - The height containing `percet`% of the total mass.
 """
 function computeMassHeight(
     positions::Matrix{<:Unitful.Length},
@@ -1561,6 +1561,95 @@ function computeMassHeight(
     end
 
     return heights[sort_idxs[target_idx]] * 2.0
+
+end
+
+"""
+    computeMassQty(
+        quantity::Vector{<:Number},
+        masses::Vector{<:Unitful.Mass};
+        <keyword arguments>
+    )::Number
+
+Compute the maximum value of `quantity` that "contains" `percet`% of the total mass.
+
+# Arguments
+
+  - `quantity::Vector{<:Number}`: Target quantity.
+  - `masses::Vector{<:Unitful.Mass}`: Masses of the cells/particles.
+  - `percent::Float64=90.0`: Target percentage of the total mass.
+
+# Returns
+
+  - The maximum value of `quantity` that "contains" `percet`% of the total mass.
+"""
+function computeMassQty(
+    quantity::Vector{<:Number},
+    masses::Vector{<:Unitful.Mass};
+    percent::Float64=90.0,
+)::Number
+
+    (
+        0 < percent <=100  ||
+        throw(ArgumentError("computeMassQty: The argument `percent` must be between 0 and 100, \
+        but I got $(percent)"))
+    )
+
+    # Check for missing data
+    !any(isempty, [quantity, masses]) || return zero(eltype(quantity))
+
+    # Compute the mass limit
+    mass_limit = sum(masses) * (percent / 100.0)
+
+    sort_idxs = sortperm(quantity)
+
+    # Find the mass radius
+    accu_mass = 0.0u"Msun"
+    target_idx = 0
+    for mass in masses[sort_idxs]
+        accu_mass += mass
+        accu_mass < mass_limit || break
+        target_idx += 1
+    end
+
+    return quantity[sort_idxs[target_idx]]
+
+end
+
+"""
+    computeMassPercent(
+        quantity::Vector{<:Number},
+        masses::Vector{<:Unitful.Mass},
+        qty_limit::Number,
+    )::Float64
+
+Compute the fraction of the total mass "contained" within a given value of `quantity`.
+
+# Arguments
+
+  - `quantity::Vector{<:Number}`: Target quantity.
+  - `masses::Vector{<:Unitful.Mass}`: Masses of the cells/particles.
+  - `qty_limit::Number`: Limit value of the target quantity.
+
+# Returns
+
+  - The fraction of the total mass "contained" within a given value of `quantity`.
+"""
+function computeMassFraction(
+    quantity::Vector{<:Number},
+    masses::Vector{<:Unitful.Mass},
+    qty_limit::Number,
+)::Float64
+
+    # Check for missing data
+    !any(isempty, [quantity, masses]) || return 0.0
+
+    qty_limit < maximum(quantity) || return 1.0
+
+    # Find the indices of all the cells/particles with `quantity` < `qty_limit`
+    idxs = map(x -> x <= qty_limit, quantity)
+
+    return sum(masses) / sum(masses[idxs])
 
 end
 
