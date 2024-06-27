@@ -186,7 +186,7 @@ function snapshotReport(
             filter_mode,
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
-                Dict(:gas => ["NHP ", "NH  ", "PRES", "FRAC"]),
+                Dict(:gas => ["NHP ", "NH  ", "PRES", "FRAC"], :stars => ["ACIT", "PARZ", "RHOC"]),
             ),
         )
 
@@ -490,6 +490,62 @@ function snapshotReport(
         end
 
         ############################################################################################
+        # Print the properties of the star forming gas
+        ############################################################################################
+
+        if !isempty(data_dict[:stars]["ACIT"])
+
+            parz = data_dict[:stars]["PARZ"] ./ GalaxyInspector.SOLAR_METALLICITY
+            rhoc = ustrip.(u"cm^-3", data_dict[:stars]["RHOC"])
+            acit = ustrip.(u"Myr", data_dict[:stars]["ACIT"])
+
+            println(file, "\tProperties of the star forming gas:\n")
+
+            println(file, "\t\tMetallicity:\n")
+            println(file, "\t\t\tMean:   $(round(mean(parz), digits=1)) Z⊙")
+            println(file, "\t\t\tMedian: $(round(median(parz), digits=1)) Z⊙")
+            println(file, "\t\t\tMode:   $(round(mode(parz)[1], digits=1)) Z⊙\n")
+
+            parz_50 = GalaxyInspector.computeMassQty(parz, data_dict[:stars]["MASS"]; percent=50.0)
+            parz_90 = GalaxyInspector.computeMassQty(parz, data_dict[:stars]["MASS"]; percent=90.0)
+            parz_95 = GalaxyInspector.computeMassQty(parz, data_dict[:stars]["MASS"]; percent=95.0)
+
+            println(file, "\t\tMetallicity enclosing X% of the stellar mass:\n")
+            println(file, "\t\t\t$(round(parz_50, digits=1)) Z⊙ (50%)")
+            println(file, "\t\t\t$(round(parz_90, digits=1)) Z⊙ (90%)")
+            println(file, "\t\t\t$(round(parz_95, digits=1)) Z⊙ (95%)\n")
+
+            println(file, "\t\tCell density:\n")
+            println(file, "\t\t\tMean:   $(round(mean(rhoc), digits=1)) cm^-3")
+            println(file, "\t\t\tMedian: $(round(median(rhoc), digits=1)) cm^-3")
+            println(file, "\t\t\tMode:   $(round(mode(rhoc)[1], digits=1)) cm^-3\n")
+
+            rhoc_50 = GalaxyInspector.computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=50.0)
+            rhoc_90 = GalaxyInspector.computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=90.0)
+            rhoc_95 = GalaxyInspector.computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=95.0)
+
+            println(file, "\t\tCell density enclosing X% of the stellar mass:\n")
+            println(file, "\t\t\t$(round(rhoc_50, digits=1)) cm^-3 (50%)")
+            println(file, "\t\t\t$(round(rhoc_90, digits=1)) cm^-3 (90%)")
+            println(file, "\t\t\t$(round(rhoc_95, digits=1)) cm^-3 (95%)\n")
+
+            println(file, "\t\tTotal integration time:\n")
+            println(file, "\t\t\tMean:   $(round(mean(acit), digits=1)) Myr")
+            println(file, "\t\t\tMedian: $(round(median(acit), digits=1)) Myr")
+            println(file, "\t\t\tMode:   $(round(mode(acit)[1], digits=1)) Myr\n")
+
+            acit_50 = GalaxyInspector.computeMassQty(acit, data_dict[:stars]["MASS"]; percent=50.0)
+            acit_90 = GalaxyInspector.computeMassQty(acit, data_dict[:stars]["MASS"]; percent=90.0)
+            acit_95 = GalaxyInspector.computeMassQty(acit, data_dict[:stars]["MASS"]; percent=95.0)
+
+            println(file, "\t\tTotal integration time enclosing X% of the stellar mass:\n")
+            println(file, "\t\t\t$(round(acit_50, digits=1)) Myr (50%)")
+            println(file, "\t\t\t$(round(acit_90, digits=1)) Myr (90%)")
+            println(file, "\t\t\t$(round(acit_95, digits=1)) Myr (95%)\n")
+
+        end
+
+        ############################################################################################
         # Print the maximum and minimum values of each parameter of the ODEs
         ############################################################################################
 
@@ -544,8 +600,6 @@ function snapshotReport(
         ############################################################################################
         # Translate the simulation box
         ############################################################################################
-
-
 
         translateData!(data_dict, translation)
 
