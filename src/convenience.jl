@@ -484,8 +484,13 @@ function snapshotReport(
             stellar_gas_number = count(!isnan, data_dict[:gas]["FRAC"][1, :])
             fraction = (stellar_gas_number / total_number) * 100
 
+            idxs = findall(!isnan, data_dict[:gas]["FRAC"][1, :])
+            stellar_gas_mass = sum(data_dict[:gas]["MASS"][idxs])
+            mass_fraction = (stellar_gas_mass / sum(data_dict[:gas]["MASS"])) * 100
+
             println(file, "\tFraction of gas cells that have enter our routine:\n")
-            println(file, "\t\t$(round(fraction, sigdigits=3))% of the total number of cells\n")
+            println(file, "\t\t$(round(fraction, sigdigits=3))% of the cells\n")
+            println(file, "\t\t$(round(mass_fraction, sigdigits=3))% of the mass\n")
 
         end
 
