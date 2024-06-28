@@ -1688,6 +1688,291 @@ function daScatterDensity(
 end
 
 """
+    daScatterWeightedDensity(
+        data_dict::Dict,
+        x_quantity::Symbol,
+        y_quantity::Symbol,
+        z_quantity::Symbol,
+        z_unit::Uniful.Units;
+        <keyword arguments>
+    )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
+
+Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
+
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
+
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+  - `z_quantity::Symbol`: Quantity for the z axis (weights). The options are:
+
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+  - `z_unit::Unitful.Units`: Target unit for the z axis.
+  - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
+  - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
+  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `y_quantity`, if you want to use log10(`y_quantity`) for the y axis.
+  - `total::Bool=true`: If the sum (default) or the mean of `z_quantity` will be used as the value of each pixel.
+  - `n_bins::Int=100`: Number of bins per side of the grid.
+  - `filter_function::Function=filterNothing`: A function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+
+# Returns
+
+  - A tuple with three elements:
+
+      + A vector with the x coordinates of the grid.
+      + A vector with the y coordinates of the grid.
+      + A matrix with the counts.
+"""
+function daScatterWeightedDensity(
+    data_dict::Dict,
+    x_quantity::Symbol,
+    y_quantity::Symbol,
+    z_quantity::Symbol,
+    z_unit::Unitful.Units;
+    x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    x_log::Union{Unitful.Units,Nothing}=nothing,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
+    total::Bool=true,
+    n_bins::Int=100,
+    filter_function::Function=filterNothing,
+)::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    # Compute the values of the quantities
+    x_values = scatterQty(filtered_dd, x_quantity)
+    y_values = scatterQty(filtered_dd, y_quantity)
+    z_values = scatterQty(filtered_dd, z_quantity)
+
+    # If any of the necessary quantities are missing return an empty histogram
+    if any(isempty, [x_values, y_values, z_values])
+        return 1:n_bins, 1:n_bins, fill(NaN, (n_bins, n_bins))
+    end
+
+    (
+        length(x_values) == length(y_values) == length(z_values) ||
+        throw(ArgumentError("daScatterWeightedDensity: :$(x_quantity), :$(y_quantity), \
+        and :$(z_quantity) have a diferent number of values. They should be the same"))
+    )
+
+    # If requested, apply log10 to the x axis data, ignoring 0 values
+    if !isnothing(x_log)
+        null_x_idxs = findall(iszero, x_values)
+        x_values    = log10.(deleteat!(ustrip.(x_log, x_values), null_x_idxs))
+        y_values    = deleteat!(y_values, null_x_idxs)
+    end
+
+    # If requested, apply log10 to the y axis data, ignoring 0 values
+    if !isnothing(y_log)
+        null_y_idxs = findall(iszero, y_values)
+        x_values    = deleteat!(x_values, null_y_idxs)
+        y_values    = log10.(deleteat!(ustrip.(y_log, y_values), null_y_idxs))
+    end
+
+    # If there is no range specified, use the extrema of the x values
+    if isnothing(x_range)
+        x_range = extrema(x_values)
+    end
+
+    # If there is no range specified, use the extrema of the y values
+    if isnothing(y_range)
+        y_range = extrema(y_values)
+    end
+
+    # Compute the bin half width for each axis
+    x_bin_h_width = 0.5 * (x_range[2] - x_range[1]) / n_bins
+    y_bin_h_width = 0.5 * (y_range[2] - y_range[1]) / n_bins
+
+    # Compute the center value of each bin for each axis
+    x_axis = collect(range(x_range[1] + x_bin_h_width; length=n_bins, step=2 * x_bin_h_width))
+    y_axis = collect(range(y_range[1] + y_bin_h_width; length=n_bins, step=2 * y_bin_h_width))
+
+    # Compute the 2D histogram
+    values = ustrip.(z_unit, histogram2D(
+        permutedims(hcat(x_values, y_values), (2, 1)),
+        z_values,
+        collect(range(x_range[1], x_range[2]; length=n_bins + 1)),
+        collect(range(y_range[1], y_range[2]; length=n_bins + 1));
+        total,
+    ))
+
+    # Set bins with a value of 0 to NaN
+    replace!(x -> iszero(x) ? NaN : x, values)
+
+    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured,
+    # and log10 is used to enhance the contrast
+    z_axis = reverse!(transpose(log10.(values)), dims=2)
+
+    return x_axis, y_axis, z_axis
+
+end
+
+"""
     daVelocityField(
         data_dict::Dict,
         grid::SquareGrid,

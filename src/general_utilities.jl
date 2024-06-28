@@ -1171,7 +1171,7 @@ function histogram2D(
     n_y_bins = length(y_edges) - 1
 
     h_borders = (first(x_edges), last(x_edges))
-    v_borders = (first(v_edges), last(v_edges))
+    v_borders = (first(y_edges), last(y_edges))
 
     # Allocate memory
     histogram = zeros(eltype(values), (n_x_bins, n_y_bins))

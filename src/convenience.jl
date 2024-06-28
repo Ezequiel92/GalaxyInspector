@@ -489,7 +489,7 @@ function snapshotReport(
             mass_fraction = (stellar_gas_mass / sum(data_dict[:gas]["MASS"])) * 100
 
             println(file, "\tFraction of gas cells that have enter our routine:\n")
-            println(file, "\t\t$(round(fraction, sigdigits=3))% of the cells\n")
+            println(file, "\t\t$(round(fraction, sigdigits=3))% of the cells")
             println(file, "\t\t$(round(mass_fraction, sigdigits=3))% of the mass\n")
 
         end
@@ -507,46 +507,52 @@ function snapshotReport(
             println(file, "\tProperties of the star forming gas:\n")
 
             println(file, "\t\tMetallicity:\n")
-            println(file, "\t\t\tMean:   $(round(mean(parz), digits=1)) Z⊙")
-            println(file, "\t\t\tMedian: $(round(median(parz), digits=1)) Z⊙")
-            println(file, "\t\t\tMode:   $(round(mode(parz)[1], digits=1)) Z⊙\n")
+            println(file, "\t\t\tMean:    $(round(mean(parz), sigdigits=4)) Z⊙")
+            println(file, "\t\t\tMedian:  $(round(median(parz), sigdigits=4)) Z⊙")
+            println(file, "\t\t\tMode:    $(round(mode(parz)[1], sigdigits=4)) Z⊙")
+            println(file, "\t\t\tMinimum: $(round(minimum(parz), sigdigits=4)) Z⊙")
+            println(file, "\t\t\tMaximum: $(round(maximum(parz), sigdigits=4)) Z⊙\n")
 
             parz_50 = GalaxyInspector.computeMassQty(parz, data_dict[:stars]["MASS"]; percent=50.0)
             parz_90 = GalaxyInspector.computeMassQty(parz, data_dict[:stars]["MASS"]; percent=90.0)
             parz_95 = GalaxyInspector.computeMassQty(parz, data_dict[:stars]["MASS"]; percent=95.0)
 
             println(file, "\t\tMetallicity enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t$(round(parz_50, digits=1)) Z⊙ (50%)")
-            println(file, "\t\t\t$(round(parz_90, digits=1)) Z⊙ (90%)")
-            println(file, "\t\t\t$(round(parz_95, digits=1)) Z⊙ (95%)\n")
+            println(file, "\t\t\t$(round(parz_50, sigdigits=4)) Z⊙ (50%)")
+            println(file, "\t\t\t$(round(parz_90, sigdigits=4)) Z⊙ (90%)")
+            println(file, "\t\t\t$(round(parz_95, sigdigits=4)) Z⊙ (95%)\n")
 
             println(file, "\t\tCell density:\n")
-            println(file, "\t\t\tMean:   $(round(mean(rhoc), digits=1)) cm^-3")
-            println(file, "\t\t\tMedian: $(round(median(rhoc), digits=1)) cm^-3")
-            println(file, "\t\t\tMode:   $(round(mode(rhoc)[1], digits=1)) cm^-3\n")
+            println(file, "\t\t\tMean:    $(round(mean(rhoc), sigdigits=4)) cm^-3")
+            println(file, "\t\t\tMedian:  $(round(median(rhoc), sigdigits=4)) cm^-3")
+            println(file, "\t\t\tMode:    $(round(mode(rhoc)[1], sigdigits=4)) cm^-3")
+            println(file, "\t\t\tMinimum: $(round(minimum(rhoc), sigdigits=4)) cm^-3")
+            println(file, "\t\t\tMaximum: $(round(maximum(rhoc), sigdigits=4)) cm^-3\n")
 
             rhoc_50 = GalaxyInspector.computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=50.0)
             rhoc_90 = GalaxyInspector.computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=90.0)
             rhoc_95 = GalaxyInspector.computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=95.0)
 
             println(file, "\t\tCell density enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t$(round(rhoc_50, digits=1)) cm^-3 (50%)")
-            println(file, "\t\t\t$(round(rhoc_90, digits=1)) cm^-3 (90%)")
-            println(file, "\t\t\t$(round(rhoc_95, digits=1)) cm^-3 (95%)\n")
+            println(file, "\t\t\t$(round(rhoc_50, sigdigits=4)) cm^-3 (50%)")
+            println(file, "\t\t\t$(round(rhoc_90, sigdigits=4)) cm^-3 (90%)")
+            println(file, "\t\t\t$(round(rhoc_95, sigdigits=4)) cm^-3 (95%)\n")
 
             println(file, "\t\tTotal integration time:\n")
-            println(file, "\t\t\tMean:   $(round(mean(acit), digits=1)) Myr")
-            println(file, "\t\t\tMedian: $(round(median(acit), digits=1)) Myr")
-            println(file, "\t\t\tMode:   $(round(mode(acit)[1], digits=1)) Myr\n")
+            println(file, "\t\t\tMean:    $(round(mean(acit), sigdigits=4)) Myr")
+            println(file, "\t\t\tMedian:  $(round(median(acit), sigdigits=4)) Myr")
+            println(file, "\t\t\tMode:    $(round(mode(acit)[1], sigdigits=4)) Myr")
+            println(file, "\t\t\tMinimum: $(round(minimum(acit), sigdigits=4)) Myr")
+            println(file, "\t\t\tMaximum: $(round(maximum(acit), sigdigits=4)) Myr\n")
 
             acit_50 = GalaxyInspector.computeMassQty(acit, data_dict[:stars]["MASS"]; percent=50.0)
             acit_90 = GalaxyInspector.computeMassQty(acit, data_dict[:stars]["MASS"]; percent=90.0)
             acit_95 = GalaxyInspector.computeMassQty(acit, data_dict[:stars]["MASS"]; percent=95.0)
 
             println(file, "\t\tTotal integration time enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t$(round(acit_50, digits=1)) Myr (50%)")
-            println(file, "\t\t\t$(round(acit_90, digits=1)) Myr (90%)")
-            println(file, "\t\t\t$(round(acit_95, digits=1)) Myr (95%)\n")
+            println(file, "\t\t\t$(round(acit_50, sigdigits=4)) Myr (50%)")
+            println(file, "\t\t\t$(round(acit_90, sigdigits=4)) Myr (90%)")
+            println(file, "\t\t\t$(round(acit_95, sigdigits=4)) Myr (95%)\n")
 
         end
 
@@ -3035,11 +3041,13 @@ end
         simulation_paths::Vector{String},
         slice::IndexType,
         x_quantity::Symbol,
-        y_quantity::Symbol;
+        y_quantity::Symbol,
+        z_quantity::Symbol,
+        z_unit::Uniful.Units;
         <keyword arguments>
     )::Nothing
 
-Plot two quantities as a density scatter plot (2D histogram).
+Plot two quantities as a density scatter plot (2D histogram), weighted by `z_quantity`.
 
 # Arguments
 
@@ -3133,8 +3141,54 @@ Plot two quantities as a density scatter plot (2D histogram).
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+  - `z_quantity::Symbol`: Quantity for the z axis (weights). The options are:
+
+      + `:stellar_mass`               -> Stellar mass.
+      + `:gas_mass`                   -> Gas mass.
+      + `:hydrogen_mass`              -> Hydrogen mass.
+      + `:dm_mass`                    -> Dark matter mass.
+      + `:bh_mass`                    -> Black hole mass.
+      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
+      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:gas_mass_density`           -> Gas mass density.
+      + `:hydrogen_mass_density`      -> Hydrogen mass density.
+      + `:gas_number_density`         -> Gas number density.
+      + `:molecular_number_density`   -> Molecular hydrogen number density.
+      + `:atomic_number_density`      -> Atomic hydrogen number density.
+      + `:ionized_number_density`     -> Ionized hydrogen number density.
+      + `:neutral_number_density`     -> Neutral hydrogen number density.
+      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:stellar_circularity`        -> Stellar circularity.
+      + `:stellar_vcirc`              -> Stellar circular velocity.
+      + `:stellar_vradial`            -> Stellar radial speed.
+      + `:stellar_vtangential`        -> Stellar tangential speed.
+      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                -> Stellar age.
+      + `:sfr`                        -> The star formation rate.
+      + `:ssfr`                       -> The specific star formation rate.
+      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+  - `z_unit::Unitful.Units`: Target unit for the z axis.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
+  - `total::Bool=true`: If the sum (default) or the mean of `z_quantity` will be used as the value of each pixel.
   - `n_bins::Int=100`: Number of bins per side of the square grid.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -3171,9 +3225,12 @@ function scatterDensityMap(
     simulation_paths::Vector{String},
     slice::IndexType,
     x_quantity::Symbol,
-    y_quantity::Symbol;
+    y_quantity::Symbol,
+    z_quantity::Symbol,
+    z_unit::Unitful.Units;
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    total::Bool=true,
     n_bins::Int=100,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
@@ -3215,9 +3272,9 @@ function scatterDensityMap(
             # Data manipulation options
             slice,
             filter_function,
-            da_functions=[daScatterDensity],
-            da_args=[(x_quantity, y_quantity)],
-            da_kwargs=[(; x_range, y_range, n_bins)],
+            da_functions=[daScatterWeightedDensity],
+            da_args=[(x_quantity, y_quantity, z_quantity, z_unit)],
+            da_kwargs=[(; x_range, y_range, total, n_bins)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
