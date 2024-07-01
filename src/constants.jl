@@ -482,6 +482,7 @@ const DEFAULT_THEME = Theme(
         dodge_gap=0.04,
     ),
     Arrows=(lengthscale=0.02, arrowsize=7.0, linestyle=:solid, color=:white),
+    Hist=(strokecolor=:black, strokewidth=1),
 )
 
 # Structures
