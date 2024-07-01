@@ -2592,6 +2592,87 @@ function daGasFractions(
 
 end
 
+"""
+    daStellarMetallictyHistogram(data_dict::Dict)::Union{Tuple{Vector{Float64}},Nothing}
+
+Compute the stellar metallicity, for an histogram.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - A Tuple with one elements:
+
+      + A Vector with the stellar metallicites.
+"""
+function daStellarMetallictyHistogram(data_dict::Dict)::Union{Tuple{Vector{Float64}},Nothing}
+
+    metallicity = scatterQty(data_dict, :stellar_metallicity)
+
+    !isempty(metallicity) || return nothing
+
+    return (metallicity,)
+
+end
+
+"""
+    daStellarBTHistogram(data_dict::Dict)::Union{Tuple{Vector{<:Unitful.Time}},Nothing}
+
+Compute the stellar birth times, for an histogram.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - A Tuple with one elements:
+
+      + A Vector with the birth times.
+"""
+function daStellarBTHistogram(data_dict::Dict)::Union{Tuple{Vector{<:Unitful.Time}},Nothing}
+
+    birth_ticks = data_dict[:stars]["GAGE"]
+
+    !isempty(birth_ticks) || return nothing
+
+    if data_dict[:sim_data].cosmological
+        # Go from scale factor to physical time
+        birth_times = GalaxyInspector.computeTime(birth_ticks, data_dict[:snap_data].header)
+    else
+        birth_times = birth_ticks
+    end
+
+    return (birth_times,)
+
+end
+
 ####################################################################################################
 # Signature for the timeSeriesPlot function in ./src/pipelines.jl.
 ####################################################################################################
