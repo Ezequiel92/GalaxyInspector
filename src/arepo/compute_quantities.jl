@@ -184,7 +184,7 @@ function computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Lengt
     end
 
     throw(ArgumentError("computeCenter: `cm_type` can only be :global_cm, :stellar_cm or :zero \
-    but I got :$(center_type)"))
+    but I got :$(cm_type)"))
 
 end
 

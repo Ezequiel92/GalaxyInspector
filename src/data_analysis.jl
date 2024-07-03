@@ -751,9 +751,10 @@ Compute the evolution of a given stellar `quantity` using the stellar ages at a 
       + ...
   - `quantity::Symbol=:sfr`: Target quantity. The options are:
 
-      + `:sfr`          -> The star formation rate.
-      + `:ssfr`         -> The specific star formation rate.
-      + `:stellar_mass` -> Stellar mass.
+      + `:sfr`                 -> The star formation rate.
+      + `:ssfr`                -> The specific star formation rate.
+      + `:stellar_mass`        -> Stellar mass.
+      + `:stellar_metallicity` -> Mass fraction of all elements above He in the stars (solar units).
   - `n_bins::Int=100`: Number of bins (time intervals).
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -797,8 +798,8 @@ function daStellarHistory(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    birth_ticks = filtered_dd[:stars]["GAGE"]
-    masses      = filtered_dd[:stars]["MASS"]
+    birth_ticks   = filtered_dd[:stars]["GAGE"]
+    masses        = filtered_dd[:stars]["MASS"]
 
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [birth_ticks, masses]) || return nothing
@@ -816,6 +817,7 @@ function daStellarHistory(
 
     # Compute the total stellar mass in each time bin
     grid = CircularGrid(max, n_bins; shift=min)
+
     stellar_masses = histogram1D(birth_times, masses, grid; empty_nan=false)
 
     # Compute the time axis
@@ -836,10 +838,22 @@ function daStellarHistory(
 
         y_axis = cumsum(stellar_masses)
 
+    elseif quantity == :stellar_metallicity
+
+        metallicities = computeMetalMass(data_dict, :stars)
+
+        # Return `nothing` if any of the necessary quantities are missing
+        !isempty(metallicities) || return nothing
+
+        stellar_metallicities = histogram1D(birth_times, metallicities, grid; empty_nan=false)
+
+        Z = cumsum(stellar_metallicities) ./ cumsum(stellar_masses)
+        y_axis = Z ./ SOLAR_METALLICITY
+
     else
 
-        throw(ArgumentError("daStellarHistory: `quantity` can only be :sfr, :ssfr \
-        or :stellar_mass, but I got :$(quantity)"))
+        throw(ArgumentError("daStellarHistory: `quantity` can only be :sfr, :ssfr, \
+        :stellar_metallicity or :stellar_mass, but I got :$(quantity)"))
 
     end
 

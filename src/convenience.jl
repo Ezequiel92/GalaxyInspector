@@ -3633,6 +3633,7 @@ Plot a time series.
       + `:redshift`               -> Redshift.
       + `:physical_time`          -> Physical time since the Big Bang.
       + `:lookback_time`          -> Physical time left to reach the last snapshot.
+  - `y_log::Bool=true`: If the y axis is will have a log10 scale. Only works if `fraction` = false.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `fraction::Bool=false`: If the `y_quantity` will be represented as a fraction of the last value. If `cumulative` = true, this will apply to the accumulated values.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
@@ -3672,6 +3673,7 @@ function timeSeries(
     simulation_paths::Vector{String},
     x_quantity::Symbol,
     y_quantity::Symbol;
+    y_log::Bool=true,
     cumulative::Bool=false,
     fraction::Bool=false,
     slice::IndexType=(:),
@@ -3697,6 +3699,12 @@ function timeSeries(
         filename = "$(y_quantity)-vs-$(x_quantity)"
     end
 
+    if fraction || !y_log
+        yaxis_scale_func = identity
+    else
+        yaxis_scale_func = log10
+    end
+
     timeSeriesPlot(
         simulation_paths,
         [lines!];
@@ -3704,7 +3712,7 @@ function timeSeries(
         # `timeSeriesPlot` configuration
         output_path,
         filename,
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -3731,7 +3739,7 @@ function timeSeries(
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name=y_var_name,
         xaxis_scale_func=identity,
-        yaxis_scale_func=fraction ? identity : log10,
+        yaxis_scale_func,
         # Plotting options
         save_figures=true,
         backup_results=false,
@@ -4825,9 +4833,11 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:sfr`          -> The star formation rate.
-      + `:ssfr`         -> The specific star formation rate.
-      + `:stellar_mass` -> Stellar mass.
+      + `:sfr`                 -> The star formation rate.
+      + `:ssfr`                -> The specific star formation rate.
+      + `:stellar_mass`        -> Stellar mass.
+      + `:stellar_metallicity` -> Mass fraction of all elements above He in the stars (solar units).
+  - `y_log::Bool=true`: If the y axis is will have a log10 scale.
   - `n_bins::Int=20`: Number of bins (time intervals).
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -4865,6 +4875,7 @@ function stellarHistory(
     simulation_paths::Vector{String},
     slice::IndexType,
     quantity::Symbol;
+    y_log::Bool=true,
     n_bins::Int=20,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
@@ -4877,7 +4888,7 @@ function stellarHistory(
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        Dict(:stars => ["GAGE"]),
+        y_plot_params.request,
     )
 
     # Draw the figures with CairoMakie
@@ -4921,7 +4932,7 @@ function stellarHistory(
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name=y_plot_params.var_name,
         xaxis_scale_func=identity,
-        yaxis_scale_func=log10,
+        yaxis_scale_func=y_log ? log10 : identity,
         # Plotting and animation options
         save_figures=true,
         backup_results=false,

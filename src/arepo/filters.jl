@@ -250,7 +250,7 @@ function selectFilter(
     elseif filter_mode == :sphere
 
         # Plot only the cell/particle inside a sphere with radius `FILTER_R`
-        filter_function = dd -> filterWithinSphere(dd, (0.0u"kpc", FILTER_R), :cm)
+        filter_function = dd -> filterWithinSphere(dd, (0.0u"kpc", FILTER_R), :global_cm)
         translation = :global_cm
         rotation = :global_am
 
