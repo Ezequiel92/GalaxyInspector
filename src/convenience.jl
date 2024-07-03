@@ -3712,7 +3712,7 @@ function timeSeries(
         # `timeSeriesPlot` configuration
         output_path,
         filename,
-        output_format=".png",
+        output_format=".pdf",
         warnings=false,
         show_progress=true,
         # Data manipulation options
