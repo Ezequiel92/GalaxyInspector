@@ -5288,7 +5288,32 @@ function compareMolla2015(
     request = addRequest(plot_params.request, Dict(:gas => ["VEL "], :stars => ["VEL "]))
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
-    grid = CircularGrid(FILTER_R, 20)
+    # Select the correct grid acording to the available data from M. Mollá et al. (2015)
+    if quantity == :stellar_area_density
+
+        grid = CircularGrid(16.5u"kpc", 14; shift=2.5u"kpc")
+
+    elseif quantity ∈ [:molecular_area_density, :sfr_area_density]
+
+        grid = CircularGrid(19.5u"kpc", 20; shift=-0.5u"kpc")
+
+    elseif quantity == :atomic_area_density
+
+        grid = CircularGrid(20.5u"kpc", 21; shift=-0.5u"kpc")
+
+    elseif quantity == :O_stellar_abundance
+
+        grid = CircularGrid(18.5u"kpc", 19; shift=-0.5u"kpc")
+
+    elseif quantity == :N_stellar_abundance
+
+        grid = CircularGrid(17.5u"kpc", 18; shift=-0.5u"kpc")
+
+    elseif quantity == :C_stellar_abundance
+
+        grid = CircularGrid(15.5u"kpc", 16; shift=-0.5u"kpc")
+
+    end
 
     # Draw the figures with CairoMakie
     snapshotPlot(
@@ -5335,7 +5360,7 @@ function compareMolla2015(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(size=(1700, 1000), Axis=(aspect=nothing,))),
+        theme,
         sim_labels,
         title="",
         colorbar=false,

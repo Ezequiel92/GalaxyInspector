@@ -5,12 +5,24 @@
 """
 Area of a circle with radius `r`.
 """
-area(r::Number)::Number = π * r * r
+function area(r::Number)::Number
+
+    x = setPositive(r)
+
+    return π * x * x
+
+end
 
 """
 Volume of a sphere with radius `r`.
 """
-volume(r::Number)::Number = π * r * r * r * 1.333
+function volume(r::Number)::Number
+
+    x = setPositive(r)
+
+    return π * x * x * x * 1.333
+
+end
 
 """
     ring(vec::Vector, index::Integer)
@@ -108,6 +120,7 @@ end
 Create a copy of `list` with every negative value set to 0.
 """
 setPositive(list::VecOrMat{<:Number}) = replace(x -> x >= zero(x) ? x : zero(x), list)
+setPositive(x::Number) = x >= zero(x) ? x : zero(x)
 
 """
 Test for strict positivity.
