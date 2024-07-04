@@ -186,7 +186,10 @@ function snapshotReport(
             filter_mode,
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
-                Dict(:gas => ["NHP ", "NH  ", "PRES", "FRAC"], :stars => ["ACIT", "PARZ", "RHOC"]),
+                Dict(
+                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "DTIM", "TAUS"],
+                    :stars => ["ACIT", "PARZ", "RHOC"]
+                ),
             ),
         )
 

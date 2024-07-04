@@ -1892,24 +1892,45 @@ function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
-        # Fraction of ionized hydrogen according to our model
-        if normalize
-            f_HII = dg["FRAC"][1, :] ./ (1.0 .- dg["FRAC"][4, :])
-        else
-            f_HII = dg["FRAC"][1, :]
-        end
+        fi = Vector{Float64}(undef, length(dg["MASS"]))
 
-        # Allocate memory
-        fi = copy(f_HII)
+        @inbounds for i in eachindex(fi)
 
-        # When there is no data from our model, use the fraction of ionized hydrogen from Arepo
-        @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
+            @inbounds if !isnan(dg["FRAC"][1, i]) && dg["DTIM"][i] < dg["TAUS"][i]
 
-            @inbounds if isnan(fi[i])
-                fi[i] = nhp / (nhp + nh)
+                # Fraction of ionized hydrogen according to our model
+                @inbounds if normalize
+                    fi[i] = dg["FRAC"][1, i] / (1.0 - dg["FRAC"][4, i])
+                else
+                    fi[i] = dg["FRAC"][1, i]
+                end
+
+            else
+
+                fi[i] = dg["NHP "][i] / (dg["NHP "][i] + dg["NH  "][i])
+
             end
 
         end
+
+        # # Fraction of ionized hydrogen according to our model
+        # if normalize
+        #     f_HII = dg["FRAC"][1, :] ./ (1.0 .- dg["FRAC"][4, :])
+        # else
+        #     f_HII = dg["FRAC"][1, :]
+        # end
+
+        # # Allocate memory
+        # fi = copy(f_HII)
+
+        # # When there is no data from our model, use the fraction of ionized hydrogen from Arepo
+        # @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
+
+        #     @inbounds if isnan(fi[i])
+        #         fi[i] = nhp / (nhp + nh)
+        #     end
+
+        # end
 
     else
 
@@ -1964,25 +1985,46 @@ function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unit
 
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
-        # Fraction of atomic hydrogen according to our model
-        if normalize
-            f_HI = dg["FRAC"][2, :] ./ (1.0 .- dg["FRAC"][4, :])
-        else
-            f_HI = dg["FRAC"][2, :]
-        end
+        fa = Vector{Float64}(undef, length(dg["MASS"]))
 
-        # Allocate memory
-        fa = copy(f_HI)
+        @inbounds for i in eachindex(fa)
 
-        # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
-        # assuming that the fraction of molecular hydrogen is 0
-        @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
+            @inbounds if !isnan(dg["FRAC"][2, i]) && dg["DTIM"][i] < dg["TAUS"][i]
 
-            @inbounds if isnan(fa[i])
-                fa[i] = nh / (nhp + nh)
+                # Fraction of atomic hydrogen according to our model
+                @inbounds if normalize
+                    fa[i] = dg["FRAC"][2, i] / (1.0 - dg["FRAC"][4, i])
+                else
+                    fa[i] = dg["FRAC"][2, i]
+                end
+
+            else
+
+                fa[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
+
             end
 
         end
+
+        # # Fraction of atomic hydrogen according to our model
+        # if normalize
+        #     f_HI = dg["FRAC"][2, :] ./ (1.0 .- dg["FRAC"][4, :])
+        # else
+        #     f_HI = dg["FRAC"][2, :]
+        # end
+
+        # # Allocate memory
+        # fa = copy(f_HI)
+
+        # # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
+        # # assuming that the fraction of molecular hydrogen is 0
+        # @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
+
+        #     @inbounds if isnan(fa[i])
+        #         fa[i] = nh / (nhp + nh)
+        #     end
+
+        # end
 
     elseif !isempty(dg["PRES"])
 
@@ -2050,15 +2092,36 @@ function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:U
 
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
-        # Fraction of molecular hydrogen according to our model
-        if normalize
-            f_H2 = dg["FRAC"][3, :] ./ (1.0 .- dg["FRAC"][4, :])
-        else
-            f_H2 = dg["FRAC"][3, :]
+        fm = Vector{Float64}(undef, length(dg["MASS"]))
+
+        @inbounds for i in eachindex(fm)
+
+            @inbounds if !isnan(dg["FRAC"][3, i]) && dg["DTIM"][i] < dg["TAUS"][i]
+
+                # Fraction of molecular hydrogen according to our model
+                @inbounds if normalize
+                    fm[i] = dg["FRAC"][3, i] / (1.0 - dg["FRAC"][4, i])
+                else
+                    fm[i] = dg["FRAC"][3, i]
+                end
+
+            else
+
+                fm[i] = 0.0
+
+            end
+
         end
 
-        # When there is no data from our model, asume 0 molecular hydrogen
-        fm = replace!(f_H2, NaN => 0.0)
+        # # Fraction of molecular hydrogen according to our model
+        # if normalize
+        #     f_H2 = dg["FRAC"][3, :] ./ (1.0 .- dg["FRAC"][4, :])
+        # else
+        #     f_H2 = dg["FRAC"][3, :]
+        # end
+
+        # # When there is no data from our model, asume 0 molecular hydrogen
+        # fm = replace!(f_H2, NaN => 0.0)
 
     elseif !isempty(dg["PRES"]) && !isempty(dg["NHP "]) && !isempty(dg["NH  "])
 
@@ -2121,31 +2184,60 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
     if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
-        # Fraction of atomic and molecular hydrogen according to our model
-        if normalize
-            f_HI = dg["FRAC"][2, :] ./ (1.0 .- dg["FRAC"][4, :])
-            f_H2 = dg["FRAC"][3, :] ./ (1.0 .- dg["FRAC"][4, :])
-        else
-            f_HI = dg["FRAC"][2, :]
-            f_H2 = dg["FRAC"][3, :]
-        end
+        fa = Vector{Float64}(undef, length(dg["MASS"]))
+        fm = Vector{Float64}(undef, length(dg["MASS"]))
 
-        # Allocate memory
-        fa = copy(f_HI)
-        # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
-        # assuming that the fraction of molecular hydrogen is 0
-        @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
+        @inbounds for i in eachindex(fa)
 
-            @inbounds if isnan(fhii)
-                fa[i] = nh / (nhp + nh)
+            @inbounds if !isnan(dg["FRAC"][2, i]) && dg["DTIM"][i] < dg["TAUS"][i]
+
+                # Fraction of atomic and molecular hydrogen according to our model
+                @inbounds if normalize
+                    fa[i] = dg["FRAC"][2, i] / (1.0 - dg["FRAC"][4, i])
+                    fm[i] = dg["FRAC"][3, i] / (1.0 - dg["FRAC"][4, i])
+                else
+                    fa[i] = dg["FRAC"][2, i]
+                    fm[i] = dg["FRAC"][3, i]
+                end
+
+            else
+
+                # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
+                # assuming that the fraction of molecular hydrogen is 0
+                fa[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
+                fm[i] = 0.0
+
             end
 
         end
 
-        # When there is no data from our model, asume 0 molecular hydrogen
-        fm = replace!(f_H2, NaN => 0.0)
-
         fn = fa .+ fm
+
+        # # Fraction of atomic and molecular hydrogen according to our model
+        # if normalize
+        #     f_HI = dg["FRAC"][2, :] ./ (1.0 .- dg["FRAC"][4, :])
+        #     f_H2 = dg["FRAC"][3, :] ./ (1.0 .- dg["FRAC"][4, :])
+        # else
+        #     f_HI = dg["FRAC"][2, :]
+        #     f_H2 = dg["FRAC"][3, :]
+        # end
+
+        # # Allocate memory
+        # fa = copy(f_HI)
+        # # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
+        # # assuming that the fraction of molecular hydrogen is 0
+        # @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
+
+        #     @inbounds if isnan(fhii)
+        #         fa[i] = nh / (nhp + nh)
+        #     end
+
+        # end
+
+        # # When there is no data from our model, asume 0 molecular hydrogen
+        # fm = replace!(f_H2, NaN => 0.0)
+
+        # fn = fa .+ fm
 
     else
 
