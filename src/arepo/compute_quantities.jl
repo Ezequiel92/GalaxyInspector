@@ -1907,30 +1907,12 @@ function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
             else
 
+                # When there is no data from our model, use the fraction of ionized hydrogen from Arepo
                 fi[i] = dg["NHP "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
             end
 
         end
-
-        # # Fraction of ionized hydrogen according to our model
-        # if normalize
-        #     f_HII = dg["FRAC"][1, :] ./ (1.0 .- dg["FRAC"][4, :])
-        # else
-        #     f_HII = dg["FRAC"][1, :]
-        # end
-
-        # # Allocate memory
-        # fi = copy(f_HII)
-
-        # # When there is no data from our model, use the fraction of ionized hydrogen from Arepo
-        # @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
-
-        #     @inbounds if isnan(fi[i])
-        #         fi[i] = nhp / (nhp + nh)
-        #     end
-
-        # end
 
     else
 
@@ -2000,31 +1982,13 @@ function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unit
 
             else
 
+                # When there is no data from our model, use the fraction of neutral hydrogen
+                # from Arepo assuming that the fraction of molecular hydrogen is 0
                 fa[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
             end
 
         end
-
-        # # Fraction of atomic hydrogen according to our model
-        # if normalize
-        #     f_HI = dg["FRAC"][2, :] ./ (1.0 .- dg["FRAC"][4, :])
-        # else
-        #     f_HI = dg["FRAC"][2, :]
-        # end
-
-        # # Allocate memory
-        # fa = copy(f_HI)
-
-        # # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
-        # # assuming that the fraction of molecular hydrogen is 0
-        # @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
-
-        #     @inbounds if isnan(fa[i])
-        #         fa[i] = nh / (nhp + nh)
-        #     end
-
-        # end
 
     elseif !isempty(dg["PRES"])
 
@@ -2112,16 +2076,6 @@ function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:U
             end
 
         end
-
-        # # Fraction of molecular hydrogen according to our model
-        # if normalize
-        #     f_H2 = dg["FRAC"][3, :] ./ (1.0 .- dg["FRAC"][4, :])
-        # else
-        #     f_H2 = dg["FRAC"][3, :]
-        # end
-
-        # # When there is no data from our model, asume 0 molecular hydrogen
-        # fm = replace!(f_H2, NaN => 0.0)
 
     elseif !isempty(dg["PRES"]) && !isempty(dg["NHP "]) && !isempty(dg["NH  "])
 
@@ -2212,32 +2166,6 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
         end
 
         fn = fa .+ fm
-
-        # # Fraction of atomic and molecular hydrogen according to our model
-        # if normalize
-        #     f_HI = dg["FRAC"][2, :] ./ (1.0 .- dg["FRAC"][4, :])
-        #     f_H2 = dg["FRAC"][3, :] ./ (1.0 .- dg["FRAC"][4, :])
-        # else
-        #     f_HI = dg["FRAC"][2, :]
-        #     f_H2 = dg["FRAC"][3, :]
-        # end
-
-        # # Allocate memory
-        # fa = copy(f_HI)
-        # # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
-        # # assuming that the fraction of molecular hydrogen is 0
-        # @inbounds for (i, (nh, nhp)) in enumerate(zip(dg["NH  "], dg["NHP "]))
-
-        #     @inbounds if isnan(fhii)
-        #         fa[i] = nh / (nhp + nh)
-        #     end
-
-        # end
-
-        # # When there is no data from our model, asume 0 molecular hydrogen
-        # fm = replace!(f_H2, NaN => 0.0)
-
-        # fn = fa .+ fm
 
     else
 

@@ -3715,7 +3715,7 @@ function timeSeries(
         # `timeSeriesPlot` configuration
         output_path,
         filename,
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -5738,7 +5738,7 @@ function fitKennicuttBigielResolved(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CircularGrid(FILTER_R, 20)
+    grid = CircularGrid(FILTER_R, 60)
 
     if quantity == :gas_area_density
         da_functions = [daKennicuttSchmidt]
