@@ -154,6 +154,13 @@ Base.intersect(a1::IndexType, a2::Vector{Bool})::Vector{Int} = a1 ∩ findall(a2
 Base.intersect(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .&& a2)
 
 """
+New methods for `Base.union` to use with the `Vector{Bool}` type.
+"""
+Base.union(a1::Vector{Bool}, a2::IndexType)::Vector{Int} = findall(a1) ∪ a2
+Base.union(a1::IndexType, a2::Vector{Bool})::Vector{Int} = a1 ∪ findall(a2)
+Base.union(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .|| a2)
+
+"""
 Always returns `nothing`, for any type and number of arguments.
 """
 getNothing(x...; y...)::Nothing = nothing
@@ -1499,6 +1506,114 @@ function deltas(data::Vector{<:Number})::Vector{<:Number}
     end
 
     return Δd
+
+end
+
+"""
+    reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Number}
+
+Reduce the number of rows and columns of `hr_matrix` by `factor`, averaging its values.
+
+# Arguments
+
+  - `hr_matrix::Matrix{<:Number}`: Original "high resolution" matrix. It has to be a square matrix.
+  - `factor::Int`: Factor by wich the number of rows and columns will be reduced. It has to divede the size of `hr_matrix` exactly.
+
+# Returns
+
+  - The new smaller matrix, with the average values.
+"""
+function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Number}
+
+    r, c = size(hr_matrix)
+    (
+        r == c ||
+        throw(ArgumentError("reduceResolution: `hr_matrix` has to be a square matrix, but it has \
+        $(c) columns and $(r) rows."))
+    )
+
+    (
+        r % factor == 0 ||
+        throw(ArgumentError("reduceResolution: `factor` must divide the size of `hr_matrix` \
+        exactly, but I got rows / factor = $(r / factor)."))
+    )
+
+    # Compute the size of the new matrix
+    new_size = r ÷ factor
+
+    # Allocate memory
+    lr_matrix = zeros(eltype(hr_matrix), new_size, new_size)
+
+    # Compute the number of old pixels per new pixel
+    old_n_pixels = factor * factor
+
+    @inbounds for i in eachindex(lr_matrix)
+
+        # Compute the row and column of the new matrix corresponding to index i
+        row = mod1(i, new_size)
+        col = ceil(Int, i / new_size)
+
+        @inbounds for j in (factor * (row - 1) + 1):(factor * row)
+            @inbounds for k in (factor * (col - 1) + 1):(factor * col)
+
+                lr_matrix[i] += hr_matrix[j, k]
+
+            end
+        end
+
+    end
+
+    return lr_matrix ./ old_n_pixels
+
+end
+
+"""
+    projectIntoCircularGrid(
+        hr_matrix::Matrix{<:Number},
+        n_bins::Int;
+        <keyword arguments>
+    )::Vector{<:Number}
+
+Project `hr_matrix` into a circular grid, averaging the values in each concentric ring.
+
+# Arguments
+
+  - `hr_matrix::Matrix{<:Number}`: Original "high resolution" matrix. It has to be a square matrix.
+  - `n_bins::Int`: Number of bins for the circular grid.
+  - `inscribed::Bool=true`: If the circular grid will be inscribed in `hr_matrix` when projecting or not.
+
+# Returns
+
+  - The new smaller matrix, with the average values.
+"""
+function projectIntoCircularGrid(
+    hr_matrix::Matrix{<:Number},
+    n_bins::Int;
+    inscribed::Bool=true,
+)::Vector{<:Number}
+
+    r, c = size(hr_matrix)
+    (
+        r == c ||
+        throw(ArgumentError("reduceResolution: `hr_matrix` has to be a square matrix, but it has \
+        $(c) columns and $(r) rows."))
+    )
+
+    # Construct a square grid
+    square_grid = SquareGrid(1.0, r)
+
+    # Construct a circular grid
+    circular_grid = CircularGrid(inscribed ? 0.5 : sqrt(0.5), n_bins)
+
+    profile = histogram1D(
+        [norm(point) for point in vec(square_grid.grid)],
+        vec(hr_matrix),
+        circular_grid;
+        total=false,
+        empty_nan=false,
+    )
+
+    return profile
 
 end
 

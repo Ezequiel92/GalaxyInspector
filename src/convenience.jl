@@ -187,8 +187,8 @@ function snapshotReport(
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
                 Dict(
-                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "DTIM", "TAUS"],
-                    :stars => ["ACIT", "PARZ", "RHOC"]
+                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "DTIM", "TAUS", "ID  "],
+                    :stars => ["ACIT", "PARZ", "RHOC", "ID  "],
                 ),
             ),
         )
@@ -199,29 +199,12 @@ function snapshotReport(
             # Check that the group catalog data is available
             if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
 
-                # Get the group catalog header
-                groupcat_header = readGroupCatHeader(groupcat_path; warnings)
-
-                # Create a metadata dictionary
-                metadata = Dict(
-                    :snap_data => Snapshot(
-                        snapshot_path,
-                        1,
-                        1,
-                        0.0u"yr",
-                        0.0u"yr",
-                        0.0,
-                        0.0,
-                        snapshot_header,
-                    ),
-                    :gc_data => GroupCatalog(groupcat_path, groupcat_header),
-                )
-
                 # Create the data dictionary
-                data_dict = merge(
-                    metadata,
-                    readSnapshot(snapshot_path, request; warnings),
-                    readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+                data_dict = makeDataDict(
+                    simulation_path,
+                    slice_n,
+                    request;
+                    warnings,
                 )
 
             else
@@ -774,6 +757,28 @@ function snapshotReport(
             g_r_crit_200    = gc_data[:group]["G_R_Crit200"][halo_idx]
 
             ########################################################################################
+            # Print the fraction of insitu stars
+            ########################################################################################
+
+            if snapshot_length >= 2
+
+                insitu_idx = filterInsituStars(
+                    data_dict;
+                    halo_idx,
+                    subhalo_rel_idx,
+                    warnings=true,
+                )[:stars]
+
+                iMs = sum(data_dict[:stars]["MASS"][insitu_idx]; init=0.0u"Msun")
+                tMs = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
+                insitu_fraction = round(uconvert.(Unitful.NoUnits, (iMs / tMs) * 100); sigdigits=2)
+
+                println(file, "#"^100)
+                println(file, "\nFraction of insitu stars: $(insitu_fraction)%")
+
+            end
+
+            ########################################################################################
             # Print the mass of each hydrogen phase between `radial_limit` y and the virial radius.
             ########################################################################################
 
@@ -798,6 +803,7 @@ function snapshotReport(
                 ionized_masses   = computeIonizedMass(data_dict)
                 atomic_masses    = computeAtomicMass(data_dict)
                 molecular_masses = computeMolecularMass(data_dict)
+                neutral_masses   = computeNeutralMass(data_dict)
 
                 stellar_mass_inside  = stellar_masses[disc_idxs[:stars]]
                 stellar_mass_outside = stellar_masses[halo_idxs[:stars]]
@@ -820,7 +826,12 @@ function snapshotReport(
                     molecular_mass_outside = molecular_masses[halo_idxs[:gas]]
                 end
 
-                println(file, "#"^100)
+                if !isempty(neutral_masses)
+                    neutral_mass_inside  = neutral_masses[disc_idxs[:gas]]
+                    neutral_mass_outside = neutral_masses[halo_idxs[:gas]]
+                end
+
+                # println(file, "#"^100)
                 println(file, "\nCharacteristic radii:\n")
 
                 ############################################################################################
@@ -969,6 +980,39 @@ function snapshotReport(
                     println(
                         file,
                         "\tRadius containing X% of the molecular gas mass (r < $(radial_limit)):\n",
+                    )
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+                    )
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+                    )
+
+                end
+
+                #############################
+                # Neutral gas
+                #############################
+
+                if !isempty(neutral_masses)
+
+                    mass_radius_90 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        neutral_mass_inside;
+                        percent=90.0,
+                    )
+
+                    mass_radius_95 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        neutral_mass_inside;
+                        percent=95.0,
+                    )
+
+                    println(
+                        file,
+                        "\tRadius containing X% of the neutral gas mass (r < $(radial_limit)):\n",
                     )
                     println(
                         file,
@@ -1144,6 +1188,38 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_outside, sigdigits=3)) \
+                        ($(round(m_outside_percent, sigdigits=3))% of the total hydrogen mass)\n",
+                    )
+
+                end
+
+                #############################
+                # Neutral gas
+                #############################
+
+                if !isempty(neutral_masses)
+
+                    total_neu_mass_inside  = sum(neutral_mass_inside; init=0.0u"Msun")
+                    total_neu_mass_outside = sum(neutral_mass_outside; init=0.0u"Msun")
+
+                    m_inside_percent  = (total_neu_mass_inside  / total_hydrogen_mass) * 100.0
+                    m_outside_percent = (total_neu_mass_outside / total_hydrogen_mass) * 100.0
+
+                    println(file, "\t", "#"^40)
+                    println(file, "\tNeutral gas:")
+                    println(file, "\t", "#"^40, "\n")
+
+                    println(file, "\tNeutral mass inside the disc (r < $(radial_limit)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_neu_mass_inside, sigdigits=3)) \
+                        ($(round(m_inside_percent, sigdigits=3))% of the total hydrogen mass)\n",
+                    )
+
+                    println(file, "\tNeutral mass outside the disc ($(radial_limit) < r < R200):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_neu_mass_outside, sigdigits=3)) \
                         ($(round(m_outside_percent, sigdigits=3))% of the total hydrogen mass)\n",
                     )
 
@@ -5443,7 +5519,7 @@ function compareKennicuttBigielResolved(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CircularGrid(FILTER_R, 60)
+    grid = CubicGrid(25u"kpc", 250)
 
     if quantity == :gas_area_density
 
@@ -5738,15 +5814,7 @@ function fitKennicuttBigielResolved(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CircularGrid(FILTER_R, 60)
-
-    if quantity == :gas_area_density
-        da_functions = [daKennicuttSchmidt]
-        da_args = [(grid,)]
-    else
-        da_functions = [daKennicuttSchmidtLaw]
-        da_args = [(grid, quantity)]
-    end
+    grid = CubicGrid(25u"kpc", 250)
 
     x_plot_params = plotParams(quantity)
     y_plot_params = plotParams(:sfr_area_density)
@@ -5770,8 +5838,8 @@ function fitKennicuttBigielResolved(
         # Data manipulation options
         slice,
         filter_function,
-        da_functions,
-        da_args,
+        da_functions=[daKennicuttSchmidtLaw],
+        da_args=[(grid, quantity)],
         da_kwargs=[(;)],
         post_processing=ppFitLine!,
         pp_args=(),

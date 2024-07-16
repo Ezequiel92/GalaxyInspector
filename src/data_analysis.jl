@@ -116,7 +116,7 @@ end
 """
     daKennicuttSchmidtLaw(
         data_dict::Dict,
-        grid::CircularGrid,
+        grid::CubicGrid,
         quantity::Symbol;
         <keyword arguments>
     )::Union{Tuple{Vector{<:SurfaceDensity},Vector{<:MassFlowDensity}},Nothing}
@@ -138,7 +138,7 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `grid::CircularGrid`: Circular grid.
+  - `grid::CubicGrid`: Cubic grid.
   - `quantity::Symbol`: Target gas component. The options are:
 
       + `:gas_area_density`       -> Total gas area mass density.
@@ -185,41 +185,109 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 """
 function daKennicuttSchmidtLaw(
     data_dict::Dict,
-    grid::CircularGrid,
+    grid::CubicGrid,
     quantity::Symbol;
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:SurfaceDensity},Vector{<:MassFlowDensity}},Nothing}
 
     filtered_dd = filterData(data_dict; filter_function)
 
+    # Loasd the gas and stellar positions
     gas_positions  = filtered_dd[:gas]["POS "]
     star_positions = filtered_dd[:stars]["POS "]
 
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [gas_positions, star_positions]) || return nothing
 
+    # Set the units
+    m_unit = u"Msun"
+    l_unit = u"kpc"
+
+    ################################################################################################
+    # Compute the gas area density
+    ################################################################################################
+
+    # Compute the gas masses
     if quantity == :gas_area_density
-        gas_masses = filtered_dd[:gas]["MASS"]
+        gas_masses = scatterQty(filtered_dd, :gas_mass)
     elseif quantity == :molecular_area_density
-        gas_masses = computeMolecularMass(filtered_dd)
+        gas_masses = scatterQty(filtered_dd, :molecular_mass)
     elseif quantity == :neutral_area_density
-        gas_masses = computeNeutralMass(filtered_dd)
+        gas_masses = scatterQty(filtered_dd, :neutral_mass)
     else
         throw(ArgumentError("daKennicuttSchmidtLaw: `quantity` can only be :molecular_area_density \
         , :neutral_area_density or :gas_area_density, but I got :$(quantity)"))
     end
 
-    # Compute the gas mass surface density
-    gas_mass_density = computeProfile(gas_positions, gas_masses, grid; total=true, density=true)
+    # Compute the volume of each cell
+    gas_density = filtered_dd[:gas]["RHO "]
+    gas_volumes = filtered_dd[:gas]["MASS"] ./ gas_density
 
-    # Compute the SFR surface density
-    sfr_density = computeProfile(
-        star_positions,
-        computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ),
-        grid;
-        total=true,
-        density=true,
-    )
+    # Compute the densities for the target quantity
+    densities = ustrip.(m_unit*l_unit^-3, gas_masses ./ gas_volumes)
+
+    # Load the volume and area of the voxels
+    voxel_volume = ustrip(l_unit^3, grid.bin_volume)
+    voxel_area = ustrip(l_unit^2, grid.bin_area)
+
+    # Allocate memory
+    physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
+
+    # Reshape the grid to conform to the way `nn` expect the matrix to be structured
+    @inbounds for i in eachindex(grid.grid)
+        physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
+        physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
+        physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
+    end
+
+    # Compute the tree for a nearest neighbor search
+    kdtree = KDTree(ustrip.(l_unit, gas_positions))
+
+    # Find the nearest neighbor to each point in the grid
+    idxs, _ = nn(kdtree, physical_grid)
+
+    # Allocate memory
+    mass_grid = similar(grid.grid, Float64)
+
+    # Compute the density of each voxel
+    @inbounds for i in eachindex(grid.grid)
+        mass_grid[i] = densities[idxs[i]] * voxel_volume
+    end
+
+    #TODO
+    # Project the grid to the xy plane
+    density = dropdims(sum(mass_grid; dims=3) ./ voxel_area; dims=3) .* m_unit*l_unit^-2
+
+    # density = reduceResolution(density, 25)
+
+    # Set bins with a value of 0 to NaN
+    nan = NaN * unit(first(density))
+    replace!(x -> iszero(x) ? nan : x, density)
+
+    gas_mass_density = vec(density)
+
+    # gas_mass_density = projectIntoCircularGrid(density, 25; inscribed=true)
+
+    ################################################################################################
+    # Compute the SFR area density
+    ################################################################################################
+
+    # Compute the SFR
+    sfr = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ)
+
+    density = histogram2D(star_positions[[1, 2], :], sfr, flattenGrid(grid), empty_nan=false) ./ grid.bin_area
+
+    # density = reduceResolution(density, 25)
+
+    # Set bins with a value of 0 to NaN
+    nan = NaN * unit(first(density))
+    replace!(x -> iszero(x) ? nan : x, density)
+
+    sfr_density = vec(density)
+
+    # sfr_density = projectIntoCircularGrid(density, 25; inscribed=true)
+
+    #TODO
 
     return gas_mass_density, sfr_density
 
@@ -1244,13 +1312,13 @@ function daDensity2DProjection(
 
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
         @inbounds for i in eachindex(grid.grid)
-            physical_grid[1, i] = ustrip(u"kpc", grid.grid[i][1])
-            physical_grid[2, i] = ustrip(u"kpc", grid.grid[i][2])
-            physical_grid[3, i] = ustrip(u"kpc", grid.grid[i][3])
+            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
+            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
+            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
         end
 
         # Compute the tree for a nearest neighbor search
-        kdtree = KDTree(ustrip.(u"kpc", positions))
+        kdtree = KDTree(ustrip.(l_unit, positions))
 
         # Find the nearest neighbor to each point in the grid
         idxs, _ = nn(kdtree, physical_grid)

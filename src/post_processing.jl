@@ -252,6 +252,14 @@ function ppFitLine!(
     # Get the y coordinates of the points
     y_points = y_scaling.(Float64[point[2] for point in points])
 
+    # Find NaN points
+    xnan_idxs = map(isnan, x_points)
+    ynan_idxs = map(isnan, y_points)
+
+    # Delete NaN points
+    deleteat!(x_points, xnan_idxs ∪ ynan_idxs)
+    deleteat!(y_points, xnan_idxs ∪ ynan_idxs)
+
     # Compute the linear fit in scaled (e.g. log10) space
     X = [ones(length(x_points)) x_points]
     linear_model = lm(X, y_points)
@@ -462,6 +470,8 @@ function ppBigiel2008!(
     end
 
     # Compute the area density of gas
+    # The factor of 0.1 account for the fact that the values in `BIGIEL2008_DATA_PATH`
+    # assume that the x axis has units of 10 Msun * pc^-2
     if x_log
         Σg = @. ustrip(u"Msun * pc^-2", exp10(x_points) * 0.1 * x_unit)
     else

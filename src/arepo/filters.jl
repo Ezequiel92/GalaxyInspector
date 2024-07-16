@@ -706,7 +706,7 @@ end
         <keyword arguments>
     )::Dict{Symbol,IndexType}
 
-Filter out stars that where born outside the given halo and subhalo (exsitu), leaving only the ones born there (insitu).
+Filter out stars that where born outside the given halo and subhalo (exsitu), leaving only the ones born inside the halo and subhalo (insitu).
 
 # Arguments
 

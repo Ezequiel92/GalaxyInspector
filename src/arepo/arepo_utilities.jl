@@ -914,7 +914,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :gas_area_density
 
         plot_params = PlotParams(;
-            request  = Dict(:gas => ["MASS", "POS "]),
+            request  = Dict(:gas => ["MASS", "POS ", "RHO "]),
             var_name = L"\Sigma_\mathrm{gas}",
             unit     = u"Msun*pc^-2",
         )
@@ -923,7 +923,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "DTIM", "TAUS"],
             ),
             var_name = L"\Sigma_\mathrm{H2}",
             unit     = u"Msun*pc^-2",
@@ -933,7 +933,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "DTIM", "TAUS"],
             ),
             var_name = L"\Sigma_\mathrm{HI}",
             unit     = u"Msun*pc^-2",
@@ -943,7 +943,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "DTIM", "TAUS"],
             ),
             var_name = L"\Sigma_\mathrm{HII}",
             unit     = u"Msun*pc^-2",
@@ -953,7 +953,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "DTIM", "TAUS"],
             ),
             var_name = L"\Sigma_\mathrm{H2 + HI}",
             unit     = u"Msun*pc^-2",
@@ -972,7 +972,7 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(
                 :stars => ["MASS", "POS ", "GAGE"],
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "DTIM", "TAUS"],
             ),
             var_name = L"\Sigma",
             unit     = u"Msun*pc^-2",
