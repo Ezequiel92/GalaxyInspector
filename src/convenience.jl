@@ -3267,6 +3267,8 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
   - `z_unit::Unitful.Units`: Target unit for the z axis.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
+  - `xlog::Bool=false`: If true, sets everything so the x axis is log10(`x_quantity`).
+  - `ylog::Bool=false`: If true, sets everything so the y axis is log10(`y_quantity`).
   - `total::Bool=true`: If the sum (default) or the mean of `z_quantity` will be used as the value of each pixel.
   - `n_bins::Int=100`: Number of bins per side of the square grid.
   - `output_path::String="./"`: Path to the output folder.
@@ -3309,6 +3311,8 @@ function scatterDensityMap(
     z_unit::Unitful.Units;
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    xlog::Bool=false,
+    ylog::Bool=false,
     total::Bool=true,
     n_bins::Int=100,
     output_path::String="./",
@@ -3325,6 +3329,42 @@ function scatterDensityMap(
     )
 
     n_sims = length(simulation_paths)
+
+    # Set arguments for a log x axis
+    if xlog
+        x_log        = x_plot_params.unit
+        x_unit       = Unitful.NoUnits
+        unit_label   = getUnitLabel(0, x_plot_params.unit; latex=true)
+        if isempty(unit_label)
+            xaxis_label  = L"$\log_{10} \, $auto_label"
+        else
+            xaxis_label  = L"$\log_{10} \, $auto_label [%$(unit_label)]"
+        end
+        x_exp_factor = 0
+    else
+        x_log        = nothing
+        x_unit       = x_plot_params.unit
+        xaxis_label  = x_plot_params.axis_label
+        x_exp_factor = x_plot_params.exp_factor
+    end
+
+    # Set arguments for a log y axis
+    if ylog
+        y_log        = y_plot_params.unit
+        y_unit       = Unitful.NoUnits
+        unit_label   = getUnitLabel(0, y_plot_params.unit; latex=true)
+        if isempty(unit_label)
+            yaxis_label  = L"$\log_{10} \, $auto_label"
+        else
+            yaxis_label  = L"$\log_{10} \, $auto_label [%$(unit_label)]"
+        end
+        y_exp_factor = 0
+    else
+        y_log        = nothing
+        y_unit       = y_plot_params.unit
+        yaxis_label  = y_plot_params.axis_label
+        y_exp_factor = y_plot_params.exp_factor
+    end
 
     @inbounds for simulation_path in simulation_paths
 
@@ -3345,7 +3385,7 @@ function scatterDensityMap(
             # `snapshotPlot` configuration
             output_path,
             base_filename,
-            output_format=".pdf",
+            output_format=".png",
             warnings=false,
             show_progress=true,
             # Data manipulation options
@@ -3353,7 +3393,7 @@ function scatterDensityMap(
             filter_function,
             da_functions=[daScatterWeightedDensity],
             da_args=[(x_quantity, y_quantity, z_quantity, z_unit)],
-            da_kwargs=[(; x_range, y_range, total, n_bins)],
+            da_kwargs=[(; x_range, y_range, x_log, y_log, total, n_bins)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -3361,10 +3401,10 @@ function scatterDensityMap(
             translation,
             rotation,
             smooth=0,
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
+            x_unit,
+            y_unit,
+            x_exp_factor,
+            y_exp_factor,
             x_trim=(-Inf, Inf),
             y_trim=(-Inf, Inf),
             x_edges=false,
@@ -3372,8 +3412,8 @@ function scatterDensityMap(
             x_func=identity,
             y_func=identity,
             # Axes options
-            xaxis_label=x_plot_params.axis_label,
-            yaxis_label=y_plot_params.axis_label,
+            xaxis_label,
+            yaxis_label,
             xaxis_var_name=x_plot_params.var_name,
             yaxis_var_name=y_plot_params.var_name,
             xaxis_scale_func=identity,

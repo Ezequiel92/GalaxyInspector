@@ -2007,6 +2007,7 @@ function daScatterWeightedDensity(
         null_x_idxs = findall(iszero, x_values)
         x_values    = log10.(deleteat!(ustrip.(x_log, x_values), null_x_idxs))
         y_values    = deleteat!(y_values, null_x_idxs)
+        z_values    = deleteat!(z_values, null_x_idxs)
     end
 
     # If requested, apply log10 to the y axis data, ignoring 0 values
@@ -2014,6 +2015,7 @@ function daScatterWeightedDensity(
         null_y_idxs = findall(iszero, y_values)
         x_values    = deleteat!(x_values, null_y_idxs)
         y_values    = log10.(deleteat!(ustrip.(y_log, y_values), null_y_idxs))
+        z_values    = deleteat!(z_values, null_y_idxs)
     end
 
     # If there is no range specified, use the extrema of the x values
