@@ -705,7 +705,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request    = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
             ),
-            var_name   = L"M_\mathrm{H2}",
+            var_name   = L"M_\mathrm{H_2}",
             exp_factor = 10,
             unit       = u"Msun",
         )
@@ -791,7 +791,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "DTIM", "TAUS"],
             ),
-            var_name = L"f_\mathrm{H2}",
+            var_name = L"f_\mathrm{H_2}",
         )
 
     elseif quantity == :atomic_fraction
@@ -827,7 +827,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
             ),
-            var_name = L"f_\mathrm{H2}^\star",
+            var_name = L"f_\mathrm{H_2}^\star",
         )
 
     elseif quantity == :generic_fraction
@@ -869,7 +869,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
             ),
-            var_name = L"n_\mathrm{H2}",
+            var_name = L"n_\mathrm{H_2}",
             unit     = u"cm^-3",
         )
 
@@ -925,7 +925,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "DTIM", "TAUS"],
             ),
-            var_name = L"\Sigma_\mathrm{H2}",
+            var_name = L"\Sigma_\mathrm{H_2}",
             unit     = u"Msun*pc^-2",
         )
 

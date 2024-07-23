@@ -1267,3 +1267,64 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
     return indices
 
 end
+
+"""
+    filterGasDensity(
+        data_dict::Dict,
+        min_ρ::Unitful.Density,
+        max_ρ::Unitful.Density,
+    )::Dict{Symbol,IndexType}
+
+Filter out gas cells that are outside the density range [`min_ρ`, `max_ρ`].
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `min_ρ::Unitful.Temperature`: Minimum gas density.
+  - `max_ρ::Unitful.Temperature`: Maximum gas density.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterGasDensity(
+    data_dict::Dict,
+    min_ρ::Unitful.Density,
+    max_ρ::Unitful.Density,
+)::Dict{Symbol,IndexType}
+
+    density = data_dict[:gas]["RHO "]
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+
+        @inbounds if type_symbol == :gas
+            indices[type_symbol] = map(x -> min_ρ < x <= max_ρ, density)
+        else
+            indices[type_symbol] = (:)
+        end
+
+    end
+
+    return indices
+
+end

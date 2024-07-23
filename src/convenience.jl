@@ -3300,6 +3300,37 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `da_ff::Function=filterNothing`: A function with the signature:
+
+    `da_ff(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function scatterDensityMap(
@@ -3317,6 +3348,8 @@ function scatterDensityMap(
     n_bins::Int=100,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    da_ff::Function=filterNothing,
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -3325,7 +3358,11 @@ function scatterDensityMap(
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        mergeRequests(x_plot_params.request, y_plot_params.request),
+        mergeRequests(
+            x_plot_params.request,
+            y_plot_params.request,
+            plotParams(:gas_mass_density).request,
+        ),
     )
 
     n_sims = length(simulation_paths)
@@ -3385,7 +3422,7 @@ function scatterDensityMap(
             # `snapshotPlot` configuration
             output_path,
             base_filename,
-            output_format=".png",
+            output_format=".pdf",
             warnings=false,
             show_progress=true,
             # Data manipulation options
@@ -3393,7 +3430,7 @@ function scatterDensityMap(
             filter_function,
             da_functions=[daScatterWeightedDensity],
             da_args=[(x_quantity, y_quantity, z_quantity, z_unit)],
-            da_kwargs=[(; x_range, y_range, x_log, y_log, total, n_bins)],
+            da_kwargs=[(; x_range, y_range, x_log, y_log, total, n_bins, filter_function=da_ff)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -3423,7 +3460,7 @@ function scatterDensityMap(
             backup_results=false,
             theme,
             sim_labels=nothing,
-            title="",
+            title,
             colorbar=false,
             # Animation options
             animation=false,
@@ -4401,7 +4438,7 @@ function densityProfile(
 
     elseif quantity == :molecular_mass
 
-        yaxis_var_name = L"\Sigma_\mathrm{H2}"
+        yaxis_var_name = L"\Sigma_\mathrm{H_2}"
 
     elseif quantity == :atomic_mass
 

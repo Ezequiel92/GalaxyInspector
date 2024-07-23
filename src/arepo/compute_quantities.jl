@@ -2996,6 +2996,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     end
 
+    if isempty(scatter_qty)
+        return Vector{Number}[]
+    end
+
     return scatter_qty
 
 end
