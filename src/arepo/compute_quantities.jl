@@ -1620,16 +1620,16 @@ end
     computeMassPercent(
         quantity::Vector{<:Number},
         masses::Vector{<:Unitful.Mass},
-        qty_limit::Number,
+        qty_limits::Tuple{<:Number,<:Number},
     )::Float64
 
-Compute the fraction of the total mass "contained" within a given value of `quantity`.
+Compute the fraction of the total mass "contained" within a given values of `quantity`.
 
 # Arguments
 
   - `quantity::Vector{<:Number}`: Target quantity.
   - `masses::Vector{<:Unitful.Mass}`: Masses of the cells/particles.
-  - `qty_limit::Number`: Limit value of the target quantity.
+  - `qty_limits::Tuple{<:Number,<:Number}`: Limits of the target quantity.
 
 # Returns
 
@@ -1638,18 +1638,16 @@ Compute the fraction of the total mass "contained" within a given value of `quan
 function computeMassFraction(
     quantity::Vector{<:Number},
     masses::Vector{<:Unitful.Mass},
-    qty_limit::Number,
+    qty_limits::Tuple{<:Number,<:Number},
 )::Float64
 
     # Check for missing data
     !any(isempty, [quantity, masses]) || return 0.0
 
-    qty_limit < maximum(quantity) || return 1.0
+    # Find the indices of all the cells/particles with `qty_limits[1]` <= `quantity` <= `qty_limits[2]`
+    idxs = map(x -> qty_limits[1] <= x <= qty_limits[2], quantity)
 
-    # Find the indices of all the cells/particles with `quantity` < `qty_limit`
-    idxs = map(x -> x <= qty_limit, quantity)
-
-    return sum(masses) / sum(masses[idxs])
+    return uconvert(Unitful.NoUnits, sum(masses[idxs]; init=0.0u"Msun") / sum(masses))
 
 end
 
