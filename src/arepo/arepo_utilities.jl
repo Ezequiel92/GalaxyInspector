@@ -982,14 +982,14 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:gas => ["MASS", "POS ", "GZ  "]),
-            var_name = L"Z_\mathrm{gas} \, / \, Z_\odot",
+            var_name = L"Z_\mathrm{gas} \, [\mathrm{Z_\odot}]",
         )
 
     elseif quantity == :stellar_metallicity
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["MASS", "POS ", "GZ2 "]),
-            var_name = L"Z_\star \, / \, Z_\odot",
+            var_name = L"Z_\star \, [\mathrm{Z_\odot}]",
         )
 
     elseif quantity ∈ GAS_ABUNDANCE

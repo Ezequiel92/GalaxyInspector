@@ -701,6 +701,60 @@ function filterYoungStars(data_dict::Dict)::Dict{Symbol,IndexType}
 end
 
 """
+    filterStellarAge(data_dict::Dict; <keyword arguments>)::Dict{Symbol,IndexType}
+
+Filter out stars that are older than `age`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `age::Unitful.Time=200.0u"Myr"`: Stars older than this value will be filtered out.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterStellarAge(data_dict::Dict, age::Unitful.Time=200.0u"Myr")::Dict{Symbol,IndexType}
+
+    ages = computeStellarAge(data_dict)
+
+    new_stars_idxs = map(t -> t < age, ages)
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for type_symbol in snapshotTypes(data_dict)
+
+        @inbounds if type_symbol == :stars
+            indices[type_symbol] = new_stars_idxs
+        else
+            indices[type_symbol] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
     filterInsituStars(
         data_dict::Dict;
         <keyword arguments>
