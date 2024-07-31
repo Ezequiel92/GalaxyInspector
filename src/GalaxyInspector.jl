@@ -82,6 +82,7 @@ export sfrTXT
 export cpuTXT
 export stellarBirthHalos
 export densityMap
+export metallicityMap
 export temperatureMap
 export densityMapVelField
 export scatterPlot

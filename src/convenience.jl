@@ -2283,6 +2283,234 @@ function densityMap(
 end
 
 """
+    metallicityMap(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot a 2D histogram of the metallicity.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
+  - `type_symbols::Vector{Symbol}=[:gas]`: Target cell/particle types. It can be either `:stars` or `:gas`.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
+  - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
+  - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic metallicity range.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `annotation::AbstractString=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
+  - `colorbar::Bool=false`: If a colorbar will be added.
+  - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
+  - `da_ff::Function=filterNothing`: Filter function for the data analysis function. It must be a function with the signature:
+
+    `da_ff(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `da_ff` filter function.
+"""
+function metallicityMap(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    type_symbols::Vector{Symbol}=[:gas],
+    output_path::String="./",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    projection_planes::Vector{Symbol}=[:xy],
+    box_size::Unitful.Length=100u"kpc",
+    pixel_length::Unitful.Length=0.1u"kpc",
+    print_range::Bool=false,
+    theme::Attributes=Theme(),
+    title::Union{Symbol,<:AbstractString}="",
+    annotation::AbstractString="",
+    colorbar::Bool=false,
+    colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+)::Nothing
+
+    # Compute the axes limits, to avoid white padding around the heatmap grid
+    limit = ustrip(u"kpc", box_size / 2.0)
+
+    # Compute number of pixel per side
+    resolution = round(Int, box_size / pixel_length)
+
+    # Set up the grid
+    grid = CubicGrid(box_size, resolution)
+
+    pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
+
+    @inbounds for type_symbol in type_symbols
+
+        if type_symbol == :gas
+
+            filter_function, translation, rotation, request = selectFilter(
+                filter_mode,
+                mergeRequests(
+                    plotParams(:gas_metallicity).request,
+                    plotParams(:gas_mass_density).request,
+                    ff_request,
+                ),
+            )
+
+        elseif type_symbol == :stars
+
+            filter_function, translation, rotation, request = selectFilter(
+                filter_mode,
+                mergeRequests(plotParams(:stellar_metallicity).request, ff_request),
+            )
+
+        else
+
+            throw(ArgumentError("metallicityMap: I don't recognize the type_symbol \
+            :$(type_symbol)"))
+
+        end
+
+        @inbounds for simulation_path in simulation_paths
+
+            # Get the simulation name as a string
+            sim_name = basename(simulation_path)
+
+            @inbounds for projection_plane in projection_planes
+
+                # Construct the file name
+                base_filename = "$(sim_name)-$(type_symbol)-$(projection_plane)-metallicity_map"
+
+                snapshotPlot(
+                    [simulation_path],
+                    request,
+                    [heatmap!];
+                    pf_kwargs,
+                    # `snapshotPlot` configuration
+                    output_path,
+                    base_filename,
+                    output_format=".png",
+                    warnings=false,
+                    show_progress=true,
+                    # Data manipulation options
+                    slice=iszero(slice) ? (:) : slice,
+                    filter_function,
+                    da_functions=[daMetallicity2DProjection],
+                    da_args=[(grid, type_symbol)],
+                    da_kwargs=[
+                        (;
+                            projection_plane,
+                            print_range,
+                            filter_function=da_ff,
+                        ),
+                    ],
+                    post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
+                    pp_args=(annotation,),
+                    pp_kwargs=(;),
+                    transform_box=true,
+                    translation,
+                    rotation,
+                    smooth=0,
+                    x_unit=u"kpc",
+                    y_unit=u"kpc",
+                    x_exp_factor=0,
+                    y_exp_factor=0,
+                    x_trim=(-Inf, Inf),
+                    y_trim=(-Inf, Inf),
+                    x_edges=false,
+                    y_edges=false,
+                    x_func=identity,
+                    y_func=identity,
+                    # Axes options
+                    xaxis_label="auto_label",
+                    yaxis_label="auto_label",
+                    xaxis_var_name=string(projection_plane)[1:1],
+                    yaxis_var_name=string(projection_plane)[2:2],
+                    xaxis_scale_func=identity,
+                    yaxis_scale_func=identity,
+                    # Plotting options
+                    save_figures=!iszero(slice),
+                    backup_results=iszero(slice),
+                    theme=merge(
+                        theme,
+                        Theme(
+                            size=colorbar ? (880, 640) : (880, 880),
+                            figure_padding=(1, 70, 1, 15),
+                            Axis=(limits=(-limit, limit, -limit, limit),),
+                        ),
+                    ),
+                    sim_labels=nothing,
+                    title,
+                    colorbar,
+                    # Animation options
+                    animation=iszero(slice),
+                    animation_filename="$(base_filename).mp4",
+                    framerate=5,
+                )
+
+            end
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
     temperatureMap(
         simulation_paths::Vector{String},
         slice::IndexType;

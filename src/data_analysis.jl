@@ -1168,7 +1168,7 @@ end
 
 Project the 3D density field to a given plane.
 
-If the source of the field are particles (stars, black holes, dark matter, etc.) a simple 2D histogram is used. If the source of the field are Voronoi cells (i.e. gas) the density of the cells that cross the line of sight of each pixel are summed.
+If the source of the field are particles (stars, black holes, dark matter, etc.) a simple 2D histogram is used. If the source of the field are Voronoi cells (i.e. gas) the density of the cells that cross the line of sight of each pixel are added up.
 
 !!! note
 
@@ -1235,7 +1235,7 @@ If the source of the field are particles (stars, black holes, dark matter, etc.)
 
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
-      + A matrix with the values of density at each point of the 2D grid.
+      + A matrix with the values of the logarithmic density at each point of the 2D grid.
 """
 function daDensity2DProjection(
     data_dict::Dict,
@@ -1326,7 +1326,7 @@ function daDensity2DProjection(
         # Allocate memory
         mass_grid = similar(grid.grid, Float64)
 
-        # Compute the density of each voxel
+        # Compute the mass in each voxel
         @inbounds for i in eachindex(grid.grid)
             mass_grid[i] = densities[idxs[i]] * voxel_volume
         end
@@ -1381,7 +1381,219 @@ function daDensity2DProjection(
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
             \n  Plane:      $(projection_plane) \
-            \nlog₁₀(ρ [$(m_unit*l_unit^-2)]) = $(min_max)\n\n"
+            \n  log₁₀(ρ [$(m_unit*l_unit^-2)]): $(min_max)\n\n"
+        )
+
+    end
+
+    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured
+    z_axis = reverse!(transpose(values), dims=2)
+
+    return grid.x_ticks, grid.y_ticks, z_axis
+
+end
+
+"""
+    daMetallicity2DProjection(
+        data_dict::Dict,
+        grid::CubicGrid,
+        type_symbol::Symbol;
+        <keyword arguments>
+    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+
+Project the 3D metallicity field to a given plane.
+
+If `type_symbol` = :stars, the mean value of metallicity in each bin of a 2D histogram is used. If `type_symbol` = :gas, the metallicity of the whole column in each line of sight is used.
+
+!!! note
+
+    By default, the matllicity is given in solar units.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `grid::CubicGrid`: Cubic grid.
+  - `type_symbol::Symbol`: Target cell/particle type. It can be either `:stars` or `:gas`.
+  - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic metallicity range.
+  - `filter_function::Function=filterNothing`: A function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+
+# Returns
+
+  - A tuple with three elements:
+
+      + A vector with the x coordinates of the grid.
+      + A vector with the y coordinates of the grid.
+      + A matrix with the values of the logarithmic metallicty at each point of the 2D grid.
+"""
+function daMetallicity2DProjection(
+    data_dict::Dict,
+    grid::CubicGrid,
+    type_symbol::Symbol;
+    projection_plane::Symbol=:xy,
+    print_range::Bool=false,
+    filter_function::Function=filterNothing,
+)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    (
+        type_symbol ∈ [:gas, :stars] ||
+        throw(ArgumentError("daMetallicity2DProjection: I don't recognize the type_symbol \
+        :$(type_symbol)"))
+    )
+
+    # Load the positions
+    positions = filtered_dd[type_symbol]["POS "]
+
+    # If the necessary quantities are missing return an empty density field
+    if isempty(positions)
+        return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
+    end
+
+    if type_symbol == :gas
+
+        # Compute the volume of each cell
+        gas_density = filtered_dd[:gas]["RHO "]
+        gas_masses  = filtered_dd[type_symbol]["MASS"]
+        gas_volumes = gas_masses ./ gas_density
+
+        # Compute the metal densities
+        metal_densities = computeMetalMass(filtered_dd, :gas) ./ gas_volumes
+
+        # Allocate memory
+        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
+
+        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
+        @inbounds for i in eachindex(grid.grid)
+            physical_grid[1, i] = ustrip(u"kpc", grid.grid[i][1])
+            physical_grid[2, i] = ustrip(u"kpc", grid.grid[i][2])
+            physical_grid[3, i] = ustrip(u"kpc", grid.grid[i][3])
+        end
+
+        # Compute the tree for a nearest neighbor search
+        kdtree = KDTree(ustrip.(u"kpc", positions))
+
+        # Find the nearest neighbor to each point in the grid
+        idxs, _ = nn(kdtree, physical_grid)
+
+        # Allocate memory
+        gas_grid   = similar(grid.grid, Float64)
+        metal_grid = similar(grid.grid, Float64)
+
+        # Compute the mass in each voxel
+        @inbounds for i in eachindex(grid.grid)
+            gas_grid[i]   = ustrip.(u"Msun", gas_density[idxs[i]] * grid.bin_volume)
+            metal_grid[i] = ustrip.(u"Msun", metal_densities[idxs[i]] * grid.bin_volume)
+        end
+
+        # Project the grid to the chosen plane
+        if projection_plane == :xy
+
+            metallicity = dropdims(sum(metal_grid; dims=3) ./ sum(gas_grid; dims=3); dims=3)
+
+        elseif projection_plane == :xz
+
+            metallicity = transpose(
+                dropdims(sum(metal_grid; dims=2) ./ sum(gas_grid; dims=2); dims=2),
+            )
+
+        elseif projection_plane == :yz
+
+            metallicity = dropdims(sum(metal_grid; dims=1) ./ sum(gas_grid; dims=1); dims=1)
+
+        else
+
+            throw(ArgumentError("daMetallicity2DProjection: The argument `projection_plane` must \
+            be :xy, :xz or :yz, but I got :$(projection_plane)"))
+
+        end
+
+    else
+
+        # Project the particles to the chosen plane
+        if projection_plane == :xy
+            pos_2D = positions[[1, 2], :]
+        elseif projection_plane == :xz
+            pos_2D = positions[[1, 3], :]
+        elseif projection_plane == :yz
+            pos_2D = positions[[2, 3], :]
+        else
+            throw(ArgumentError("daMetallicity2DProjection: The argument `projection_plane` must \
+            be :xy, :xz or :yz, but I got :$(projection_plane)"))
+        end
+
+        metallicities = uconvert.(
+            Unitful.NoUnits,
+            computeMetalMass(filtered_dd, :stars) ./ filtered_dd[:stars]["MASS"],
+        )
+
+        # Compute the 2D histogram
+        metallicity = histogram2D(
+            pos_2D,
+            metallicities,
+            flattenGrid(grid);
+            total=false,
+            empty_nan=false,
+        )
+
+    end
+
+    # Set bins with a value of 0 to NaN
+    replace!(x -> iszero(x) ? NaN : x, metallicity)
+
+    # Apply log10 to enhance the contrast
+    values = log10.(metallicity ./ SOLAR_METALLICITY)
+
+    if print_range
+
+        # Compute the min and max values of metallicity
+        min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
+
+        # Print the metallicity range
+        @info(
+            "\nMetallicity range \
+            \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
+            \n  P/C type:        $(type_symbol) \
+            \n  Plane:           $(projection_plane) \
+            \n  log₁₀(Z [Z⊙]):  $(min_max)\n\n"
         )
 
     end
