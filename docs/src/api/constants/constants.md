@@ -8,5 +8,5 @@ None of these constants and types are exported.
 
 ```@autodocs
 Modules = [GalaxyInspector]
-Pages   = ["constants.jl"]
+Pages   = ["constants/arepo.jl"]
 ```

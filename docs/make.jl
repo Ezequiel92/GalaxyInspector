@@ -21,7 +21,7 @@ makedocs(
     pages=[
         "Introduction" => "intro.md",
         "API"          => Any[
-            "api/constants.md",
+            "api/constants/arepo.md",
             "api/general_utilities.md",
             "Arepo" => Any[
                 "api/arepo/data_acquisition.md",
