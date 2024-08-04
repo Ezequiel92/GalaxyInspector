@@ -334,6 +334,7 @@ Draw a line plot with the fit for the KS relation in Kennicutt (1998).
   - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
+  - `warnings::Bool=true`: If a warning will be raised when there are no points in the figure.
 
 # Returns
 
@@ -354,7 +355,12 @@ function ppKennicutt1998!(
     y_log::Bool=true,
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
+    warnings::Bool=true,
 )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+
+    ks98_inv_intercept = 1.0 / ustrip(KS98_INTERCEPT)
+    ks98_inv_slope = 1.0 / KS98_SLOPE
+    ks98_sfr_unit = unit(KS98_INTERCEPT)
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -365,20 +371,23 @@ function ppKennicutt1998!(
     end
 
     # Get the x coordinates of the points
-    x_points = sort!(Float64[point[1] for point in points])
+    y_points = [extrema(Float64[point[2] for point in points])...]
 
-    # Compute the area density of gas
-    if x_log
-        Σg = @. ustrip(KS98_RHO_UNIT, exp10(x_points) * x_unit)
+    # Compute the star formation area density
+    if y_log
+        Σsfr = @. ustrip(ks98_sfr_unit, exp10(y_points) * y_unit)
     else
-        Σg = @. ustrip(KS98_RHO_UNIT, x_points * x_unit)
+        Σsfr = @. ustrip(ks98_sfr_unit, y_points * y_unit)
     end
 
-    # Compute the values for the y axis
-    if y_log
-        y_points = @. log10(ustrip(y_unit, KS98_INTERCEPT * Σg^KS98_SLOPE))
+    # Compute the area density of gas
+    Σg = @. (Σsfr * ks98_inv_intercept)^ks98_inv_slope * KS98_RHO_UNIT
+
+    # Compute the values for the x axis
+    if x_log
+        x_points = @. log10(ustrip(x_unit, Σg))
     else
-        y_points = @. ustrip(y_unit, KS98_INTERCEPT * Σg^KS98_SLOPE)
+        x_points = @. ustrip(x_unit, Σg)
     end
 
     # Plot the fit for the KS relation
@@ -393,7 +402,7 @@ end
         figure::Makie.Figure,
         quantity::Symbol;
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
 Draw a line plot with the fit for the KS relation in Bigiel et al. (2008).
 
@@ -410,6 +419,7 @@ Draw a line plot with the fit for the KS relation in Bigiel et al. (2008).
   - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
+  - `warnings::Bool=true`: If a warning will be raised when there are no points in the figure.
 
 # Returns
 
@@ -431,7 +441,8 @@ function ppBigiel2008!(
     y_log::Bool=true,
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    warnings::Bool=true,
+)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -441,8 +452,8 @@ function ppBigiel2008!(
         return nothing
     end
 
-    # Get the x coordinates of the points
-    x_points = sort!(Float64[point[1] for point in points])
+    # Get the extrema of the y coordinates
+    y_points = [extrema(Float64[point[2] for point in points])...]
 
     # Read the file with the fit data
     raw = readdlm(BIGIEL2008_DATA_PATH, skipstart=5, header=true)[1]
@@ -452,15 +463,15 @@ function ppBigiel2008!(
 
         A = parse(Float64, split(raw[end, 2], "+or-")[1])
 
-        b08_intercept = exp10(A) * u"Msun * yr^-1 * kpc^-2"
-        b08_slope = parse(Float64, split(raw[end, 3], "+or-")[1])
+        b08_inv_intercept = exp10(-A)
+        b08_inv_slope = 1.0 / parse(Float64, split(raw[end, 3], "+or-")[1])
 
     elseif quantity == :neutral_area_density
 
         A = parse(Float64, split(raw[end, 5], "+or-")[1])
 
-        b08_intercept = exp10(A) * u"Msun * yr^-1 * kpc^-2"
-        b08_slope = parse(Float64, split(raw[end, 6], "+or-")[1])
+        b08_inv_intercept = exp10(-A)
+        b08_inv_slope = 1.0 / parse(Float64, split(raw[end, 6], "+or-")[1])
 
     else
 
@@ -469,20 +480,23 @@ function ppBigiel2008!(
 
     end
 
-    # Compute the area density of gas
-    # The factor of 0.1 account for the fact that the values in `BIGIEL2008_DATA_PATH`
-    # assume that the x axis has units of 10 Msun * pc^-2
-    if x_log
-        Σg = @. ustrip(u"Msun * pc^-2", exp10(x_points) * 0.1 * x_unit)
+    # Compute the star formation area density
+    if y_log
+        Σsfr = @. ustrip(u"Msun * yr^-1 * kpc^-2", exp10(y_points) * y_unit)
     else
-        Σg = @. ustrip(u"Msun * pc^-2", x_points * 0.1 * x_unit)
+        Σsfr = @. ustrip(u"Msun * yr^-1 * kpc^-2", y_points * y_unit)
     end
 
-    # Compute the values for the y axis
-    if y_log
-        y_points = @. log10(ustrip(y_unit, b08_intercept * Σg^b08_slope))
+    # Compute the area density of gas
+    # The factor of 10.0 account for the fact that the values in `BIGIEL2008_DATA_PATH`
+    # assume that the x axis has units of 10 Msun * pc^-2
+    Σg = @. (Σsfr * b08_inv_intercept)^b08_inv_slope * 10.0 * u"Msun * pc^-2"
+
+    # Compute the values for the x axis
+    if x_log
+        x_points = @. log10(ustrip(x_unit, Σg))
     else
-        y_points = @. ustrip(y_unit, b08_intercept * Σg^b08_slope)
+        x_points = @. ustrip(x_unit, Σg)
     end
 
     # Plot the fit for the KS relation

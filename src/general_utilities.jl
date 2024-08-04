@@ -1525,6 +1525,7 @@ Reduce the number of rows and columns of `hr_matrix` by `factor`, averaging its 
 """
 function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Number}
 
+    #TODO
     r, c = size(hr_matrix)
     (
         r == c ||
@@ -1556,7 +1557,9 @@ function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Nu
         @inbounds for j in (factor * (row - 1) + 1):(factor * row)
             @inbounds for k in (factor * (col - 1) + 1):(factor * col)
 
-                lr_matrix[i] += hr_matrix[j, k]
+                if !isnan(hr_matrix[j, k])
+                    lr_matrix[i] += hr_matrix[j, k]
+                end
 
             end
         end

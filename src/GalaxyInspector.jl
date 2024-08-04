@@ -37,6 +37,12 @@ using CSV,
     UnitfulAstro
 
 ####################################################################################################
+# Choose codebase.
+####################################################################################################
+
+const CODEBASE = :arepo
+
+####################################################################################################
 # Optimization.
 ####################################################################################################
 
@@ -46,7 +52,14 @@ using CSV,
 # Submodules.
 ####################################################################################################
 
-include("constants.jl")
+if CODEBASE == :arepo
+    include("constants/arepo.jl")
+elseif CODEBASE == :opengadget3
+    include("constants/opengadget3.jl")
+else
+    throw(ArgumentError("GalaxyInspector: I don't recognize the codebase :$(CODEBASE)"))
+end
+
 include("general_utilities.jl")
 include("arepo/data_acquisition.jl")
 include("arepo/arepo_utilities.jl")

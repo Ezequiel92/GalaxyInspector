@@ -268,7 +268,7 @@ Path to the file with the fits for the molecular Kennicutt-Schmidt relation, tak
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-const BIGIEL2008_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Bigiel2008.txt")
+const BIGIEL2008_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/Bigiel2008.txt")
 
 """
 Slope of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
@@ -304,7 +304,7 @@ Path to the file with the Milky Way profiles, taken from Mollá et al. (2015).
 
 M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
-const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Mollá2015.csv")
+const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/Mollá2015.csv")
 
 """
 Path to the file with the global galaxy properties, taken from Feldmann (2020).
@@ -313,7 +313,7 @@ Path to the file with the global galaxy properties, taken from Feldmann (2020).
 
 R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*. Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
 """
-const FELDMANN2020_DATA_PATH = joinpath(@__DIR__, "../experimental_data/Feldmann2020.csv")
+const FELDMANN2020_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/Feldmann2020.csv")
 
 """
 Reference pressure for the molecular fraction-pressure relation, taken from Blitz et al. (2006).
