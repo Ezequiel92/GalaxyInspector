@@ -101,7 +101,7 @@ function daRotationCurve(
     filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the circular velocities and the radial distances of each star
-    r, vcirc = computeStellarVcirc(filtered_dd)
+    r, vcirc = computeVcirc(filtered_dd)
 
     # Only leave the data within a sphere of radius `R`
     rangeCut!(r, vcirc, (0.0u"kpc", R))

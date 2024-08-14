@@ -2978,7 +2978,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         @debug("scatterQty: The stellar circular velocity depends on the positions and velocities \
         of all cell/particles. So, after filtering, the result for a given star will change.")
 
-        _, scatter_qty = computeStellarVcirc(data_dict)
+        _, scatter_qty = computeVcirc(data_dict)
 
     elseif quantity == :stellar_vradial
 
