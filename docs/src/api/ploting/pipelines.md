@@ -10,5 +10,5 @@ All these functions are exported.
 
 ```@autodocs
 Modules = [GalaxyInspector]
-Pages   = ["pipelines.jl"]
+Pages   = ["plotting/pipelines.jl"]
 ```

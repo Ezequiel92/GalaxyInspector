@@ -8,7 +8,7 @@
 #                              /____/                  /_/                                  /___/
 #
 ####################################################################################################
-# A Julia module for the data analysis of Arepo hydrodynamical simulations.
+# A Julia module for the data analysis of hydrodynamical simulations in astrophysics.
 ####################################################################################################
 
 module GalaxyInspector
@@ -37,12 +37,6 @@ using CSV,
     UnitfulAstro
 
 ####################################################################################################
-# Choose codebase.
-####################################################################################################
-
-const CODEBASE = :arepo
-
-####################################################################################################
 # Optimization.
 ####################################################################################################
 
@@ -52,31 +46,27 @@ const CODEBASE = :arepo
 # Submodules.
 ####################################################################################################
 
-if CODEBASE == :arepo
-    include("constants/arepo.jl")
-elseif CODEBASE == :opengadget3
-    include("constants/opengadget3.jl")
-else
-    throw(ArgumentError("GalaxyInspector: I don't recognize the codebase :$(CODEBASE)"))
-end
+include("constants/globals.jl")
 
-include("general_utilities.jl")
-include("arepo/data_acquisition.jl")
-include("arepo/arepo_utilities.jl")
-include("arepo/compute_quantities.jl")
-include("arepo/filters.jl")
-include("arepo/tracers.jl")
-include("arepo/transformations.jl")
-include("data_analysis.jl")
-include("post_processing.jl")
-include("pipelines.jl")
-include("convenience.jl")
+include("auxiliary_functions.jl")
+
+include("analysis/data_acquisition.jl")
+include("analysis/utilities.jl")
+include("analysis/compute_quantities.jl")
+include("analysis/filters.jl")
+include("analysis/tracers.jl")
+include("analysis/transformations.jl")
+include("analysis/data_analysis.jl")
+
+include("plotting/post_processing.jl")
+include("plotting/pipelines.jl")
+include("plotting/convenience.jl")
 
 ####################################################################################################
 # Public functions.
 ####################################################################################################
 
-# From `data_acquisition.jl`
+# From `analysis/data_acquisition.jl`
 export readGroupCatalog
 export readSnapshot
 export getBlock
@@ -84,11 +74,11 @@ export readSfrFile
 export readCpuFile
 export makeDataDict
 
-# From `pipelines.jl`
+# From `plotting/pipelines.jl`
 export snapshotPlot
 export timeSeriesPlot
 
-# From `convenience.jl`
+# From `plotting/convenience.jl`
 export snapshotReport
 export simulationReport
 export sfrTXT
@@ -115,7 +105,7 @@ export stellarHistory
 export stellarCircularity
 export compareFeldmann2020
 export compareMolla2015
-export compareKennicuttBigielResolved
+export resolvedKennicuttSchmidtLaw
 export compareKennicuttBigielIntegrated
 export fitKennicuttBigielResolved
 

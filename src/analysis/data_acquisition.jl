@@ -60,6 +60,32 @@ function readGroupCatHeader(path::Union{String,Missing}; warnings::Bool=true)::G
 
         h = gc_file["Header"]
 
+        # Read which attributes are present
+        attrs_present = keys(HDF5.attrs(h))
+
+        missing_attrs = setdiff(
+            [
+                "BoxSize",
+                "HubbleParam",
+                "Ngroups_ThisFile",
+                "Ngroups_Total",
+                "Nsubgroups_ThisFile",
+                "Nsubgroups_Total",
+                "NumFiles",
+                "Omega0",
+                "OmegaLambda",
+                "Redshift",
+                "Time",
+            ],
+            attrs_present,
+        )
+
+        (
+            isempty(missing_attrs) ||
+            throw(ArgumentError("readGroupCatHeader: The attributes $(missing_attrs) are missing \
+            from the header"))
+        )
+
         GroupCatHeader(
             box_size          = read_attribute(h, "BoxSize"),
             h0                = read_attribute(h, "HubbleParam"),
@@ -139,27 +165,52 @@ function readSnapHeader(path::String)::SnapshotHeader
 
         h = snap_file["Header"]
 
+        # Read which attributes are present
+        attrs_present = keys(HDF5.attrs(h))
+
+        missing_attrs = setdiff(
+            [
+                "BoxSize",
+                "HubbleParam",
+                "MassTable",
+                "NumFilesPerSnapshot",
+                "NumPart_ThisFile",
+                "NumPart_Total",
+                "Omega0",
+                "OmegaLambda",
+                "Redshift",
+                "Time",
+            ],
+            attrs_present,
+        )
+
+        (
+            isempty(missing_attrs) ||
+            throw(ArgumentError("readSnapHeader: The attributes $(missing_attrs) are missing from \
+            the header"))
+        )
+
         # Only for the stars edit the number in the header, to exclude wind particles
         num_part = read_attribute(h, "NumPart_ThisFile")
         num_part[PARTICLE_INDEX[:stars] + 1] = num_part_stars
         num_total = read_attribute(h, "NumPart_Total")
         num_total[PARTICLE_INDEX[:stars] + 1] = num_total_stars
 
-        # Check if the units are in the header, otherwise use the IllustrisTNG values
-        attrs_present = keys(HDF5.attrs(h))
-
+        # Check if the length units are in the header, otherwise use the IllustrisTNG values
         if "UnitLength_in_cm" ∈ attrs_present
             l_unit = read_attribute(h, "UnitLength_in_cm") * u"cm"
         else
             l_unit = ILLUSTRIS_L_UNIT
         end
 
+        # Check if the mass units are in the header, otherwise use the IllustrisTNG values
         if "UnitMass_in_g" ∈ attrs_present
             m_unit = read_attribute(h, "UnitMass_in_g") * u"g"
         else
             m_unit = ILLUSTRIS_M_UNIT
         end
 
+        # Check if the velocity units are in the header, otherwise use the IllustrisTNG values
         if "UnitVelocity_in_cm_per_s" ∈ attrs_present
             v_unit = read_attribute(h, "UnitVelocity_in_cm_per_s") * u"cm*s^-1"
         else
@@ -189,7 +240,7 @@ function readSnapHeader(path::String)::SnapshotHeader
 end
 
 """
-    blockPresent(block::String, group::HDF5.Group)::Bool
+    isBlockPresent(block::String, group::HDF5.Group)::Bool
 
 Checks if a given data block exist in a HDF5 group.
 
@@ -202,11 +253,11 @@ Checks if a given data block exist in a HDF5 group.
 
   - If `block` exist in `group`.
 """
-function blockPresent(block::String, group::HDF5.Group)::Bool
+function isBlockPresent(block::String, group::HDF5.Group)::Bool
 
     (
         block ∈ keys(QUANTITIES) ||
-        throw(ArgumentError("blockPresent: `block` should be a key of `QUANTITIES`, \
+        throw(ArgumentError("isBlockPresent: `block` should be a key of `QUANTITIES`, \
         but I got $(block), see the options in `./src/constants.jl`"))
     )
 
@@ -215,7 +266,7 @@ function blockPresent(block::String, group::HDF5.Group)::Bool
 end
 
 """
-    blockPresent(type_symbol::Symbol, block::String, path::String)::Bool
+    isBlockPresent(component::Symbol, block::String, path::String)::Bool
 
 Checks if a given block exist in a snapshot.
 
@@ -225,7 +276,7 @@ Checks if a given block exist in a snapshot.
 
 # Arguments
 
-  - `type_symbol::Symbol`: The cell/particle type of the target block. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
+  - `component::Symbol`: The cell/particle type of the target block. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `path::String`: Path to the snapshot file or folder.
 
@@ -233,13 +284,13 @@ Checks if a given block exist in a snapshot.
 
   - If `block` exist in the snapshot.
 """
-function blockPresent(type_symbol::Symbol, block::String, path::String)::Bool
+function isBlockPresent(component::Symbol, block::String, path::String)::Bool
 
     if isfile(path)
 
         (
             HDF5.ishdf5(path) ||
-            throw(ArgumentError("blockPresent: The file $(path) is not in the HDF5 format, \
+            throw(ArgumentError("isBlockPresent: The file $(path) is not in the HDF5 format, \
             I don't know how to read it"))
         )
 
@@ -251,7 +302,7 @@ function blockPresent(type_symbol::Symbol, block::String, path::String)::Bool
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
-            throw(ArgumentError("blockPresent: The directory $(path) does not contain \
+            throw(ArgumentError("isBlockPresent: The directory $(path) does not contain \
             snapshot sub-files in the HDF5 format"))
         )
 
@@ -259,16 +310,16 @@ function blockPresent(type_symbol::Symbol, block::String, path::String)::Bool
 
     else
 
-        throw(ArgumentError("blockPresent: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("isBlockPresent: $(path) does not exist as a file or folder"))
 
     end
 
     response = h5open(file_path, "r") do snapshot
 
-        type_str = PARTICLE_CODE_NAME[type_symbol]
+        type_str = PARTICLE_CODE_NAME[component]
 
         if type_str ∈ keys(snapshot)
-            blockPresent(block, snapshot[type_str])
+            isBlockPresent(block, snapshot[type_str])
         else
             false
         end
@@ -364,14 +415,14 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
     end
 
     # List of blocks needed to compute the temperature
-    blocks = ["GMET", "U   ", "NE  "]
+    blocks = ["U   ", "NE  "]
 
     temp_data = h5open(file_path, "r") do snapshot
 
         group = snapshot[PARTICLE_CODE_NAME[:gas]]
 
         # Get the indices of the missing blocks
-        idx_missing = map(x -> !blockPresent(x, group), blocks)
+        idx_missing = map(x -> !isBlockPresent(x, group), blocks)
         (
             !any(idx_missing) ||
             throw(ArgumentError("readTemperature: The blocks $(blocks[idx_missing]) \
@@ -437,11 +488,11 @@ function readGoupCatBlocks(
     h5open(file_path, "r") do gc_file
 
         # Read from the request only the group catalog types
-        @inbounds for type_symbol in groupcatTypes(request)
+        @inbounds for component in groupcatTypes(request)
 
-            blocks = copy(request[type_symbol])
+            blocks = copy(request[component])
 
-            type_str = titlecase(string(type_symbol))
+            type_str = titlecase(string(component))
 
             # Allocate memory
             qty_data = Dict{String,VecOrMat{<:Number}}()
@@ -455,7 +506,7 @@ function readGoupCatBlocks(
 
                     (
                         !warnings ||
-                        @warn("readGoupCatBlocks: The group catalog type :$(type_symbol) \
+                        @warn("readGoupCatBlocks: The group catalog type :$(component) \
                         in $(file_path) is empty")
                     )
 
@@ -471,7 +522,7 @@ function readGoupCatBlocks(
 
                         unit = internalUnits(block, snapshot_path)
 
-                        if blockPresent(block, hdf5_group)
+                        if isBlockPresent(block, hdf5_group)
 
                             qty_data[block] = read(hdf5_group, QUANTITIES[block].hdf5_name) .* unit
 
@@ -480,7 +531,7 @@ function readGoupCatBlocks(
                             (
                                 !warnings ||
                                 @warn("readGoupCatBlocks: The block $(block) for the group \
-                                catalog type :$(type_symbol) in $(file_path) is missing")
+                                catalog type :$(component) in $(file_path) is missing")
                             )
                             # Return an empty array for every missing block
                             qty_data[block] = typeof(1.0 * unit)[]
@@ -496,7 +547,7 @@ function readGoupCatBlocks(
                 (
                     !warnings ||
                     @warn("readGoupCatBlocks: The group catalog type \
-                    :$(type_symbol) in $(file_path) is missing")
+                    :$(component) in $(file_path) is missing")
                 )
 
                 # Return an empty array for every missing block
@@ -507,7 +558,7 @@ function readGoupCatBlocks(
 
             end
 
-            output[type_symbol] = qty_data
+            output[component] = qty_data
 
         end
 
@@ -565,11 +616,11 @@ function readSnapBlocks(
     h5open(file_path, "r") do snapshot
 
         # Read from the request only the cell/particle types
-        @inbounds for type_symbol in snapshotTypes(request)
+        @inbounds for component in snapshotTypes(request)
 
-            blocks = copy(request[type_symbol])
+            blocks = copy(request[component])
 
-            type_str = PARTICLE_CODE_NAME[type_symbol]
+            type_str = PARTICLE_CODE_NAME[component]
 
             # Allocate memory
             qty_data = Dict{String,VecOrMat{<:Number}}()
@@ -584,7 +635,7 @@ function readSnapBlocks(
                     (
                         !warnings ||
                         @warn("readSnapBlocks: The cell/particle type \
-                        :$(type_symbol) in $(file_path) is empty")
+                        :$(component) in $(file_path) is empty")
                     )
 
                     # Return an empty array for every missing block
@@ -596,7 +647,7 @@ function readSnapBlocks(
                 else
 
                     # For the stellar particles, exclude wind particles
-                    if type_symbol == :stars
+                    if component == :stars
                         idxs = findRealStars(file_path)
                     else
                         idxs = (:)
@@ -609,9 +660,9 @@ function readSnapBlocks(
                         if block == "TEMP"
 
                             (
-                                type_symbol == :gas ||
+                                component == :gas ||
                                 throw(ArgumentError("readSnapBlocks: I can't compute the \
-                                temperature for cells/particles of type :$(type_symbol), \
+                                temperature for cells/particles of type :$(component), \
                                 only for :gas"))
                             )
 
@@ -620,7 +671,7 @@ function readSnapBlocks(
                         elseif block == "MASS"
 
                             # Read the mass table from the header
-                            mass_table = header.mass_table[PARTICLE_INDEX[type_symbol] + 1]
+                            mass_table = header.mass_table[PARTICLE_INDEX[component] + 1]
 
                             if iszero(mass_table)
 
@@ -630,12 +681,12 @@ function readSnapBlocks(
                             else
 
                                 # All cell/particles have the same mass
-                                cp_number = header.num_part[PARTICLE_INDEX[type_symbol] + 1]
+                                cp_number = header.num_part[PARTICLE_INDEX[component] + 1]
                                 qty_data["MASS"] = fill(mass_table, cp_number) .* unit
 
                             end
 
-                        elseif blockPresent(block, hdf5_group)
+                        elseif isBlockPresent(block, hdf5_group)
 
                             raw = read(hdf5_group, QUANTITIES[block].hdf5_name)
                             qty_data[block] = selectdim(raw, ndims(raw), idxs) .* unit
@@ -645,7 +696,7 @@ function readSnapBlocks(
                             (
                                 !warnings ||
                                 @warn("readSnapBlocks: The block $(block) for the \
-                                cell/particle type :$(type_symbol) in $(file_path) is missing")
+                                cell/particle type :$(component) in $(file_path) is missing")
                             )
                             # Return an empty array for every missing block
                             qty_data[block] = typeof(1.0 * unit)[]
@@ -661,7 +712,7 @@ function readSnapBlocks(
                 (
                     !warnings ||
                     @warn("readSnapBlocks: The cell/particle type \
-                    :$(type_symbol) in $(file_path) is missing")
+                    :$(component) in $(file_path) is missing")
                 )
 
                 @inbounds for block in blocks
@@ -671,7 +722,7 @@ function readSnapBlocks(
 
             end
 
-            output[type_symbol] = qty_data
+            output[component] = qty_data
 
         end
 
@@ -746,22 +797,22 @@ function readGroupCatalog(
         # Allocate memory
         output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
-        @inbounds for (type_symbol, data_blocks) in first(data_in_files)
+        @inbounds for (component, data_blocks) in first(data_in_files)
 
             qty_data = Dict{String,VecOrMat{<:Number}}()
 
             @inbounds for block in keys(data_blocks)
 
                 raw = [
-                    data_in_file[type_symbol][block] for
-                    data_in_file in data_in_files if !isempty(data_in_file[type_symbol][block])
+                    data_in_file[component][block] for
+                    data_in_file in data_in_files if !isempty(data_in_file[component][block])
                 ]
 
                 qty_data[block] = cat(raw...; dims=ndims(first(raw)))
 
             end
 
-            output[type_symbol] = qty_data
+            output[component] = qty_data
 
         end
 
@@ -833,15 +884,15 @@ function readSnapshot(
         # Allocate memory
         output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
-        @inbounds for (type_symbol, data_blocks) in first(data_in_files)
+        @inbounds for (component, data_blocks) in first(data_in_files)
 
             qty_data = Dict{String,VecOrMat{<:Number}}()
 
             @inbounds for block in keys(data_blocks)
 
                 raw = [
-                    data_in_file[type_symbol][block] for
-                    data_in_file in data_in_files if !isempty(data_in_file[type_symbol][block])
+                    data_in_file[component][block] for
+                    data_in_file in data_in_files if !isempty(data_in_file[component][block])
                 ]
 
                 if isempty(raw)
@@ -852,7 +903,7 @@ function readSnapshot(
 
             end
 
-            output[type_symbol] = qty_data
+            output[component] = qty_data
 
         end
 
@@ -867,23 +918,23 @@ function readSnapshot(
 end
 
 """
-    getBlock(path::String, type_symbol::Symbol, block::String)::VecOrMat{<:Number}
+    getBlock(path::String, component::Symbol, block::String)::VecOrMat{<:Number}
 
 Convenience function to directly get the data associated with one block.
 
 # Arguments
 
   - `path::String`: Path to the snapshot file or folder.
-  - `type_symbol::Symbol`: Type of cell/particle. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
+  - `component::Symbol`: Type of cell/particle. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
 
 # Returns
 
   - The data for `block`.
 """
-function getBlock(path::String, type_symbol::Symbol, block::String)::VecOrMat{<:Number}
+function getBlock(path::String, component::Symbol, block::String)::VecOrMat{<:Number}
 
-    return readSnapshot(path, Dict(type_symbol => [block]))[type_symbol][block]
+    return readSnapshot(path, Dict(component => [block]))[component][block]
 
 end
 
@@ -1272,7 +1323,7 @@ Construct a data dictionary for a single snapshot.
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects the target snapshot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref).
   - `warnings::Bool=true`: If a warning will be raised when there is messing data.
 

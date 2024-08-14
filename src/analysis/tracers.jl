@@ -116,7 +116,7 @@ function parentIDToIndex(
 )::Dict{Symbol,Vector{Int}}
 
     # Check which cell/particle types are present
-    type_symbols = filter!(
+    components = filter!(
         ts -> !isempty(data_dict[ts]["ID  "]),
         snapshotTypes(data_dict) ∩ [:stars, :gas, :black_hole],
     )
@@ -124,7 +124,7 @@ function parentIDToIndex(
     # Allocate memory
     index_dict = Dict{Symbol,Vector{Int}}()
 
-    @inbounds for ts in type_symbols
+    @inbounds for ts in components
 
         # Read the IDs of the cell/particles
         parent_ids = data_dict[ts]["ID  "]
@@ -191,7 +191,7 @@ Find the tracers whose parents are allowed by `filter_function`.
 function findTracers(data_dict::Dict; filter_function::Function=filterNothing)::Vector{UInt}
 
     # Check which cell/particle types are present
-    type_symbols = filter!(
+    components = filter!(
         ts -> !isempty(data_dict[ts]["ID  "]),
         snapshotTypes(data_dict) ∩ [:stars, :gas, :black_hole],
     )
@@ -200,7 +200,7 @@ function findTracers(data_dict::Dict; filter_function::Function=filterNothing)::
     filter_idxs = filter_function(data_dict)
 
     # Read the IDs of the cells and particles that are allowed by `filter_function`
-    parent_ids = vcat([data_dict[ts]["ID  "][filter_idxs[ts]] for ts in type_symbols]...)
+    parent_ids = vcat([data_dict[ts]["ID  "][filter_idxs[ts]] for ts in components]...)
 
     !isempty(parent_ids) || return Vector{UInt}[]
 
@@ -276,7 +276,7 @@ Find the tracers that are within a given cylinder.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `max_r::Unitful.Length=FILTER_R`: Radius of the cylinder.
+  - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
 
 # Returns
@@ -285,7 +285,7 @@ Find the tracers that are within a given cylinder.
 """
 function tracersWithinDisc(
     data_dict::Dict;
-    max_r::Unitful.Length=FILTER_R,
+    max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
 )::Vector{UInt}
 

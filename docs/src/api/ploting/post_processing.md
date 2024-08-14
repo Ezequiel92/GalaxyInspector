@@ -20,5 +20,5 @@ where:
 
 ```@autodocs
 Modules = [GalaxyInspector]
-Pages   = ["post_processing.jl"]
+Pages   = ["plotting/post_processing.jl"]
 ```

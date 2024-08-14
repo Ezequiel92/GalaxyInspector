@@ -3,28 +3,6 @@
 ####################################################################################################
 
 """
-Area of a circle with radius `r`.
-"""
-function area(r::Number)::Number
-
-    x = setPositive(r)
-
-    return π * x * x
-
-end
-
-"""
-Volume of a sphere with radius `r`.
-"""
-function volume(r::Number)::Number
-
-    x = setPositive(r)
-
-    return π * x * x * x * 1.333
-
-end
-
-"""
     ring(vec::Vector, index::Integer)
 
 Make the indexing operation `vec[index]` work using modular arithmetic for the indices.
@@ -161,6 +139,28 @@ Base.union(a1::IndexType, a2::Vector{Bool})::Vector{Int} = a1 ∪ findall(a2)
 Base.union(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .|| a2)
 
 """
+Area of a circle with radius `r`.
+"""
+function area(r::Number)::Number
+
+    x = setPositive(r)
+
+    return π * x * x
+
+end
+
+"""
+Volume of a sphere with radius `r`.
+"""
+function volume(r::Number)::Number
+
+    x = setPositive(r)
+
+    return π * x * x * x * 1.333
+
+end
+
+"""
 Always returns `nothing`, for any type and number of arguments.
 """
 getNothing(x...; y...)::Nothing = nothing
@@ -185,12 +185,12 @@ The elements will fill the rows and columns starting at the top left, going from
 
   - `blocks_per_row::Int`: Number of columns.
   - `paths::Vector{String}`: Paths to the images.
-  - `output_path::String="./joined_image.png"`: Path to the output image.
+  - `output_path::String="./joined_images.png"`: Path to the output image.
 """
 function hvcatImages(
     blocks_per_row::Int,
     paths::Vector{String};
-    output_path::String="./joined_image.png",
+    output_path::String="./joined_images.png",
 )::Nothing
 
     new_image = hvcat(blocks_per_row, [load(path) for path in paths]...)
@@ -553,14 +553,14 @@ end
         <keyword arguments>
     )::Vector{Float64}
 
-Compute a set of bin edges, for a given list values.
+Compute a set of bin edges, to encompass a given list of values.
 
 # Arguments
 
   - `values::Vector{<:Number}`: Values to be binned.
   - `n_bins::Int`: Number of bins.
   - `scaling::Function=identity`: Scaling function. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `limits::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Set it to a value different than `Inf` if you want to fix the limits of the binning.
+  - `limits::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Set it to a value different than `(-Inf, Inf)` if you want to fix the limits of the bins.
 
 # Returns
 
@@ -579,12 +579,12 @@ function scaledBins(
         $(limits[1]) > limits[2] = $(limits[2])"))
     )
 
-    # Compute the limits of the binning
+    # Compute the limits of the bins
     min = isinf(limits[1]) ? scaling(ustrip(minimum(values))) : scaling(ustrip(limits[1]))
     max = isinf(limits[2]) ? scaling(ustrip(maximum(values))) : scaling(ustrip(limits[2]))
 
     # For a small range, increase it by 0.2 * abs(max)
-    if (range = max - min) <= 1e-4 * abs(max)
+    if ((range = max - min) <= 1e-4 * abs(max)) && isinf(limits[1]) && isinf(limits[2])
         range += 0.2 * abs(max)
     end
 
@@ -1490,6 +1490,7 @@ function deltas(data::Vector{<:Number})::Vector{<:Number}
     # Allocate memory
     Δd = similar(data)
 
+    # Get the number of elements in `data`
     nd = length(data)
 
     # Check that `data` has a valid length
@@ -1525,7 +1526,6 @@ Reduce the number of rows and columns of `hr_matrix` by `factor`, averaging its 
 """
 function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Number}
 
-    #TODO
     r, c = size(hr_matrix)
     (
         r == c ||
@@ -1572,34 +1572,34 @@ end
 
 """
     projectIntoCircularGrid(
-        hr_matrix::Matrix{<:Number},
+        image::Matrix{<:Number},
         n_bins::Int;
         <keyword arguments>
     )::Vector{<:Number}
 
-Project `hr_matrix` into a circular grid, averaging the values in each concentric ring.
+Project `image` into a circular grid, averaging the values in each concentric ring.
 
 # Arguments
 
-  - `hr_matrix::Matrix{<:Number}`: Original "high resolution" matrix. It has to be a square matrix.
+  - `image::Matrix{<:Number}`: Original matrix. It has to be a square matrix.
   - `n_bins::Int`: Number of bins for the circular grid.
-  - `inscribed::Bool=true`: If the circular grid will be inscribed in `hr_matrix` when projecting or not.
+  - `inscribed::Bool=true`: If the circular grid will be inscribed in `image` when doing the projection.
 
 # Returns
 
-  - The new smaller matrix, with the average values.
+  - A vector with the average values.
 """
 function projectIntoCircularGrid(
-    hr_matrix::Matrix{<:Number},
+    image::Matrix{<:Number},
     n_bins::Int;
     inscribed::Bool=true,
 )::Vector{<:Number}
 
-    r, c = size(hr_matrix)
+    r, c = size(image)
     (
         r == c ||
-        throw(ArgumentError("reduceResolution: `hr_matrix` has to be a square matrix, but it has \
-        $(c) columns and $(r) rows."))
+        throw(ArgumentError("projectIntoCircularGrid: `image` has to be a square matrix, \
+        but it has $(c) columns and $(r) rows."))
     )
 
     # Construct a square grid
@@ -1609,8 +1609,8 @@ function projectIntoCircularGrid(
     circular_grid = CircularGrid(inscribed ? 0.5 : sqrt(0.5), n_bins)
 
     profile = histogram1D(
-        [norm(point) for point in vec(square_grid.grid)],
-        vec(hr_matrix),
+        norm.(vec(square_grid.grid)),
+        vec(image),
         circular_grid;
         total=false,
         empty_nan=false,
@@ -1621,7 +1621,7 @@ function projectIntoCircularGrid(
 end
 
 ####################################################################################################
-# Makie utilities.
+# Makie.jl utilities.
 ####################################################################################################
 
 """

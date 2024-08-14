@@ -100,7 +100,7 @@ function daRotationCurve(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    # Compute the circular velocities and the radial distances
+    # Compute the circular velocities and the radial distances of each star
     r, vcirc = computeStellarVcirc(filtered_dd)
 
     # Only leave the data within a sphere of radius `R`
@@ -273,7 +273,7 @@ function daKennicuttSchmidtLaw(
     ################################################################################################
 
     # Compute the SFR
-    sfr = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ)
+    sfr = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION)
 
     density = histogram2D(star_positions[[1, 2], :], sfr, flattenGrid(grid), empty_nan=false) ./ grid.bin_area
 
@@ -330,7 +330,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `:stellar_area_density`   -> Stellar area mass density.
       + `:molecular_area_density` -> Molecular hydrogen area mass density.
       + `:atomic_area_density`    -> Atomic hydrogen area mass density.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION`.
       + `:O_stellar_abundance`    -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
       + `:N_stellar_abundance`    -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`    -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
@@ -399,7 +399,7 @@ function daMolla2015(
     elseif quantity == :sfr_area_density
 
         positions   = filtered_dd[:stars]["POS "]
-        masses      = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION_ρ)
+        masses      = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION)
         norm_values = Number[]
         f           = identity
         density     = true
@@ -453,7 +453,7 @@ function daMolla2015(
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [positions, masses]) || return nothing
 
-    density_profile = f(computeProfile(positions, masses, grid; norm_values, total=true, density))
+    density_profile = f(computeParticleProfile(positions, masses, grid; norm_values, total=true, density))
 
     return grid.grid, density_profile
 
@@ -624,7 +624,7 @@ function daProfile(
 
     end
 
-    profile = computeProfile(
+    profile = computeParticleProfile(
         positions,
         values,
         grid;
@@ -786,7 +786,7 @@ function daBandProfile(
     # Return `nothing` if any of the necessary quantities are missing
     !any(iszero, [n_pos, n_val]) || return nothing
 
-    mean, std = computeBandProfile(positions, values, grid; flat)
+    mean, std = computeParticleBandProfile(positions, values, grid; flat)
 
     !error_bar || return grid.grid, mean, std, std
 
@@ -1162,13 +1162,14 @@ end
     daDensity2DProjection(
         data_dict::Dict,
         grid::CubicGrid,
-        quantity::Symbol;
+        quantity::Symbol,
+        type::Symbol;
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
 Project the 3D density field to a given plane.
 
-If the source of the field are particles (stars, black holes, dark matter, etc.) a simple 2D histogram is used. If the source of the field are Voronoi cells (i.e. gas) the density of the cells that cross the line of sight of each pixel are added up.
+If the source of the field are particles a simple 2D histogram is used. If the source of the field are Voronoi cells the density of the cells that cross the line of sight of each pixel are added up.
 
 !!! note
 
@@ -1201,6 +1202,7 @@ If the source of the field are particles (stars, black holes, dark matter, etc.)
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+  - `type::Symbol`: If the source of the field are `:particles` or `:cells`.
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -1240,7 +1242,8 @@ If the source of the field are particles (stars, black holes, dark matter, etc.)
 function daDensity2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
-    quantity::Symbol;
+    quantity::Symbol,
+    type::Symbol;
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
@@ -1257,13 +1260,13 @@ function daDensity2DProjection(
         :ionized_mass,
         :neutral_mass,
     ]
-        type_symbol = :gas
+        component = :gas
     elseif quantity == :stellar_mass
-        type_symbol = :stars
+        component = :stars
     elseif quantity == :dm_mass
-        type_symbol = :halo
+        component = :halo
     elseif quantity == :bh_mass
-        type_symbol = :black_hole
+        component = :black_hole
     else
         throw(ArgumentError("daDensity2DProjection: I don't recognize the quantity :$(quantity)"))
     end
@@ -1279,7 +1282,7 @@ function daDensity2DProjection(
     end
 
     # Load the positions
-    positions = filtered_dd[type_symbol]["POS "]
+    positions = filtered_dd[component]["POS "]
 
     # Compute the masses
     masses = scatterQty(filtered_dd, quantity)
@@ -1293,22 +1296,23 @@ function daDensity2DProjection(
     m_unit = u"Msun"
     l_unit = u"kpc"
 
-    if type_symbol == :gas
+    if type == :cells
 
         # Compute the volume of each cell
-        gas_density = filtered_dd[:gas]["RHO "]
-        gas_masses  = filtered_dd[type_symbol]["MASS"]
-        gas_volumes = gas_masses ./ gas_density
+        cell_volumes = filtered_dd[component]["MASS"] ./ filtered_dd[component]["RHO "]
 
-        # Compute the densities for the target quantity
-        densities = ustrip.(m_unit*l_unit^-3, masses ./ gas_volumes)
+        # Compute the densities of the target quantity
+        densities = ustrip.(m_unit * l_unit^-3, masses ./ cell_volumes)
 
         # Load the volume and area of the voxels
         voxel_volume = ustrip(l_unit^3, grid.bin_volume)
-        voxel_area = ustrip(l_unit^2, grid.bin_area)
+        voxel_area   = ustrip(l_unit^2, grid.bin_area)
 
         # Allocate memory
         physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
+
+        # Compute the tree for a nearest neighbor search
+        kdtree = KDTree(ustrip.(l_unit, positions))
 
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
         @inbounds for i in eachindex(grid.grid)
@@ -1316,9 +1320,6 @@ function daDensity2DProjection(
             physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
             physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
         end
-
-        # Compute the tree for a nearest neighbor search
-        kdtree = KDTree(ustrip.(l_unit, positions))
 
         # Find the nearest neighbor to each point in the grid
         idxs, _ = nn(kdtree, physical_grid)
@@ -1331,7 +1332,7 @@ function daDensity2DProjection(
             mass_grid[i] = densities[idxs[i]] * voxel_volume
         end
 
-        # Project the grid to the chosen plane
+        # Project the grid to the given plane
         if projection_plane == :xy
             density = dropdims(sum(mass_grid; dims=3) ./ voxel_area; dims=3)
         elseif projection_plane == :xz
@@ -1343,9 +1344,9 @@ function daDensity2DProjection(
             :xy, :xz or :yz, but I got :$(projection_plane)"))
         end
 
-    else
+    elseif type == :particles
 
-        # Project the particles to the chosen plane
+        # Project the particles to the given plane
         if projection_plane == :xy
             pos_2D = positions[[1, 2], :]
         elseif projection_plane == :xz
@@ -1358,8 +1359,15 @@ function daDensity2DProjection(
         end
 
         # Compute the 2D histogram
-        total = histogram2D(pos_2D, masses, flattenGrid(grid); empty_nan=false)
-        density = ustrip.(m_unit*l_unit^-2, total ./ grid.bin_area)
+        density = ustrip.(
+            m_unit * l_unit^-2,
+            histogram2D(pos_2D, masses, flattenGrid(grid); empty_nan=false) ./ grid.bin_area,
+        )
+
+    else
+
+        throw(ArgumentError("daDensity2DProjection: The argument `type` must be :cells or \
+        :particles, but I got :$(type)"))
 
     end
 
@@ -1371,7 +1379,7 @@ function daDensity2DProjection(
 
     if print_range
 
-        # Compute the min and max values of density
+        # Compute the mininimum and maximum values of density
         min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
 
         # Print the density range
@@ -1381,12 +1389,12 @@ function daDensity2DProjection(
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
             \n  Plane:      $(projection_plane) \
-            \n  log₁₀(ρ [$(m_unit*l_unit^-2)]): $(min_max)\n\n"
+            \n  log₁₀(ρ [$(m_unit * l_unit^-2)]): $(min_max)\n\n"
         )
 
     end
 
-    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured
+    # The transpose and reverse operation are to conform to the way `heatmap!` expect the matrix to be structured
     z_axis = reverse!(transpose(values), dims=2)
 
     return grid.x_ticks, grid.y_ticks, z_axis
@@ -1397,13 +1405,13 @@ end
     daMetallicity2DProjection(
         data_dict::Dict,
         grid::CubicGrid,
-        type_symbol::Symbol;
+        component::Symbol;
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
 Project the 3D metallicity field to a given plane.
 
-If `type_symbol` = :stars, the mean value of metallicity in each bin of a 2D histogram is used. If `type_symbol` = :gas, the metallicity of the whole column in each line of sight is used.
+If `component` = :stars, the mean value of metallicity in each bin of a 2D histogram is used. If `component` = :gas, the metallicity of the whole column in each line of sight is used.
 
 !!! note
 
@@ -1425,7 +1433,7 @@ If `type_symbol` = :stars, the mean value of metallicity in each bin of a 2D his
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CubicGrid`: Cubic grid.
-  - `type_symbol::Symbol`: Target cell/particle type. It can be either `:stars` or `:gas`.
+  - `component::Symbol`: Target cell/particle type. It can be either `:stars` or `:gas`.
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic metallicity range.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -1465,7 +1473,7 @@ If `type_symbol` = :stars, the mean value of metallicity in each bin of a 2D his
 function daMetallicity2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
-    type_symbol::Symbol;
+    component::Symbol;
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
@@ -1474,24 +1482,24 @@ function daMetallicity2DProjection(
     filtered_dd = filterData(data_dict; filter_function)
 
     (
-        type_symbol ∈ [:gas, :stars] ||
-        throw(ArgumentError("daMetallicity2DProjection: I don't recognize the type_symbol \
-        :$(type_symbol)"))
+        component ∈ [:gas, :stars] ||
+        throw(ArgumentError("daMetallicity2DProjection: I don't recognize the component \
+        :$(component)"))
     )
 
     # Load the positions
-    positions = filtered_dd[type_symbol]["POS "]
+    positions = filtered_dd[component]["POS "]
 
     # If the necessary quantities are missing return an empty density field
     if isempty(positions)
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
-    if type_symbol == :gas
+    if component == :gas
 
         # Compute the volume of each cell
         gas_density = filtered_dd[:gas]["RHO "]
-        gas_masses  = filtered_dd[type_symbol]["MASS"]
+        gas_masses  = filtered_dd[component]["MASS"]
         gas_volumes = gas_masses ./ gas_density
 
         # Compute the metal densities
@@ -1591,7 +1599,7 @@ function daMetallicity2DProjection(
             "\nMetallicity range \
             \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
-            \n  P/C type:        $(type_symbol) \
+            \n  P/C type:        $(component) \
             \n  Plane:           $(projection_plane) \
             \n  log₁₀(Z [Z⊙]):  $(min_max)\n\n"
         )
@@ -2272,7 +2280,7 @@ end
     daVelocityField(
         data_dict::Dict,
         grid::SquareGrid,
-        type_symbol::Symbol;
+        component::Symbol;
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{<:Number},Matrix{<:Number}}
 
@@ -2294,7 +2302,7 @@ Compute a 2D mean velocity field.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::SquareGrid`: Square grid.
-  - `type_symbol::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
+  - `component::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
   - `velocity_units::Bool=false`: If the velocity will be given as an `Unitful.Quantity` with units or as a `Flot64` (in which case the underlying unit is ``\\mathrm{km} \\, \\mathrm{s}^{-1}``).
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -2335,7 +2343,7 @@ Compute a 2D mean velocity field.
 function daVelocityField(
     data_dict::Dict,
     grid::SquareGrid,
-    type_symbol::Symbol;
+    component::Symbol;
     projection_plane::Symbol=:xy,
     velocity_units::Bool=false,
     filter_function::Function=filterNothing,
@@ -2343,8 +2351,8 @@ function daVelocityField(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    positions  = filtered_dd[type_symbol]["POS "]
-    velocities = filtered_dd[type_symbol]["VEL "]
+    positions  = filtered_dd[component]["POS "]
+    velocities = filtered_dd[component]["VEL "]
 
     # If any of the necessary quantities are missing return an empty velocity field
     if any(isempty, [positions, velocities])
@@ -2440,13 +2448,13 @@ Compute two global quantities of the simulation.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2481,13 +2489,13 @@ Compute two global quantities of the simulation.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2960,7 +2968,7 @@ function daStellarBTHistogram(data_dict::Dict)::Union{Tuple{Vector{<:Unitful.Tim
 
     if data_dict[:sim_data].cosmological
         # Go from scale factor to physical time
-        birth_times = GalaxyInspector.computeTime(birth_ticks, data_dict[:snap_data].header)
+        birth_times = computeTime(birth_ticks, data_dict[:snap_data].header)
     else
         birth_times = birth_ticks
     end
@@ -3021,13 +3029,13 @@ Compute the time series of two quantities.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3062,13 +3070,13 @@ Compute the time series of two quantities.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3089,7 +3097,7 @@ Compute the time series of two quantities.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -3098,7 +3106,7 @@ Compute the time series of two quantities.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -3244,7 +3252,7 @@ Compute the evolution of the accreted mass into the virial radius.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -3253,7 +3261,7 @@ Compute the evolution of the accreted mass into the virial radius.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -3470,7 +3478,7 @@ Compute the evolution of the accreted mass into the disc.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -3479,7 +3487,7 @@ Compute the evolution of the accreted mass into the disc.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -3493,7 +3501,7 @@ Compute the evolution of the accreted mass into the disc.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `max_r::Unitful.Length=FILTER_R`: Radius of the cylinder.
+  - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
   - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `warnings::Bool=true`: If a warning will be given when there is missing data.
@@ -3508,7 +3516,7 @@ Compute the evolution of the accreted mass into the disc.
 function daDiscAccretion(
     sim_data::Simulation;
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    max_r::Unitful.Length=FILTER_R,
+    max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     smooth::Int=0,
     warnings::Bool=true,

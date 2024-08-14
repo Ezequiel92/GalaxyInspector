@@ -58,7 +58,7 @@ Translate the positions of the cells/particles in `data_dict`.
 
       + `:zero`                       -> No translation is applied.
       + `:global_cm`                  -> Sets the center of mass of the whole system as the new origin.
-      + `:stellar_cm`                 -> Sets the stellar center of mass as the new origin.
+      + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
       + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
       + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
       + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -70,15 +70,15 @@ function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}
     new_origin = computeCenter(data_dict, translation)
     stellar_vcm = computeVcm(data_dict, translation)
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds for (block, values) in data_dict[type_symbol]
+        @inbounds for (block, values) in data_dict[component]
 
             if !isempty(values)
                 @inbounds if block == "POS "
-                    data_dict[type_symbol]["POS "] = translatePoints(values, new_origin)
+                    data_dict[component]["POS "] = translatePoints(values, new_origin)
                 elseif block == "VEL "
-                    data_dict[type_symbol]["VEL "] = translatePoints(values, stellar_vcm)
+                    data_dict[component]["VEL "] = translatePoints(values, stellar_vcm)
                 end
             end
 
@@ -133,11 +133,11 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
         !isempty(data_dict[:stars]["MASS"]) || return nothing
 
-            rotation_matrix = computeAMRotationMatrix(
-                data_dict[:stars]["POS "],
-                data_dict[:stars]["VEL "],
-                data_dict[:stars]["MASS"],
-            )
+        rotation_matrix = computeAMRotationMatrix(
+            data_dict[:stars]["POS "],
+            data_dict[:stars]["VEL "],
+            data_dict[:stars]["MASS"],
+        )
 
     elseif rotation == :stellar_pa
 
@@ -172,12 +172,12 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
     end
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds for (block, values) in data_dict[type_symbol]
+        @inbounds for (block, values) in data_dict[component]
 
             @inbounds if block ∈ ["POS ", "VEL "] && !isempty(values)
-                data_dict[type_symbol][block] = rotation_matrix * values
+                data_dict[component][block] = rotation_matrix * values
             end
 
         end
@@ -231,12 +231,12 @@ function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
         star_data[:stars]["MASS"],
     )
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds for (block, values) in data_dict[type_symbol]
+        @inbounds for (block, values) in data_dict[component]
 
             @inbounds if block ∈ ["POS ", "VEL "] && !isempty(values)
-                data_dict[type_symbol][block] = rotation_matrix * values
+                data_dict[component][block] = rotation_matrix * values
             end
 
         end
@@ -287,12 +287,12 @@ function rotateData!(data_dict::Dict, rotation::Int)::Nothing
         star_data[:stars]["MASS"],
     )
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds for (block, values) in data_dict[type_symbol]
+        @inbounds for (block, values) in data_dict[component]
 
             @inbounds if block ∈ ["POS ", "VEL "] && !isempty(values)
-                data_dict[type_symbol][block] = rotation_matrix * values
+                data_dict[component][block] = rotation_matrix * values
             end
 
         end

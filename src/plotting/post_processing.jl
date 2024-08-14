@@ -168,12 +168,14 @@ Add an annotation to the plot.
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
   - `text::AbstractString`: Text to be written.
-  - `position::Tuple{<:Real,<:Real}=(0, 1)`: Relative position of the top left corner of the text box.
+  - `position::Tuple{<:Real,<:Real}=(0.04, 0.98)`: Relative position of the top left corner of the text box.
+  - `color=:black`: Text color.
 """
 function ppAnnotation!(
     figure::Makie.Figure,
     text::AbstractString;
-    position::Tuple{<:Real,<:Real}=(0, 1),
+    position::Tuple{<:Real,<:Real}=(0.04, 0.98),
+    color=:black,
 )::Nothing
 
     text!(
@@ -182,10 +184,10 @@ function ppAnnotation!(
         position[2];
         text,
         align=(:left, :top),
-        offset=(4, -2),
-        color=:white,
+        # offset=(4, -2),
+        color,
         space=:relative,
-        fontsize=40,
+        fontsize=35,
     )
 
     return nothing
@@ -411,8 +413,8 @@ Draw a line plot with the fit for the KS relation in Bigiel et al. (2008).
   - `figure::Makie.Figure`: Makie figure to be drawn over.
   - `quantity::Symbol`: Quantity for the x axis. The options are:
 
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
   - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
   - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).

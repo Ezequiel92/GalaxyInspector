@@ -1,5 +1,5 @@
 ####################################################################################################
-# General utilities to interact with Arepo data.
+# General utilities to interact with the simulation data.
 ####################################################################################################
 
 """
@@ -605,13 +605,13 @@ Select the plotting parameters for a given `quantity`.
       + `:atomic_number_density`      -> Atomic hydrogen number density.
       + `:ionized_number_density`     -> Ionized hydrogen number density.
       + `:neutral_number_density`     -> Neutral hydrogen number density.
-      + `:stellar_area_density`       -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`           -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density`     -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`        -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`       -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`       -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`           -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`       -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`           -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density`     -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:atomic_area_density`        -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`       -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`       -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`           -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:generic_area_density`       -> Parameters for plots with several diferent area densities.
       + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
@@ -658,7 +658,7 @@ function plotParams(quantity::Symbol)::PlotParams
     if quantity == :stellar_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:stars => ["MASS", "POS ", "SOFT"]),
+            request    = Dict(:stars => ["MASS", "POS "]),
             var_name   = L"M_\star",
             exp_factor = 10,
             unit       = u"Msun",
@@ -685,7 +685,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :dm_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:halo => ["MASS", "POS ", "SOFT"]),
+            request    = Dict(:halo => ["MASS", "POS "]),
             var_name   = L"M_\mathrm{DM}",
             exp_factor = 10,
             unit       = u"Msun",
@@ -694,7 +694,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :bh_mass
 
         plot_params = PlotParams(;
-            request  = Dict(:black_hole => ["MASS", "POS ", "SOFT"]),
+            request  = Dict(:black_hole => ["MASS", "POS "]),
             var_name = L"M_\mathrm{BH}",
             unit     = u"Msun",
         )
@@ -747,10 +747,10 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :stars   => ["MASS", "POS ", "SOFT"],
+                :stars   => ["MASS", "POS "],
                 :gas     => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
-                :dm_mass => ["MASS", "POS ", "SOFT"],
-                :bh_mass => ["MASS", "POS ", "SOFT"],
+                :dm_mass => ["MASS", "POS "],
+                :bh_mass => ["MASS", "POS "],
             ),
             var_name   = L"M",
             exp_factor = 10,
@@ -981,14 +981,14 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :gas_metallicity
 
         plot_params = PlotParams(;
-            request  = Dict(:gas => ["MASS", "POS ", "GZ  "]),
+            request  = Dict(:gas => ["MASS", "POS ", "GMET", "GZ  "]),
             var_name = L"Z_\mathrm{gas} \, [\mathrm{Z_\odot}]",
         )
 
     elseif quantity == :stellar_metallicity
 
         plot_params = PlotParams(;
-            request  = Dict(:stars => ["MASS", "POS ", "GZ2 "]),
+            request  = Dict(:stars => ["MASS", "POS ", "GME2", "GZ2 "]),
             var_name = L"Z_\star \, [\mathrm{Z_\odot}]",
         )
 

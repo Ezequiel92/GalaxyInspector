@@ -53,13 +53,13 @@ function filterData!(data_dict::Dict; filter_function::Function=filterNothing)::
     # Compute the filter dictionary
     indices = filter_function(data_dict)
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        idxs = indices[type_symbol]
+        idxs = indices[component]
 
-        @inbounds for (block, values) in data_dict[type_symbol]
+        @inbounds for (block, values) in data_dict[component]
             @inbounds if !isempty(values)
-                data_dict[type_symbol][block] = collect(selectdim(values, ndims(values), idxs))
+                data_dict[component][block] = collect(selectdim(values, ndims(values), idxs))
             end
         end
 
@@ -126,13 +126,13 @@ function filterData(data_dict::Dict; filter_function::Function=filterNothing)::D
     # Compute the filter dictionary
     indices = filter_function(dd_copy)
 
-    @inbounds for type_symbol in snapshotTypes(dd_copy)
+    @inbounds for component in snapshotTypes(dd_copy)
 
-        idxs = indices[type_symbol]
+        idxs = indices[component]
 
-        @inbounds for (block, values) in dd_copy[type_symbol]
+        @inbounds for (block, values) in dd_copy[component]
             @inbounds if !isempty(values)
-                dd_copy[type_symbol][block] = collect(selectdim(values, ndims(values), idxs))
+                dd_copy[component][block] = collect(selectdim(values, ndims(values), idxs))
             end
         end
 
@@ -148,7 +148,7 @@ end
         request::Dict{Symbol,Vector{String}},
     )::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
 
-Select a filter function, and the corresponding translation and rotation for the simulation box.
+Select a filter function, and the corresponding translation and rotation for the simulation box, from a list of premade ones.
 
 Creates a request dictionary, using `request` as a base, adding what is necessary for the filter function and corresponding transformations.
 
@@ -159,7 +159,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + `:all`             -> Plot every cell/particle within the simulation box.
       + `:halo`            -> Plot only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `request::Dict{Symbol,Vector{String}}`: Base request dictionary, nothing will be deleted from it.
@@ -172,7 +172,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + Translation for the simulation box. The posibilities are:
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-          + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
           + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
       + Rotation for the simulation box. The posibilities are:
@@ -198,9 +198,7 @@ function selectFilter(
         new_request = mergeRequests(
             addRequest(
                 request,
-                Dict(
-                    type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)
-                ),
+                Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
             ),
             Dict(:stars => ["POS ", "MASS", "VEL ", "GAGE"]),
         )
@@ -216,7 +214,7 @@ function selectFilter(
             addRequest(
                 request,
                 Dict(
-                    type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)
+                    component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)
                 ),
             ),
             Dict(
@@ -237,7 +235,7 @@ function selectFilter(
             addRequest(
                 request,
                 Dict(
-                    type_symbol => ["POS ", "MASS"] for type_symbol in keys(PARTICLE_INDEX)
+                    component => ["POS ", "MASS"] for component in keys(PARTICLE_INDEX)
                 ),
             ),
             Dict(
@@ -249,21 +247,21 @@ function selectFilter(
 
     elseif filter_mode == :sphere
 
-        # Plot only the cell/particle inside a sphere with radius `FILTER_R`
-        filter_function = dd -> filterWithinSphere(dd, (0.0u"kpc", FILTER_R), :global_cm)
+        # Plot only the cell/particle inside a sphere with radius `DISK_R`
+        filter_function = dd -> filterWithinSphere(dd, (0.0u"kpc", DISK_R), :global_cm)
         translation = :global_cm
         rotation = :global_am
 
         new_request = addRequest(
             request,
-            Dict(type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)),
+            Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
         )
 
     elseif filter_mode == :stellar_subhalo
 
         # Plot only the cells/particles that belong to the main subhalo
         filter_function = dd -> filterSubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
-        translation = :stellar_cm
+        translation = :stars
         rotation = :stellar_pa
 
         new_request = mergeRequests(
@@ -282,7 +280,7 @@ function selectFilter(
             addRequest(
                 request,
                 Dict(
-                    type_symbol => ["POS ", "MASS"] for type_symbol in keys(PARTICLE_INDEX)
+                    component => ["POS ", "MASS"] for component in keys(PARTICLE_INDEX)
                 ),
             ),
             Dict(
@@ -314,7 +312,7 @@ end
         Dict{Symbol,Vector{String}},
     }
 
-Select a filter function, and the corresponding translation and rotation for the simulation box.
+Select the filter function, translation, and rotation from `filter_mode`.
 
 Creates a request dictionary, using `request` as a base, adding what is necessary for the filter function and corresponding transformations.
 
@@ -326,7 +324,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + `:translation`     -> Translation for the simulation box. The posibilities are:
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-          + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -350,7 +348,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + Translation for the simulation box. The posibilities are:
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-          + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -379,7 +377,7 @@ function selectFilter(
     new_request = mergeRequests(
         addRequest(
             request,
-            Dict(type_symbol => ["POS ", "MASS", "VEL "] for type_symbol in keys(PARTICLE_INDEX)),
+            Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
         ),
         Dict(
             :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
@@ -483,15 +481,15 @@ function filterWithinSphere(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        positions = data_dict[type_symbol]["POS "]
+        positions = data_dict[component]["POS "]
 
         @inbounds if isempty(positions)
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         else
             distances = computeDistance(positions; center)
-            indices[type_symbol] = map(x -> range[1] < x <= range[2], distances)
+            indices[component] = map(x -> range[1] < x <= range[2], distances)
         end
 
     end
@@ -550,16 +548,16 @@ function filterWithinCylinder(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        positions = data_dict[type_symbol]["POS "]
+        positions = data_dict[component]["POS "]
 
         @inbounds if isempty(positions)
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         else
             distances = computeDistance(positions; center)
             heights   = abs.(positions[3, :])
-            indices[type_symbol] = map(r -> r <= max_r, distances) ∩ map(z -> z <= max_z, heights)
+            indices[component] = map(r -> r <= max_r, distances) ∩ map(z -> z <= max_z, heights)
         end
 
     end
@@ -601,22 +599,21 @@ Filter out gas cells hotter than `max_temp`.
 """
 function filterHotGas(data_dict::Dict, max_temp::Unitful.Temperature)::Dict{Symbol,IndexType}
 
-    gas_metals        = setPositive(data_dict[:gas]["GMET"])
     internal_energy   = data_dict[:gas]["U   "]
     electron_fraction = data_dict[:gas]["NE  "]
 
     # Compute the gas temperature
-    temperature = computeTemperature(gas_metals, internal_energy, electron_fraction)
+    temperature = computeTemperature(internal_energy, electron_fraction)
 
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds if type_symbol == :gas
-            indices[type_symbol] = map(x -> x <= max_temp, temperature)
+        @inbounds if component == :gas
+            indices[component] = map(x -> x <= max_temp, temperature)
         else
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         end
 
     end
@@ -686,12 +683,12 @@ function filterYoungStars(data_dict::Dict)::Dict{Symbol,IndexType}
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds if type_symbol == :stars
-            indices[type_symbol] = new_stars_idxs
+        @inbounds if component == :stars
+            indices[component] = new_stars_idxs
         else
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         end
 
     end
@@ -720,7 +717,7 @@ Filter out stars that are older than `age`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `age::Unitful.Time=200.0u"Myr"`: Stars older than this value will be filtered out.
+  - `age::Unitful.Time=AGE_RESOLUTION`: Stars older than this value will be filtered out.
 
 # Returns
 
@@ -731,7 +728,7 @@ Filter out stars that are older than `age`.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterStellarAge(data_dict::Dict, age::Unitful.Time=200.0u"Myr")::Dict{Symbol,IndexType}
+function filterStellarAge(data_dict::Dict, age::Unitful.Time=AGE_RESOLUTION)::Dict{Symbol,IndexType}
 
     ages = computeStellarAge(data_dict)
 
@@ -740,12 +737,12 @@ function filterStellarAge(data_dict::Dict, age::Unitful.Time=200.0u"Myr")::Dict{
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds if type_symbol == :stars
-            indices[type_symbol] = new_stars_idxs
+        @inbounds if component == :stars
+            indices[component] = new_stars_idxs
         else
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         end
 
     end
@@ -819,12 +816,12 @@ function filterInsituStars(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds if type_symbol == :stars
-            indices[type_symbol] = stars_born_in_halo ∩ stars_born_in_subhalo
+        @inbounds if component == :stars
+            indices[component] = stars_born_in_halo ∩ stars_born_in_subhalo
         else
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         end
 
     end
@@ -899,12 +896,12 @@ function filterExsituStars(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds if type_symbol == :stars
-            indices[type_symbol] = Vector{Bool}(.!(stars_born_in_halo ∩ stars_born_in_subhalo))
+        @inbounds if component == :stars
+            indices[component] = Vector{Bool}(.!(stars_born_in_halo ∩ stars_born_in_subhalo))
         else
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         end
 
     end
@@ -950,14 +947,69 @@ function filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Sy
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    if CODEBASE == :arepo
 
-        @inbounds if type_symbol == :gas
-            indices[type_symbol] = map(x -> l_Z <= x <= h_Z, data_dict[:gas]["GZ  "])
-        elseif type_symbol == :stars
-            indices[type_symbol] = map(x -> l_Z <= x <= h_Z, data_dict[:stars]["GZ2 "])
+        metallicity = data_dict[component]["GZ2 "]
+
+    elseif CODEBASE == :opengadget3
+
+        metals = sum(data_dict[component]["GME2"][METAL_LIST, :]; dims=1)
+        metallicity = metals ./ data_dict[component]["MASS"]
+
+    else
+
+        throw(ArgumentError("filterMetallicity: I don't recognize the codebase :$(CODEBASE)"))
+
+    end
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :gas
+
+            if CODEBASE == :arepo
+
+                metallicity = data_dict[component]["GZ  "]
+
+            elseif CODEBASE == :opengadget3
+
+                metals = sum(data_dict[component]["GMET"][METAL_LIST, :]; dims=1)
+                metallicity = metals ./ data_dict[component]["MASS"]
+
+            else
+
+                throw(
+                    ArgumentError("filterMetallicity: I don't recognize the codebase :$(CODEBASE)"),
+                )
+
+            end
+
+            indices[component] = map(x -> l_Z <= x <= h_Z, metallicity)
+
+        elseif component == :stars
+
+            if CODEBASE == :arepo
+
+                metallicity = data_dict[component]["GZ2 "]
+
+            elseif CODEBASE == :opengadget3
+
+                metals = sum(data_dict[component]["GME2"][METAL_LIST, :]; dims=1)
+                metallicity = metals ./ data_dict[component]["MASS"]
+
+            else
+
+                throw(
+                    ArgumentError("filterMetallicity: I don't recognize the codebase :$(CODEBASE)"),
+                )
+
+            end
+
+            indices[component] = map(x -> l_Z <= x <= h_Z, metallicity)
+
         else
-            indices[type_symbol] = (:)
+
+            indices[component] = (:)
+
         end
 
     end
@@ -1003,13 +1055,13 @@ function filterCircularity(data_dict::Dict, l_ϵ::Float64, h_ϵ::Float64)::Dict{
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds if type_symbol == :stars
-            circularity = computeStellarCircularity(data_dict)
-            indices[type_symbol] = map(x -> l_ϵ <= x <= h_ϵ, circularity)
+        @inbounds if component == :stars
+            circularity = computeCircularity(data_dict)
+            indices[component] = map(x -> l_ϵ <= x <= h_ϵ, circularity)
         else
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         end
 
     end
@@ -1053,16 +1105,16 @@ function filterGFM(data_dict::Dict)::Dict{Symbol,IndexType}
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds if type_symbol == :gas
+        @inbounds if component == :gas
             if isempty(data_dict[:gas]["FRAC"])
-                indices[type_symbol] = Int[]
+                indices[component] = Int[]
             else
-                indices[type_symbol] = map(!isnan, data_dict[:gas]["FRAC"][1, :])
+                indices[component] = map(!isnan, data_dict[:gas]["FRAC"][1, :])
             end
         else
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         end
 
     end
@@ -1126,7 +1178,7 @@ function filterSubhalo(
     n_groups_total = data_dict[:gc_data].header.n_groups_total
     (
         !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_len_type, s_len_type]) ||
-        return Dict(type_symbol => Int[] for type_symbol in snapshotTypes(data_dict))
+        return Dict(component => Int[] for component in snapshotTypes(data_dict))
     )
 
     # Check that the requested halo index is within bounds
@@ -1188,13 +1240,13 @@ function filterSubhalo(
     # Fill the filter dictionary
     @inbounds for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
 
-        type_symbol = INDEX_PARTICLE[i - 1]
+        component = INDEX_PARTICLE[i - 1]
 
         @inbounds if first_idx == last_idx || iszero(last_idx)
-            indices[type_symbol] = Int[]
+            indices[component] = Int[]
         end
 
-        if type_symbol == :stars
+        if component == :stars
 
             # Find the indices of the stars, excluding wind particles
             real_stars_idxs = findRealStars(data_dict[:snap_data].path)
@@ -1205,11 +1257,11 @@ function filterSubhalo(
             stars_first_idx = first_idx - n_wind_before
             stars_last_idx = last_idx - n_wind_before - n_wind_between
 
-            indices[type_symbol] = stars_first_idx:stars_last_idx
+            indices[component] = stars_first_idx:stars_last_idx
 
         else
 
-            indices[type_symbol] = first_idx:last_idx
+            indices[component] = first_idx:last_idx
 
         end
 
@@ -1264,7 +1316,7 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
     n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
     (
         !iszero(n_subgroups_total) && !isempty(s_len_type) ||
-        return Dict(type_symbol => Int[] for type_symbol in snapshotTypes(data_dict))
+        return Dict(component => Int[] for component in snapshotTypes(data_dict))
     )
 
     # Check that the requested subhalo index is within bounds
@@ -1291,13 +1343,13 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
     # Fill the filter dictionary
     @inbounds for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
 
-        type_symbol = INDEX_PARTICLE[i - 1]
+        component = INDEX_PARTICLE[i - 1]
 
         @inbounds if first_idx == last_idx || iszero(last_idx)
-            indices[type_symbol] = Int[]
+            indices[component] = Int[]
         end
 
-        if type_symbol == :stars
+        if component == :stars
 
             # Find the indices of the stars, excluding wind particles
             real_stars_idxs = findRealStars(data_dict[:snap_data].path)
@@ -1308,11 +1360,11 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
             stars_first_idx = first_idx - n_wind_before
             stars_last_idx = last_idx - n_wind_before - n_wind_between
 
-            indices[type_symbol] = stars_first_idx:stars_last_idx
+            indices[component] = stars_first_idx:stars_last_idx
 
         else
 
-            indices[type_symbol] = first_idx:last_idx
+            indices[component] = first_idx:last_idx
 
         end
 
@@ -1329,7 +1381,7 @@ end
         max_ρ::Unitful.Density,
     )::Dict{Symbol,IndexType}
 
-Filter out gas cells that are outside the density range [`min_ρ`, `max_ρ`].
+Filter out gas that is outside the density range [`min_ρ`, `max_ρ`].
 
 # Arguments
 
@@ -1369,12 +1421,12 @@ function filterGasDensity(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type_symbol in snapshotTypes(data_dict)
+    @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds if type_symbol == :gas
-            indices[type_symbol] = map(x -> min_ρ < x <= max_ρ, density)
+        @inbounds if component == :gas
+            indices[component] = map(x -> min_ρ < x <= max_ρ, density)
         else
-            indices[type_symbol] = (:)
+            indices[component] = (:)
         end
 
     end

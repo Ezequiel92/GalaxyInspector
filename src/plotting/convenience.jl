@@ -21,7 +21,7 @@ Write a text file with information about a given snapshot.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -30,7 +30,7 @@ Write a text file with information about a given snapshot.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -486,7 +486,7 @@ function snapshotReport(
 
         if !isempty(data_dict[:stars]["ACIT"])
 
-            parz = data_dict[:stars]["PARZ"] ./ GalaxyInspector.SOLAR_METALLICITY
+            parz = data_dict[:stars]["PARZ"] ./ SOLAR_METALLICITY
             rhoc = ustrip.(u"cm^-3", data_dict[:stars]["RHOC"])
             acit = ustrip.(u"Myr", data_dict[:stars]["ACIT"])
 
@@ -499,9 +499,9 @@ function snapshotReport(
             println(file, "\t\t\tMinimum: $(round(minimum(parz), sigdigits=4)) Z⊙")
             println(file, "\t\t\tMaximum: $(round(maximum(parz), sigdigits=4)) Z⊙\n")
 
-            parz_50 = GalaxyInspector.computeMassQty(parz, data_dict[:stars]["MASS"]; percent=50.0)
-            parz_90 = GalaxyInspector.computeMassQty(parz, data_dict[:stars]["MASS"]; percent=90.0)
-            parz_95 = GalaxyInspector.computeMassQty(parz, data_dict[:stars]["MASS"]; percent=95.0)
+            parz_50 = computeMassQty(parz, data_dict[:stars]["MASS"]; percent=50.0)
+            parz_90 = computeMassQty(parz, data_dict[:stars]["MASS"]; percent=90.0)
+            parz_95 = computeMassQty(parz, data_dict[:stars]["MASS"]; percent=95.0)
 
             println(file, "\t\tMetallicity enclosing X% of the stellar mass:\n")
             println(file, "\t\t\t$(round(parz_50, sigdigits=4)) Z⊙ (50%)")
@@ -515,9 +515,9 @@ function snapshotReport(
             println(file, "\t\t\tMinimum: $(round(minimum(rhoc), sigdigits=4)) cm^-3")
             println(file, "\t\t\tMaximum: $(round(maximum(rhoc), sigdigits=4)) cm^-3\n")
 
-            rhoc_50 = GalaxyInspector.computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=50.0)
-            rhoc_90 = GalaxyInspector.computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=90.0)
-            rhoc_95 = GalaxyInspector.computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=95.0)
+            rhoc_50 = computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=50.0)
+            rhoc_90 = computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=90.0)
+            rhoc_95 = computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=95.0)
 
             println(file, "\t\tCell density enclosing X% of the stellar mass:\n")
             println(file, "\t\t\t$(round(rhoc_50, sigdigits=4)) cm^-3 (50%)")
@@ -531,9 +531,9 @@ function snapshotReport(
             println(file, "\t\t\tMinimum: $(round(minimum(acit), sigdigits=4)) Myr")
             println(file, "\t\t\tMaximum: $(round(maximum(acit), sigdigits=4)) Myr\n")
 
-            acit_50 = GalaxyInspector.computeMassQty(acit, data_dict[:stars]["MASS"]; percent=50.0)
-            acit_90 = GalaxyInspector.computeMassQty(acit, data_dict[:stars]["MASS"]; percent=90.0)
-            acit_95 = GalaxyInspector.computeMassQty(acit, data_dict[:stars]["MASS"]; percent=95.0)
+            acit_50 = computeMassQty(acit, data_dict[:stars]["MASS"]; percent=50.0)
+            acit_90 = computeMassQty(acit, data_dict[:stars]["MASS"]; percent=90.0)
+            acit_95 = computeMassQty(acit, data_dict[:stars]["MASS"]; percent=95.0)
 
             println(file, "\t\tTotal integration time enclosing X% of the stellar mass:\n")
             println(file, "\t\t\t$(round(acit_50, sigdigits=4)) Myr (50%)")
@@ -570,13 +570,13 @@ function snapshotReport(
             Unitful.NoUnits,
         ]
 
-        if any(blockPresent.(:gas, quantities, snapshot_path))
+        if any(isBlockPresent.(:gas, quantities, snapshot_path))
             println(file, "\tExtrema of the ODEs ICs and parameters:\n")
         end
 
         for (quantity, unit, name) in zip(quantities, units, names)
 
-            if blockPresent(:gas, quantity, snapshot_path)
+            if isBlockPresent(:gas, quantity, snapshot_path)
 
                 min, max = findQtyExtrema(
                     simulation_path,
@@ -629,7 +629,7 @@ function snapshotReport(
         # Print the spin parameter of each component
         ############################################################################################
 
-        println(file, "\tSpin parameter (R = $(FILTER_R)):\n")
+        println(file, "\tSpin parameter (R = $(DISK_R)):\n")
 
         for component in component_list
 
@@ -1263,12 +1263,12 @@ function snapshotReport(
             println(file, "\tMasses:\n")
             for (i, mass) in pairs(g_mass_type)
 
-                type_symbol = INDEX_PARTICLE[i - 1]
+                component = INDEX_PARTICLE[i - 1]
 
-                if type_symbol == :stars
+                if component == :stars
                     component = "Stellar/Wind particles"
                 else
-                    component = PARTICLE_NAMES[type_symbol]
+                    component = PARTICLE_NAMES[component]
                 end
 
                 println(
@@ -1352,12 +1352,12 @@ function snapshotReport(
             println(file, "\n\tMasses:\n")
             for (i, mass) in pairs(s_mass_type)
 
-                type_symbol = INDEX_PARTICLE[i - 1]
+                component = INDEX_PARTICLE[i - 1]
 
-                if type_symbol == :stars
+                if component == :stars
                     component = "Stellar/Wind particles"
                 else
-                    component = PARTICLE_NAMES[type_symbol]
+                    component = PARTICLE_NAMES[component]
                 end
 
                 println(
@@ -1987,14 +1987,14 @@ Write in which halo and subhalo every star was born to a pair of CSV files.
 # Arguments
 
   - `simulation_paths::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects the target snapshot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -2003,7 +2003,7 @@ Write in which halo and subhalo every star was born to a pair of CSV files.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -2088,13 +2088,14 @@ Plot a 2D histogram of the density.
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+  - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either :particles` or `:cells`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -2103,7 +2104,7 @@ Plot a 2D histogram of the density.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -2162,6 +2163,7 @@ function densityMap(
     simulation_paths::Vector{String},
     slice::IndexType;
     quantities::Vector{Symbol}=[:gas_mass],
+    types::Vector{Symbol}=[:cells],
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
@@ -2188,7 +2190,7 @@ function densityMap(
 
     pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
 
-    @inbounds for quantity in quantities
+    @inbounds for (i, quantity) in enumerate(quantities)
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,
@@ -2220,7 +2222,7 @@ function densityMap(
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
                     da_functions=[daDensity2DProjection],
-                    da_args=[(grid, quantity)],
+                    da_args=[(grid, quantity, ring(types, i))],
                     da_kwargs=[
                         (;
                             projection_plane,
@@ -2230,7 +2232,7 @@ function densityMap(
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
-                    pp_kwargs=(;),
+                    pp_kwargs=(; color=:white),
                     transform_box=true,
                     translation,
                     rotation,
@@ -2295,14 +2297,14 @@ Plot a 2D histogram of the metallicity.
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
-  - `type_symbols::Vector{Symbol}=[:gas]`: Target cell/particle types. It can be either `:stars` or `:gas`.
+  - `components::Vector{Symbol}=[:gas]`: Target cell/particle types. It can be either `:stars` or `:gas`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -2311,7 +2313,7 @@ Plot a 2D histogram of the metallicity.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -2369,7 +2371,7 @@ Plot a 2D histogram of the metallicity.
 function metallicityMap(
     simulation_paths::Vector{String},
     slice::IndexType;
-    type_symbols::Vector{Symbol}=[:gas],
+    components::Vector{Symbol}=[:gas],
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
@@ -2396,9 +2398,9 @@ function metallicityMap(
 
     pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
 
-    @inbounds for type_symbol in type_symbols
+    @inbounds for component in components
 
-        if type_symbol == :gas
+        if component == :gas
 
             filter_function, translation, rotation, request = selectFilter(
                 filter_mode,
@@ -2409,7 +2411,7 @@ function metallicityMap(
                 ),
             )
 
-        elseif type_symbol == :stars
+        elseif component == :stars
 
             filter_function, translation, rotation, request = selectFilter(
                 filter_mode,
@@ -2418,8 +2420,8 @@ function metallicityMap(
 
         else
 
-            throw(ArgumentError("metallicityMap: I don't recognize the type_symbol \
-            :$(type_symbol)"))
+            throw(ArgumentError("metallicityMap: I don't recognize the component \
+            :$(component)"))
 
         end
 
@@ -2431,7 +2433,7 @@ function metallicityMap(
             @inbounds for projection_plane in projection_planes
 
                 # Construct the file name
-                base_filename = "$(sim_name)-$(type_symbol)-$(projection_plane)-metallicity_map"
+                base_filename = "$(sim_name)-$(component)-$(projection_plane)-metallicity_map"
 
                 snapshotPlot(
                     [simulation_path],
@@ -2448,7 +2450,7 @@ function metallicityMap(
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
                     da_functions=[daMetallicity2DProjection],
-                    da_args=[(grid, type_symbol)],
+                    da_args=[(grid, component)],
                     da_kwargs=[
                         (;
                             projection_plane,
@@ -2458,7 +2460,7 @@ function metallicityMap(
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
-                    pp_kwargs=(;),
+                    pp_kwargs=(; color=:white),
                     transform_box=true,
                     translation,
                     rotation,
@@ -2529,7 +2531,7 @@ Plot a 2D histogram of the temperature.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -2538,7 +2540,7 @@ Plot a 2D histogram of the temperature.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -2628,7 +2630,7 @@ function temperatureMap(
                 da_kwargs=[(; projection_plane, print_range)],
                 post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                 pp_args=(annotation,),
-                pp_kwargs=(;),
+                pp_kwargs=(; color=:white),
                 transform_box=true,
                 translation,
                 rotation,
@@ -2702,13 +2704,14 @@ Plot a 2D histogram of the density, with the velocity field.
       + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+  - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either :particles` or `:cells`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -2717,7 +2720,7 @@ Plot a 2D histogram of the density, with the velocity field.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -2750,6 +2753,7 @@ function densityMapVelField(
     simulation_paths::Vector{String},
     slice::IndexType;
     quantities::Vector{Symbol}=[:gas_mass],
+    types::Vector{Symbol}=[:cells],
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
@@ -2792,13 +2796,13 @@ function densityMapVelField(
             :ionized_mass,
             :neutral_mass,
         ]
-            type_symbol = :gas
+            component = :gas
         elseif quantity == :stellar_mass
-            type_symbol = :stars
+            component = :stars
         elseif quantity == :dm_mass
-            type_symbol = :halo
+            component = :halo
         elseif quantity == :bh_mass
-            type_symbol = :black_hole
+            component = :black_hole
         else
             throw(ArgumentError("densityMapVelField: `quantities` contains :$(quantity), \
             which is not a valid symbol. See the documentation for valid options."))
@@ -2829,14 +2833,14 @@ function densityMapVelField(
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
                     da_functions=[daDensity2DProjection, daVelocityField],
-                    da_args=[(grid_hm, quantity), (grid_vf, type_symbol)],
+                    da_args=[(grid_hm, quantity, ring(types, i)), (grid_vf, component)],
                     da_kwargs=[
                         (; projection_plane, print_range),
                         (; projection_plane),
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
-                    pp_kwargs=(;),
+                    pp_kwargs=(; color=:white),
                     transform_box=true,
                     translation,
                     rotation,
@@ -3000,7 +3004,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -3009,7 +3013,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -3150,7 +3154,7 @@ function atomicMolecularTransitionHeatmap(
         mergeRequests(
             x_plot_params.request,
             y_plot_params.request,
-            Dict(:gas => ["GZ  "], :stars => ["GZ2 "]),
+            Dict(:gas => ["GZ  ", "GMET"], :stars => ["GZ2 ", "GME2"]),
         ),
     )
 
@@ -3274,7 +3278,7 @@ function atomicMolecularTransitionScatter(
         mergeRequests(
             x_plot_params.request,
             y_plot_params.request,
-            Dict(:gas => ["GZ  "], :stars => ["GZ2 "]),
+            Dict(:gas => ["GZ  ", "GMET"], :stars => ["GZ2 ", "GME2"]),
         ),
     )
 
@@ -3505,7 +3509,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -3514,7 +3518,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -3650,7 +3654,7 @@ function scatterDensityMap(
             # `snapshotPlot` configuration
             output_path,
             base_filename,
-            output_format=".pdf",
+            output_format=".png",
             warnings=false,
             show_progress=true,
             # Data manipulation options
@@ -3689,7 +3693,7 @@ function scatterDensityMap(
             theme,
             sim_labels=nothing,
             title,
-            colorbar=false,
+            colorbar=true,
             # Animation options
             animation=false,
             animation_filename="animation.mp4",
@@ -3754,7 +3758,7 @@ Only for gas cells that have entered out routine.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -3763,7 +3767,7 @@ Only for gas cells that have entered out routine.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -3954,13 +3958,13 @@ Plot a time series.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3995,13 +3999,13 @@ Plot a time series.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -4027,7 +4031,7 @@ Plot a time series.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -4036,7 +4040,7 @@ Plot a time series.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4155,7 +4159,7 @@ Plot a time series of the gas components. Either their masses or their fractions
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -4164,7 +4168,7 @@ Plot a time series of the gas components. Either their masses or their fractions
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4368,7 +4372,7 @@ Plot a time series of the accreted mass into the disc.
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `max_r::Unitful.Length=FILTER_R`: Radius of the cylinder.
+  - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
   - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="./"`: Path to the output folder.
@@ -4378,7 +4382,7 @@ Plot a time series of the accreted mass into the disc.
 function discAccretionEvolution(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
-    max_r::Unitful.Length=FILTER_R,
+    max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     smooth::Int=0,
     output_path::String="./",
@@ -4449,14 +4453,14 @@ Plot the galaxy rotation curve of a set of simulations.
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `radius::Unitful.Length=FILTER_R`: Maximum radial distance for the rotation curve.
+  - `radius::Unitful.Length=DISK_R`: Maximum radial distance for the rotation curve.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -4465,7 +4469,7 @@ Plot the galaxy rotation curve of a set of simulations.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4485,7 +4489,7 @@ Plot the galaxy rotation curve of a set of simulations.
 function rotationCurve(
     simulation_paths::Vector{String},
     slice::IndexType;
-    radius::Unitful.Length=FILTER_R,
+    radius::Unitful.Length=DISK_R,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
@@ -4593,7 +4597,7 @@ Plot a density profile.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
+  - `radius::Unitful.Length=DISK_R`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -4601,7 +4605,7 @@ Plot a density profile.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -4610,7 +4614,7 @@ Plot a density profile.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4633,7 +4637,7 @@ function densityProfile(
     quantity::Symbol;
     cumulative::Bool=false,
     yscale::Function=identity,
-    radius::Unitful.Length=FILTER_R,
+    radius::Unitful.Length=DISK_R,
     n_bins::Int=100,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
@@ -4790,7 +4794,7 @@ Plot a density profile.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
+  - `radius::Unitful.Length=DISK_R`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -4798,7 +4802,7 @@ Plot a density profile.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -4807,7 +4811,7 @@ Plot a density profile.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4830,7 +4834,7 @@ function densityProfile(
     quantities::Vector{Symbol};
     cumulative::Bool=false,
     yscale::Function=identity,
-    radius::Unitful.Length=FILTER_R,
+    radius::Unitful.Length=DISK_R,
     n_bins::Int=100,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
@@ -4940,7 +4944,7 @@ Plot a mass profile.
       + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `radius::Unitful.Length=FILTER_R`: Radius of the profile.
+  - `radius::Unitful.Length=DISK_R`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -4948,7 +4952,7 @@ Plot a mass profile.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -4957,7 +4961,7 @@ Plot a mass profile.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4980,7 +4984,7 @@ function massProfile(
     quantities::Vector{Symbol};
     cumulative::Bool=false,
     yscale::Function=identity,
-    radius::Unitful.Length=FILTER_R,
+    radius::Unitful.Length=DISK_R,
     n_bins::Int=100,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
@@ -5100,7 +5104,7 @@ Plot a velocity profile.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -5109,7 +5113,7 @@ Plot a velocity profile.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5140,7 +5144,7 @@ function velocityProfile(
     plot_params = plotParams(component)
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
-    grid = CircularGrid(FILTER_R, 25)
+    grid = CircularGrid(DISK_R, 25)
 
     # Draw the figures with CairoMakie
     snapshotPlot(
@@ -5229,7 +5233,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -5238,7 +5242,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5355,7 +5359,7 @@ Plot a histogram of the stellar circularity.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -5364,7 +5368,7 @@ Plot a histogram of the stellar circularity.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5492,7 +5496,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -5501,7 +5505,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5618,7 +5622,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
       + `:stellar_area_density`   -> Stellar area mass density.
       + `:molecular_area_density` -> Molecular hydrogen area mass density.
       + `:atomic_area_density`    -> Atomic hydrogen area mass density.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION`.
       + `:O_stellar_abundance`    -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
       + `:N_stellar_abundance`    -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`    -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
@@ -5628,7 +5632,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -5637,7 +5641,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5759,30 +5763,31 @@ function compareMolla2015(
 end
 
 """
-    compareKennicuttBigielResolved(
+    resolvedKennicuttSchmidtLaw(
         simulation_paths::Vector{String},
-        slice::IndexType;
+        slice::Union{Integer,UnitRange{<:Integer},StepRange{<:Integer,<:Integer},Vector{<:Integer}};
         <keyword arguments>
     )::Nothing
 
-Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`. This method plots the KS relation using cylindrical bins at a fix moment in time.
+Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`. This method plots the KS relation at a fix moment in time.
 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The options are:
+  - `slice::Union{Integer,UnitRange{<:Integer},StepRange{<:Integer,<:Integer},Vector{<:Integer}}`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13) or an `StepRange` (e.g. 5:2:13). Starts at 1 and out of bounds indices are ignored.
+  - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
-  - `output_path::String="./"`: Path to the output folder.
+      + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+  - `output_path::String="./resolvedKennicuttSchmidtLaw"`: Path to the output folder.
+  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or `:cells`.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -5791,7 +5796,7 @@ Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5805,7 +5810,6 @@ Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
@@ -5814,73 +5818,126 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-function compareKennicuttBigielResolved(
+function resolvedKennicuttSchmidtLaw(
     simulation_paths::Vector{String},
-    slice::IndexType;
-    quantity::Symbol=:molecular_area_density,
-    output_path::String="./",
+    slice::Union{Integer,UnitRange{<:Integer},StepRange{<:Integer,<:Integer},Vector{<:Integer}};
+    quantity::Symbol=:molecular_mass,
+    type::Symbol=:cells,
+    output_path::String="./resolvedKennicuttSchmidtLaw",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(25u"kpc", 250)
+    grid = CubicGrid(65.0u"kpc", 300)
 
-    if quantity == :gas_area_density
+    (
+        quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
+        throw(ArgumentError("resolvedKennicuttSchmidtLaw: `quantity` can only be :gas_mass, \
+        :molecular_mass or :neutral_mass, but I got :$(quantity)"))
+    )
 
-        post_processing = ppKennicutt1998!
-        pp_args = ()
-        filename = "Kennicutt1998"
+    # Set a temporal folder for the JLD2 files
+    temp_folder = joinpath(output_path, "_resolvedKennicuttSchmidtLaw")
 
-    else
+    # Write the JLD2 files with the density maps
+    for (qty, type) in zip([:stellar_mass, quantity], [:particles, type])
 
-        post_processing = ppBigiel2008!
-        pp_args = (quantity,)
-        filename = "Bigiel2008"
+        filter_function, translation, rotation, request = selectFilter(
+            filter_mode,
+            plotParams(qty).request,
+        )
+
+        snapshotPlot(
+            simulation_paths,
+            request,
+            [heatmap!];
+            pf_kwargs=[(;)],
+            # `snapshotPlot` configuration
+            output_path=temp_folder,
+            base_filename=string(qty),
+            output_format=".png",
+            warnings=false,
+            show_progress=true,
+            # Data manipulation options
+            slice,
+            filter_function,
+            da_functions=[daDensity2DProjection],
+            da_args=[(grid, qty, type)],
+            da_kwargs=[(; filter_function=dd->filterStellarAge(dd))],
+            post_processing=getNothing,
+            pp_args=(),
+            pp_kwargs=(;),
+            transform_box=true,
+            translation,
+            rotation,
+            smooth=0,
+            x_unit=u"kpc",
+            y_unit=u"kpc",
+            x_exp_factor=0,
+            y_exp_factor=0,
+            x_trim=(-Inf, Inf),
+            y_trim=(-Inf, Inf),
+            x_edges=false,
+            y_edges=false,
+            x_func=identity,
+            y_func=identity,
+            # Axes options
+            xaxis_label="auto_label",
+            yaxis_label="auto_label",
+            xaxis_var_name="x",
+            yaxis_var_name="y",
+            xaxis_scale_func=identity,
+            yaxis_scale_func=identity,
+            # Plotting options
+            save_figures=false,
+            backup_results=true,
+            theme=Theme(),
+            sim_labels=nothing,
+            title="",
+            colorbar=false,
+            # Animation options
+            animation=false,
+            animation_filename="animation.mp4",
+            framerate=15,
+        )
 
     end
 
-    x_plot_params = plotParams(quantity)
-    y_plot_params = plotParams(:sfr_area_density)
-
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        mergeRequests(x_plot_params.request, y_plot_params.request),
+        mergeRequests(
+            plotParams(:gas_metallicity).request,
+            plotParams(:gas_mass_density).request,
+        ),
     )
 
+    # Write the JLD2 file with the metallicity density
     snapshotPlot(
         simulation_paths,
         request,
-        [scatter!];
+        [heatmap!];
         pf_kwargs=[(;)],
         # `snapshotPlot` configuration
-        output_path,
-        base_filename="sfr_area_density-vs-$(quantity)-with-$(filename)",
-        output_format=".pdf",
+        output_path=temp_folder,
+        base_filename="gas_metallicity",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
         filter_function,
-        da_functions=[daKennicuttSchmidtLaw],
-        da_args=[(grid, quantity)],
+        da_functions=[daMetallicity2DProjection],
+        da_args=[(grid, :gas)],
         da_kwargs=[(;)],
-        post_processing,
-        pp_args,
-        pp_kwargs=(;
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_log=false,
-            y_log=false,
-            color=:red,
-            linestyle=nothing,
-        ),
+        post_processing=getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
         transform_box=true,
         translation,
         rotation,
         smooth=0,
-        x_unit=x_plot_params.unit,
-        y_unit=y_plot_params.unit,
+        x_unit=u"kpc",
+        y_unit=u"kpc",
         x_exp_factor=0,
         y_exp_factor=0,
         x_trim=(-Inf, Inf),
@@ -5890,26 +5947,192 @@ function compareKennicuttBigielResolved(
         x_func=identity,
         y_func=identity,
         # Axes options
-        xaxis_label=x_plot_params.axis_label,
-        yaxis_label=y_plot_params.axis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
-        xaxis_scale_func=log10,
-        yaxis_scale_func=log10,
-        # Plotting and animation options
-        save_figures=true,
-        backup_results=false,
-        theme=merge(theme, Theme(size=(850, 850),)),
-        sim_labels,
+        xaxis_label="auto_label",
+        yaxis_label="auto_label",
+        xaxis_var_name="x",
+        yaxis_var_name="y",
+        xaxis_scale_func=identity,
+        yaxis_scale_func=identity,
+        # Plotting options
+        save_figures=false,
+        backup_results=true,
+        theme=Theme(),
+        sim_labels=nothing,
         title="",
         colorbar=false,
         # Animation options
         animation=false,
         animation_filename="animation.mp4",
-        framerate=10,
+        framerate=15,
     )
 
-    return nothing
+    # Choose the correct x label
+    if quantity == :gas_mass
+
+        x_label = getLabel(
+            plotParams(:gas_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :molecular_mass
+
+        x_label = getLabel(
+            plotParams(:molecular_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :neutral_mass
+
+        x_label = getLabel(
+            plotParams(:neutral_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    end
+
+    # Set the y label
+    y_label = getLabel(
+        plotParams(:sfr_area_density).var_name,
+        0,
+        u"Msun * yr^-1 * kpc^-2";
+        latex=true,
+    )
+
+    with_theme(merge(theme, theme_latexfonts(), DEFAULT_THEME)) do
+
+        for (sim_idx, simulation) in pairs(simulation_paths)
+
+            simulation_table = makeSimulationTable(simulation; warnings=true)
+            sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
+            times            = ustrip.(u"Gyr", simulation_table[slice, :physical_times])
+            snapshot_numbers = simulation_table[slice, :numbers]
+
+            for (time, snapshot_number) in zip(times, snapshot_numbers)
+
+                f = Figure(size=(880, 750), figure_padding=(1, 1, 1, 10))
+
+                ax = CairoMakie.Axis(
+                    f[1, 1];
+                    xlabel=L"$\log_{10}$ %$(x_label)",
+                    ylabel=L"$\log_{10}$ %$(y_label)",
+                    aspect=AxisAspect(1),
+                )
+
+                x_address = "$(quantity)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                y_address = "stellar_mass-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                z_address = "gas_metallicity-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+
+                jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r") do x_file
+
+                    jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r") do y_file
+
+                        jldopen(joinpath(temp_folder, "gas_metallicity.jld2"), "r") do z_file
+
+                            # Read the JLD2 files
+                            x_data = vec(x_file[x_address][3])
+                            y_data = vec(y_file[y_address][3])
+                            z_data = vec(z_file[z_address][3])
+
+                            # Delete 0s and NaNs in the data vectors
+                            x_idxs = map(x -> isnan(x) || iszero(x), x_data)
+                            y_idxs = map(x -> isnan(x) || iszero(x), y_data)
+                            z_idxs = map(x -> isnan(x) || iszero(x), z_data)
+
+                            deleteat!(x_data, x_idxs ∪ y_idxs ∪ z_idxs)
+                            deleteat!(y_data, x_idxs ∪ y_idxs ∪ z_idxs)
+                            deleteat!(z_data, x_idxs ∪ y_idxs ∪ z_idxs)
+
+                            scatter!(
+                                ax,
+                                x_data,
+                                y_data .- log10(ustrip(u"yr", AGE_RESOLUTION));
+                                markersize=6,
+                                color=z_data,
+                                colormap=:nipy_spectral,
+                            )
+
+                        end
+
+                    end
+
+                end
+
+                # Print the colorbar
+                Colorbar(
+                    f[1, 2],
+                    label=L"$\log_{10}$ %$(plotParams(:gas_metallicity).var_name)",
+                    labelsize=25,
+                    ticklabelsize=25,
+                    labelpadding=4,
+                    colormap=:nipy_spectral,
+                )
+
+                ppAnnotation!(f, L"t = %$(rpad(round(time, sigdigits=3), 4, '0')) \, \mathrm{Gyr}")
+
+                if quantity == :gas_mass
+
+                    ppKennicutt1998!(
+                        f;
+                        x_unit=u"Msun * kpc^-2",
+                        y_unit=u"Msun * yr^-1 * kpc^-2",
+                        x_log=true,
+                        y_log=true,
+                        color=:red,
+                        linestyle=nothing,
+                        warnings=true,
+                    )
+
+                elseif quantity == :molecular_mass
+
+                    ppBigiel2008!(
+                        f,
+                        :molecular_area_density;
+                        x_unit=u"Msun * kpc^-2",
+                        y_unit=u"Msun * yr^-1 * kpc^-2",
+                        x_log=true,
+                        y_log=true,
+                        color=:red,
+                        linestyle=nothing,
+                        warnings=true,
+                    )
+
+                elseif quantity == :neutral_mass
+
+                    ppBigiel2008!(
+                        f,
+                        :neutral_area_density;
+                        x_unit=u"Msun * kpc^-2",
+                        y_unit=u"Msun * yr^-1 * kpc^-2",
+                        x_log=true,
+                        y_log=true,
+                        color=:red,
+                        linestyle=nothing,
+                        warnings=true,
+                    )
+
+                end
+
+                rowsize!(f.layout, 1, Makie.Fixed(pixelarea(ax.scene)[].widths[2]))
+
+                path = mkpath(
+                    joinpath(output_path, basename(simulation), string(quantity)),
+                )
+
+                Makie.save(joinpath(path, "$(snapshot_number).png"), f)
+
+            end
+
+        end
+
+    end
+
+    rm(temp_folder; recursive=true)
 
 end
 
@@ -5928,16 +6151,16 @@ Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (19
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The options are:
 
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`. This one will be plotted with the results of Bigiel et al. (2008).
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -5946,7 +6169,7 @@ Plot the integrated Kennicutt-Schmidt relation plus the results of Kennicutt (19
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -6042,7 +6265,7 @@ function compareKennicuttBigielIntegrated(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=merge(theme, Theme(size=(850,850),)),
+        theme=merge(theme, Theme(size=(850, 850),)),
         sim_labels,
         title="",
     )
@@ -6066,9 +6289,9 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The options are:
 
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`. This one will be plotted with the results of Bigiel et al. (2008).
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -6076,7 +6299,7 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `FILTER_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -6085,7 +6308,7 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:stellar_cm`                 -> Selects the stellar center of mass as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.

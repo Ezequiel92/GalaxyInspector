@@ -5,7 +5,7 @@
 """
     computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
-Read the position of the potencial minimum for a given halo or subhalo.
+Read the position of the potencial minimum of a given halo or subhalo.
 
 # Arguments
 
@@ -89,7 +89,7 @@ end
 """
     computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Length}
 
-Read the position of the potencial minimum for a given subhalo.
+Read the position of the potencial minimum of a given subhalo.
 
 # Arguments
 
@@ -140,7 +140,7 @@ end
 """
     computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Length}
 
-Compute a characteristic center of mass for the system.
+Compute a characteristic center for the system.
 
 # Arguments
 
@@ -159,9 +159,9 @@ Compute a characteristic center of mass for the system.
       + ...
   - `cm_type::Symbol`: It can be:
 
-      + `:global_cm`  -> Center of mass of the whole system.
-      + `:stellar_cm` -> Stellar center of mass.
-      + `:zero`       -> Origin.
+      + `:global_cm`   -> Center of mass of the whole system.
+      + `:{component}` -> Center of mass of the given component (e.g. :stars, :gas, :halo, etc). It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+      + `:zero`        -> Origin.
 
 # Returns
 
@@ -173,9 +173,9 @@ function computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Lengt
 
         return computeGlobalCenterOfMass(data_dict)
 
-    elseif cm_type == :stellar_cm
+    elseif cm_type ∈ keys(PARTICLE_INDEX)
 
-        return computeCenterOfMass(data_dict[:stars]["POS "], data_dict[:stars]["MASS"])
+        return computeCenterOfMass(data_dict[cm_type]["POS "], data_dict[cm_type]["MASS"])
 
     elseif cm_type == :zero
 
@@ -183,15 +183,15 @@ function computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Lengt
 
     end
 
-    throw(ArgumentError("computeCenter: `cm_type` can only be :global_cm, :stellar_cm or :zero \
-    but I got :$(cm_type)"))
+    throw(ArgumentError("computeCenter: `cm_type` can only be :global_cm, :zero or one of the keys \
+    of `PARTICLE_INDEX` but I got :$(center_type)"))
 
 end
 
 """
     computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Velocity}
 
-Read the velocity of the center of mass for a given halo or subhalo.
+Read the velocity of the center of mass of a given halo or subhalo.
 
 # Arguments
 
@@ -275,7 +275,7 @@ end
 """
     computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Velocity}
 
-Read the velocity of the center of mass for a given subhalo.
+Read the velocity of the center of mass of a given subhalo.
 
 # Arguments
 
@@ -326,7 +326,7 @@ end
 """
     computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
 
-Compute the velocity of a characteristic center of mass for the system.
+Compute the velocity of a characteristic center of the system.
 
 # Arguments
 
@@ -345,8 +345,9 @@ Compute the velocity of a characteristic center of mass for the system.
       + ...
   - `cm_type::Symbol`: It can be:
 
-      + `:global_cm`  -> Center of mass of the whole system.
-      + `:stellar_cm` -> Stellar center of mass.
+      + `:global_cm`   -> Center of mass of the whole system.
+      + `:{component}` -> Center of mass of the given component (e.g. :stars, :gas, :halo, etc). It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+      + `:zero`        -> Origin.
 
 # Returns
 
@@ -358,18 +359,18 @@ function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity
 
         return computeGlobalVcm(data_dict)
 
-    elseif cm_type == :stellar_cm
+    elseif cm_type ∈ keys(PARTICLE_INDEX)
 
-        return computeStellarVcm(data_dict)
+        return computeComponentVcm(data_dict, cm_type)
 
     elseif cm_type == :zero
 
-        return zeros(1.0u"km*s^-1", 3)
+        return zeros(typeof(1.0u"km*s^-1"), 3)
 
     end
 
-    throw(ArgumentError("computeVcm: `cm_type` can only be :global_cm, :stellar_cm or :zero \
-    but I got :$(center_type)"))
+    throw(ArgumentError("computeVcm: `cm_type` can only be :global_cm, :zero or one of the keys of \
+    `PARTICLE_INDEX` but I got :$(center_type)"))
 
 end
 
@@ -508,7 +509,6 @@ end
 
 """
     computeTemperature(
-        metals::Matrix{Float32},
         internal_energy::Vector{<:SpecificEnergy},
         electron_fraction::Vector{Float32},
     )::Vector{<:Unitful.Temperature}
@@ -517,7 +517,6 @@ Compute the gas temperature of a group of gas cells.
 
 # Arguments
 
-  - `metals::Matrix{Float32}`: Matrix with the mass content for every tracked element. Each row is an element, and each column a cell.
   - `internal_energy::Vector{<:SpecificEnergy}`: Specific internal energy of every gas cell.
   - `electron_fraction::Vector{Float32}`: Number fraction of electrons in every gas cell.
 
@@ -526,14 +525,12 @@ Compute the gas temperature of a group of gas cells.
   - The temperature of each gas cell.
 """
 function computeTemperature(
-    metals::Matrix{Float32},
     internal_energy::Vector{<:SpecificEnergy},
     electron_fraction::Vector{Float32},
 )::Vector{<:Unitful.Temperature}
 
     # xH := mass_fraction_of_hydrogen
-    # It should be similar to the constant [`HYDROGEN_MASSFRAC`](@ref) used in Arepo
-    xH = metals[ELEMENT_INDEX[:H], :]
+    xH = HYDROGEN_MASSFRAC
 
     # yHe := number_of_helium_atoms / number_of_hydrogen_atoms
     # Take the mass fraction of metals as negligible
@@ -654,18 +651,18 @@ Compute the center of mass of the whole system in `data`.
 """
 function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
 
-    type_symbols = snapshotTypes(data_dict)
+    components = snapshotTypes(data_dict)
 
-    filter!(ts -> !isempty(data_dict[ts]["POS "]), type_symbols)
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), components)
 
     # Concatenate the position and masses of all the cells and particles in the system
-    positions = hcat([data_dict[type_symbol]["POS "] for type_symbol in type_symbols]...)
-    masses    = vcat([data_dict[type_symbol]["MASS"] for type_symbol in type_symbols]...)
+    positions = hcat([data_dict[component]["POS "] for component in components]...)
+    masses    = vcat([data_dict[component]["MASS"] for component in components]...)
 
     # Check for missing data
     !any(isempty, [positions, masses]) || return zeros(typeof(1.0u"kpc"), 3)
 
-    @debug("computeGlobalCenterOfMass: The center of mass will be computed using $(type_symbols)")
+    @debug("computeGlobalCenterOfMass: The center of mass will be computed using $(components)")
 
     return computeCenterOfMass(positions, masses)
 
@@ -774,7 +771,7 @@ end
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will turn the pricipal axis into the new coordinate system; when view as an pasive (alias) trasformation.
+Compute the rotation matrix that will turn the pricipal axis into the new coordinate system; when view as an passive (alias) trasformation.
 
 # Arguments
 
@@ -856,20 +853,20 @@ Compute the rotation matrix that will turn the total angular momentum, of the wh
 """
 function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
 
-    type_symbols = snapshotTypes(data_dict)
+    components = snapshotTypes(data_dict)
 
-    filter!(ts -> !isempty(data_dict[ts]["POS "]), type_symbols)
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), components)
 
     # Concatenate the positions, velocities, and masses of all the cells and particles in the system
-    positions  = hcat([data_dict[type_symbol]["POS "] for type_symbol in type_symbols]...)
-    velocities = hcat([data_dict[type_symbol]["VEL "] for type_symbol in type_symbols]...)
-    masses     = vcat([data_dict[type_symbol]["MASS"] for type_symbol in type_symbols]...)
+    positions  = hcat([data_dict[component]["POS "] for component in components]...)
+    velocities = hcat([data_dict[component]["VEL "] for component in components]...)
+    masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
     # Check for missing data
     !any(isempty, [positions, velocities, masses]) || return I
 
     @debug("computeGlobalAMRotationMatrix: The rotation matrix will be computed \
-    using $(type_symbols)")
+    using $(components)")
 
     return computeAMRotationMatrix(positions, velocities, masses)
 
@@ -977,20 +974,20 @@ Compute the total angular momentum with respect to the origin of the whole syste
 """
 function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vector{<:Number}
 
-    type_symbols = snapshotTypes(data_dict)
+    components = snapshotTypes(data_dict)
 
-    filter!(ts -> !isempty(data_dict[ts]["POS "]), type_symbols)
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), components)
 
     # Concatenate the position, velocities, and masses of all the cells and particles in the system
-    positions  = hcat([data_dict[type_symbol]["POS "] for type_symbol in type_symbols]...)
-    velocities = hcat([data_dict[type_symbol]["VEL "] for type_symbol in type_symbols]...)
-    masses     = vcat([data_dict[type_symbol]["MASS"] for type_symbol in type_symbols]...)
+    positions  = hcat([data_dict[component]["POS "] for component in components]...)
+    velocities = hcat([data_dict[component]["VEL "] for component in components]...)
+    masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
     # Check for missing data
     !any(isempty, [positions, velocities, masses]) || return [0.0, 0.0, 1.0]
 
     @debug("computeGlobalAngularMomentum: The angular momentum will be computed \
-    using $(type_symbols)")
+    using $(components)")
 
     return computeTotalAngularMomentum(positions, velocities, masses; normal)
 
@@ -1039,7 +1036,7 @@ is the circular velocity.
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
-  - `R::Unitful.Length=FILTER_R`: Radius.
+  - `R::Unitful.Length=DISK_R`: Radius.
 
 # Returns
 
@@ -1057,7 +1054,7 @@ function computeSpinParameter(
     positions::Matrix{<:Unitful.Length},
     velocities::Matrix{<:Unitful.Velocity},
     masses::Vector{<:Unitful.Mass};
-    R::Unitful.Length=FILTER_R,
+    R::Unitful.Length=DISK_R,
 )::Float64
 
     (
@@ -1106,24 +1103,24 @@ Compute the spin parameter of the whole system in `data`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `R::Unitful.Length=FILTER_R`: Radius.
+  - `R::Unitful.Length=DISK_R`: Radius.
 
 # Returns
 
   - The spin parameter.
 """
-function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=FILTER_R)::Float64
+function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R)::Float64
 
-    type_symbols = snapshotTypes(data_dict)
+    components = snapshotTypes(data_dict)
 
-    filter!(ts -> !isempty(data_dict[ts]["POS "]), type_symbols)
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), components)
 
     # Concatenate the position and masses of all the cells and particles in the system
-    positions  = hcat([data_dict[type_symbol]["POS "] for type_symbol in type_symbols]...)
-    velocities = hcat([data_dict[type_symbol]["VEL "] for type_symbol in type_symbols]...)
-    masses     = vcat([data_dict[type_symbol]["MASS"] for type_symbol in type_symbols]...)
+    positions  = hcat([data_dict[component]["POS "] for component in components]...)
+    velocities = hcat([data_dict[component]["VEL "] for component in components]...)
+    masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
-    @debug("computeGlobalSpinParameter: The spin parameter will be computed using $(type_symbols)")
+    @debug("computeGlobalSpinParameter: The spin parameter will be computed using $(components)")
 
     # Compute the total spin parameter
     return computeSpinParameter(positions, velocities, masses; R)
@@ -1131,9 +1128,9 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=FILTER_R)
 end
 
 """
-    computeStellarVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
+    computeComponentVcm(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Velocity}
 
-Compute the velocity of the stellar center of mass.
+Compute the velocity of the given component center of mass.
 
 # Arguments
 
@@ -1150,19 +1147,20 @@ Compute the velocity of the stellar center of mass.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - `component::Symbol`: Target component, it can be any of the keys of [`PARTICLE_INDEX`](@ref).
 
 # Returns
 
   - The velocity of the stellar center of mass.
 """
-function computeStellarVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
+function computeComponentVcm(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Velocity}
 
     # Load the necessary data
-    velocities = data_dict[:stars]["VEL "]
-    masses = data_dict[:stars]["MASS"]
+    velocities = data_dict[component]["VEL "]
+    masses     = data_dict[component]["MASS"]
 
     # Check for missing data
-    !any(isempty, [velocities, masses]) || return zeros(typeof(1.0u"km/s"), 3)
+    !any(isempty, [velocities, masses]) || return zeros(typeof(1.0u"km*s^-1"), 3)
 
     # Compute the total mass
     M = sum(masses)
@@ -1201,16 +1199,16 @@ Compute the velocity of the global center of mass.
 """
 function computeGlobalVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
 
-    type_symbols = snapshotTypes(data_dict)
+    components = snapshotTypes(data_dict)
 
-    filter!(ts -> !isempty(data_dict[ts]["VEL "]), type_symbols)
+    filter!(ts -> !isempty(data_dict[ts]["VEL "]), components)
 
     # Load the necessary data
-    velocities = hcat([data_dict[type_symbol]["VEL "] for type_symbol in type_symbols]...)
-    masses     = vcat([data_dict[type_symbol]["MASS"] for type_symbol in type_symbols]...)
+    velocities = hcat([data_dict[component]["VEL "] for component in components]...)
+    masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
     # Check for missing data
-    !any(isempty, [velocities, masses]) || return zeros(typeof(1.0u"km/s"), 3)
+    !any(isempty, [velocities, masses]) || return zeros(typeof(1.0u"km*s^-1"), 3)
 
     # Compute the total mass
     M = sum(masses)
@@ -1223,19 +1221,20 @@ function computeGlobalVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
 end
 
 @doc raw"""
-    computeStellarVcirc(
-        data_dict::Dict,
+    computeVcirc(
+        data_dict::Dict;
+        <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
-Compute the circular velocity of each stellar particle, with respect to the origin.
+Compute the circular velocity of each particle of the given type, with respect to the origin.
 
-The circular velocity of a star is,
+The circular velocity of a particle is,
 
 ```math
 v_\mathrm{circ} = \sqrt{\frac{\mathrm{G} \, M(r)}{r}} \, ,
 ```
 
-where $r$ is the radial distance of the star, and $M(r)$ is the total mass within a sphere of radius $r$.
+where $r$ is the radial distance of the particle, and $M(r)$ is the total mass within a sphere of radius $r$.
 
 # Arguments
 
@@ -1252,48 +1251,50 @@ where $r$ is the radial distance of the star, and $M(r)$ is the total mass withi
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - `type::Symbol=:stars`: Target component.
 
 # Returns
 
   - A tuple with two elements:
 
-      + A vector with the radial distance of each star to the origin.
-      + A vector with the circular velocity of each star.
+      + A vector with the radial distance of each particle to the origin.
+      + A vector with the circular velocity of each particle.
 """
-function computeStellarVcirc(
-    data_dict::Dict,
+function computeVcirc(
+    data_dict::Dict;
+    type::Symbol=:stars,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
-    # Compute the radial distance to each star
-    rs = computeDistance(data_dict[:stars]["POS "])
+    # Compute the radial distance to each particle
+    rs = computeDistance(data_dict[type]["POS "])
 
     # Check for missing data
     !isempty(rs) || return rs, Unitful.Velocity[]
 
-    type_symbols = filter!(
+    pc_types = filter!(
         ts -> !isempty(data_dict[ts]["POS "]),
         [:stars, :gas, :halo, :black_hole],
     )
 
     # Concatenate the position and masses of all the cells and particles in the system
     distances = vcat(
-        [computeDistance(data_dict[type_symbol]["POS "]) for
-        type_symbol in type_symbols]...,
+        [computeDistance(data_dict[component]["POS "]) for
+        component in components]...,
     )
-    masses = vcat([data_dict[type_symbol]["MASS"] for type_symbol in type_symbols]...)
+    masses = vcat([data_dict[component]["MASS"] for component in components]...)
 
     # Use the radial distances as bin edges for the mass histogram
     edges = [0.0u"kpc", rs...]
 
-    # Compute to total mass within each stellar radial distance
+    # Compute to total mass within each particle radial distance
     M = similar(rs, eltype(masses))
     cumsum!(M, histogram1D(distances, masses, edges; empty_nan=false))
 
     # The mass histogram is a sorted array, so it is reverted to the unsorted order of `r`
-    # to make `vcirc` the circular velocity of each star in the order of the snapshot
+    # to make `vcirc` the circular velocity of each particle in the order of the snapshot
     invpermute!(M, sortperm(rs))
 
-    @debug("computeStellarVcirc: The circular velocity will be computed using $(type_symbols)")
+    @debug("computeVcirc: The circular velocity will be computed using $(components)")
 
     vcirc = [iszero(r) ? 0.0u"km*s^-1" : sqrt(Unitful.G * m / r) for (m, r) in zip(M, rs)]
 
@@ -1302,11 +1303,11 @@ function computeStellarVcirc(
 end
 
 @doc raw"""
-    computeStellarCircularity(data_dict::Dict)::Vector{Float64}
+    computeCircularity(data_dict::Dict; <keyword arguments>)::Vector{Float64}
 
-Compute the circularity of each stellar particle, with respect to the origin and the $z$ direction [0, 0, 1].
+Compute the circularity of each particle of the given type, with respect to the origin and the $z$ direction [0, 0, 1].
 
-The circularity of a star is,
+The circularity of a particle is,
 
 ```math
 \epsilon = j_z / j_\mathrm{circ} \, ,
@@ -1318,7 +1319,7 @@ where $j_z$ is the $z$ component of its specific angular momentum, and $j_\mathr
 j_\mathrm{circ} = r \, v_\mathrm{circ} = \sqrt{\mathrm{G} \, r \, M(r)} \, ,
 ```
 
-where $r$ is the radial distance of the star, and $M(r)$ is the total mass within a sphere of radius $r$.
+where $r$ is the radial distance of the particle, and $M(r)$ is the total mass within a sphere of radius $r$.
 
 # Arguments
 
@@ -1335,16 +1336,17 @@ where $r$ is the radial distance of the star, and $M(r)$ is the total mass withi
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - `type::Symbol=:stars`: Target component.
 
 # Returns
 
-  - The circularity $\epsilon$ of each star.
+  - The circularity $\epsilon$ of each particle.
 """
-function computeStellarCircularity(data_dict::Dict)::Vector{Float64}
+function computeCircularity(data_dict::Dict; type::Symbol=:stars)::Vector{Float64}
 
     # Load the necessary data
-    positions = data_dict[:stars]["POS "]
-    velocities = data_dict[:stars]["VEL "]
+    positions  = data_dict[type]["POS "]
+    velocities = data_dict[type]["VEL "]
 
     # Check for missing data
     !any(isempty, [positions, velocities]) || return Float64[]
@@ -1353,7 +1355,7 @@ function computeStellarCircularity(data_dict::Dict)::Vector{Float64}
     jzs = [x[1] * v[2] - x[2] * v[1] for (x, v) in zip(eachcol(positions), eachcol(velocities))]
 
     # Compute the circular velocities and the radial distances
-    rs, vcircs = computeStellarVcirc(data_dict)
+    rs, vcircs = computeVcirc(data_dict; type)
 
     stellar_circularity = [
         any(iszero, [r, vcirc]) ? 0.0 : ustrip(Unitful.NoUnits, jz / (r * vcirc)) for
@@ -1365,7 +1367,11 @@ function computeStellarCircularity(data_dict::Dict)::Vector{Float64}
 end
 
 @doc raw"""
-    computeStellarVpolar(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Velocity}
+    computeVpolar(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Vector{<:Unitful.Velocity}
 
 Compute the cylindrical components of the velocity, $\mathbf{\vec{v}} = v_r \, \mathbf{e_r} + v_\theta \, \mathbf{e_\theta} + v_z \, \mathbf{e_z}$.
 
@@ -1409,16 +1415,21 @@ in order to distinguish between inflows ($v^*_z < 0$) and outflows ($v^*_z > 0$)
       + `:radial`     -> Stellar radial speed ($v_r$).
       + `:tangential` -> Stellar tangential speed ($v_\theta$).
       + `:zstar`      -> Stellar speed in the z direction, computed as $v_z \, \mathrm{sign}(z)$.
+  - `type::Symbol=:stars`: Target cell/particle type.
 
 # Returns
 
   - The chosen cylindricall component of the velocity.
 """
-function computeStellarVpolar(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Velocity}
+function computeVpolar(
+    data_dict::Dict,
+    component::Symbol;
+    type::Symbol=:stars,
+)::Vector{<:Unitful.Velocity}
 
     # Load the necessary data
-    positions = data_dict[:stars]["POS "]
-    velocities = data_dict[:stars]["VEL "]
+    positions = data_dict[type]["POS "]
+    velocities = data_dict[type]["VEL "]
 
     x = positions[1, :]
     y = positions[2, :]
@@ -1445,7 +1456,7 @@ function computeStellarVpolar(data_dict::Dict, component::Symbol)::Vector{<:Unit
 
     else
 
-        throw(ArgumentError("computeStellarVpolar: `component` can only be :radial, :tangential \
+        throw(ArgumentError("computeVpolar: `component` can only be :radial, :tangential \
         or :zstar, but I got :$(component)"))
 
     end
@@ -1652,7 +1663,7 @@ function computeMassFraction(
 end
 
 """
-    computeMetalMass(data_dict::Dict, type_symbol::Symbol)::Vector{<:Unitful.Mass}
+    computeMetalMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
 Compute the total mass of metals (elements above helium) in each cell/particle.
 
@@ -1671,29 +1682,50 @@ Compute the total mass of metals (elements above helium) in each cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `type_symbol::Symbol`: For which cell/particle type the metal mass will be calculated. The possibilities are `:stars` and `:gas`.
+  - `component::Symbol`: For which cell/particle type the metal mass will be calculated. The possibilities are `:stars` and `:gas`.
 
 # Returns
 
   - The total metal mass in each cell/particle.
 """
-function computeMetalMass(data_dict::Dict, type_symbol::Symbol)::Vector{<:Unitful.Mass}
+function computeMetalMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
-    if type_symbol == :gas
-        return setPositive(data_dict[:gas]["GZ  "]) .* data_dict[:gas]["MASS"]
-    elseif type_symbol == :stars
-        return setPositive(data_dict[:stars]["GZ2 "]) .* data_dict[:stars]["MASS"]
+    if CODEBASE == :arepo
+
+        if component == :gas
+            metals = setPositive(data_dict[:gas]["GZ  "]) .* data_dict[:gas]["MASS"]
+        elseif component == :stars
+            metals = setPositive(data_dict[:stars]["GZ2 "]) .* data_dict[:stars]["MASS"]
+        else
+            throw(ArgumentError("computeMetalMass: `component` can only be :stars or :gas, \
+            but I got :$(component)"))
+        end
+
+    elseif CODEBASE == :opengadget3
+
+        if component == :gas
+            metals = sum(setPositive(data_dict[:gas]["GMET"][METAL_LIST, :]); dims=1)
+        elseif component == :stars
+            metals = sum(setPositive(data_dict[:stars]["GME2"][METAL_LIST, :]); dims=1)
+        else
+            throw(ArgumentError("computeMetalMass: `component` can only be :stars or :gas, \
+            but I got :$(component)"))
+        end
+
     else
-        throw(ArgumentError("computeMetalMass: `type_symbol` can only be :stars or :gas, \
-        but I got :$(type_symbol)"))
+
+        throw(ArgumentError("computeMetalMass: I don't recognize the codebase :$(CODEBASE)"))
+
     end
+
+    return metals
 
 end
 
 """
     computeElementMass(
         data_dict::Dict,
-        type_symbol::Symbol,
+        component::Symbol,
         element::Symbol,
     )::Vector{<:Unitful.Mass}
 
@@ -1714,7 +1746,7 @@ Compute the total mass of `element` in each cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `type_symbol::Symbol`: For which cell/particle type the element mass will be calculated. The possibilities are `:stars` and `:gas`.
+  - `component::Symbol`: For which cell/particle type the element mass will be calculated. The possibilities are `:stars` and `:gas`.
   - `element::Symbol`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
 
 # Returns
@@ -1723,7 +1755,7 @@ Compute the total mass of `element` in each cell/particle.
 """
 function computeElementMass(
     data_dict::Dict,
-    type_symbol::Symbol,
+    component::Symbol,
     element::Symbol,
 )::Vector{<:Unitful.Mass}
 
@@ -1733,29 +1765,37 @@ function computeElementMass(
         the options are the keys of `ELEMENT_INDEX`, see `./src/constants.jl`"))
     )
 
-    if type_symbol == :gas
+    if component == :gas
         z_block = "GMET"
-    elseif type_symbol == :stars
+    elseif component == :stars
         z_block = "GME2"
     else
-        throw(ArgumentError("computeElementMass: `type_symbol` can only be :stars or :gas, \
-        but I got :$(type_symbol)"))
+        throw(ArgumentError("computeElementMass: `component` can only be :stars or :gas, \
+        but I got :$(component)"))
     end
 
-    values = data_dict[type_symbol]
+    values = data_dict[component]
 
     if any(isempty, [values[z_block], values["MASS"]])
         return Unitful.Mass[]
     end
 
-    return setPositive(values[z_block][ELEMENT_INDEX[element], :]) .* values["MASS"]
+    if CODEBASE == :arepo
+        masses = setPositive(values[z_block][ELEMENT_INDEX[element], :]) .* values["MASS"]
+    elseif CODEBASE == :opengadget3
+        masses = setPositive(values[z_block][ELEMENT_INDEX[element], :])
+    else
+        throw(ArgumentError("computeElementMass: I don't recognize the codebase :$(CODEBASE)"))
+    end
+
+    return masses
 
 end
 
 @doc raw"""
     computeGlobalAbundance(
         data_dict::Dict,
-        type_symbol::Symbol,
+        component::Symbol,
         element::Symbol;
         <keyword arguments>
     )::Float64
@@ -1777,7 +1817,7 @@ Compute the total abundance of a given element, as $n_X / n_H$ where $n_X$ is th
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `type_symbol::Symbol`: For which cell/particle type the abundance will be calculated. The possibilities are `:stars` and `:gas`.
+  - `component::Symbol`: For which cell/particle type the abundance will be calculated. The possibilities are `:stars` and `:gas`.
   - `element::Symbol`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
   - `solar::Bool=false`: If the result will be normalized to the solar abundance or not.
 
@@ -1787,13 +1827,13 @@ Compute the total abundance of a given element, as $n_X / n_H$ where $n_X$ is th
 """
 function computeGlobalAbundance(
     data_dict::Dict,
-    type_symbol::Symbol,
+    component::Symbol,
     element::Symbol;
     solar::Bool=false,
 )::Float64
 
-    metal_mass = sum(computeElementMass(data_dict, type_symbol, element); init=0.0u"Msun")
-    hydrogen_mass = sum(computeElementMass(data_dict, type_symbol, :H); init=0.0u"Msun")
+    metal_mass = sum(computeElementMass(data_dict, component, element); init=0.0u"Msun")
+    hydrogen_mass = sum(computeElementMass(data_dict, component, :H); init=0.0u"Msun")
 
     (
         !iszero(hydrogen_mass) ||
@@ -2179,9 +2219,9 @@ end
 """
     computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
-Compute the "stellar mass" of every gas cell in `data`, which will be other than 0 only for simulation with our routine, and for cells that have entered it at least once.
+Compute the "stellar mass" of every gas cell, which will be other than 0 only for simulation with an non empty "FRAC" field in the snapshots.
 
-The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen. This is applied only for consistency with the other mass rutines ([`computeIonizedMass`](@ref), [`computeAtomicMass`](@ref), [`computeMolecularMass`](@ref), and [`computeNeutralMass`](@ref)). Notice that there is no physical meaning to the "stellar mass" of a gas cell as used in our model. So, it makes no sense to question if the "stellar fraction" computed here is a fraction of the total gas mass or only of the hydrogen mass.
+The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen. This is applied only for consistency with the other mass rutines ([`computeIonizedMass`](@ref), [`computeAtomicMass`](@ref), [`computeMolecularMass`](@ref), and [`computeNeutralMass`](@ref)). Notice that there is no physical meaning to the "stellar mass" of a gas cell. So, it makes no sense to question if the "stellar fraction" computed here is a fraction of the total gas mass or only of the hydrogen mass.
 
 # Arguments
 
@@ -2317,13 +2357,13 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `FILTER_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `FILTER_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `FILTER_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION_ρ` and a radius of `FILTER_R`.
+      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2444,33 +2484,33 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :stellar_area_density
 
-        integrated_qty = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :gas_area_density
 
-        integrated_qty = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :molecular_area_density
 
-        integrated_qty = sum(computeMolecularMass(data_dict); init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(computeMolecularMass(data_dict); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :atomic_area_density
 
-        integrated_qty = sum(computeAtomicMass(data_dict); init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(computeAtomicMass(data_dict); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :ionized_area_density
 
-        integrated_qty = sum(computeIonizedMass(data_dict); init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(computeIonizedMass(data_dict); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :neutral_area_density
 
-        integrated_qty = sum(computeNeutralMass(data_dict); init=0.0u"Msun") / area(FILTER_R)
+        integrated_qty = sum(computeNeutralMass(data_dict); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :sfr_area_density
 
-        sfr = sum(computeSFR(data_dict; age_resol=AGE_RESOLUTION_ρ); init=0.0u"Msun*yr^-1")
+        sfr = sum(computeSFR(data_dict; age_resol=AGE_RESOLUTION); init=0.0u"Msun*yr^-1")
 
-        integrated_qty = sfr / area(FILTER_R)
+        integrated_qty = sfr / area(DISK_R)
 
     elseif quantity == :gas_metallicity
 
@@ -2819,11 +2859,37 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :gas_metallicity
 
-        scatter_qty = setPositive(data_dict[:gas]["GZ  "]) ./ SOLAR_METALLICITY
+        if CODEBASE == :arepo
+
+            scatter_qty = setPositive(data_dict[:gas]["GZ  "]) ./ SOLAR_METALLICITY
+
+        elseif CODEBASE == :opengadget3
+
+            metals = sum(setPositive(data_dict[:gas]["GMET"][METAL_LIST, :]); dims=1)
+            scatter_qty = (metals ./ data_dict[:gas]["MASS"]) ./ SOLAR_METALLICITY
+
+        else
+
+            throw(ArgumentError("scatterQty: I don't recognize the codebase :$(CODEBASE)"))
+
+        end
 
     elseif quantity == :stellar_metallicity
 
-        scatter_qty = setPositive(data_dict[:stars]["GZ2 "]) ./ SOLAR_METALLICITY
+        if CODEBASE == :arepo
+
+            scatter_qty = setPositive(data_dict[:stars]["GZ2 "]) ./ SOLAR_METALLICITY
+
+        elseif CODEBASE == :opengadget3
+
+            metals = sum(setPositive(data_dict[:stars]["GME2"][METAL_LIST, :]); dims=1)
+            scatter_qty = (metals ./ data_dict[:stars]["MASS"]) ./ SOLAR_METALLICITY
+
+        else
+
+            throw(ArgumentError("scatterQty: I don't recognize the codebase :$(CODEBASE)"))
+
+        end
 
     elseif quantity ∈ GAS_ABUNDANCE
 
@@ -2904,7 +2970,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         @debug("scatterQty: The stellar circularity depends on the positions and velocities of all \
         cell/particles. So, after filtering, the result for a given star will change.")
 
-        scatter_qty = computeStellarCircularity(data_dict)
+        scatter_qty = computeCircularity(data_dict)
 
     elseif quantity == :stellar_vcirc
 
@@ -2915,15 +2981,15 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :stellar_vradial
 
-        scatter_qty = computeStellarVpolar(data_dict, :radial)
+        scatter_qty = computeVpolar(data_dict, :radial)
 
     elseif quantity == :stellar_vtangential
 
-        scatter_qty = computeStellarVpolar(data_dict, :tangential)
+        scatter_qty = computeVpolar(data_dict, :tangential)
 
     elseif quantity == :stellar_vzstar
 
-        scatter_qty = computeStellarVpolar(data_dict, :zstar)
+        scatter_qty = computeVpolar(data_dict, :zstar)
 
     elseif quantity == :stellar_age
 
@@ -3117,7 +3183,7 @@ Compute the inflow, outflow, and net gain of mass for a given cylinder, between 
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `max_r::Unitful.Length=FILTER_R`: Radius of the cylinder.
+  - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
 
 # Returns
@@ -3131,7 +3197,7 @@ Compute the inflow, outflow, and net gain of mass for a given cylinder, between 
 function computeDiscAccretion(
     present_dd::Dict,
     past_dd::Dict;
-    max_r::Unitful.Length=FILTER_R,
+    max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
 )::NTuple{3,Unitful.Mass}
 
@@ -3232,7 +3298,7 @@ countStars(path::String)::Int = count(findRealStars(path))
     findQtyExtrema(
         simulation_path::String,
         slice_n::Int,
-        type_symbol::Symbol,
+        component::Symbol,
         block::String;
         <keyword arguments>
     )::NTuple{2,<:Number}
@@ -3243,7 +3309,7 @@ Compute the minimum and maximum values of `block`.
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
   - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1. If set to a negative number, the values in the whole simulation will be compared.
-  - `type_symbol::Symbol`: Cell/particle type. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
+  - `component::Symbol`: Cell/particle type. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `f::Function=identity`: A function with the signature:
 
@@ -3262,7 +3328,7 @@ Compute the minimum and maximum values of `block`.
 function findQtyExtrema(
     simulation_path::String,
     slice_n::Int,
-    type_symbol::Symbol,
+    component::Symbol,
     block::String;
     f::Function=identity,
     warnings::Bool=true,
@@ -3298,7 +3364,7 @@ function findQtyExtrema(
 
         )
 
-        values = f(getBlock(snapshot_path, type_symbol, block))
+        values = f(getBlock(snapshot_path, component, block))
 
         return extrema(values)
 
@@ -3311,7 +3377,7 @@ function findQtyExtrema(
         throw(ArgumentError("findQtyExtrema: I could not find any snapshots in $(simulation_path)"))
     )
 
-    values = [f(getBlock(snapshot_path, type_symbol, block)) for snapshot_path in snapshot_paths]
+    values = [f(getBlock(snapshot_path, component, block)) for snapshot_path in snapshot_paths]
 
     return extrema(Iterators.flatten(values))
 
@@ -3364,14 +3430,14 @@ function energyIntegrand(a::Real, header::SnapshotHeader)::Float64
 end
 
 """
-    computeProfile(
+    computeParticleProfile(
         positions::Matrix{<:Unitful.Length},
         quantity::Vector{<:Number},
         grid::CircularGrid;
         <keyword arguments>
     )::Vector{<:Number}
 
-Compute a profile.
+Compute a profile, using an 1D histogram.
 
 # Arguments
 
@@ -3389,7 +3455,7 @@ Compute a profile.
 
   - Vector with the values of the profile.
 """
-function computeProfile(
+function computeParticleProfile(
     positions::Matrix{<:Unitful.Length},
     quantity::Vector{<:Number},
     grid::CircularGrid;
@@ -3438,16 +3504,16 @@ function computeProfile(
 end
 
 """
-    computeBandProfile(
+    computeParticleBandProfile(
         positions::Matrix{<:Unitful.Length},
         quantity::Vector{<:Number},
         grid::CircularGrid;
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
-Compute a profile of the mean and standard deviation of `quantity`.
+Compute a profile of the mean and standard deviation of `quantity`, using an 1D histogram
 
-Empty bins have a NaN mean and standard deviation.
+Empty bins have NaN as mean and standard deviation.
 
 # Arguments
 
@@ -3463,7 +3529,7 @@ Empty bins have a NaN mean and standard deviation.
       + A vector with the mean value for each bin.
       + A vector with the standard deviation for each bin.
 """
-function computeBandProfile(
+function computeParticleBandProfile(
     positions::Matrix{<:Unitful.Length},
     quantity::Vector{<:Number},
     grid::CircularGrid;
