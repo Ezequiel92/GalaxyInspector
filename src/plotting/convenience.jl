@@ -2781,7 +2781,7 @@ function densityMapVelField(
 
     pf_kwargs = isnothing(colorrange) ? [(;), (;)] : [(; colorrange), (;)]
 
-    @inbounds for quantity in quantities
+    @inbounds for (i, quantity) in pairs(quantities)
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,

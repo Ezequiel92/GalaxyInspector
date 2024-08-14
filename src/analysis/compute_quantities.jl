@@ -1271,17 +1271,14 @@ function computeVcirc(
     # Check for missing data
     !isempty(rs) || return rs, Unitful.Velocity[]
 
-    pc_types = filter!(
+    components = filter!(
         ts -> !isempty(data_dict[ts]["POS "]),
         [:stars, :gas, :halo, :black_hole],
     )
 
     # Concatenate the position and masses of all the cells and particles in the system
-    distances = vcat(
-        [computeDistance(data_dict[component]["POS "]) for
-        component in components]...,
-    )
-    masses = vcat([data_dict[component]["MASS"] for component in components]...)
+    distances = vcat([computeDistance(data_dict[component]["POS "]) for component in components]...)
+    masses    = vcat([data_dict[component]["MASS"] for component in components]...)
 
     # Use the radial distances as bin edges for the mass histogram
     edges = [0.0u"kpc", rs...]
