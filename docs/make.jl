@@ -25,6 +25,7 @@ makedocs(
             "api/plotting/convenience.md",
             "api/plotting/post_processing.md",
             "api/constants/globals.md",
+            "api/constants/arepo.md",
             "api/analysis/data_analysis.md",
             "api/analysis/data_acquisition.md",
             "api/analysis/compute_quantities.md",
