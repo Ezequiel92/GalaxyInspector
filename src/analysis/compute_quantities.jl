@@ -2039,7 +2039,7 @@ function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unit
         fm = 1.0 ./ (1.0 .+ relative_pressure)
 
         # Use the fraction of neutral hydrogen that is not molecular according to the pressure relation,
-        # unless that value is negative, in which case assume taht all neutral hydrogen is molecular
+        # unless that value is negative, in which case assume that all neutral hydrogen is molecular
         fa = setPositive(fn .- fm)
 
     else
@@ -2127,7 +2127,7 @@ function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:U
 
         # Use the fraction of molecular hydrogen according to the pressure relation, unless
         # that value is larger than the fraction of neutral hydrogen according to Arepo,
-        # in which case assume taht all neutral hydrogen is molecular
+        # in which case assume that all neutral hydrogen is molecular
         fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
 
     else
@@ -2739,6 +2739,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
 
 # Returns
 
@@ -3054,6 +3055,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         scatter_qty = log10.(ustrip.(u"K", data_dict[:gas]["TEMP"]))
         replace!(x -> isinf(x) ? NaN : x, scatter_qty)
 
+    elseif quantity == :pressure
+
+        scatter_qty = data_dict[:gas]["PRES"]
+
     else
 
         throw(ArgumentError("scatterQty: I don't recognize the quantity :$(quantity)"))
@@ -3061,7 +3066,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     end
 
     if isempty(scatter_qty)
-        return Vector{Number}[]
+        return Number[]
     end
 
     return scatter_qty

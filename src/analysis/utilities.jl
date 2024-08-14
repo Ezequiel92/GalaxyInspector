@@ -638,6 +638,7 @@ Select the plotting parameters for a given `quantity`.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
       + `:scale_factor`               -> Scale factor.
       + `:redshift`                   -> Redshift.
       + `:physical_time`              -> Physical time since the Big Bang.
@@ -1192,6 +1193,15 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request    = Dict(:gas => ["MASS", "POS ", "TEMP"]),
             axis_label = L"\log_{10} \, T \, [\mathrm{K}]",
+        )
+
+    elseif quantity == :pressure
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["PRES"]),
+            var_name   = L"P",
+            exp_factor = -13,
+            unit       = u"Pa",
         )
 
     elseif quantity == :scale_factor

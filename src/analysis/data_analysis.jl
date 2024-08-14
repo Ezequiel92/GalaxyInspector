@@ -528,6 +528,7 @@ Compute a profile.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `grid::CircularGrid`: Circular grid.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
@@ -712,6 +713,7 @@ Compute the profile og a mean quantity with error bars or bands.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `grid::CircularGrid`: Circular grid.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
   - `error_bar::Bool=false`: If the returned values will be compatible with `errorbars!` or with `band!` (default).
@@ -998,6 +1000,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `grid::LinearGrid`: Linear grid.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1827,6 +1830,7 @@ Turn a scatter plot into a 2D histogram.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
@@ -1871,6 +1875,7 @@ Turn a scatter plot into a 2D histogram.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
@@ -2060,6 +2065,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
@@ -2104,6 +2110,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `z_quantity::Symbol`: Quantity for the z axis (weights). The options are:
 
       + `:stellar_mass`               -> Stellar mass.
@@ -2148,6 +2155,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `z_unit::Unitful.Units`: Target unit for the z axis.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
@@ -2626,6 +2634,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
@@ -2670,6 +2679,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -2777,6 +2787,7 @@ Compute the values for a gas fraction bar plot.
       + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `edges::Vector{<:Number}`: A sorted list of bin edges.
   - `include_stars::Bool=false`: If the stars will be included as one of the gas phases. It will only work for simulations with our routine.
   - `filter_function::Function=filterNothing`: A function with the signature:

@@ -2954,6 +2954,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
@@ -2998,6 +2999,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -3408,6 +3410,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`               -> Stellar mass.
@@ -3452,6 +3455,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `z_quantity::Symbol`: Quantity for the z axis (weights). The options are:
 
       + `:stellar_mass`               -> Stellar mass.
@@ -3496,6 +3500,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `z_unit::Unitful.Units`: Target unit for the z axis.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
@@ -3563,6 +3568,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:lookback_time` -> Physical time left to reach the last snapshot.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `colorbar::Bool=false`: If a colorbar will be added.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function scatterDensityMap(
@@ -3582,6 +3588,7 @@ function scatterDensityMap(
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     da_ff::Function=filterNothing,
     title::Union{Symbol,<:AbstractString}="",
+    colorbar::Bool=false,
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -3693,7 +3700,7 @@ function scatterDensityMap(
             theme,
             sim_labels=nothing,
             title,
-            colorbar=true,
+            colorbar,
             # Animation options
             animation=false,
             animation_filename="animation.mp4",
@@ -3748,6 +3755,7 @@ Only for gas cells that have entered out routine.
       + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                   -> Gas pressure.
   - `edges::Vector{<:Number}`: A sorted list of bin edges.
   - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
   - `axis_label::Union{AbstractString,Nothing}=nothing`: Label for the axis. It can contain the string `auto_label`, which will be replaced by the default label: `var_name` / 10^`exp_factor` `unit`. If set to `nothing` a label will be assigned automaticaly.
@@ -6015,7 +6023,7 @@ function resolvedKennicuttSchmidtLaw(
 
             for (time, snapshot_number) in zip(times, snapshot_numbers)
 
-                f = Figure(size=(880, 750), figure_padding=(1, 1, 1, 10))
+                f = Figure()
 
                 ax = CairoMakie.Axis(
                     f[1, 1];
