@@ -1153,7 +1153,7 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(:stars => ["GAGE"]),
             var_name = L"\mathrm{Stellar \,\, age}",
-            unit     = u"Myr",
+            unit     = u"Gyr",
         )
 
     elseif quantity == :sfr
