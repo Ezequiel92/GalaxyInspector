@@ -1414,7 +1414,7 @@ end
 
 Project the 3D metallicity field to a given plane.
 
-If `component` = :stars, the mean value of metallicity in each bin of a 2D histogram is used. If `component` = :gas, the metallicity of the whole column in each line of sight is used.
+If `component` = :stars, the metallicity in each pixel is the mean value for the stars within that pixel. If `component` = :gas, the metallicity in each pixel is the total metal mass divided by the total gas mass, in the column given by taht pixel.
 
 !!! note
 

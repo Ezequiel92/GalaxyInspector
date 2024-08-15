@@ -1942,7 +1942,7 @@ function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
             else
 
-                # When there is no data from our model, use the fraction of ionized hydrogen from Arepo
+                # When there is no data from our model, use the fraction of ionized hydrogen from "NHP "
                 fi[i] = dg["NHP "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
             end
@@ -1951,7 +1951,7 @@ function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
     else
 
-        # For simulations without our routine use the fraction of ionized hydrogen according to Arepo
+        # For simulations without our routine use the fraction of ionized hydrogen according to "NHP "
         fi = dg["NHP "] ./ (dg["NHP "] .+ dg["NH  "])
 
     end
@@ -1967,7 +1967,7 @@ Compute the atomic hydrogen mass of every gas cell in `data`.
 
 The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
 
-For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate atomic from molecular gas in the neutral phase given by Arepo.
+For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate atomic from molecular gas in the neutral phase given by the quantity "NH  ".
 
 # Arguments
 
@@ -2018,7 +2018,7 @@ function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unit
             else
 
                 # When there is no data from our model, use the fraction of neutral hydrogen
-                # from Arepo assuming that the fraction of molecular hydrogen is 0
+                # from "NH  " assuming that the fraction of molecular hydrogen is 0
                 fa[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
             end
@@ -2027,7 +2027,7 @@ function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unit
 
     elseif !isempty(dg["PRES"])
 
-        # Fraction of neutral hydrogen according to Arepo
+        # Fraction of neutral hydrogen according to "NH  "
         fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
 
         relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
@@ -2056,7 +2056,7 @@ Compute the molecular hydrogen mass of every gas cell in `data`.
 
 The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
 
-For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate molecular from atomic gas in the neutral phase given by Arepo.
+For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate molecular from atomic gas in the neutral phase given by the quantity "NH  ".
 
 # Arguments
 
@@ -2114,7 +2114,7 @@ function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:U
 
     elseif !isempty(dg["PRES"]) && !isempty(dg["NHP "]) && !isempty(dg["NH  "])
 
-        # Fraction of neutral hydrogen according to Arepo
+        # Fraction of neutral hydrogen according to "NH  "
         fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
 
         relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
@@ -2123,7 +2123,7 @@ function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:U
         fp = 1.0 ./ (1.0 .+ relative_pressure)
 
         # Use the fraction of molecular hydrogen according to the pressure relation, unless
-        # that value is larger than the fraction of neutral hydrogen according to Arepo,
+        # that value is larger than the fraction of neutral hydrogen according to "NH  ",
         # in which case assume that all neutral hydrogen is molecular
         fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
 
@@ -2191,7 +2191,7 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
             else
 
-                # When there is no data from our model, use the fraction of neutral hydrogen from Arepo
+                # When there is no data from our model, use the fraction of neutral hydrogen from "NH  "
                 # assuming that the fraction of molecular hydrogen is 0
                 fa[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
                 fm[i] = 0.0
@@ -2204,7 +2204,7 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
     else
 
-        # Fraction of neutral hydrogen according to Arepo
+        # Fraction of neutral hydrogen according to "NH  "
         fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
 
     end

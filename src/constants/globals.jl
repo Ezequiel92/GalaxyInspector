@@ -271,7 +271,7 @@ const ALPHA_BLITZ = -0.92
 """
 Color type.
 """
-const ColorType = Union{ColorTypes.RGB,Symbol}
+const ColorType = Union{ColorTypes.RGB,ColorTypes.RGBA,Symbol}
 
 """
 Line style type.

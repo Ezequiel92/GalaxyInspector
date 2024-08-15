@@ -1,3 +1,3 @@
 # GalaxyInspector
 
-*A Julia module for the data analysis of Arepo hydrodynamical simulations.*
+*A Julia module for the data analysis of hydrodynamical simulations in astrophysics.*

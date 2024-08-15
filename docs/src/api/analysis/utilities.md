@@ -1,4 +1,4 @@
-# Arepo utilities
+# General utilities
 
 These functions are only used internally, and depend on the particulars of the simulation code (e.g. units).
 

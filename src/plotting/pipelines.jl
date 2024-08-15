@@ -733,7 +733,7 @@ function snapshotPlot(
                     figure[1, 1],
                     legend_elements,
                     legend_labels,
-                    titles,
+                    # titles,
                 )
             end
 
@@ -1125,7 +1125,7 @@ function timeSeriesPlot(
                 figure[1, 1],
                 legend_elements,
                 legend_labels,
-                titles,
+                # titles,
             )
         end
 

@@ -106,7 +106,7 @@ export stellarCircularity
 export compareFeldmann2020
 export compareMolla2015
 export resolvedKennicuttSchmidtLaw
-export compareKennicuttBigielIntegrated
+export integratedKennicuttSchmidtLaw
 export fitKennicuttBigielResolved
 
 
