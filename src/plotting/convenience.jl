@@ -1830,7 +1830,7 @@ function sfrTXT(
         # `timeSeriesPlot` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -1935,7 +1935,7 @@ function cpuTXT(
         # `timeSeriesPlot` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)-for-$(safe_str_target)",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -3062,7 +3062,7 @@ function scatterPlot(
             # `snapshotPlot` configuration
             output_path,
             base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
-            output_format=".pdf",
+            output_format=".png",
             warnings=false,
             show_progress=true,
             # Data manipulation options
@@ -3175,7 +3175,7 @@ function atomicMolecularTransitionHeatmap(
                 # `snapshotPlot` configuration
                 output_path,
                 base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)-$(range[1])-Z-$(range[2])",
-                output_format=".pdf",
+                output_format=".png",
                 warnings=false,
                 show_progress=true,
                 # Data manipulation options
@@ -3297,7 +3297,7 @@ function atomicMolecularTransitionScatter(
             # `snapshotPlot` configuration
             output_path,
             base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
-            output_format=".pdf",
+            output_format=".png",
             warnings=false,
             show_progress=true,
             # Data manipulation options
@@ -3866,7 +3866,7 @@ function gasFractionsBarPlot(
             # `snapshotPlot` configuration
             output_path,
             base_filename,
-            output_format=".pdf",
+            output_format=".png",
             warnings=false,
             show_progress=true,
             # Data manipulation options
@@ -4240,7 +4240,7 @@ function gasEvolution(
             # `timeSeriesPlot` configuration
             output_path,
             filename,
-            output_format=".pdf",
+            output_format=".png",
             warnings=false,
             show_progress=true,
             # Data manipulation options
@@ -4328,7 +4328,7 @@ function virialAccretionEvolution(
         # `timeSeriesPlot` configuration
         output_path,
         filename,
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -4408,7 +4408,7 @@ function discAccretionEvolution(
         # `timeSeriesPlot` configuration
         output_path,
         filename="disc-mass-accretion_with_tracers",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -4520,7 +4520,7 @@ function rotationCurve(
         # `snapshotPlot` configuration
         output_path,
         base_filename="rotation_curve",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -4717,7 +4717,7 @@ function densityProfile(
         # `snapshotPlot` configuration
         output_path,
         base_filename="$(quantity)-density_profile",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -4869,7 +4869,7 @@ function densityProfile(
             # `snapshotPlot` configuration
             output_path,
             base_filename="$(sim_name)-density_profiles",
-            output_format=".pdf",
+            output_format=".png",
             warnings=false,
             show_progress=true,
             # Data manipulation options
@@ -5035,7 +5035,7 @@ function massProfile(
             # `snapshotPlot` configuration
             output_path,
             base_filename,
-            output_format=".pdf",
+            output_format=".png",
             warnings=false,
             show_progress=true,
             # Data manipulation options
@@ -5163,7 +5163,7 @@ function velocityProfile(
         # `snapshotPlot` configuration
         output_path,
         base_filename="$(component)-profile",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -5296,7 +5296,7 @@ function stellarHistory(
         # `snapshotPlot` configuration
         output_path,
         base_filename="$(quantity)_history",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -5418,7 +5418,7 @@ function stellarCircularity(
         # `snapshotPlot` configuration
         output_path,
         base_filename="circularity_histogram",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -5568,7 +5568,7 @@ function compareFeldmann2020(
         # `timeSeriesPlot` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)-with-Feldmann2020",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -5720,7 +5720,7 @@ function compareMolla2015(
         # `snapshotPlot` configuration
         output_path,
         base_filename="$(quantity)-profile-with-Molla2015",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -6235,7 +6235,7 @@ function compareKennicuttBigielIntegrated(
         # `timeSeriesPlot` configuration
         output_path,
         filename="sfr_area_density-vs-$(quantity)-with-$(filename)",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -6368,7 +6368,7 @@ function fitKennicuttBigielResolved(
         # `snapshotPlot` configuration
         output_path,
         base_filename="sfr_area_density-vs-$(quantity)-with-linear-fit",
-        output_format=".pdf",
+        output_format=".png",
         warnings=false,
         show_progress=true,
         # Data manipulation options
