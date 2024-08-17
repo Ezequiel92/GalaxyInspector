@@ -184,10 +184,8 @@ function ppAnnotation!(
         position[2];
         text,
         align=(:left, :top),
-        # offset=(4, -2),
         color,
         space=:relative,
-        fontsize=35,
     )
 
     return nothing

@@ -6083,7 +6083,11 @@ function resolvedKennicuttSchmidtLaw(
 
                 end
 
-                ppAnnotation!(f, L"t = %$(rpad(round(time, sigdigits=3), 4, '0')) \, \mathrm{Gyr}")
+                ppAnnotation!(
+                    f,
+                    L"t = %$(rpad(round(time, sigdigits=3), 4, '0')) \, \mathrm{Gyr}",
+                    position=(0.08, 0.98),
+                )
 
                 if quantity == :gas_mass
 
@@ -6137,8 +6141,11 @@ function resolvedKennicuttSchmidtLaw(
                         ],
                         [sim_labels[sim_idx], pp_legend[2]],
                         nbanks=1,
-                        labelsize=25,
-                        rowgap=-5,
+                        labelsize=20,
+                        rowgap=-20,
+                        halign=:left,
+                        valign=:top,
+                        padding=(15, 0, 0, 30),
                     )
                 end
 
@@ -6452,8 +6459,8 @@ function integratedKennicuttSchmidtLaw(
                     [sim_labels[sim_idx], pp_legend[2]],
                     nbanks=1,
                     labelsize=25,
-                    rowgap=-5,
-                    padding=(6, 6, 15, 6),
+                    rowgap=-10,
+                    padding=(0, 10, 10, 0),
                 )
             end
 
