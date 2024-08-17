@@ -766,7 +766,7 @@ function snapshotReport(
                     data_dict;
                     halo_idx,
                     subhalo_rel_idx,
-                    warnings=true,
+                    warnings,
                 )[:stars]
 
                 iMs = sum(data_dict[:stars]["MASS"][insitu_idx]; init=0.0u"Msun")
@@ -2017,14 +2017,12 @@ Write in which halo and subhalo every star was born to a pair of CSV files.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `warnings::Bool=true`: If a warning will be given when there is missing files or data.
 """
 function stellarBirthHalos(
     simulation_path::String,
     slice_n::Int;
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    warnings::Bool=true,
 )::Nothing
 
     # Select the filter function and request dictionary
@@ -2035,14 +2033,14 @@ function stellarBirthHalos(
         simulation_path,
         slice_n,
         request;
-        warnings,
+        warnings=false,
     )
 
     # Filter the data
     filterData!(data_dict; filter_function)
 
     # Find the birth place of every star
-    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict; warnings)
+    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict; warnings=false)
 
     # Write the results to CSV files
     CSV.write(
@@ -6018,7 +6016,7 @@ function resolvedKennicuttSchmidtLaw(
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
-            simulation_table = makeSimulationTable(simulation; warnings=true)
+            simulation_table = makeSimulationTable(simulation; warnings=false)
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
             times            = ustrip.(u"Gyr", simulation_table[slice, :physical_times])
             snapshot_numbers = simulation_table[slice, :numbers]
@@ -6099,7 +6097,7 @@ function resolvedKennicuttSchmidtLaw(
                         y_log=true,
                         color=Makie.wong_colors()[1],
                         linestyle=nothing,
-                        warnings=true,
+                        warnings=false,
                     )
 
                 elseif quantity == :molecular_mass
@@ -6113,7 +6111,7 @@ function resolvedKennicuttSchmidtLaw(
                         y_log=true,
                         color=Makie.wong_colors()[1],
                         linestyle=nothing,
-                        warnings=true,
+                        warnings=false,
                     )
 
                 elseif quantity == :neutral_mass
@@ -6127,7 +6125,7 @@ function resolvedKennicuttSchmidtLaw(
                         y_log=true,
                         color=Makie.wong_colors()[1],
                         linestyle=nothing,
-                        warnings=true,
+                        warnings=false,
                     )
 
                 end
@@ -6354,7 +6352,7 @@ function integratedKennicuttSchmidtLaw(
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
-            simulation_table = makeSimulationTable(simulation; warnings=true)
+            simulation_table = makeSimulationTable(simulation; warnings=false)
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
             snapshot_numbers = simulation_table[slice, :numbers]
 
@@ -6412,7 +6410,7 @@ function integratedKennicuttSchmidtLaw(
                     y_log=true,
                     color=Makie.wong_colors()[1],
                     linestyle=nothing,
-                    warnings=true,
+                    warnings=false,
                 )
 
             elseif quantity == :molecular_mass
@@ -6426,7 +6424,7 @@ function integratedKennicuttSchmidtLaw(
                     y_log=true,
                     color=Makie.wong_colors()[1],
                     linestyle=nothing,
-                    warnings=true,
+                    warnings=false,
                 )
 
             elseif quantity == :neutral_mass
@@ -6440,7 +6438,7 @@ function integratedKennicuttSchmidtLaw(
                     y_log=true,
                     color=Makie.wong_colors()[1],
                     linestyle=nothing,
-                    warnings=true,
+                    warnings=false,
                 )
 
             end
