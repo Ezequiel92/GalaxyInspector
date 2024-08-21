@@ -334,6 +334,7 @@ Draw a line plot with the fit for the KS relation in Kennicutt (1998).
   - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
+  - `linewidth::Int=3`: Line width.
   - `warnings::Bool=true`: If a warning will be raised when there are no points in the figure.
 
 # Returns
@@ -355,12 +356,9 @@ function ppKennicutt1998!(
     y_log::Bool=true,
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
+    linewidth::Int=3,
     warnings::Bool=true,
 )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
-
-    ks98_inv_intercept = 1.0 / ustrip(KS98_INTERCEPT)
-    ks98_inv_slope = 1.0 / KS98_SLOPE
-    ks98_sfr_unit = unit(KS98_INTERCEPT)
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -370,37 +368,59 @@ function ppKennicutt1998!(
         return nothing
     end
 
-    # Get the x coordinates of the points
-    y_points = [extrema(Float64[point[2] for point in points])...]
+    # Get the extrema of the y coordinates
+    y_limits = [extrema(Float64[point[2] for point in points])...]
 
-    # Compute the star formation area density
+    # Compute the extrema of the star formation area density
     if y_log
-        Σsfr = @. ustrip(ks98_sfr_unit, exp10(y_points) * y_unit)
+        Σsfr = @. exp10(y_limits) * y_unit
     else
-        Σsfr = @. ustrip(ks98_sfr_unit, y_points * y_unit)
+        Σsfr = @. y_limits * y_unit
     end
 
-    # Compute the area density of gas
-    Σg = @. (Σsfr * ks98_inv_intercept)^ks98_inv_slope * KS98_RHO_UNIT
+    # Compute the extrema of the gas mass area density
+    Σgas     = invKennicutt1998(Σsfr; log_output=false)
+    x_limits = Measurements.value.(Σgas)
 
     # Compute the values for the x axis
+    x_points = collect(range(x_limits[1], x_limits[2], 100))
+
     if x_log
-        x_points = @. log10(ustrip(x_unit, Σg))
+        x_axis = @. log10(ustrip(x_unit, x_points))
     else
-        x_points = @. ustrip(x_unit, Σg)
+        x_axis = @. ustrip(x_unit, x_points)
     end
 
-    # Plot the fit for the KS relation
-    lines!(figure.current_axis.x, x_points, y_points; color, linestyle)
+    # Compute the values for the y axis
+    y_points = kennicutt1998(x_points; log_output=false)
 
-    return [LineElement(; color, linestyle)], ["Kennicutt (1998)"]
+    if y_log
+        y_axis = @. log10(ustrip(y_unit, y_points))
+    else
+        y_axis = @. ustrip(y_unit, y_points)
+    end
+
+    values        = Measurements.value.(y_axis)
+    uncertainties = Measurements.uncertainty.(y_axis)
+
+    band!(
+        figure.current_axis.x,
+        x_axis,
+        values .- uncertainties,
+        values .+ uncertainties;
+        color=(color, 0.3),
+    )
+
+    lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+
+    return [LineElement(; color, linestyle, linewidth)], ["Kennicutt (1998)"]
 
 end
 
 """
     ppBigiel2008!(
         figure::Makie.Figure,
-        quantity::Symbol;
+        molecular::Bool;
         <keyword arguments>
     )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
@@ -409,16 +429,14 @@ Draw a line plot with the fit for the KS relation in Bigiel et al. (2008).
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
-  - `quantity::Symbol`: Quantity for the x axis. The options are:
-
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+  - `molecular::Bool`: If the x axis will be the area mass density of molecular hydrogen, or, if set to `false`, the area mass density of neutral hydrogen.
   - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
   - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
   - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
   - `color::ColorType=:red`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
+  - `linewidth::Int=3`: Line width.
   - `warnings::Bool=true`: If a warning will be raised when there are no points in the figure.
 
 # Returns
@@ -434,13 +452,14 @@ F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC S
 """
 function ppBigiel2008!(
     figure::Makie.Figure,
-    quantity::Symbol;
+    molecular::Bool;
     x_unit::Unitful.Units=u"Msun * pc^-2",
     y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2",
     x_log::Bool=true,
     y_log::Bool=true,
     color::ColorType=:red,
     linestyle::LineStyleType=nothing,
+    linewidth::Int=3,
     warnings::Bool=true,
 )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
@@ -453,56 +472,51 @@ function ppBigiel2008!(
     end
 
     # Get the extrema of the y coordinates
-    y_points = [extrema(Float64[point[2] for point in points])...]
+    y_limits = [extrema(Float64[point[2] for point in points])...]
 
-    # Read the file with the fit data
-    raw = readdlm(BIGIEL2008_DATA_PATH, skipstart=5, header=true)[1]
-
-    # Parse the fits
-    if quantity == :molecular_area_density
-
-        A = parse(Float64, split(raw[end, 2], "+or-")[1])
-
-        b08_inv_intercept = exp10(-A)
-        b08_inv_slope = 1.0 / parse(Float64, split(raw[end, 3], "+or-")[1])
-
-    elseif quantity == :neutral_area_density
-
-        A = parse(Float64, split(raw[end, 5], "+or-")[1])
-
-        b08_inv_intercept = exp10(-A)
-        b08_inv_slope = 1.0 / parse(Float64, split(raw[end, 6], "+or-")[1])
-
-    else
-
-        throw(ArgumentError("ppBigiel2008!: `quantity` can only be :molecular_area_density or \
-        :neutral_area_density, but I got :$(quantity)"))
-
-    end
-
-    # Compute the star formation area density
+    # Compute the extrema of the star formation area density
     if y_log
-        Σsfr = @. ustrip(u"Msun * yr^-1 * kpc^-2", exp10(y_points) * y_unit)
+        Σsfr = @. exp10(y_limits) * y_unit
     else
-        Σsfr = @. ustrip(u"Msun * yr^-1 * kpc^-2", y_points * y_unit)
+        Σsfr = @. y_limits * y_unit
     end
 
-    # Compute the area density of gas
-    # The factor of 10.0 account for the fact that the values in `BIGIEL2008_DATA_PATH`
-    # assume that the x axis has units of 10 Msun * pc^-2
-    Σg = @. (Σsfr * b08_inv_intercept)^b08_inv_slope * 10.0 * u"Msun * pc^-2"
+    # Compute the extrema of the gas mass area density
+    ΣH       = invBigiel2008(Σsfr; molecular, log_output=false)
+    x_limits = Measurements.value.(ΣH)
 
     # Compute the values for the x axis
+    x_points = collect(range(x_limits[1], x_limits[2], 100))
+
     if x_log
-        x_points = @. log10(ustrip(x_unit, Σg))
+        x_axis = @. log10(ustrip(x_unit, x_points))
     else
-        x_points = @. ustrip(x_unit, Σg)
+        x_axis = @. ustrip(x_unit, x_points)
     end
 
-    # Plot the fit for the KS relation
-    lines!(figure.current_axis.x, x_points, y_points; color, linestyle)
+    # Compute the values for the y axis
+    y_points = bigiel2008(x_points; molecular, log_output=false)
 
-    return [LineElement(; color, linestyle)], ["Bigiel et al. (2008)"]
+    if y_log
+        y_axis = @. log10(ustrip(y_unit, y_points))
+    else
+        y_axis = @. ustrip(y_unit, y_points)
+    end
+
+    values        = Measurements.value.(y_axis)
+    uncertainties = Measurements.uncertainty.(y_axis)
+
+    band!(
+        figure.current_axis.x,
+        x_axis,
+        values .- uncertainties,
+        values .+ uncertainties;
+        color=(color, 0.25),
+    )
+
+	lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+
+    return [LineElement(; color, linestyle, linewidth)], ["Bigiel et al. (2008)"]
 
 end
 

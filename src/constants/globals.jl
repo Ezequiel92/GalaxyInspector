@@ -188,41 +188,35 @@ const ATOMIC_WEIGHTS = Dict(
     :Fe => 55.845, # Iron
 )
 
-"""
-Path to the file with the fits for the molecular Kennicutt-Schmidt relation, taken from Bigiel et al. (2008).
+@doc raw"""
+Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$, taken from Bigiel et al. (2008) (Table 2, Average).
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{HI, H_2, gas}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
+```
 
 # References
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-const BIGIEL2008_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/Bigiel2008.txt")
+const A_BIGIEL2008_MOLECULAR = −2.06 ± 0.17
+const N_BIGIEL2008_MOLECULAR = 0.96 ± 0.07
+const A_BIGIEL2008_NEUTRAL   = −2.39 ± 0.28
+const N_BIGIEL2008_NEUTRAL   = 1.85 ± 0.70
 
-"""
-Slope of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
+@doc raw"""
+Slope and intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Eq. 4).
 
-# References
-
-R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
-"""
-const KS98_SLOPE = 1.4
-
-"""
-Intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{gas}}{1 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \mathrm{M_\odot \, yr^{-1] \, kpc^{-2}} \, ,
+```
 
 # References
 
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 """
-const KS98_INTERCEPT = 2.5e-4u"Msun*yr^-1*kpc^-2"
-
-"""
-Unit of surface density of the Kennicutt-Schmidt law, taken from Kennicutt (1998).
-
-# References
-
-R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
-"""
-const KS98_RHO_UNIT = u"Msun * pc^-2"
+const N_KS98 = 1.4 ± 0.15
+const a_KS98 = 2.5e-4 ± 0.7e-4
 
 """
 Path to the file with the Milky Way profiles, taken from Mollá et al. (2015).

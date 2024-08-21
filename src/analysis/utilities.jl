@@ -1375,3 +1375,181 @@ function addRequest(
     return Dict(type => blocks ∪ get(addition, type, String[]) for (type, blocks) in request)
 
 end
+
+@doc raw"""
+    bigiel2008(
+        ΣH::Vector{<:SurfaceDensity};
+        <keyword arguments>
+    )::Vector{<:Number}
+
+Kennicutt-Schmidt law for the molecular or neutral gas, taken from a set of observations of nearby galaxies.
+
+From Bigiel et al. (2008) (Section 3.1), we have
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{HI, H_2, gas}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
+```
+where N is the power-law index, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$.
+
+# Arguments
+
+  - `ΣH::Vector{<:SurfaceDensity}`: Values of the molecular or neutral gas surface density, with units.
+  - `molecular::Bool=true`: If the x axis will be the area mass density of molecular hydrogen, or, if set to false, the area mass density of neutral hydrogen.
+  - `log_output::Bool=true`: If the output will the $\log_{10}$ of the star formation area density, or the star formation area density itself (with units). If `log_output` = true, the implied unit is $\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}$
+
+# Returns
+
+  - The star formation area density.
+
+# References
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+"""
+function bigiel2008(
+    ΣH::Vector{<:SurfaceDensity};
+    molecular::Bool=true,
+    log_output::Bool=true,
+)::Vector{<:Number}
+
+    log10ΣH = @. log10(uconvert(Unitful.NoUnits, ΣH / 10.0u"Msun * pc^-2"))
+
+    if molecular
+        log10Σsfr = @. A_BIGIEL2008_MOLECULAR + log10ΣH * N_BIGIEL2008_MOLECULAR
+    else
+        log10Σsfr = @. A_BIGIEL2008_NEUTRAL + log10ΣH * N_BIGIEL2008_NEUTRAL
+    end
+
+    if log_output
+        return log10Σsfr
+    else
+        return @. exp10(log10Σsfr ) * u"Msun * yr^-1 * kpc^-2"
+    end
+
+end
+
+@doc raw"""
+    invBigiel2008(
+        Σsfr ::Vector{<:MassFlowDensity};
+        <keyword arguments>
+    )::Vector{<:Number}
+
+Inverse Kennicutt-Schmidt law for the molecular or neutral gas, taken from a set of observations of nearby galaxies.
+
+From Bigiel et al. (2008) (Section 3.1, Eq. 2), we have
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{HI, H_2, gas}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
+```
+where N is the power-law index, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$.
+
+# Arguments
+
+  - `Σsfr ::Vector{<:MassFlowDensity}`: Values of the star formation area density, with units.
+  - `molecular::Bool=true`: If the output will be the area mass density of molecular hydrogen, or, if set to false, the area mass density of neutral hydrogen.
+  - `log_output::Bool=true`: If the output will the $\log_{10}$ of the molecular or neutral gas surface density, or the molecular or neutral gas surface density itself (with units). If `log_output` = true, the implied unit is $10 \, \mathrm{M_\odot \, pc^{-2}}$
+
+# Returns
+
+  - The molecular or neutral gas surface density.
+
+# References
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+"""
+function invBigiel2008(
+    Σsfr ::Vector{<:MassFlowDensity};
+    molecular::Bool=true,
+    log_output::Bool=true,
+)::Vector{<:Number}
+
+    log10Σsfr = @. log10(ustrip(u"Msun * yr^-1 * kpc^-2", Σsfr ))
+
+    if molecular
+        log10ΣH = @. (log10Σsfr - A_BIGIEL2008_MOLECULAR) / N_BIGIEL2008_MOLECULAR
+    else
+        log10ΣH = @. (log10Σsfr - A_BIGIEL2008_NEUTRAL) / N_BIGIEL2008_NEUTRAL
+    end
+
+    if log_output
+        return log10ΣH
+    else
+        return @. exp10(log10ΣH) * 10.0u"Msun * pc^-2"
+    end
+
+end
+
+@doc raw"""
+    kennicutt1998(Σgas::Vector{<:SurfaceDensity}; <keyword arguments>)::Vector{<:Number}
+
+Kennicutt-Schmidt law, taken from a set of observations of nearby galaxies.
+
+From Kennicutt (1998) (Section 4, Eq. 4), we have
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{gas}}{1 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \mathrm{M_\odot \, yr^{-1] \, kpc^{-2}} \, ,
+```
+where N is the power-law index and $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $1 \, \mathrm{M_\odot \, pc^{-2}}$.
+
+# Arguments
+
+  - `Σgas::Vector{<:SurfaceDensity}`: Values of the gas mass surface density, with units.
+  - `log_output::Bool=true`: If the output will the $\log_{10}$ of the star formation area density, or the star formation area density itself (with units). If `log_output` = true, the implied unit is $\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}$
+
+# Returns
+
+  - The star formation area density.
+
+# References
+
+R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+"""
+function kennicutt1998(Σgas::Vector{<:SurfaceDensity}; log_output::Bool=true)::Vector{<:Number}
+
+    log10Σgas = @. log10(ustrip(u"Msun * pc^-2", Σgas))
+    log10Σsfr = @. log10(a_KS98) + log10Σgas * N_KS98
+
+    if log_output
+        return log10Σsfr
+    else
+        return @. exp10(log10Σsfr ) * u"Msun * yr^-1 * kpc^-2"
+    end
+
+end
+
+@doc raw"""
+    invKennicutt1998(Σsfr::Vector{<:MassFlowDensity}; <keyword arguments>)::Vector{<:Number}
+
+Inverse Kennicutt-Schmidt law, taken from a set of observations of nearby galaxies.
+
+From Kennicutt (1998) (Section 4, Eq. 4), we have
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{gas}}{1 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \mathrm{M_\odot \, yr^{-1] \, kpc^{-2}} \, ,
+```
+where N is the power-law index and $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $1 \, \mathrm{M_\odot \, pc^{-2}}$.
+
+# Arguments
+
+  - `Σsfr::Vector{<:MassFlowDensity}`: Values of the star formation area density, with units.
+  - `log_output::Bool=true`: If the output will the $\log_{10}$ of the gas mass surface density, or the gas mass surface density itself (with units). If `log_output` = true, the implied unit is $\mathrm{M_\odot \, pc^{-2}}$
+
+# Returns
+
+  - The gas mass surface density.
+
+# References
+
+R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+"""
+function invKennicutt1998(Σsfr::Vector{<:MassFlowDensity}; log_output::Bool=true)::Vector{<:Number}
+
+    log10Σsfr = @. log10(ustrip(u"Msun * yr^-1 * kpc^-2", Σsfr))
+    log10Σgas = @. (log10Σsfr - log10(a_KS98)) / N_KS98
+
+    if log_output
+        return log10Σgas
+    else
+        return @. exp10(log10Σgas) * u"Msun * pc^-2"
+    end
+
+end

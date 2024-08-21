@@ -6097,6 +6097,7 @@ function resolvedKennicuttSchmidtLaw(
                         y_log=true,
                         color=Makie.wong_colors()[1],
                         linestyle=nothing,
+                        linewidth=3,
                         warnings=false,
                     )
 
@@ -6104,13 +6105,14 @@ function resolvedKennicuttSchmidtLaw(
 
                     pp_legend = ppBigiel2008!(
                         f,
-                        :molecular_area_density;
+                        true;
                         x_unit=u"Msun * kpc^-2",
                         y_unit=u"Msun * yr^-1 * kpc^-2",
                         x_log=true,
                         y_log=true,
                         color=Makie.wong_colors()[1],
                         linestyle=nothing,
+                        linewidth=3,
                         warnings=false,
                     )
 
@@ -6118,13 +6120,14 @@ function resolvedKennicuttSchmidtLaw(
 
                     pp_legend = ppBigiel2008!(
                         f,
-                        :neutral_area_density;
+                        false;
                         x_unit=u"Msun * kpc^-2",
                         y_unit=u"Msun * yr^-1 * kpc^-2",
                         x_log=true,
                         y_log=true,
                         color=Makie.wong_colors()[1],
                         linestyle=nothing,
+                        linewidth=3,
                         warnings=false,
                     )
 
@@ -6410,6 +6413,7 @@ function integratedKennicuttSchmidtLaw(
                     y_log=true,
                     color=Makie.wong_colors()[1],
                     linestyle=nothing,
+                    linewidth=3,
                     warnings=false,
                 )
 
@@ -6417,13 +6421,14 @@ function integratedKennicuttSchmidtLaw(
 
                 pp_legend = ppBigiel2008!(
                     f,
-                    :molecular_area_density;
+                    true;
                     x_unit=u"Msun * kpc^-2",
                     y_unit=u"Msun * yr^-1 * kpc^-2",
                     x_log=true,
                     y_log=true,
                     color=Makie.wong_colors()[1],
                     linestyle=nothing,
+                    linewidth=3,
                     warnings=false,
                 )
 
@@ -6431,13 +6436,14 @@ function integratedKennicuttSchmidtLaw(
 
                 pp_legend = ppBigiel2008!(
                     f,
-                    :neutral_area_density;
+                    false;
                     x_unit=u"Msun * kpc^-2",
                     y_unit=u"Msun * yr^-1 * kpc^-2",
                     x_log=true,
                     y_log=true,
                     color=Makie.wong_colors()[1],
                     linestyle=nothing,
+                    linewidth=3,
                     warnings=false,
                 )
 
