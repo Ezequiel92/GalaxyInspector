@@ -27,7 +27,7 @@ using CSV,
     Images,
     JLD2,
     LaTeXStrings,
-    StatsBase,
+    LinearAlgebra,
     Measurements,
     NearestNeighbors,
     ProgressMeter,
@@ -75,8 +75,8 @@ export getBlock
 export makeDataDict
 
 # From `plotting/pipelines.jl`
-export snapshotPlot
-export timeSeriesPlot
+export plotSnapshot
+export plotTimeSeries
 
 # From `plotting/convenience.jl`
 export snapshotReport
@@ -85,14 +85,13 @@ export sfrTXT
 export cpuTXT
 export stellarBirthHalos
 export densityMap
+export densityMapVelField
 export metallicityMap
 export temperatureMap
-export densityMapVelField
 export scatterPlot
-export atomicMolecularTransitionHeatmap
-export atomicMolecularTransitionScatter
 export scatterDensityMap
-export gasFractionsBarPlot
+export atomicMolecularTransition
+export gasBarPlot
 export timeSeries
 export gasEvolution
 export virialAccretionEvolution
@@ -108,6 +107,5 @@ export compareMolla2015
 export resolvedKennicuttSchmidtLaw
 export integratedKennicuttSchmidtLaw
 export fitResolvedKennicuttSchmidtLaw
-
 
 end

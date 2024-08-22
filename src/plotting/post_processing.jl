@@ -912,7 +912,7 @@ end
         <keyword arguments>
     )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
-Return the legend elements for the plot made by [`gasFractionsBarPlot`](@ref).
+Return the legend elements for the plot made by [`gasBarPlot`](@ref).
 
 # Arguments
 

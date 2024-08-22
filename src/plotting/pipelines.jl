@@ -3,7 +3,7 @@
 ####################################################################################################
 
 """
-    snapshotPlot(
+    plotSnapshot(
         simulation_paths::Vector{String},
         request::Dict{Symbol,Vector{String}},
         plot_functions::Vector{<:Function};
@@ -41,7 +41,7 @@ Some of the features are:
       + `errorbars!`    -> Error bars.
   - `pf_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the functions in `plot_functions`.
 
-### snapshotPlot configuration
+### plotSnapshot configuration
 
   - `output_path::String="./plots"`: Path to the output folder.
   - `base_filename::String="snapshot"`: Every file will be named `base_filename`-XXX`output_format` where XXX is the snapshot number.
@@ -143,12 +143,12 @@ Some of the features are:
   - `animation_filename::String="animation.mp4"`: Filename for the animation, including its extension. All formats supported by [Makie](https://docs.makie.org/stable/) can be used, namely `.mkv`, `.mp4`, `.webm` and `.gif`.
   - `framerate::Int=15`: Frame rate of the animation.
 """
-function snapshotPlot(
+function plotSnapshot(
     simulation_paths::Vector{String},
     request::Dict{Symbol,Vector{String}},
     plot_functions::Vector{<:Function};
     pf_kwargs::Vector{<:NamedTuple}=[(;)],
-    # `snapshotPlot` configuration
+    # `plotSnapshot` configuration
     output_path::String="./plots",
     base_filename::String="snapshot",
     output_format::String=".png",
@@ -225,7 +225,7 @@ function snapshotPlot(
     # Check that after slicing there is at least one snapshot left
     (
         !iszero(n_frames) ||
-        throw(ArgumentError("snapshotPlot: There are no snapshots left after slicing \
+        throw(ArgumentError("plotSnapshot: There are no snapshots left after slicing \
         with `slice` = $slice"))
     )
 
@@ -265,7 +265,7 @@ function snapshotPlot(
         (
             n_frames >= framerate ||
             !warnings ||
-            @warn("snapshotPlot: With `framerate` = $framerate and `slice` = $slice, \
+            @warn("plotSnapshot: With `framerate` = $framerate and `slice` = $slice, \
             the animation is less than one second long")
         )
 
@@ -324,7 +324,7 @@ function snapshotPlot(
             if isempty(snapshot_row)
                 (
                     !warnings ||
-                    @warn("snapshotPlot: The snapshot $(SNAP_BASENAME)_$(snapshot_number).hdf5 \
+                    @warn("plotSnapshot: The snapshot $(SNAP_BASENAME)_$(snapshot_number).hdf5 \
                     is missing in simulation $(simulation_paths[simulation_index])")
                 )
                 continue
@@ -418,7 +418,7 @@ function snapshotPlot(
             if plot_function isa typeof(hist!)
                 (
                     data_length == 1 ||
-                    error("snapshotPlot: For histograms `data_analysis` should return \
+                    error("plotSnapshot: For histograms `data_analysis` should return \
                     only one data vector, and currently is returning $(data_length)")
                 )
             elseif plot_function isa Union{
@@ -429,23 +429,23 @@ function snapshotPlot(
             }
                 (
                     data_length == 2 ||
-                    error("snapshotPlot: For scatter, line and bar plots `data_analysis` should \
+                    error("plotSnapshot: For scatter, line and bar plots `data_analysis` should \
                     return two data vectors, and currently is returning $(data_length)")
                 )
             elseif plot_function isa Union{typeof(heatmap!), typeof(band!)}
                 (
                     data_length == 3 ||
-                    error("snapshotPlot: For heatmaps and bands `data_analysis` should return \
+                    error("plotSnapshot: For heatmaps and bands `data_analysis` should return \
                     three data vectors, and currently is returning $(data_length)")
                 )
             elseif plot_function isa Union{typeof(arrows!), typeof(errorbars!)}
                 (
                     data_length == 4 ||
-                    error("snapshotPlot: For vector field plots or error bars `data_analysis` \
+                    error("plotSnapshot: For vector field plots or error bars `data_analysis` \
                     should return four data vectors, and currently is returning $(data_length)")
                 )
             else
-                throw(ArgumentError("snapshotPlot: `plot_functions` contains $(plot_function), \
+                throw(ArgumentError("plotSnapshot: `plot_functions` contains $(plot_function), \
                 which is not a valid function. See the documentation for valid options."))
             end
 
@@ -639,7 +639,7 @@ function snapshotPlot(
 
                 (
                     !warnings ||
-                    @warn("snapshotPlot: I cound not find the time data for the snapshot \
+                    @warn("plotSnapshot: I cound not find the time data for the snapshot \
                     number $(snapshot_number) in the longest running simulation with \
                     simulation table: \n$(longest_sim_table). \nDefaulting to using no title.")
                 )
@@ -689,7 +689,7 @@ function snapshotPlot(
                 # Add the main legend
                 (
                     length(sim_labels) == n_simulations ||
-                    throw(ArgumentError("snapshotPlot: The arguments `simulation_paths` and \
+                    throw(ArgumentError("plotSnapshot: The arguments `simulation_paths` and \
                     `sim_labels` must have the same length, but I got length(`sim_labels`) = \
                     $(length(sim_labels)) != length(`simulation_paths`) = $(n_simulations)"))
                 )
@@ -764,7 +764,7 @@ function snapshotPlot(
     end
 
     if warnings && !plot_something
-        @warn("snapshotPlot: Nothing could be plotted because there was a problem \
+        @warn("plotSnapshot: Nothing could be plotted because there was a problem \
         for every snapshot")
     end
 
@@ -778,7 +778,7 @@ function snapshotPlot(
 end
 
 """
-    timeSeriesPlot(
+    plotTimeSeries(
         simulation_paths::Vector{String},
         plot_functions::Vector{<:Function};
         <keyword arguments>
@@ -802,7 +802,7 @@ Some of the features are:
       + `scatterlines!` -> Scatter plot with lines between the markers.
   - `pf_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the functions in `plot_functions`.
 
-### timeSeriesPlot configuration
+### plotTimeSeries configuration
 
   - `output_path::String="./plots"`: Path to the output folder.
   - `filename::String="time_series"`: Filename for the figure, without the extension.
@@ -851,11 +851,11 @@ Some of the features are:
 
   - The `Axis` and `Figure` objects.
 """
-function timeSeriesPlot(
+function plotTimeSeries(
     simulation_paths::Vector{String},
     plot_functions::Vector{<:Function};
     pf_kwargs::Vector{<:NamedTuple}=[(;)],
-    # `timeSeriesPlot` configuration
+    # `plotTimeSeries` configuration
     output_path::String="./plots",
     filename::String="time_series",
     output_format::String=".png",
@@ -1060,7 +1060,7 @@ function timeSeriesPlot(
     end
 
     if warnings && !plot_something
-        @warn("timeSeriesPlot: Nothing could be plotted because there was a problem \
+        @warn("plotTimeSeries: Nothing could be plotted because there was a problem \
         for every snapshot")
     end
 
@@ -1080,7 +1080,7 @@ function timeSeriesPlot(
             # Add the main legend
             (
                 length(sim_labels) == n_simulations ||
-                throw(ArgumentError("timeSeriesPlot: The arguments `simulation_paths` and \
+                throw(ArgumentError("plotTimeSeries: The arguments `simulation_paths` and \
                 `sim_labels` must have the same length, but I got length(`sim_labels`) = \
                 $(length(sim_labels)) != length(`simulation_paths`) = $(n_simulations)"))
             )

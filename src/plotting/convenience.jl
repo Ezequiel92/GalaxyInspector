@@ -1823,11 +1823,11 @@ function sfrTXT(
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
 
-    timeSeriesPlot(
+    plotTimeSeries(
         simulation_paths,
         [lines!];
         pf_kwargs=[(;)],
-        # `timeSeriesPlot` configuration
+        # `plotTimeSeries` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)",
         output_format=".png",
@@ -1928,11 +1928,11 @@ function cpuTXT(
 
     safe_str_target = replace(target, "/" => "-", "_" => "-")
 
-    timeSeriesPlot(
+    plotTimeSeries(
         simulation_paths,
         [lines!];
         pf_kwargs=[(;)],
-        # `timeSeriesPlot` configuration
+        # `plotTimeSeries` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)-for-$(safe_str_target)",
         output_format=".png",
@@ -1982,7 +1982,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Write in which halo and subhalo every star was born to a pair of CSV files.
+Write, to a pair of CSV files, in which halo and subhalo every star in snapshot `slice_n` was born.
 
 # Arguments
 
@@ -2205,12 +2205,12 @@ function densityMap(
                 # Construct the file name
                 base_filename = "$(sim_name)-$(quantity)-$(projection_plane)-density_map"
 
-                snapshotPlot(
+                plotSnapshot(
                     [simulation_path],
                     request,
                     [heatmap!];
                     pf_kwargs,
-                    # `snapshotPlot` configuration
+                    # `plotSnapshot` configuration
                     output_path,
                     base_filename,
                     output_format=".png",
@@ -2261,6 +2261,221 @@ function densityMap(
                             size=colorbar ? (880, 640) : (880, 880),
                             figure_padding=(1, 70, 1, 15),
                             Axis=(limits=(-limit, limit, -limit, limit),),
+                        ),
+                    ),
+                    sim_labels=nothing,
+                    title,
+                    colorbar,
+                    # Animation options
+                    animation=iszero(slice),
+                    animation_filename="$(base_filename).mp4",
+                    framerate=5,
+                )
+
+            end
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
+    densityMapVelField(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot a 2D histogram of the density, with the velocity field.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
+  - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
+
+      + `:stellar_mass`   -> Stellar mass.
+      + `:gas_mass`       -> Gas mass.
+      + `:hydrogen_mass`  -> Hydrogen mass.
+      + `:dm_mass`        -> Dark matter mass.
+      + `:bh_mass`        -> Black hole mass.
+      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+  - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either :particles` or `:cells`.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
+  - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
+  - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `annotation::AbstractString=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
+  - `colorbar::Bool=false`: If a colorbar will be added.
+  - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
+"""
+function densityMapVelField(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    quantities::Vector{Symbol}=[:gas_mass],
+    types::Vector{Symbol}=[:cells],
+    output_path::String="./",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    projection_planes::Vector{Symbol}=[:xy],
+    box_size::Unitful.Length=100u"kpc",
+    pixel_length::Unitful.Length=0.1u"kpc",
+    print_range::Bool=false,
+    theme::Attributes=Theme(),
+    title::Union{Symbol,<:AbstractString}="",
+    annotation::AbstractString="",
+    colorbar::Bool=false,
+    colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
+)::Nothing
+
+    # Compute the axes limits, to avoid white padding around the heatmap grid
+    limit = ustrip(u"kpc", box_size / 2.0)
+
+    # Compute number of pixel per side
+    resolution = round(Int, box_size / pixel_length)
+
+    # Set up the grid for the heatmap
+    grid_hm = CubicGrid(box_size, resolution)
+
+    # Set up the grid for the velocity field
+    grid_vf = SquareGrid(box_size, 25)
+
+    pf_kwargs = isnothing(colorrange) ? [(;), (;)] : [(; colorrange), (;)]
+
+    @inbounds for (i, quantity) in pairs(quantities)
+
+        filter_function, translation, rotation, request = selectFilter(
+            filter_mode,
+            plotParams(quantity).request,
+        )
+
+        if quantity ∈ [
+            :gas_mass,
+            :hydrogen_mass,
+            :molecular_mass,
+            :atomic_mass,
+            :ionized_mass,
+            :neutral_mass,
+        ]
+            component = :gas
+        elseif quantity == :stellar_mass
+            component = :stars
+        elseif quantity == :dm_mass
+            component = :halo
+        elseif quantity == :bh_mass
+            component = :black_hole
+        else
+            throw(ArgumentError("densityMapVelField: `quantities` contains :$(quantity), \
+            which is not a valid symbol. See the documentation for valid options."))
+        end
+
+        @inbounds for simulation_path in simulation_paths
+
+            # Get the simulation name as a string
+            sim_name = basename(simulation_path)
+
+            @inbounds for projection_plane in projection_planes
+
+                # Construct the file name
+                base_filename = "$(sim_name)-$(quantity)-$(projection_plane)-density_map"
+
+                plotSnapshot(
+                    [simulation_path, simulation_path],
+                    request,
+                    [heatmap!, arrows!];
+                    pf_kwargs,
+                    # `plotSnapshot` configuration
+                    output_path,
+                    base_filename,
+                    output_format=".png",
+                    warnings=false,
+                    show_progress=true,
+                    # Data manipulation options
+                    slice=iszero(slice) ? (:) : slice,
+                    filter_function,
+                    da_functions=[daDensity2DProjection, daVelocityField],
+                    da_args=[(grid_hm, quantity, ring(types, i)), (grid_vf, component)],
+                    da_kwargs=[
+                        (; projection_plane, print_range),
+                        (; projection_plane),
+                    ],
+                    post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
+                    pp_args=(annotation,),
+                    pp_kwargs=(; color=:white),
+                    transform_box=true,
+                    translation,
+                    rotation,
+                    smooth=0,
+                    x_unit=u"kpc",
+                    y_unit=u"kpc",
+                    x_exp_factor=0,
+                    y_exp_factor=0,
+                    x_trim=(-Inf, Inf),
+                    y_trim=(-Inf, Inf),
+                    x_edges=false,
+                    y_edges=false,
+                    x_func=identity,
+                    y_func=identity,
+                    # Axes options
+                    xaxis_label="auto_label",
+                    yaxis_label="auto_label",
+                    xaxis_var_name=string(projection_plane)[1:1],
+                    yaxis_var_name=string(projection_plane)[2:2],
+                    xaxis_scale_func=identity,
+                    yaxis_scale_func=identity,
+                    # Plotting options
+                    save_figures=!iszero(slice),
+                    backup_results=iszero(slice),
+                    theme=merge(
+                        theme,
+                        Theme(
+                            size=colorbar ? (880, 640) : (880, 880),
+                            figure_padding=(1, 50, 1, 1),
+                            Axis=(limits=(-limit, limit, -limit, limit),),
+                            Colorbar=(
+                                label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+                            ),
                         ),
                     ),
                     sim_labels=nothing,
@@ -2433,12 +2648,12 @@ function metallicityMap(
                 # Construct the file name
                 base_filename = "$(sim_name)-$(component)-$(projection_plane)-metallicity_map"
 
-                snapshotPlot(
+                plotSnapshot(
                     [simulation_path],
                     request,
                     [heatmap!];
                     pf_kwargs,
-                    # `snapshotPlot` configuration
+                    # `plotSnapshot` configuration
                     output_path,
                     base_filename,
                     output_format=".png",
@@ -2609,12 +2824,12 @@ function temperatureMap(
             # Construct the file name
             base_filename = "$(sim_name)-$(projection_plane)-temperature_map"
 
-            snapshotPlot(
+            plotSnapshot(
                 [simulation_path],
                 request,
                 [heatmap!];
                 pf_kwargs,
-                # `snapshotPlot` configuration
+                # `plotSnapshot` configuration
                 output_path,
                 base_filename,
                 output_format=".png",
@@ -2669,221 +2884,6 @@ function temperatureMap(
                 animation_filename="$(base_filename).mp4",
                 framerate=5,
             )
-
-        end
-
-    end
-
-    return nothing
-
-end
-
-"""
-    densityMapVelField(
-        simulation_paths::Vector{String},
-        slice::IndexType;
-        <keyword arguments>
-    )::Nothing
-
-Plot a 2D histogram of the density, with the velocity field.
-
-# Arguments
-
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
-  - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
-
-      + `:stellar_mass`   -> Stellar mass.
-      + `:gas_mass`       -> Gas mass.
-      + `:hydrogen_mass`  -> Hydrogen mass.
-      + `:dm_mass`        -> Dark matter mass.
-      + `:bh_mass`        -> Black hole mass.
-      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-  - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either :particles` or `:cells`.
-  - `output_path::String="./"`: Path to the output folder.
-  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
-
-      + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
-      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
-      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-      + A dictionary with three entries:
-
-          + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
-
-              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
-              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
-              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
-
-              + `:zero`                       -> No rotation is appplied.
-              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
-              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
-              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
-              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
-              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
-              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz` and `:yz`.
-  - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
-  - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
-  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
-
-      + `:physical_time` -> Physical time since the Big Bang.
-      + `:lookback_time` -> Physical time left to reach the last snapshot.
-      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
-      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
-  - `annotation::AbstractString=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
-  - `colorbar::Bool=false`: If a colorbar will be added.
-  - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
-"""
-function densityMapVelField(
-    simulation_paths::Vector{String},
-    slice::IndexType;
-    quantities::Vector{Symbol}=[:gas_mass],
-    types::Vector{Symbol}=[:cells],
-    output_path::String="./",
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    projection_planes::Vector{Symbol}=[:xy],
-    box_size::Unitful.Length=100u"kpc",
-    pixel_length::Unitful.Length=0.1u"kpc",
-    print_range::Bool=false,
-    theme::Attributes=Theme(),
-    title::Union{Symbol,<:AbstractString}="",
-    annotation::AbstractString="",
-    colorbar::Bool=false,
-    colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
-)::Nothing
-
-    # Compute the axes limits, to avoid white padding around the heatmap grid
-    limit = ustrip(u"kpc", box_size / 2.0)
-
-    # Compute number of pixel per side
-    resolution = round(Int, box_size / pixel_length)
-
-    # Set up the grid for the heatmap
-    grid_hm = CubicGrid(box_size, resolution)
-
-    # Set up the grid for the velocity field
-    grid_vf = SquareGrid(box_size, 25)
-
-    pf_kwargs = isnothing(colorrange) ? [(;), (;)] : [(; colorrange), (;)]
-
-    @inbounds for (i, quantity) in pairs(quantities)
-
-        filter_function, translation, rotation, request = selectFilter(
-            filter_mode,
-            plotParams(quantity).request,
-        )
-
-        if quantity ∈ [
-            :gas_mass,
-            :hydrogen_mass,
-            :molecular_mass,
-            :atomic_mass,
-            :ionized_mass,
-            :neutral_mass,
-        ]
-            component = :gas
-        elseif quantity == :stellar_mass
-            component = :stars
-        elseif quantity == :dm_mass
-            component = :halo
-        elseif quantity == :bh_mass
-            component = :black_hole
-        else
-            throw(ArgumentError("densityMapVelField: `quantities` contains :$(quantity), \
-            which is not a valid symbol. See the documentation for valid options."))
-        end
-
-        @inbounds for simulation_path in simulation_paths
-
-            # Get the simulation name as a string
-            sim_name = basename(simulation_path)
-
-            @inbounds for projection_plane in projection_planes
-
-                # Construct the file name
-                base_filename = "$(sim_name)-$(quantity)-$(projection_plane)-density_map"
-
-                snapshotPlot(
-                    [simulation_path, simulation_path],
-                    request,
-                    [heatmap!, arrows!];
-                    pf_kwargs,
-                    # `snapshotPlot` configuration
-                    output_path,
-                    base_filename,
-                    output_format=".png",
-                    warnings=false,
-                    show_progress=true,
-                    # Data manipulation options
-                    slice=iszero(slice) ? (:) : slice,
-                    filter_function,
-                    da_functions=[daDensity2DProjection, daVelocityField],
-                    da_args=[(grid_hm, quantity, ring(types, i)), (grid_vf, component)],
-                    da_kwargs=[
-                        (; projection_plane, print_range),
-                        (; projection_plane),
-                    ],
-                    post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
-                    pp_args=(annotation,),
-                    pp_kwargs=(; color=:white),
-                    transform_box=true,
-                    translation,
-                    rotation,
-                    smooth=0,
-                    x_unit=u"kpc",
-                    y_unit=u"kpc",
-                    x_exp_factor=0,
-                    y_exp_factor=0,
-                    x_trim=(-Inf, Inf),
-                    y_trim=(-Inf, Inf),
-                    x_edges=false,
-                    y_edges=false,
-                    x_func=identity,
-                    y_func=identity,
-                    # Axes options
-                    xaxis_label="auto_label",
-                    yaxis_label="auto_label",
-                    xaxis_var_name=string(projection_plane)[1:1],
-                    yaxis_var_name=string(projection_plane)[2:2],
-                    xaxis_scale_func=identity,
-                    yaxis_scale_func=identity,
-                    # Plotting options
-                    save_figures=!iszero(slice),
-                    backup_results=iszero(slice),
-                    theme=merge(
-                        theme,
-                        Theme(
-                            size=colorbar ? (880, 640) : (880, 880),
-                            figure_padding=(1, 50, 1, 1),
-                            Axis=(limits=(-limit, limit, -limit, limit),),
-                            Colorbar=(
-                                label=L"\mathrm{log}_{10} \Sigma \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
-                            ),
-                        ),
-                    ),
-                    sim_labels=nothing,
-                    title,
-                    colorbar,
-                    # Animation options
-                    animation=iszero(slice),
-                    animation_filename="$(base_filename).mp4",
-                    framerate=5,
-                )
-
-            end
 
         end
 
@@ -3052,12 +3052,12 @@ function scatterPlot(
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
 
-        snapshotPlot(
+        plotSnapshot(
             [simulation_path],
             request,
             [scatter!];
             pf_kwargs=[(; markersize=2)],
-            # `snapshotPlot` configuration
+            # `plotSnapshot` configuration
             output_path,
             base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
             output_format=".png",
@@ -3098,241 +3098,6 @@ function scatterPlot(
             backup_results=false,
             theme,
             sim_labels=nothing,
-            title="",
-            colorbar=false,
-            # Animation options
-            animation=false,
-            animation_filename="animation.mp4",
-            framerate=10,
-        )
-
-    end
-
-    return nothing
-
-end
-
-"""
-    atomicMolecularTransitionHeatmap(
-        simulation_paths::Vector{String},
-        slice::IndexType,
-        ranges::Vector{<:Tuple{<:Real,<:Real}};
-        <keyword arguments>
-    )::Nothing
-
-Plot the atomic gas to molecular gas transition as a heatmap, for a set of metallicity ranges.
-
-# Arguments
-
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `ranges::Vector{<:Tuple{<:Real,<:Real}}`: Metallicity ranges. On figure per range will be produced.
-  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
-  - `output_path::String="./"`: Path to the output folder.
-  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-"""
-function atomicMolecularTransitionHeatmap(
-    simulation_paths::Vector{String},
-    slice::IndexType,
-    ranges::Vector{<:Tuple{<:Real,<:Real}};
-    halo_idx::Int=1,
-    subhalo_rel_idx::Int=1,
-    output_path::String="./",
-    theme::Attributes=Theme(),
-)::Nothing
-
-    # Set some plotting parameters
-    x_quantity = :atomic_number_density
-    y_quantity = :molecular_neutral_fraction
-
-    x_plot_params = plotParams(x_quantity)
-    y_plot_params = plotParams(y_quantity)
-
-    filter_function, translation, rotation, request = selectFilter(
-        :subhalo,
-        mergeRequests(
-            x_plot_params.request,
-            y_plot_params.request,
-            Dict(:gas => ["GZ  ", "GMET"], :stars => ["GZ2 ", "GME2"]),
-        ),
-    )
-
-    @inbounds for simulation_path in simulation_paths
-
-        # Get the simulation name as a string
-        sim_name = basename(simulation_path)
-
-        for range in ranges
-
-            snapshotPlot(
-                fill(simulation_path, length(ranges)),
-                request,
-                [heatmap!];
-                pf_kwargs=[(;)],
-                # `snapshotPlot` configuration
-                output_path,
-                base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)-$(range[1])-Z-$(range[2])",
-                output_format=".png",
-                warnings=false,
-                show_progress=true,
-                # Data manipulation options
-                slice,
-                filter_function,
-                da_functions=[daScatterDensity],
-                da_args=[(x_quantity, y_quantity)],
-                da_kwargs=[
-                    (;
-                        x_log=x_plot_params.unit,
-                        filter_function=dd -> filterMetallicity(dd, range[1], range[2]),
-                    )
-                ],
-                post_processing=getNothing,
-                pp_args=(),
-                pp_kwargs=(;),
-                transform_box=true,
-                translation,
-                rotation,
-                smooth=0,
-                x_unit=Unitful.NoUnits,
-                y_unit=y_plot_params.unit,
-                x_exp_factor=x_plot_params.exp_factor,
-                y_exp_factor=y_plot_params.exp_factor,
-                x_trim=(-Inf, Inf),
-                y_trim=(-Inf, Inf),
-                x_edges=false,
-                y_edges=false,
-                x_func=identity,
-                y_func=identity,
-                # Axes options
-                xaxis_label=L"$\log_{10} \, $auto_label $[\mathrm{cm}^{-3}]$",
-                yaxis_label=y_plot_params.axis_label,
-                xaxis_var_name=x_plot_params.var_name,
-                yaxis_var_name=y_plot_params.var_name,
-                xaxis_scale_func=identity,
-                yaxis_scale_func=identity,
-                # Plotting and animation options
-                save_figures=true,
-                backup_results=false,
-                theme,
-                sim_labels=nothing,
-                title=L"%$(range[1]) \, < \, Z \, < \, %$(range[2])",
-                colorbar=false,
-                # Animation options
-                animation=false,
-                animation_filename="animation.mp4",
-                framerate=10,
-            )
-
-        end
-
-    end
-
-    return nothing
-
-end
-
-"""
-    atomicMolecularTransitionScatter(
-        simulation_paths::Vector{String},
-        slice::IndexType,
-        ranges::Vector{<:Tuple{<:Real,<:Real}};
-        <keyword arguments>
-    )::Nothing
-
-Plot the atomic gas to molecular gas transition as a scatter plot, for a set of metallicity ranges.
-
-# Arguments
-
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `ranges::Vector{<:Tuple{<:Real,<:Real}}`: Metallicity ranges.
-  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
-  - `output_path::String="./"`: Path to the output folder.
-  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-"""
-function atomicMolecularTransitionScatter(
-    simulation_paths::Vector{String},
-    slice::IndexType,
-    ranges::Vector{<:Tuple{<:Real,<:Real}};
-    halo_idx::Int=1,
-    subhalo_rel_idx::Int=1,
-    output_path::String="./",
-    theme::Attributes=Theme(),
-)::Nothing
-
-    # Set some plotting parameters
-    x_quantity = :atomic_number_density
-    y_quantity = :molecular_neutral_fraction
-    da_kwargs  = [
-        (;filter_function=dd -> filterMetallicity(dd, range[1], range[2])) for range in ranges
-    ]
-    sim_labels = ["$(range[1]) < Z < $(range[2])" for range in ranges]
-
-    x_plot_params = plotParams(x_quantity)
-    y_plot_params = plotParams(y_quantity)
-
-    filter_function, translation, rotation, request = selectFilter(
-        :subhalo,
-        mergeRequests(
-            x_plot_params.request,
-            y_plot_params.request,
-            Dict(:gas => ["GZ  ", "GMET"], :stars => ["GZ2 ", "GME2"]),
-        ),
-    )
-
-    @inbounds for simulation_path in simulation_paths
-
-        # Get the simulation name as a string
-        sim_name = basename(simulation_path)
-
-        snapshotPlot(
-            fill(simulation_path, length(ranges)),
-            request,
-            [scatter!];
-            pf_kwargs=[(; markersize=4)],
-            # `snapshotPlot` configuration
-            output_path,
-            base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
-            output_format=".png",
-            warnings=false,
-            show_progress=true,
-            # Data manipulation options
-            slice,
-            filter_function,
-            da_functions=[daScatterGalaxy],
-            da_args=[(x_quantity, y_quantity)],
-            da_kwargs,
-            post_processing=getNothing,
-            pp_args=(),
-            pp_kwargs=(;),
-            transform_box=true,
-            translation,
-            rotation,
-            smooth=0,
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
-            x_trim=(-Inf, Inf),
-            y_trim=(-Inf, Inf),
-            x_edges=false,
-            y_edges=false,
-            x_func=identity,
-            y_func=identity,
-            # Axes options
-            xaxis_label=x_plot_params.axis_label,
-            yaxis_label=y_plot_params.axis_label,
-            xaxis_var_name=x_plot_params.var_name,
-            yaxis_var_name=y_plot_params.var_name,
-            xaxis_scale_func=log10,
-            yaxis_scale_func=identity,
-            # Plotting and animation options
-            save_figures=true,
-            backup_results=false,
-            theme,
-            sim_labels,
             title="",
             colorbar=false,
             # Animation options
@@ -3651,12 +3416,12 @@ function scatterDensityMap(
             base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)"
         end
 
-        snapshotPlot(
+        plotSnapshot(
             [simulation_path],
             request,
             [heatmap!];
             pf_kwargs=[(;)],
-            # `snapshotPlot` configuration
+            # `plotSnapshot` configuration
             output_path,
             base_filename,
             output_format=".png",
@@ -3712,7 +3477,205 @@ function scatterDensityMap(
 end
 
 """
-    gasFractionsBarPlot(
+    atomicMolecularTransition(
+        simulation_paths::Vector{String},
+        slice::IndexType,
+        ranges::Vector{<:Tuple{<:Real,<:Real}};
+        <keyword arguments>
+    )::Nothing
+
+Plot the atomic gas to molecular gas transition for a set of metallicity ranges.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `ranges::Vector{<:Tuple{<:Real,<:Real}}`: Metallicity (as in the fractional mass of metals) ranges.
+  - `plot_type::Symbol=:heatmap`: Type of plot. The options are:
+
+      + `:heatmap` -> Heatmap. One figure per range will be produced.
+      + `:scatter` -> Scatter plot. A single figure with every range will be produced.
+  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+  - `output_path::String="./"`: Path to the output folder.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function atomicMolecularTransition(
+    simulation_paths::Vector{String},
+    slice::IndexType,
+    ranges::Vector{<:Tuple{<:Real,<:Real}};
+    plot_type::Symbol=:heatmap,
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+    output_path::String="./",
+    theme::Attributes=Theme(),
+)::Nothing
+
+    # Set some plotting parameters
+    x_quantity = :atomic_number_density
+    y_quantity = :molecular_neutral_fraction
+
+    x_plot_params = plotParams(x_quantity)
+    y_plot_params = plotParams(y_quantity)
+
+    filter_function, translation, rotation, request = selectFilter(
+        :subhalo,
+        mergeRequests(
+            x_plot_params.request,
+            y_plot_params.request,
+            Dict(:gas => ["GZ  ", "GMET"], :stars => ["GZ2 ", "GME2"]),
+        ),
+    )
+
+    @inbounds for simulation_path in simulation_paths
+
+        # Get the simulation name as a string
+        sim_name = basename(simulation_path)
+        filename = "$(sim_name)-$(y_quantity)-vs-$(x_quantity)"
+
+        if plot_type == :heatmap
+
+            for range in ranges
+
+                plotSnapshot(
+                    fill(simulation_path, length(ranges)),
+                    request,
+                    [heatmap!];
+                    pf_kwargs=[(;)],
+                    # `plotSnapshot` configuration
+                    output_path,
+                    base_filename="$(filename)-$(range[1])-Z-$(range[2])",
+                    output_format=".png",
+                    warnings=false,
+                    show_progress=true,
+                    # Data manipulation options
+                    slice,
+                    filter_function,
+                    da_functions=[daScatterDensity],
+                    da_args=[(x_quantity, y_quantity)],
+                    da_kwargs=[
+                        (;
+                            x_log=x_plot_params.unit,
+                            y_log=y_plot_params.unit,
+                            filter_function=dd -> filterMetallicity(dd, range[1], range[2]),
+                        )
+                    ],
+                    post_processing=getNothing,
+                    pp_args=(),
+                    pp_kwargs=(;),
+                    transform_box=true,
+                    translation,
+                    rotation,
+                    smooth=0,
+                    x_unit=Unitful.NoUnits,
+                    y_unit=Unitful.NoUnits,
+                    x_exp_factor=x_plot_params.exp_factor,
+                    y_exp_factor=y_plot_params.exp_factor,
+                    x_trim=(-Inf, Inf),
+                    y_trim=(-Inf, Inf),
+                    x_edges=false,
+                    y_edges=false,
+                    x_func=identity,
+                    y_func=identity,
+                    # Axes options
+                    xaxis_label=L"$\log_{10} \, $auto_label $[\mathrm{cm}^{-3}]$",
+                    yaxis_label=L"$\log_{10} \, $auto_label",
+                    xaxis_var_name=x_plot_params.var_name,
+                    yaxis_var_name=y_plot_params.var_name,
+                    xaxis_scale_func=identity,
+                    yaxis_scale_func=identity,
+                    # Plotting and animation options
+                    save_figures=true,
+                    backup_results=false,
+                    theme,
+                    sim_labels=nothing,
+                    title=L"%$(range[1]) \, < \, Z \, < \, %$(range[2])",
+                    colorbar=false,
+                    # Animation options
+                    animation=false,
+                    animation_filename="animation.mp4",
+                    framerate=10,
+                )
+
+            end
+
+        elseif plot_type == :scatter
+
+            plotSnapshot(
+                fill(simulation_path, length(ranges)),
+                request,
+                [scatter!];
+                pf_kwargs=[(; markersize=4)],
+                # `plotSnapshot` configuration
+                output_path,
+                base_filename=filename,
+                output_format=".png",
+                warnings=false,
+                show_progress=true,
+                # Data manipulation options
+                slice,
+                filter_function,
+                da_functions=[daScatterGalaxy],
+                da_args=[(x_quantity, y_quantity)],
+                da_kwargs = [
+                    (;filter_function=dd -> filterMetallicity(dd, range[1], range[2])) for
+                    range in ranges
+                ],
+                post_processing=getNothing,
+                pp_args=(),
+                pp_kwargs=(;),
+                transform_box=true,
+                translation,
+                rotation,
+                smooth=0,
+                x_unit=x_plot_params.unit,
+                y_unit=y_plot_params.unit,
+                x_exp_factor=x_plot_params.exp_factor,
+                y_exp_factor=y_plot_params.exp_factor,
+                x_trim=(-Inf, Inf),
+                y_trim=(-Inf, Inf),
+                x_edges=false,
+                y_edges=false,
+                x_func=identity,
+                y_func=identity,
+                # Axes options
+                xaxis_label=x_plot_params.axis_label,
+                yaxis_label=y_plot_params.axis_label,
+                xaxis_var_name=x_plot_params.var_name,
+                yaxis_var_name=y_plot_params.var_name,
+                xaxis_scale_func=log10,
+                yaxis_scale_func=log10,
+                # Plotting and animation options
+                save_figures=true,
+                backup_results=false,
+                theme=merge(
+                    theme,
+                    Theme(Legend=(nbanks=1, halign=:left, valign=:top, padding=(0, 0, 0, 15)),),
+                ),
+                sim_labels= ["$(range[1]) < Z < $(range[2])" for range in ranges],
+                title="",
+                colorbar=false,
+                # Animation options
+                animation=false,
+                animation_filename="animation.mp4",
+                framerate=10,
+            )
+
+        else
+
+            throw(ArgumentError("atomicMolecularTransition: `plot_type` can only be :heatmap or \
+            :scatter, but I got :$(plot_type)"))
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
+    gasBarPlot(
         simulation_paths::Vector{String},
         slice::IndexType,
         quantity::Symbol,
@@ -3789,7 +3752,7 @@ Only for gas cells that have entered out routine.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
-function gasFractionsBarPlot(
+function gasBarPlot(
     simulation_paths::Vector{String},
     slice::IndexType,
     quantity::Symbol,
@@ -3856,12 +3819,12 @@ function gasFractionsBarPlot(
             end
         end
 
-        snapshotPlot(
+        plotSnapshot(
             [simulation_path],
             request,
             [barplot!];
             pf_kwargs=[(; dodge, color=colors[dodge])],
-            # `snapshotPlot` configuration
+            # `plotSnapshot` configuration
             output_path,
             base_filename,
             output_format=".png",
@@ -4099,11 +4062,11 @@ function timeSeries(
         yaxis_scale_func = log10
     end
 
-    timeSeriesPlot(
+    plotTimeSeries(
         simulation_paths,
         [lines!];
         pf_kwargs=[(;)],
-        # `timeSeriesPlot` configuration
+        # `plotTimeSeries` configuration
         output_path,
         filename,
         output_format=".png",
@@ -4231,11 +4194,11 @@ function gasEvolution(
             end
         end
 
-        timeSeriesPlot(
+        plotTimeSeries(
             fill(simulation_path, length(quantities)),
             [lines!];
             pf_kwargs=[(;)],
-            # `timeSeriesPlot` configuration
+            # `plotTimeSeries` configuration
             output_path,
             filename,
             output_format=".png",
@@ -4319,11 +4282,11 @@ function virialAccretionEvolution(
         filename="virial-mass-change_evolution"
     end
 
-    timeSeriesPlot(
+    plotTimeSeries(
         simulation_paths,
         [lines!];
         pf_kwargs=[(;)],
-        # `timeSeriesPlot` configuration
+        # `plotTimeSeries` configuration
         output_path,
         filename,
         output_format=".png",
@@ -4399,11 +4362,11 @@ function discAccretionEvolution(
     x_plot_params = plotParams(:physical_time)
     y_plot_params = plotParams(:mass_accretion)
 
-    timeSeriesPlot(
+    plotTimeSeries(
         simulation_paths,
         [lines!];
         pf_kwargs=[(;)],
-        # `timeSeriesPlot` configuration
+        # `plotTimeSeries` configuration
         output_path,
         filename="disc-mass-accretion_with_tracers",
         output_format=".png",
@@ -4510,12 +4473,12 @@ function rotationCurve(
         mergeRequests(x_plot_params.request, y_plot_params.request, Dict(:stars => ["GAGE"])),
     )
 
-    snapshotPlot(
+    plotSnapshot(
         simulation_paths,
         request,
         [lines!];
         pf_kwargs=[(;)],
-        # `snapshotPlot` configuration
+        # `plotSnapshot` configuration
         output_path,
         base_filename="rotation_curve",
         output_format=".png",
@@ -4707,12 +4670,12 @@ function densityProfile(
     grid = CircularGrid(radius, n_bins)
 
     # Draw the figures with CairoMakie
-    snapshotPlot(
+    plotSnapshot(
         simulation_paths,
         request,
         [lines!];
         pf_kwargs=[(;)],
-        # `snapshotPlot` configuration
+        # `plotSnapshot` configuration
         output_path,
         base_filename="$(quantity)-density_profile",
         output_format=".png",
@@ -4859,12 +4822,12 @@ function densityProfile(
         sim_name = basename(simulation_path)
 
         # Draw the figures with CairoMakie
-        snapshotPlot(
+        plotSnapshot(
             fill(simulation_path, length(quantities)),
             request,
             [lines!];
             pf_kwargs=[(;)],
-            # `snapshotPlot` configuration
+            # `plotSnapshot` configuration
             output_path,
             base_filename="$(sim_name)-density_profiles",
             output_format=".png",
@@ -5025,12 +4988,12 @@ function massProfile(
         end
 
         # Draw the figures with CairoMakie
-        snapshotPlot(
+        plotSnapshot(
             fill(simulation_path, length(quantities)),
             request,
             [lines!];
             pf_kwargs=[(;)],
-            # `snapshotPlot` configuration
+            # `plotSnapshot` configuration
             output_path,
             base_filename,
             output_format=".png",
@@ -5153,12 +5116,12 @@ function velocityProfile(
     grid = CircularGrid(DISK_R, 25)
 
     # Draw the figures with CairoMakie
-    snapshotPlot(
+    plotSnapshot(
         simulation_paths,
         request,
         [scatterlines!];
         pf_kwargs=[(;)],
-        # `snapshotPlot` configuration
+        # `plotSnapshot` configuration
         output_path,
         base_filename="$(component)-profile",
         output_format=".png",
@@ -5286,12 +5249,12 @@ function stellarHistory(
     )
 
     # Draw the figures with CairoMakie
-    snapshotPlot(
+    plotSnapshot(
         simulation_paths,
         request,
         [lines!];
         pf_kwargs=[(;)],
-        # `snapshotPlot` configuration
+        # `plotSnapshot` configuration
         output_path,
         base_filename="$(quantity)_history",
         output_format=".png",
@@ -5408,12 +5371,12 @@ function stellarCircularity(
 
     grid = LinearGrid(range..., n_bins)
 
-    snapshotPlot(
+    plotSnapshot(
         simulation_paths,
         request,
         [lines!];
         pf_kwargs=[(;)],
-        # `snapshotPlot` configuration
+        # `plotSnapshot` configuration
         output_path,
         base_filename="circularity_histogram",
         output_format=".png",
@@ -5559,11 +5522,11 @@ function compareFeldmann2020(
         x_quantity = :observational_sfr
     end
 
-    timeSeriesPlot(
+    plotTimeSeries(
         simulation_paths,
         [scatter!];
         pf_kwargs=[(;)],
-        # `timeSeriesPlot` configuration
+        # `plotTimeSeries` configuration
         output_path,
         filename="$(y_quantity)-vs-$(x_quantity)-with-Feldmann2020",
         output_format=".png",
@@ -5710,12 +5673,12 @@ function compareMolla2015(
     end
 
     # Draw the figures with CairoMakie
-    snapshotPlot(
+    plotSnapshot(
         simulation_paths,
         request,
         [scatterlines!];
         pf_kwargs=[(;)],
-        # `snapshotPlot` configuration
+        # `plotSnapshot` configuration
         output_path,
         base_filename="$(quantity)-profile-with-Molla2015",
         output_format=".png",
@@ -5855,12 +5818,12 @@ function resolvedKennicuttSchmidtLaw(
             plotParams(qty).request,
         )
 
-        snapshotPlot(
+        plotSnapshot(
             simulation_paths,
             request,
             [heatmap!];
             pf_kwargs=[(;)],
-            # `snapshotPlot` configuration
+            # `plotSnapshot` configuration
             output_path=temp_folder,
             base_filename=string(qty),
             output_format=".png",
@@ -5920,12 +5883,12 @@ function resolvedKennicuttSchmidtLaw(
     )
 
     # Write the JLD2 file with the metallicity density
-    snapshotPlot(
+    plotSnapshot(
         simulation_paths,
         request,
         [heatmap!];
         pf_kwargs=[(;)],
-        # `snapshotPlot` configuration
+        # `plotSnapshot` configuration
         output_path=temp_folder,
         base_filename="gas_metallicity",
         output_format=".png",
@@ -6255,12 +6218,12 @@ function integratedKennicuttSchmidtLaw(
             plotParams(qty).request,
         )
 
-        snapshotPlot(
+        plotSnapshot(
             simulation_paths,
             request,
             [heatmap!];
             pf_kwargs=[(;)],
-            # `snapshotPlot` configuration
+            # `plotSnapshot` configuration
             output_path=temp_folder,
             base_filename=string(qty),
             output_format=".png",
@@ -6595,12 +6558,12 @@ function fitResolvedKennicuttSchmidtLaw(
         latex=true,
     )
 
-    snapshotPlot(
+    plotSnapshot(
         [simulation_path],
         request,
         [scatter!];
         pf_kwargs=[(; color=Makie.wong_colors()[1], markersize=6, marker=:circle)],
-        # `snapshotPlot` configuration
+        # `plotSnapshot` configuration
         output_path,
         base_filename="ks-law_fit",
         output_format=".png",

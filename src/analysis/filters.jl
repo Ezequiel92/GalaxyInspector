@@ -947,21 +947,6 @@ function filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Sy
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    if CODEBASE == :arepo
-
-        metallicity = data_dict[component]["GZ2 "]
-
-    elseif CODEBASE == :opengadget3
-
-        metals = sum(data_dict[component]["GME2"][METAL_LIST, :]; dims=1)
-        metallicity = metals ./ data_dict[component]["MASS"]
-
-    else
-
-        throw(ArgumentError("filterMetallicity: I don't recognize the codebase :$(CODEBASE)"))
-
-    end
-
     @inbounds for component in snapshotTypes(data_dict)
 
         @inbounds if component == :gas

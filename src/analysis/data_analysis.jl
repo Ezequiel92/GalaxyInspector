@@ -3,10 +3,10 @@
 ####################################################################################################
 
 ####################################################################################################
-# Signature for the snapshotPlot function in ./src/pipelines.jl.
+# Signature for the plotSnapshot function in ./src/pipelines.jl.
 ####################################################################################################
 #
-# A data analysis functions for snapshotPlot must take a dictionary with the following shape:
+# A data analysis functions for plotSnapshot must take a dictionary with the following shape:
 #
 #   + :sim_data          -> ::Simulation (see the Simulation struct in ./src/constants.jl).
 #   + :snap_data         -> ::Snapshot (see the Snapshot struct in ./src/constants.jl).
@@ -2932,10 +2932,10 @@ function daStellarBTHistogram(data_dict::Dict)::Union{Tuple{Vector{<:Unitful.Tim
 end
 
 ####################################################################################################
-# Signature for the timeSeriesPlot function in ./src/pipelines.jl.
+# Signature for the plotTimeSeries function in ./src/pipelines.jl.
 ####################################################################################################
 #
-# A data analysis functions for timeSeriesPlot must take a Simulation struct, and return two
+# A data analysis functions for plotTimeSeries must take a Simulation struct, and return two
 # vectors. It should return `nothing` if the input data has some problem that prevents computation
 # (e.g. is empty).
 #
