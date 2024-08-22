@@ -126,14 +126,14 @@ Draw two lines, one horizontal and one vertical.
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
   - `cross_point::Tuple{<:Real,<:Real}`: Crossing point of the lines.
-  - `color::ColorType=:red`: Color of the lines.
+  - `color::ColorType=Makie.wong_colors()[6]`: Color of the lines.
   - `linestyle::LineStyleType=nothing`: Style of the lines. `nothing` will produce a solid line.
   - `warnings::Bool=true`: If a warning will be raised when at least one of the lines is outside the plot range.
 """
 function ppCross!(
     figure::Makie.Figure,
     cross_point::Tuple{<:Real,<:Real};
-    color::ColorType=:red,
+    color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
     warnings::Bool=true,
 )::Nothing
@@ -205,12 +205,14 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
+  - `wts::Union{Vector{Float64},Nothing}=nothing`: Weights for the fits. Set to `nothing` for a non-weighted fit.
   - `error_formating::Symbol=:std_error`: Error format for the annotation. The options are:
 
       + `:std_error`     -> mean ± standard_error.
       + `:conf_interval` -> mean ± max(upper$_{95\%}$ - mean, mean - lower$_{95\%}$).
-  - `color::ColorType=:red`: Color of the line.
+  - `color::ColorType=Makie.wong_colors()[6],`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
+  - `linewidth::Int=3`: Lien width.
   - `warnings::Bool=true`: If a warning will be raised when there are no points to fit.
 
 # Returns
@@ -222,9 +224,11 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
 """
 function ppFitLine!(
     figure::Makie.Figure;
+    wts::Union{Vector{Float64},Nothing}=nothing,
     error_formating::Symbol=:std_error,
-    color::ColorType=:red,
+    color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
+    linewidth::Int=3,
     warnings::Bool=true,
 )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
@@ -262,19 +266,29 @@ function ppFitLine!(
 
     # Compute the linear fit in scaled (e.g. log10) space
     X = [ones(length(x_points)) x_points]
-    linear_model = lm(X, y_points)
+    if isnothing(wts)
+        linear_model = lm(X, y_points)
+    else
+        linear_model = lm(X, y_points; wts)
+    end
 
     # Read the fitted coeficients
     coeff = coef(linear_model)
     intercept_mean = coeff[1]
     slope_mean = coeff[2]
 
-    # Revert to unscaled values
-    x_line = Makie.inverse_transform(x_scaling).(x_points)
-    y_line = Makie.inverse_transform(y_scaling).(x_points .* slope_mean .+ intercept_mean)
+    y_limits = [extrema(y_points)...]
+    x_limits = @. (y_limits - intercept_mean) / slope_mean
 
     # Plot the linear fit
-    lines!(figure.current_axis.x, x_line, y_line; color, linestyle)
+    lines!(
+        figure.current_axis.x,
+        Makie.inverse_transform(x_scaling).(x_limits),
+        Makie.inverse_transform(y_scaling).(y_limits);
+        color,
+        linestyle,
+        linewidth,
+    )
 
     ################################################################################################
     # Annotation
@@ -305,12 +319,36 @@ function ppFitLine!(
     # Draw the annotation
     text!(
         figure.current_axis.x,
-        [(0.77, 0.15), (0.77, 0.09), (0.77, 0.03)];
+        [(0.04, 0.98), (0.04, 0.93), (0.04, 0.88)];
         text=[L"y = a \, x + b", L"a = %$slope \pm %$δslope", L"b = %$intercept \pm %$δintercept"],
-        align=(:left, :bottom),
+        align=(:left, :top),
         color,
         space=:relative,
-        fontsize=30,
+        fontsize=25,
+    )
+
+    ################################################################################################
+    # Band
+    ################################################################################################
+
+    # Compute the intercept and slope as numbers with uncertainties
+    band_intercept = intercept_mean ± intercept_error
+    band_slope     = slope_mean ± slope_error
+
+    # Compute the values of the y axis as numbers with uncertainties
+    x_band = collect(range(x_limits[1], x_limits[2], 100))
+    y_band = @. Makie.inverse_transform(y_scaling)(x_band * band_slope + band_intercept)
+
+    values        = Measurements.value.(y_band)
+    uncertainties = Measurements.uncertainty.(y_band)
+
+    # Draw the uncertainty band
+    band!(
+        figure.current_axis.x,
+        x_band,
+        values .- uncertainties,
+        values .+ uncertainties;
+        color=(color, 0.3),
     )
 
     return nothing
@@ -332,7 +370,7 @@ Draw a line plot with the fit for the KS relation in Kennicutt (1998).
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
   - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{gas})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{gas}`` (`x_log` = false).
   - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
-  - `color::ColorType=:red`: Color of the line.
+  - `color::ColorType=Makie.wong_colors()[6]`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `linewidth::Int=3`: Line width.
   - `warnings::Bool=true`: If a warning will be raised when there are no points in the figure.
@@ -354,7 +392,7 @@ function ppKennicutt1998!(
     y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2",
     x_log::Bool=true,
     y_log::Bool=true,
-    color::ColorType=:red,
+    color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
     linewidth::Int=3,
     warnings::Bool=true,
@@ -434,7 +472,7 @@ Draw a line plot with the fit for the KS relation in Bigiel et al. (2008).
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
   - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
   - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
-  - `color::ColorType=:red`: Color of the line.
+  - `color::ColorType=Makie.wong_colors()[6]`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `linewidth::Int=3`: Line width.
   - `warnings::Bool=true`: If a warning will be raised when there are no points in the figure.
@@ -457,7 +495,7 @@ function ppBigiel2008!(
     y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2",
     x_log::Bool=true,
     y_log::Bool=true,
-    color::ColorType=:red,
+    color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
     linewidth::Int=3,
     warnings::Bool=true,
@@ -539,7 +577,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
       + `:atomic_area_density`    -> Atomic hydrogen area mass density.
       + `:sfr_area_density`       -> Star formation rate area density.
       + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. ``\\mathrm{X}`` can be O (oxygen), N (nitrogen), or C (carbon).
-  - `color::ColorType=:red`: Color of the line.
+  - `color::ColorType=Makie.wong_colors()[6]`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `error_bars::Bool=true`: If the error bars will be plotted.
 
@@ -557,7 +595,7 @@ M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the in
 function ppMolla2015!(
     figure::Makie.Figure,
     quantity::Symbol;
-    color::ColorType=:red,
+    color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
     error_bars::Bool=true,
 )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
@@ -732,12 +770,12 @@ function ppFeldmann2020!(
             figure.current_axis.x,
             x_data,
             y_mean_values;
-            color=:red,
+            color=Makie.wong_colors()[6],
             marker=:star4,
             markersize=12,
         )
 
-        return [MarkerElement(; color=:red, marker=:star4)], ["Feldmann (2020)"]
+        return [MarkerElement(; color=Makie.wong_colors()[6], marker=:star4)], ["Feldmann (2020)"]
     end
 
     # Get the scaling of each axis

@@ -5729,7 +5729,7 @@ function compareMolla2015(
         da_kwargs=[(;)],
         post_processing=ppMolla2015!,
         pp_args=(quantity,),
-        pp_kwargs=(; color=:red, linestyle=nothing, error_bars=true),
+        pp_kwargs=(; color=Makie.wong_colors()[6], linestyle=nothing, error_bars=true),
         transform_box=true,
         translation,
         rotation,
@@ -6481,7 +6481,7 @@ function integratedKennicuttSchmidtLaw(
 end
 
 """
-    fitKennicuttBigielResolved(
+    fitResolvedKennicuttSchmidtLaw(
         simulation_path::String,
         slice::IndexType;
         <keyword arguments>
@@ -6493,11 +6493,12 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol=:molecular_area_density`: Quantity for the x axis. The options are:
+  - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or `:cells`.
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -6528,7 +6529,7 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `sim_labels::Union{Vector{String},Nothing}=["Simulation"]`: Label for the scatter plot. Set it to `nothing` if you don't want a legend.
+  - `sim_label::Union{String,Nothing}=basename(simulation_path)`: Label for the scatter plot. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
@@ -6537,35 +6538,71 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-function fitKennicuttBigielResolved(
+function fitResolvedKennicuttSchmidtLaw(
     simulation_path::String,
     slice::IndexType;
-    quantity::Symbol=:molecular_area_density,
+    quantity::Symbol=:molecular_mass,
+    type::Symbol=:cells,
     x_range::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    sim_labels::Union{Vector{String},Nothing}=["Simulation"],
+    sim_label::Union{String,Nothing}=basename(simulation_path),
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(25u"kpc", 250)
-
-    x_plot_params = plotParams(quantity)
-    y_plot_params = plotParams(:sfr_area_density)
+    grid = CubicGrid(65.0u"kpc", 300)
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        mergeRequests(x_plot_params.request, y_plot_params.request),
+        mergeRequests(plotParams(quantity).request, plotParams(:stellar_mass).request),
+    )
+
+    # Choose the correct x label
+    if quantity == :gas_mass
+
+        x_label = getLabel(
+            plotParams(:gas_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :molecular_mass
+
+        x_label = getLabel(
+            plotParams(:molecular_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :neutral_mass
+
+        x_label = getLabel(
+            plotParams(:neutral_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    end
+
+    # Set the y label
+    y_label = getLabel(
+        plotParams(:sfr_area_density).var_name,
+        0,
+        u"Msun * yr^-1 * kpc^-2";
+        latex=true,
     )
 
     snapshotPlot(
         [simulation_path],
         request,
         [scatter!];
-        pf_kwargs=[(;)],
+        pf_kwargs=[(; color=Makie.wong_colors()[1], markersize=6, marker=:circle)],
         # `snapshotPlot` configuration
         output_path,
-        base_filename="sfr_area_density-vs-$(quantity)-with-linear-fit",
+        base_filename="ks-law_fit",
         output_format=".png",
         warnings=false,
         show_progress=true,
@@ -6574,7 +6611,7 @@ function fitKennicuttBigielResolved(
         filter_function,
         da_functions=[daKennicuttSchmidtLaw],
         da_args=[(grid, quantity)],
-        da_kwargs=[(;)],
+        da_kwargs=[(; type, filter_function=dd->filterStellarAge(dd))],
         post_processing=ppFitLine!,
         pp_args=(),
         pp_kwargs=(;),
@@ -6582,8 +6619,8 @@ function fitKennicuttBigielResolved(
         translation,
         rotation,
         smooth=0,
-        x_unit=x_plot_params.unit,
-        y_unit=y_plot_params.unit,
+        x_unit=Unitful.NoUnits,
+        y_unit=Unitful.NoUnits,
         x_exp_factor=0,
         y_exp_factor=0,
         x_trim=x_range,
@@ -6593,20 +6630,32 @@ function fitKennicuttBigielResolved(
         x_func=identity,
         y_func=identity,
         # Axes options
-        xaxis_label=x_plot_params.axis_label,
-        yaxis_label=y_plot_params.axis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
-        xaxis_scale_func=log10,
-        yaxis_scale_func=log10,
+        xaxis_label=L"$\log_{10}$ %$(x_label)",
+        yaxis_label=L"$\log_{10}$ %$(y_label)",
+        xaxis_var_name="",
+        yaxis_var_name="",
+        xaxis_scale_func=identity,
+        yaxis_scale_func=identity,
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
         ##########################
         # left, right, bottom, top
         ##########################
-        theme=merge(theme, Theme(size=(1400, 820), Axis=(aspect=nothing,),)),
-        sim_labels,
+        theme=merge(
+            theme,
+            Theme(
+                size=(880, 880),
+                Axis=(aspect=AxisAspect(1),),
+                Legend=(
+                    labelsize=20,
+                    halign=:left,
+                    valign=:top,
+                    padding=(15, 0, 0, 125),
+                ),
+            ),
+        ),
+        sim_labels=[sim_label],
         title="",
         colorbar=false,
         # Animation options

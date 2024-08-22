@@ -139,11 +139,12 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CubicGrid`: Cubic grid.
-  - `quantity::Symbol`: Target gas component. The options are:
+  - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_area_density`       -> Total gas area mass density.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density.
+      + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or `:cells`.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -174,122 +175,64 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
 
   - A tuple with two elements:
 
-      + A vector with the gas mass surface density of each ring.
-      + A vector with the SFR surface density of each ring.
+      + A vector with log10(ΣH / M⊙ * kpc^-2).
+      + A vector with log10(Σsfr / M⊙ * yr^-1 * kpc^-2).
 
     It returns `nothing` if any of the necessary quantities are missing.
 
 # References
 
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
 function daKennicuttSchmidtLaw(
     data_dict::Dict,
     grid::CubicGrid,
     quantity::Symbol;
+    type::Symbol=:cells,
     filter_function::Function=filterNothing,
-)::Union{Tuple{Vector{<:SurfaceDensity},Vector{<:MassFlowDensity}},Nothing}
+)::Union{NTuple{2,Vector{<:Float64}},Nothing}
 
-    filtered_dd = filterData(data_dict; filter_function)
+    (
+        quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
+        throw(ArgumentError("daKennicuttSchmidtLaw: `quantity` can only be :gas_mass, \
+        :molecular_mass or :neutral_mass, but I got :$(quantity)"))
+    )
 
-    # Loasd the gas and stellar positions
-    gas_positions  = filtered_dd[:gas]["POS "]
-    star_positions = filtered_dd[:stars]["POS "]
+    _, _, stellar_density = daDensity2DProjection(
+        data_dict,
+        grid,
+        :stellar_mass,
+        :particles;
+        projection_plane=:xy,
+        print_range=false,
+        filter_function,
+    )
 
-    # Return `nothing` if any of the necessary quantities are missing
-    !any(isempty, [gas_positions, star_positions]) || return nothing
+    _, _, gas_density = daDensity2DProjection(
+        data_dict,
+        grid,
+        quantity,
+        type;
+        projection_plane=:xy,
+        print_range=false,
+        filter_function,
+    )
 
-    # Set the units
-    m_unit = u"Msun"
-    l_unit = u"kpc"
+    x_axis = vec(gas_density)
+    y_axis = vec(stellar_density)
 
-    ################################################################################################
-    # Compute the gas area density
-    ################################################################################################
+    # Delete 0s and NaNs in the data vectors
+    x_idxs = map(x -> isnan(x) || iszero(x), x_axis)
+    y_idxs = map(x -> isnan(x) || iszero(x), y_axis)
 
-    # Compute the gas masses
-    if quantity == :gas_area_density
-        gas_masses = scatterQty(filtered_dd, :gas_mass)
-    elseif quantity == :molecular_area_density
-        gas_masses = scatterQty(filtered_dd, :molecular_mass)
-    elseif quantity == :neutral_area_density
-        gas_masses = scatterQty(filtered_dd, :neutral_mass)
-    else
-        throw(ArgumentError("daKennicuttSchmidtLaw: `quantity` can only be :molecular_area_density \
-        , :neutral_area_density or :gas_area_density, but I got :$(quantity)"))
-    end
+    deleteat!(x_axis, x_idxs ∪ y_idxs)
+    deleteat!(y_axis, x_idxs ∪ y_idxs)
 
-    # Compute the volume of each cell
-    gas_density = filtered_dd[:gas]["RHO "]
-    gas_volumes = filtered_dd[:gas]["MASS"] ./ gas_density
+    !any(isempty.([x_axis, y_axis])) || return nothing
 
-    # Compute the densities for the target quantity
-    densities = ustrip.(m_unit*l_unit^-3, gas_masses ./ gas_volumes)
-
-    # Load the volume and area of the voxels
-    voxel_volume = ustrip(l_unit^3, grid.bin_volume)
-    voxel_area = ustrip(l_unit^2, grid.bin_area)
-
-    # Allocate memory
-    physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
-
-    # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-    @inbounds for i in eachindex(grid.grid)
-        physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
-        physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
-        physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
-    end
-
-    # Compute the tree for a nearest neighbor search
-    kdtree = KDTree(ustrip.(l_unit, gas_positions))
-
-    # Find the nearest neighbor to each point in the grid
-    idxs, _ = nn(kdtree, physical_grid)
-
-    # Allocate memory
-    mass_grid = similar(grid.grid, Float64)
-
-    # Compute the density of each voxel
-    @inbounds for i in eachindex(grid.grid)
-        mass_grid[i] = densities[idxs[i]] * voxel_volume
-    end
-
-    #TODO
-    # Project the grid to the xy plane
-    density = dropdims(sum(mass_grid; dims=3) ./ voxel_area; dims=3) .* m_unit*l_unit^-2
-
-    # density = reduceResolution(density, 25)
-
-    # Set bins with a value of 0 to NaN
-    nan = NaN * unit(first(density))
-    replace!(x -> iszero(x) ? nan : x, density)
-
-    gas_mass_density = vec(density)
-
-    # gas_mass_density = projectIntoCircularGrid(density, 25; inscribed=true)
-
-    ################################################################################################
-    # Compute the SFR area density
-    ################################################################################################
-
-    # Compute the SFR
-    sfr = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION)
-
-    density = histogram2D(star_positions[[1, 2], :], sfr, flattenGrid(grid), empty_nan=false) ./ grid.bin_area
-
-    # density = reduceResolution(density, 25)
-
-    # Set bins with a value of 0 to NaN
-    nan = NaN * unit(first(density))
-    replace!(x -> iszero(x) ? nan : x, density)
-
-    sfr_density = vec(density)
-
-    # sfr_density = projectIntoCircularGrid(density, 25; inscribed=true)
-
-    #TODO
-
-    return gas_mass_density, sfr_density
+    return x_axis, y_axis .- log10(ustrip(u"yr", AGE_RESOLUTION))
 
 end
 
