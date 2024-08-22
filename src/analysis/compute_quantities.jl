@@ -2216,7 +2216,7 @@ end
 """
     computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
-Compute the "stellar mass" of every gas cell, which will be other than 0 only for simulation with an non empty "FRAC" field in the snapshots.
+Compute the "stellar mass" of every gas cell, which will be other than 0 only for simulation with an non-empty "FRAC" field in the snapshots.
 
 The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen. This is applied only for consistency with the other mass rutines ([`computeIonizedMass`](@ref), [`computeAtomicMass`](@ref), [`computeMolecularMass`](@ref), and [`computeNeutralMass`](@ref)). Notice that there is no physical meaning to the "stellar mass" of a gas cell. So, it makes no sense to question if the "stellar fraction" computed here is a fraction of the total gas mass or only of the hydrogen mass.
 

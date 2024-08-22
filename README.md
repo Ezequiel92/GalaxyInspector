@@ -11,19 +11,19 @@
     <a href="https://ezequiel92.github.io/GalaxyInspector/dev/intro/"><img src="https://img.shields.io/badge/documentation-blue.svg"></a>
 </p>
 
-A Julia module for the data analysis of hydrodynamical simulations in astrophysics.
+A Julia module for the data analysis of galaxy simulations.
 
 > [!CAUTION]
 > This code is written for my personal use and is a work in progress, thus it may break at any moment. Use it at your own risk.
 
 > ℹ️ **NOTE**
 >
-> There are more advanced tools to analyze/plot simulation results (you can see some [below](https://github.com/Ezequiel92/GalaxyInspector#-links)), but this module was written not only as a basic plotting tool, but as an exercise to learn [Julia](https://julialang.org/) and software development in general.
+> There are more advanced tools to analyze/plot simulation results (you can see some [below](https://github.com/Ezequiel92/GalaxyInspector#-links)). This module was written not only as a basic plotting tool, but as an exercise to learn [Julia](https://julialang.org/) and software development in general.
 
 ## ⚙️ Characteristics
 
-- Works only with snapshots in [HDF5](https://www.hdfgroup.org/solutions/hdf5/) format (option `SnapFormat = 3`).
-- This is a collection of scripts inside a module, not a package. Global constants and data structures are defined in `src/constants.jl`.
+- Works only with snapshots in [HDF5](https://www.hdfgroup.org/solutions/hdf5/) format (option `SnapFormat = 3` in P-Gadget3 and Arepo).
+- This is a collection of scripts inside a module, not a package. Global constants and data structures are defined in `src/constants/globals.jl`.
 
 ## 🔗 Links
 

@@ -6,14 +6,14 @@
 # / /_/ // /_/ // // /_/ /_>  < / /_/ /_/ / / / / /(__  )/ /_/ //  __// /__ / /_ / /_/ // /_    / // /
 # \____/ \__,_//_/ \__,_//_/|_| \__, //___//_/ /_//____// .___/ \___/ \___/ \__/ \____//_/(_)__/ //_/
 #                              /____/                  /_/                                  /___/
-#
 ####################################################################################################
-# A Julia module for the data analysis of hydrodynamical simulations in astrophysics.
+
+####################################################################################################
+# A Julia module for the data analysis of galaxy simulations.
 ####################################################################################################
 
 module GalaxyInspector
 
-using LinearAlgebra, Statistics
 using CSV,
     CairoMakie,
     ColorSchemes,
@@ -27,11 +27,13 @@ using CSV,
     Images,
     JLD2,
     LaTeXStrings,
+    StatsBase,
     Measurements,
     NearestNeighbors,
     ProgressMeter,
     QuadGK,
     Rotations,
+    Statistics,
     StatsBase,
     Unitful,
     UnitfulAstro
@@ -70,8 +72,6 @@ include("plotting/convenience.jl")
 export readGroupCatalog
 export readSnapshot
 export getBlock
-export readSfrFile
-export readCpuFile
 export makeDataDict
 
 # From `plotting/pipelines.jl`

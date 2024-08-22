@@ -1,8 +1,8 @@
 # Post processing functions
 
-A post-processing function must take a [Makie](https://docs.makie.org/stable/) figure, add something to it, and return how to label the additions (or `nothing` when no new labels should be drawn).
+These functions are used internally and none are exported. 
 
-None of these functions are exported.
+A post-processing function must take a [Makie](https://docs.makie.org/stable/) figure, add something to it, and return how to label the additions (or `nothing` when no new labels should be drawn).
 
 ### Expected signature:
 

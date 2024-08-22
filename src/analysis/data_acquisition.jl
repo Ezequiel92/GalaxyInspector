@@ -1020,7 +1020,7 @@ For each process in `targets` a matrix with all the CPU usage data is returned.
     `target process` -> matrix with columns:
 
       + Time step.
-      + Simulation time (scale factor for cosmological simulations and physical time for non cosmological simulations).
+      + Simulation time (scale factor for cosmological simulations and physical time for non-cosmological simulations).
       + Clock time in seconds.
       + Clock time as a percentage.
       + Total clock time in seconds.

@@ -1,8 +1,8 @@
 # Auxiliary functions
 
-These functions are only used internally, and are general in the sense that do not depend on the specifics of simulation code.
+These functions are used internally and none are exported. 
 
-None of these functions are exported.
+This auxiliary functions do not depend on the specifics of the simulation code.
 
 ---
 

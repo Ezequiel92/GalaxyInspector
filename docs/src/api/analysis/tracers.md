@@ -1,10 +1,8 @@
 # Tracer functions
 
-These functions are only used internally, and depend on the particulars of the simulation code (e.g. units).
+These functions are used internally and none are exported. 
 
-Here you can find the lowest level functions that work with tracer IDs.
-
-None of these functions are exported.
+These functions depend on the particulars of the simulation code (e.g. units).
 
 ---
 

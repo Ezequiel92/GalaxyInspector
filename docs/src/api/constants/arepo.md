@@ -1,6 +1,6 @@
 # Arepo constants
 
-This is a list of constant and types used to configure GalaxyInspector, specific for the Arepo code.
+This is a list of constant and types used in GalaxyInspector, specific for the Arepo codebase.
 
 None of these constants and types are exported.
 

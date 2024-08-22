@@ -1,6 +1,6 @@
-# Constants
+# Global constants
 
-This is a list of constant and types used to configure GalaxyInspector.
+This is a list of constant and types used in GalaxyInspector.
 
 None of these constants and types are exported.
 
