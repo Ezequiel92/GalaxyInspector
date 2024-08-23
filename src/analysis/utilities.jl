@@ -623,7 +623,8 @@ Select the plotting parameters for a given `quantity`.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
-      + `:mass_accretion`              -> Gas accretion rate. Positive values mean gas infall into the virial radius ``R_{200}``, and negative values mean outflow.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
+      + `:mass_accretion`             -> Gas accretion rate. Positive values mean gas infall into the virial radius ``R_{200}``, and negative values mean outflow.
       + `:stellar_specific_am`        -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`            -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`             -> Norm of the dark matter specific angular momentum.
@@ -1057,6 +1058,14 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(:halo => ["POS "]),
             var_name = L"r_{xy}",
             unit     = u"kpc",
+        )
+
+    elseif quantity == :gas_sfr
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["SFR "]),
+            var_name = L"SFR_\mathrm{gas}",
+            unit     = u"Msun*yr^-1",
         )
 
     elseif quantity == :mass_accretion

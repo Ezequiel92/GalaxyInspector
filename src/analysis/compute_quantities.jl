@@ -2725,6 +2725,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -2962,6 +2963,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         else
             scatter_qty = computeDistance(data_dict[:halo]["POS "][1:2, :])
         end
+
+    elseif quantity == :gas_sfr
+
+        scatter_qty = data_dict[:gas]["SFR "]
 
     elseif quantity == :stellar_circularity
 

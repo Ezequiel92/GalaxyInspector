@@ -460,6 +460,7 @@ Compute a profile.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -645,6 +646,7 @@ Compute the profile og a mean quantity with error bars or bands.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -932,6 +934,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -1420,6 +1423,7 @@ function daMetallicity2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
     component::Symbol;
+    element::Symbol=:all,
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
@@ -1431,6 +1435,12 @@ function daMetallicity2DProjection(
         component ∈ [:gas, :stars] ||
         throw(ArgumentError("daMetallicity2DProjection: I don't recognize the component \
         :$(component)"))
+    )
+
+    (
+        element ∈ [:all, keys(ELEMENT_INDEX)...] ||
+        throw(ArgumentError("daMetallicity2DProjection: `element` can only be :all or any of the \
+        keys of `ELEMENT_INDEX` (see `./src/constants/globals.jl`), but I got :$(quantity)"))
     )
 
     # Load the positions
@@ -1448,8 +1458,20 @@ function daMetallicity2DProjection(
         gas_masses  = filtered_dd[component]["MASS"]
         gas_volumes = gas_masses ./ gas_density
 
-        # Compute the metal densities
-        metal_densities = computeMetalMass(filtered_dd, :gas) ./ gas_volumes
+        if element == :all
+
+            # Compute the mass density of metals in each cell
+            metal_densities = computeMetalMass(filtered_dd, :gas) ./ gas_volumes
+
+        else
+
+            # Compute the mass density of `element` in each cell
+            metal_densities  = computeElementMass(filtered_dd, component, element) ./ gas_volumes
+
+            # Compute the mass density of `hydrogen` in each cell
+            hydrogen_density = computeElementMass(filtered_dd, component, :H) ./ gas_volumes
+
+        end
 
         # Allocate memory
         physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
@@ -1471,10 +1493,17 @@ function daMetallicity2DProjection(
         gas_grid   = similar(grid.grid, Float64)
         metal_grid = similar(grid.grid, Float64)
 
-        # Compute the mass in each voxel
+        # Compute the corresponding masses in each voxel
         @inbounds for i in eachindex(grid.grid)
-            gas_grid[i]   = ustrip.(u"Msun", gas_density[idxs[i]] * grid.bin_volume)
+
+            @inbounds if element == :all
+                gas_grid[i]   = ustrip.(u"Msun", gas_density[idxs[i]] * grid.bin_volume)
+            else
+                gas_grid[i]   = ustrip.(u"Msun", hydrogen_density[idxs[i]] * grid.bin_volume)
+            end
+
             metal_grid[i] = ustrip.(u"Msun", metal_densities[idxs[i]] * grid.bin_volume)
+
         end
 
         # Project the grid to the chosen plane
@@ -1533,7 +1562,12 @@ function daMetallicity2DProjection(
     replace!(x -> iszero(x) ? NaN : x, metallicity)
 
     # Apply log10 to enhance the contrast
-    values = log10.(metallicity ./ SOLAR_METALLICITY)
+    if element == :all
+        values = log10.(metallicity ./ SOLAR_METALLICITY)
+    else
+        # Add 12 so the result is 12 + log10(X / H), by convention
+        values = 12 .+ log10.(metallicity)
+    end
 
     if print_range
 
@@ -1762,6 +1796,7 @@ Turn a scatter plot into a 2D histogram.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -1807,6 +1842,7 @@ Turn a scatter plot into a 2D histogram.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -1997,6 +2033,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -2042,6 +2079,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -2087,6 +2125,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -2566,6 +2605,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -2611,6 +2651,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
       + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:stellar_circularity`        -> Stellar circularity.
       + `:stellar_vcirc`              -> Stellar circular velocity.
       + `:stellar_vradial`            -> Stellar radial speed.
@@ -2688,7 +2729,7 @@ end
         <keyword arguments>
     )::Union{NTuple{2,Vector{<:Number}},Nothing}
 
-Compute the values for a gas fraction bar plot.
+Compute the values for a bar plot of the gas fractions, where the bins are a given gas `quantity`.
 
 # Arguments
 
@@ -2705,7 +2746,7 @@ Compute the values for a gas fraction bar plot.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `quantity::Symbol`: Target quantity. The possibilities are:
+  - `quantity::Symbol`: Target quantity for the bins. The possibilities are:
 
       + `:gas_mass`                   -> Gas mass.
       + `:hydrogen_mass`              -> Hydrogen mass.
@@ -2729,9 +2770,10 @@ Compute the values for a gas fraction bar plot.
       + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
       + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
+      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
       + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                   -> Gas pressure.
-  - `edges::Vector{<:Number}`: A sorted list of bin edges.
+  - `edges::Vector{<:Number}`: A sorted list of bin edges for `quantity`.
   - `include_stars::Bool=false`: If the stars will be included as one of the gas phases. It will only work for simulations with our routine.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
