@@ -342,7 +342,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
     (
         quantity ∈ keys(QUANTITIES) ||
         throw(ArgumentError("internalUnits: `quantity` should be one of the keys of \
-        `QUANTITIES` but I got $(quantity), see the options in `./src/constants.jl`"))
+        `QUANTITIES` but I got $(quantity), see the options in `./src/constants/globals.jl`"))
     )
 
     header = readSnapHeader(path)

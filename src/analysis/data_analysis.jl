@@ -3,14 +3,14 @@
 ####################################################################################################
 
 ####################################################################################################
-# Signature for the plotSnapshot function in ./src/pipelines.jl.
+# Signature for the plotSnapshot function in ./src/plotting/pipelines.jl.
 ####################################################################################################
 #
 # A data analysis functions for plotSnapshot must take a dictionary with the following shape:
 #
-#   + :sim_data          -> ::Simulation (see the Simulation struct in ./src/constants.jl).
-#   + :snap_data         -> ::Snapshot (see the Snapshot struct in ./src/constants.jl).
-#   + :gc_data           -> ::GroupCatalog (see the GroupCatalog struct in ./src/constants.jl).
+#   + :sim_data          -> ::Simulation (see the Simulation struct in ./src/constants/globals.jl).
+#   + :snap_data         -> ::Snapshot (see the Snapshot struct in ./src/constants/globals.jl).
+#   + :gc_data           -> ::GroupCatalog (see the GroupCatalog struct in ./src/constants/globals.jl).
 #   + cell/particle type -> (block -> data of block, block -> data of block, ...).
 #   + cell/particle type -> (block -> data of block, block -> data of block, ...).
 #   + cell/particle type -> (block -> data of block, block -> data of block, ...).
@@ -2932,7 +2932,7 @@ function daStellarBTHistogram(data_dict::Dict)::Union{Tuple{Vector{<:Unitful.Tim
 end
 
 ####################################################################################################
-# Signature for the plotTimeSeries function in ./src/pipelines.jl.
+# Signature for the plotTimeSeries function in ./src/plotting/pipelines.jl.
 ####################################################################################################
 #
 # A data analysis functions for plotTimeSeries must take a Simulation struct, and return two
@@ -2945,7 +2945,7 @@ end
 #
 # where:
 #
-#   - sim_data::Simulation, see the Simulation struct in ./src/constants.jl
+#   - sim_data::Simulation, see the Simulation struct in ./src/constants/globals.jl
 #   - processed_data_x::Vector{<:Number}
 #   - processed_data_y::Vector{<:Number}
 #
@@ -3051,7 +3051,7 @@ Compute the time series of two quantities.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -3206,7 +3206,7 @@ Compute the evolution of the accreted mass into the virial radius.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:
@@ -3432,7 +3432,7 @@ Compute the evolution of the accreted mass into the disc.
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
       + A dictionary with three entries:

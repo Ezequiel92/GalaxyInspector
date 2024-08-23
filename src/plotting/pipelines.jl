@@ -77,10 +77,10 @@ Some of the features are:
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
         * ...
-  - `da_functions::Vector{<:Function}=[getNothing]`: Vector of data analysis functions. See the required signature and examples in `./src/data_analysis.jl`.
+  - `da_functions::Vector{<:Function}=[getNothing]`: Vector of data analysis functions. See the required signature and examples in `./src/analysis/data_analysis.jl`.
   - `da_args::Vector{<:Tuple}=[()]`: Vector of positional arguments for the data analysis functions.
   - `da_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the data analysis functions.
-  - `post_processing::Function=getNothing`: Post processing function. See the required signature and examples in `./src/post_processing.jl`.
+  - `post_processing::Function=getNothing`: Post processing function. See the required signature and examples in `./src/plotting/post_processing.jl`.
   - `pp_args::Tuple=()`: Positional arguments for the post processing function.
   - `pp_kwargs::NamedTuple=(;)`: Keyword arguments for the post processing function.
   - `transform_box::Bool=false`: If a translation and rotation (in that order) will be applied to the simulation box, affecting the positions and velocities of all the cells and particles. If active, it is applied AFTER the `filter_function`.
@@ -813,10 +813,10 @@ Some of the features are:
 ### Data manipulation options
 
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest possible list of snapshots among the simulations (grouped by the number in the file names). Out of bounds indices are ignored.
-  - `da_functions::Vector{<:Function}=[getNothing]`: Vector of data analysis functions. See the required signature and examples in `./src/data_analysis.jl`.
+  - `da_functions::Vector{<:Function}=[getNothing]`: Vector of data analysis functions. See the required signature and examples in `./src/analysis/data_analysis.jl`.
   - `da_args::Vector{<:Tuple}=[()]`: Vector of positional arguments for the data analysis functions.
   - `da_kwargs::Vector{<:NamedTuple}=[(;)]`: Vector of keyword arguments for the data analysis functions.
-  - `post_processing::Function=getNothing`: Post processing function. See the required signature and examples in `./src/post_processing.jl`.
+  - `post_processing::Function=getNothing`: Post processing function. See the required signature and examples in `./src/plotting/post_processing.jl`.
   - `pp_args::Tuple=()`: Positional arguments for the post processing function.
   - `pp_kwargs::NamedTuple=(;)`: Keyword arguments for the post processing function.
   - `x_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the x axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
@@ -904,7 +904,7 @@ function plotTimeSeries(
     # Set up the canvas for the figures.
     ################################################################################################
 
-    # Apply the global theme defined in `./src/constants.jl`
+    # Apply the global theme defined in `./src/constants/globals.jl`
     current_theme = merge(theme, theme_latexfonts(), DEFAULT_THEME)
     set_theme!()
     set_theme!(current_theme)

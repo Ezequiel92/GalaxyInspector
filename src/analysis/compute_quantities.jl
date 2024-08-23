@@ -1759,7 +1759,7 @@ function computeElementMass(
     (
         element ∈ keys(ELEMENT_INDEX) ||
         throw(ArgumentError("computeElementMass: :$(element) is not a tracked element, \
-        the options are the keys of `ELEMENT_INDEX`, see `./src/constants.jl`"))
+        the options are the keys of `ELEMENT_INDEX`, see `./src/constants/globals.jl`"))
     )
 
     if component == :gas

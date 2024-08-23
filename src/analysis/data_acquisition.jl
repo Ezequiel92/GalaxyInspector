@@ -258,7 +258,7 @@ function isBlockPresent(block::String, group::HDF5.Group)::Bool
     (
         block ∈ keys(QUANTITIES) ||
         throw(ArgumentError("isBlockPresent: `block` should be a key of `QUANTITIES`, \
-        but I got $(block), see the options in `./src/constants.jl`"))
+        but I got $(block), see the options in `./src/constants/globals.jl`"))
     )
 
     return QUANTITIES[block].hdf5_name ∈ keys(group)

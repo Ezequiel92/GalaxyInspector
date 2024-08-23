@@ -159,7 +159,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + `:all`             -> Plot every cell/particle within the simulation box.
       + `:halo`            -> Plot only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants.jl`).
+      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `request::Dict{Symbol,Vector{String}}`: Base request dictionary, nothing will be deleted from it.
@@ -399,7 +399,7 @@ end
 #
 # A filter function must take a data dictionary, and return a filter dictionary.
 #
-# These functions are for the second argument of `filterData` in `./src/arepo_utilities.jl`.
+# These functions are for the second argument of `filterData` in `./src/analysis/filters.jl`.
 #
 # Expected signature:
 #
@@ -409,9 +409,9 @@ end
 #
 #   - `data_dict::Dict`: A dictionary with the following shape:
 #
-#      + `:sim_data`          -> ::Simulation (see `Simulation` in `./src/constants.jl`).
-#      + `:snap_data`         -> ::Snapshot (see `Snapshot` in `./src/constants.jl`).
-#      + `:gc_data`           -> ::GroupCatalog (see `GroupCatalog` in `./src/constants.jl`).
+#      + `:sim_data`          -> ::Simulation (see `Simulation` in `./src/constants/globals.jl`).
+#      + `:snap_data`         -> ::Snapshot (see `Snapshot` in `./src/constants/globals.jl`).
+#      + `:gc_data`           -> ::GroupCatalog (see `GroupCatalog` in `./src/constants/globals.jl`).
 #      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
 #      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
 #      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
