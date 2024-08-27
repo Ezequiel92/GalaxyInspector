@@ -144,7 +144,7 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
       + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
       + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or `:cells`.
+  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -1116,9 +1116,10 @@ end
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
-Project the 3D density field to a given plane.
+Project a 3D density field into a given plane.
 
-If the source of the field are particles a simple 2D histogram is used. If the source of the field are Voronoi cells the density of the cells that cross the line of sight of each pixel are added up.
+If the source of the field are particles, a simple 2D histogram is used.
+If the source of the field are Voronoi cells, the density of the cells that cross the line of sight of each pixel are added up.
 
 !!! note
 
@@ -1140,19 +1141,19 @@ If the source of the field are particles a simple 2D histogram is used. If the s
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CubicGrid`: Cubic grid.
-  - `quantity::Symbol`: For which quantity the density will be calculated. The options are:
+  - `quantity::Symbol`: Which density will be calculated. The options are:
 
-      + `:stellar_mass`   -> Stellar mass.
-      + `:gas_mass`       -> Gas mass.
-      + `:hydrogen_mass`  -> Hydrogen mass.
-      + `:dm_mass`        -> Dark matter mass.
-      + `:bh_mass`        -> Black hole mass.
-      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-  - `type::Symbol`: If the source of the field are `:particles` or `:cells`.
-  - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
+      + `:stellar_mass`   -> Stellar density.
+      + `:gas_mass`       -> Gas density.
+      + `:hydrogen_mass`  -> Hydrogen density.
+      + `:dm_mass`        -> Dark matter density.
+      + `:bh_mass`        -> Black hole density.
+      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) density.
+      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) density.
+      + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) density.
+      + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
+  - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1186,7 +1187,7 @@ If the source of the field are particles a simple 2D histogram is used. If the s
 
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
-      + A matrix with the values of the logarithmic density at each point of the 2D grid.
+      + A matrix with the ``\\log_{10}`` of the density at each point of the 2D grid.
 """
 function daDensity2DProjection(
     data_dict::Dict,
@@ -1230,10 +1231,10 @@ function daDensity2DProjection(
         physical_factor = 1.0
     end
 
-    # Load the positions
+    # Load the cell/particle positions
     positions = filtered_dd[component]["POS "]
 
-    # Compute the masses
+    # Compute the masses of the target quantity
     masses = scatterQty(filtered_dd, quantity)
 
     # If any of the necessary quantities are missing return an empty density field
@@ -1270,7 +1271,7 @@ function daDensity2DProjection(
             physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
         end
 
-        # Find the nearest neighbor to each point in the grid
+        # Find the nearest neighboring cell to each voxel
         idxs, _ = nn(kdtree, physical_grid)
 
         # Allocate memory
@@ -1281,17 +1282,22 @@ function daDensity2DProjection(
             mass_grid[i] = densities[idxs[i]] * voxel_volume
         end
 
-        # Project the grid to the given plane
+        # Project `mass_grid` to the target plane
         if projection_plane == :xy
             density = dropdims(sum(mass_grid; dims=3) ./ voxel_area; dims=3)
         elseif projection_plane == :xz
-            density = transpose(dropdims(sum(mass_grid; dims=2) ./ voxel_area; dims=2))
-        elseif projection_plane == :yz
+            # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
             density = dropdims(sum(mass_grid; dims=1) ./ voxel_area; dims=1)
+        elseif projection_plane == :yz
+            # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
+            density = dropdims(sum(mass_grid; dims=2) ./ voxel_area; dims=2)
         else
             throw(ArgumentError("daDensity2DProjection: The argument `projection_plane` must be \
             :xy, :xz or :yz, but I got :$(projection_plane)"))
         end
+
+        # Set bins with a value of 0 to NaN
+        replace!(x -> iszero(x) ? NaN : x, density)
 
     elseif type == :particles
 
@@ -1310,7 +1316,7 @@ function daDensity2DProjection(
         # Compute the 2D histogram
         density = ustrip.(
             m_unit * l_unit^-2,
-            histogram2D(pos_2D, masses, flattenGrid(grid); empty_nan=false) ./ grid.bin_area,
+            histogram2D(pos_2D, masses, flattenGrid(grid); empty_nan=true) ./ grid.bin_area,
         )
 
     else
@@ -1320,15 +1326,12 @@ function daDensity2DProjection(
 
     end
 
-    # Set bins with a value of 0 to NaN
-    replace!(x -> iszero(x) ? NaN : x, density)
-
     # Apply log10 to enhance the contrast
     values = log10.(density ./ physical_factor)
 
     if print_range
 
-        # Compute the mininimum and maximum values of density
+        # Compute the mininimum and maximum values
         min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
 
         # Print the density range
@@ -1337,34 +1340,45 @@ function daDensity2DProjection(
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
+            \n  Type:       $(type) \
             \n  Plane:      $(projection_plane) \
             \n  log₁₀(ρ [$(m_unit * l_unit^-2)]): $(min_max)\n\n"
         )
 
     end
 
-    # The transpose and reverse operation are to conform to the way `heatmap!` expect the matrix to be structured
-    z_axis = reverse!(transpose(values), dims=2)
+    # The transpose and reverse operation are to conform to
+    # the way `heatmap!` expect the matrix to be structured
+    # Depending on the `type` and `projection_plane`, different operations
+    # are applied to keep the axis consistent between cells and particles
+    if type == :particles || projection_plane == :xy
+        z_axis = reverse!(transpose(values), dims=2)
+    elseif projection_plane == :yz
+        z_axis = reverse!(values, dims=1)
+    else
+        z_axis = values
+    end
 
     return grid.x_ticks, grid.y_ticks, z_axis
 
 end
 
 """
-    daMetallicity2DProjection(
+    daGasSFR2DProjection(
         data_dict::Dict,
         grid::CubicGrid,
-        component::Symbol;
+        type::Symbol;
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
-Project the 3D metallicity field to a given plane.
+Project the 3D gas SFR field into a given plane.
 
-If `component` = :stars, the metallicity in each pixel is the mean value for the stars within that pixel. If `component` = :gas, the metallicity in each pixel is the total metal mass divided by the total gas mass, in the column given by taht pixel.
+If the source of the field are particles, a simple 2D histogram is used.
+If the source of the field are Voronoi cells, the density of the cells that cross the line of sight of each pixel are used to rescale the gas SFR.
 
 !!! note
 
-    By default, the matllicity is given in solar units.
+    By default, ``\\mathrm{M_\\odot \\, yr^{-1}}`` is used as unit of SFR, so the output will be ``\\log_{10}(\\mathrm{SFR \\, [M_\\odot \\, yr^{-1}]})``.
 
 # Arguments
 
@@ -1382,8 +1396,221 @@ If `component` = :stars, the metallicity in each pixel is the mean value for the
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CubicGrid`: Cubic grid.
-  - `component::Symbol`: Target cell/particle type. It can be either `:stars` or `:gas`.
-  - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
+  - `type::Symbol`: Gas component type. The options are: `:particles` or Voronoi `:cells`.
+  - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic SFR range.
+  - `filter_function::Function=filterNothing`: A function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+
+# Returns
+
+  - A tuple with three elements:
+
+      + A vector with the x coordinates of the grid.
+      + A vector with the y coordinates of the grid.
+      + A matrix with the ``\\log_{10}`` of the gas SFR at each point of the 2D grid.
+"""
+function daGasSFR2DProjection(
+    data_dict::Dict,
+    grid::CubicGrid,
+    type::Symbol;
+    projection_plane::Symbol=:xy,
+    print_range::Bool=false,
+    filter_function::Function=filterNothing,
+)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    # Load the cell/particle positions
+    positions = filtered_dd[:gas]["POS "]
+
+    # Load the gas SFR
+    sfrs = filtered_dd[:gas]["SFR "]
+
+    # If any of the necessary quantities are missing return an empty SFR field
+    if any(isempty, [positions, sfrs])
+        return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
+    end
+
+    # Set the units
+    m_unit = u"Msun"
+    l_unit = u"kpc"
+    t_unit = u"yr"
+
+    if type == :cells
+
+        # Compute the volume of each cell
+        cell_volumes = filtered_dd[:gas]["MASS"] ./ filtered_dd[:gas]["RHO "]
+
+        # Compute the gas SFR densities
+        sfr_densities = ustrip.(m_unit * t_unit^-1 * l_unit^-3, sfrs ./ cell_volumes)
+
+        # Allocate memory
+        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
+
+        # Compute the tree for a nearest neighbor search
+        kdtree = KDTree(ustrip.(l_unit, positions))
+
+        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
+        @inbounds for i in eachindex(grid.grid)
+            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
+            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
+            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
+        end
+
+        # Find the nearest neighboring cell to each voxel
+        idxs, _ = nn(kdtree, physical_grid)
+
+        # Allocate memory
+        sfr_grid = similar(grid.grid, Float64)
+
+        # Load the volume of the voxels
+        voxel_volume = ustrip(l_unit^3, grid.bin_volume)
+
+        # Compute the gas SFR in each voxel
+        @inbounds for i in eachindex(grid.grid)
+            sfr_grid[i] = sfr_densities[idxs[i]] * voxel_volume
+        end
+
+        # Project `sfr_grid` to the target plane
+        if projection_plane == :xy
+            sfr = dropdims(sum(sfr_grid; dims=3); dims=3)
+        elseif projection_plane == :xz
+            # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
+            sfr = dropdims(sum(sfr_grid; dims=1); dims=1)
+        elseif projection_plane == :yz
+            # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
+            sfr = dropdims(sum(sfr_grid; dims=2); dims=2)
+        else
+            throw(ArgumentError("daGasSFR2DProjection: The argument `projection_plane` must be \
+            :xy, :xz or :yz, but I got :$(projection_plane)"))
+        end
+
+        # Set bins with a value of 0 to NaN
+        replace!(x -> iszero(x) ? NaN : x, sfr)
+
+    elseif type == :particles
+
+        # Project the particles to the given plane
+        if projection_plane == :xy
+            pos_2D = positions[[1, 2], :]
+        elseif projection_plane == :xz
+            pos_2D = positions[[1, 3], :]
+        elseif projection_plane == :yz
+            pos_2D = positions[[2, 3], :]
+        else
+            throw(ArgumentError("daGasSFR2DProjection: The argument `projection_plane` must be \
+            :xy, :xz or :yz, but I got :$(projection_plane)"))
+        end
+
+        # Compute the 2D histogram
+        sfr = ustrip.(
+            m_unit * t_unit^-1,
+            histogram2D(pos_2D, sfrs, flattenGrid(grid); empty_nan=true),
+        )
+
+    else
+
+        throw(ArgumentError("daGasSFR2DProjection: The argument `type` must be :cells or \
+        :particles, but I got :$(type)"))
+
+    end
+
+    # Apply log10 to enhance the contrast
+    values = log10.(sfr)
+
+    if print_range
+
+        # Compute the mininimum and maximum values
+        min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
+
+        # Print the gas SFR range
+        @info(
+            "\nDensity range \
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Type:       $(type) \
+            \n  Plane:      $(projection_plane) \
+            \n  log₁₀(SFR [$(m_unit * t_unit^-1)]): $(min_max)\n\n"
+        )
+
+    end
+
+    # The transpose and reverse operation are to conform to
+    # the way `heatmap!` expect the matrix to be structured
+    # Depending on the `type` and `projection_plane`, different operations
+    # are applied to keep the axis consistent between cells and particles
+    if type == :particles || projection_plane == :xy
+        z_axis = reverse!(transpose(values), dims=2)
+    elseif projection_plane == :yz
+        z_axis = reverse!(values, dims=1)
+    else
+        z_axis = values
+    end
+
+    return grid.x_ticks, grid.y_ticks, z_axis
+
+end
+
+"""
+    daMetallicity2DProjection(
+        data_dict::Dict,
+        grid::CubicGrid,
+        component::Symbol,
+        type::Symbol;
+        <keyword arguments>
+    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+
+Project the 3D metallicity field to a given plane.
+
+The metallicity in each pixel is the total metal mass divided by the total gas mass, in the column given by that pixel.
+
+!!! note
+
+    By default, the metallicity is given in solar units.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `grid::CubicGrid`: Cubic grid.
+  - `component::Symbol`: Target component. It can be either `:stars` or `:gas`.
+  - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic metallicity range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1417,12 +1644,13 @@ If `component` = :stars, the metallicity in each pixel is the mean value for the
 
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
-      + A matrix with the values of the logarithmic metallicty at each point of the 2D grid.
+      + A matrix with the ``\\log_{10}`` of the metallicity at each point of the 2D grid.
 """
 function daMetallicity2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
-    component::Symbol;
+    component::Symbol,
+    type::Symbol;
     element::Symbol=:all,
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
@@ -1433,43 +1661,45 @@ function daMetallicity2DProjection(
 
     (
         component ∈ [:gas, :stars] ||
-        throw(ArgumentError("daMetallicity2DProjection: I don't recognize the component \
-        :$(component)"))
+        throw(ArgumentError("daMetallicity2DProjection: The argument `component` must be :gas \
+        or :stars, but I got :$(component)"))
     )
 
     (
         element ∈ [:all, keys(ELEMENT_INDEX)...] ||
-        throw(ArgumentError("daMetallicity2DProjection: `element` can only be :all or any of the \
-        keys of `ELEMENT_INDEX` (see `./src/constants/globals.jl`), but I got :$(quantity)"))
+        throw(ArgumentError("daMetallicity2DProjection: The argument `element` can only be :all \
+        or one of the keys of `ELEMENT_INDEX` (see `./src/constants/globals.jl`), \
+        but I got :$(quantity)"))
     )
 
-    # Load the positions
+    # Load the cell/particle positions
     positions = filtered_dd[component]["POS "]
 
-    # If the necessary quantities are missing return an empty density field
+    # If the necessary quantities are missing return an empty metallicity field
     if isempty(positions)
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
-    if component == :gas
+    if type == :cells
+
+        # Load the cell densities
+        cell_densities = filtered_dd[component]["RHO "]
 
         # Compute the volume of each cell
-        gas_density = filtered_dd[:gas]["RHO "]
-        gas_masses  = filtered_dd[component]["MASS"]
-        gas_volumes = gas_masses ./ gas_density
+        cell_volumes = filtered_dd[component]["MASS"] ./ cell_densities
 
         if element == :all
 
-            # Compute the mass density of metals in each cell
-            metal_densities = computeMetalMass(filtered_dd, :gas) ./ gas_volumes
+            # Compute the metal mass density in each cell
+            metal_densities = computeMetalMass(filtered_dd, component) ./ cell_volumes
 
         else
 
-            # Compute the mass density of `element` in each cell
-            metal_densities  = computeElementMass(filtered_dd, component, element) ./ gas_volumes
+            # Compute the `element` mass density in each cell
+            metal_densities  = computeElementMass(filtered_dd, component, element) ./ cell_volumes
 
-            # Compute the mass density of `hydrogen` in each cell
-            hydrogen_density = computeElementMass(filtered_dd, component, :H) ./ gas_volumes
+            # Compute the `hydrogen` mass density in each cell
+            hydrogen_density = computeElementMass(filtered_dd, component, :H) ./ cell_volumes
 
         end
 
@@ -1486,51 +1716,63 @@ function daMetallicity2DProjection(
         # Compute the tree for a nearest neighbor search
         kdtree = KDTree(ustrip.(u"kpc", positions))
 
-        # Find the nearest neighbor to each point in the grid
+        # Find the nearest neighboring cell to each voxel
         idxs, _ = nn(kdtree, physical_grid)
 
         # Allocate memory
-        gas_grid   = similar(grid.grid, Float64)
-        metal_grid = similar(grid.grid, Float64)
+        norm_mass_grid  = similar(grid.grid, Float64)
+        metal_mass_grid = similar(grid.grid, Float64)
 
         # Compute the corresponding masses in each voxel
         @inbounds for i in eachindex(grid.grid)
 
             @inbounds if element == :all
-                gas_grid[i]   = ustrip.(u"Msun", gas_density[idxs[i]] * grid.bin_volume)
+                norm_mass_grid[i]   = ustrip.(u"Msun", cell_densities[idxs[i]] * grid.bin_volume)
             else
-                gas_grid[i]   = ustrip.(u"Msun", hydrogen_density[idxs[i]] * grid.bin_volume)
+                norm_mass_grid[i]   = ustrip.(u"Msun", hydrogen_density[idxs[i]] * grid.bin_volume)
             end
 
-            metal_grid[i] = ustrip.(u"Msun", metal_densities[idxs[i]] * grid.bin_volume)
+            metal_mass_grid[i] = ustrip.(u"Msun", metal_densities[idxs[i]] * grid.bin_volume)
 
         end
 
-        # Project the grid to the chosen plane
+        # Project `metal_mass_grid` to the target plane
         if projection_plane == :xy
 
-            metallicity = dropdims(sum(metal_grid; dims=3) ./ sum(gas_grid; dims=3); dims=3)
+            metal_mass = dropdims(sum(metal_mass_grid; dims=3); dims=3)
+            norm_mass  = dropdims(sum(norm_mass_grid; dims=3); dims=3)
+
+            metallicity = metal_mass ./ norm_mass
 
         elseif projection_plane == :xz
 
-            metallicity = transpose(
-                dropdims(sum(metal_grid; dims=2) ./ sum(gas_grid; dims=2); dims=2),
-            )
+            # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
+            metal_mass = dropdims(sum(metal_mass_grid; dims=1); dims=1)
+            norm_mass  = dropdims(sum(norm_mass_grid; dims=1); dims=1)
+
+            metallicity = metal_mass ./ norm_mass
 
         elseif projection_plane == :yz
 
-            metallicity = dropdims(sum(metal_grid; dims=1) ./ sum(gas_grid; dims=1); dims=1)
+            # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
+            metal_mass = dropdims(sum(metal_mass_grid; dims=2); dims=2)
+            norm_mass  = dropdims(sum(norm_mass_grid; dims=2); dims=2)
+
+            metallicity = metal_mass ./ norm_mass
 
         else
 
-            throw(ArgumentError("daMetallicity2DProjection: The argument `projection_plane` must \
-            be :xy, :xz or :yz, but I got :$(projection_plane)"))
+            throw(ArgumentError("daMetallicity2DProjection: The argument `projection_plane` must be \
+            :xy, :xz or :yz, but I got :$(projection_plane)"))
 
         end
 
-    else
+        # Set bins with a value of 0 to NaN
+        replace!(x -> iszero(x) ? NaN : x, metallicity)
 
-        # Project the particles to the chosen plane
+    elseif type == :particles
+
+        # Project the particles to the given plane
         if projection_plane == :xy
             pos_2D = positions[[1, 2], :]
         elseif projection_plane == :xz
@@ -1544,34 +1786,45 @@ function daMetallicity2DProjection(
 
         metallicities = uconvert.(
             Unitful.NoUnits,
-            computeMetalMass(filtered_dd, :stars) ./ filtered_dd[:stars]["MASS"],
+            computeMetalMass(filtered_dd, component) ./ filtered_dd[component]["MASS"],
         )
 
-        # Compute the 2D histogram
-        metallicity = histogram2D(
+        # Compute the metal mass 2D histogram
+        metal_mass = histogram2D(
             pos_2D,
-            metallicities,
+            computeMetalMass(filtered_dd, component),
             flattenGrid(grid);
-            total=false,
-            empty_nan=false,
+            empty_nan=true,
         )
+
+        # Compute the normalization mass 2D histogram
+        norm_mass = histogram2D(
+            pos_2D,
+            filtered_dd[component]["MASS"],
+            flattenGrid(grid);
+            empty_nan=true,
+        )
+
+        metallicity = uconvert.(Unitful.NoUnits, metal_mass ./ norm_mass)
+
+    else
+
+        throw(ArgumentError("daMetallicity2DProjection: The argument `type` must be :cells or \
+        :particles, but I got :$(type)"))
 
     end
-
-    # Set bins with a value of 0 to NaN
-    replace!(x -> iszero(x) ? NaN : x, metallicity)
 
     # Apply log10 to enhance the contrast
     if element == :all
         values = log10.(metallicity ./ SOLAR_METALLICITY)
     else
-        # Add 12 so the result is 12 + log10(X / H), by convention
+        # Add 12 so the result is by convention 12 + log10(X / H)
         values = 12 .+ log10.(metallicity)
     end
 
     if print_range
 
-        # Compute the min and max values of metallicity
+        # Compute the mininimum and maximum values
         min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
 
         # Print the metallicity range
@@ -1579,15 +1832,30 @@ function daMetallicity2DProjection(
             "\nMetallicity range \
             \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
-            \n  P/C type:        $(component) \
-            \n  Plane:           $(projection_plane) \
-            \n  log₁₀(Z [Z⊙]):  $(min_max)\n\n"
+            \n  Component:       $(component) \
+            \n  Type:            $(type) \
+            \n  Plane:           $(projection_plane)"
         )
+
+        if element == :all
+            @info("\n  log₁₀(Z [Z⊙]):  $(min_max)\n\n")
+        else
+            @info("\n  12 + log₁₀($(element) / H): $(min_max)\n\n")
+        end
 
     end
 
-    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured
-    z_axis = reverse!(transpose(values), dims=2)
+    # The transpose and reverse operation are to conform to
+    # the way `heatmap!` expect the matrix to be structured
+    # Depending on the `type` and `projection_plane`, different operations
+    # are applied to keep the axis consistent between cells and particles
+    if type == :particles || projection_plane == :xy
+        z_axis = reverse!(transpose(values), dims=2)
+    elseif projection_plane == :yz
+        z_axis = reverse!(values, dims=1)
+    else
+        z_axis = values
+    end
 
     return grid.x_ticks, grid.y_ticks, z_axis
 
@@ -1596,11 +1864,14 @@ end
 """
     daTemperature2DProjection(
         data_dict::Dict,
-        grid::CubicGrid;
+        grid::CubicGrid,
+        type::Symbol;
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
 Project the 3D temperature field to a given plane.
+
+The temperature in each pixel is the mean temperature of the column given by that pixel.
 
 !!! note
 
@@ -1622,7 +1893,8 @@ Project the 3D temperature field to a given plane.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CubicGrid`: Cubic grid.
-  - `projection_plane::Symbol=:xy`: To which plane the cells will be projected. The options are `:xy`, `:xz`, and `:yz`.
+  - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic temperature range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1660,7 +1932,8 @@ Project the 3D temperature field to a given plane.
 """
 function daTemperature2DProjection(
     data_dict::Dict,
-    grid::CubicGrid;
+    grid::CubicGrid,
+    type::Symbol;
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
@@ -1668,10 +1941,10 @@ function daTemperature2DProjection(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    # Load the temperatures
+    # Load the cell/particle temperatures
     temperatures = ustrip.(u"K", filtered_dd[:gas]["TEMP"])
 
-    # Load the positions
+    # Load the cell/particle positions
     positions = filtered_dd[:gas]["POS "]
 
     # If any of the necessary quantities are missing return an empty temperature field
@@ -1679,40 +1952,74 @@ function daTemperature2DProjection(
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
-    # Allocate memory
-    physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
+    if type == :cells
 
-    # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-    @inbounds for i in eachindex(grid.grid)
-        physical_grid[1, i] = ustrip(u"kpc", grid.grid[i][1])
-        physical_grid[2, i] = ustrip(u"kpc", grid.grid[i][2])
-        physical_grid[3, i] = ustrip(u"kpc", grid.grid[i][3])
-    end
+        # Allocate memory
+        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
 
-    # Compute the tree for a nearest neighbor search
-    kdtree = KDTree(ustrip.(u"kpc", positions))
+        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
+        @inbounds for i in eachindex(grid.grid)
+            physical_grid[1, i] = ustrip(u"kpc", grid.grid[i][1])
+            physical_grid[2, i] = ustrip(u"kpc", grid.grid[i][2])
+            physical_grid[3, i] = ustrip(u"kpc", grid.grid[i][3])
+        end
 
-    # Find the nearest neighbor to each point in the grid
-    idxs, _ = nn(kdtree, physical_grid)
+        # Compute the tree for a nearest neighbor search
+        kdtree = KDTree(ustrip.(u"kpc", positions))
 
-    # Allocate memory
-    temperature_grid = similar(grid.grid, Float64)
+        # Find the nearest neighboring cell to each voxel
+        idxs, _ = nn(kdtree, physical_grid)
 
-    # Compute the temperature of each voxel
-    @inbounds for i in eachindex(grid.grid)
-        temperature_grid[i] = temperatures[idxs[i]]
-    end
+        # Allocate memory
+        temperature_grid = similar(grid.grid, Float64)
 
-    # Project the grid to the chosen plane
-    if projection_plane == :xy
-        temperature = dropdims(sum(temperature_grid; dims=3) ./ grid.n_bins; dims=3)
-    elseif projection_plane == :xz
-        temperature = transpose(dropdims(sum(temperature_grid; dims=2) ./ grid.n_bins; dims=2))
-    elseif projection_plane == :yz
-        temperature = dropdims(sum(temperature_grid; dims=1) ./ grid.n_bins; dims=1)
+        # Compute the temperature of each voxel
+        @inbounds for i in eachindex(grid.grid)
+            temperature_grid[i] = temperatures[idxs[i]]
+        end
+
+        # Project `temperature_grid` to the target plane
+        if projection_plane == :xy
+            temperature = dropdims(sum(temperature_grid; dims=3); dims=3) ./ grid.n_bins
+        elseif projection_plane == :xz
+            # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
+            temperature = dropdims(sum(temperature_grid; dims=1); dims=1) ./ grid.n_bins
+        elseif projection_plane == :yz
+            # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
+            temperature = dropdims(sum(temperature_grid; dims=2); dims=2) ./ grid.n_bins
+        else
+            throw(ArgumentError("daTemperature2DProjection: The argument `projection_plane` must be \
+            :xy, :xz or :yz, but I got :$(projection_plane)"))
+        end
+
+    elseif type == :particles
+
+        # Project the particles to the given plane
+        if projection_plane == :xy
+            pos_2D = positions[[1, 2], :]
+        elseif projection_plane == :xz
+            pos_2D = positions[[1, 3], :]
+        elseif projection_plane == :yz
+            pos_2D = positions[[2, 3], :]
+        else
+            throw(ArgumentError("daTemperature2DProjection: The argument `projection_plane` must \
+            be :xy, :xz or :yz, but I got :$(projection_plane)"))
+        end
+
+        # Compute the 2D histogram
+        temperature = histogram2D(
+            pos_2D,
+            temperatures,
+            flattenGrid(grid);
+            total=false,
+            empty_nan=true,
+        )
+
     else
-        throw(ArgumentError("daTemperature2DProjection: The argument `projection_plane` must be \
-        :xy, :xz or :yz, but I got :$(projection_plane)"))
+
+        throw(ArgumentError("daTemperature2DProjection: The argument `type` must be :cells or \
+        :particles, but I got :$(type)"))
+
     end
 
     # Apply log10 to enhance the contrast
@@ -1723,16 +2030,26 @@ function daTemperature2DProjection(
         # Print the temperature range
         @info(
             "\nDensity range \
-            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
-            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
-            \n  Plane:      $(projection_plane) \
-            \nlog₁₀(T [K]) = $(extrema(values))\n\n"
+            \n  Simulation:   $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:     $(filtered_dd[:snap_data].global_index) \
+            \n  Type:         $(type) \
+            \n  Plane:        $(projection_plane) \
+            \n  log₁₀(T [K]): $(extrema(values))\n\n"
         )
 
     end
 
-    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured
-    z_axis = reverse!(transpose(values), dims=2)
+    # The transpose and reverse operation are to conform to
+    # the way `heatmap!` expect the matrix to be structured
+    # Depending on the `type` and `projection_plane`, different operations
+    # are applied to keep the axis consistent between cells and particles
+    if type == :particles || projection_plane == :xy
+        z_axis = reverse!(transpose(values), dims=2)
+    elseif projection_plane == :yz
+        z_axis = reverse!(values, dims=1)
+    else
+        z_axis = values
+    end
 
     return grid.x_ticks, grid.y_ticks, z_axis
 
@@ -2293,7 +2610,7 @@ Compute a 2D mean velocity field.
       + ...
   - `grid::SquareGrid`: Square grid.
   - `component::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
-  - `projection_plane::Symbol=:xy`: To which plane the cells/particles will be projected. The options are `:xy`, `:xz`, and `:yz`.
+  - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `velocity_units::Bool=false`: If the velocity will be given as an `Unitful.Quantity` with units or as a `Flot64` (in which case the underlying unit is ``\\mathrm{km} \\, \\mathrm{s}^{-1}``).
   - `filter_function::Function=filterNothing`: A function with the signature:
 

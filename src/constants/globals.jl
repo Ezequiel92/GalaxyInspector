@@ -115,7 +115,52 @@ const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
 """
 Threshold density, above which the gas particles enter the star formation routine.
 
-This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file. Which is converted to internal units within the code using `PhysDensThresh = CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`. Then, to go to physical units again one has to do: `PhysDensThresh * UnitDensity_in_cgs * cf_a3inv * HubbleParam * HubbleParam`. For a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
+This value corresponds to `CritOverDensity` ``= 57.7 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used only in cosmological simulations). Which is converted to internal units within the code using `OverDensThresh = CritOverDensity * OmegaBaryon * 3 * Hubble * Hubble / (8 * M_PI * G)`. Then, to go to physical units again one has to do: `OverDensThresh * UnitDensity_in_cgs * cf_a3inv * HubbleParam * HubbleParam`.
+
+Using the unit factors,
+
+UnitLength_in_cm         = 3.085678e24
+UnitMass_in_g            = 1.989e+43
+UnitVelocity_in_cm_per_s = 100000
+
+The derived units,
+
+UnitTime_in_s      = UnitLength_in_cm * UnitVelocity_in_cm_per_s^-1 = 3.08568e19
+UnitDensity_in_cgs = UnitMass_in_g * UnitLength_in_cm^-3            = 6.76991e-31
+
+The parameters,
+
+OmegaBaryon       = 0.048
+HubbleParam       = 0.6777
+PROTONMASS        = 1.67262178e-24
+HYDROGEN_MASSFRAC = 0.76
+GRAVITY           = 6.6738e-8
+HUBBLE            = 3.2407789e-18
+
+And the derived parameters,
+
+Hubble = HUBBLE * UnitTime_in_s                                          = 100
+G      = GRAVITY * UnitLength_in_cm^-3 * UnitMass_in_g * UnitTime_in_s^2 = 43.0187
+
+We get,
+
+OverDensThresh = 76.8495 [internal units of density]
+
+And for a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``1.42857e-5 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
+
+``\\log_{10} \\rho [\\mathrm{M_\\odot \\, kpc^{-3}}] = 2.548``
+
+"""
+const COSMO_THRESHOLD_DENSITY = 353.059u"Msun*kpc^-3"
+
+"""
+Threshold density, above which the gas particles enter the star formation routine.
+
+This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used in cosmological and non-cosmological simulations). Which is converted to internal units within the code using `PhysDensThresh = CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`. Then, to go to physical units again one has to do: `PhysDensThresh * UnitDensity_in_cgs * cf_a3inv * HubbleParam * HubbleParam`.
+
+For a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
+
+``\\log_{10} \\rho [\\mathrm{M_\\odot \\, kpc^{-3}}] = 6.677``
 """
 const THRESHOLD_DENSITY = 4.749326307150211e6u"Msun*kpc^-3"
 

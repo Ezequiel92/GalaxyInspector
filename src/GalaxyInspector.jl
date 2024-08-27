@@ -85,6 +85,7 @@ export sfrTXT
 export cpuTXT
 export stellarBirthHalos
 export densityMap
+export gasSFRMap
 export densityMapVelField
 export metallicityMap
 export temperatureMap

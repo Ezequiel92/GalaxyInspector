@@ -1896,8 +1896,6 @@ end
 
 Compute the ionized hydrogen mass of every gas cell in `data`.
 
-The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
-
 # Arguments
 
   - `data_dict::Dict`: A dictionary with the following shape:
@@ -1956,7 +1954,7 @@ function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
     end
 
-    return fi .* dg["MASS"] .* HYDROGEN_MASSFRAC
+    return fi .* dg["MASS"]
 
 end
 
@@ -1964,8 +1962,6 @@ end
     computeAtomicMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
 Compute the atomic hydrogen mass of every gas cell in `data`.
-
-The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
 
 For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate atomic from molecular gas in the neutral phase given by the quantity "NH  ".
 
@@ -2045,7 +2041,7 @@ function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unit
 
     end
 
-    return fa .* dg["MASS"] .* HYDROGEN_MASSFRAC
+    return fa .* dg["MASS"]
 
 end
 
@@ -2053,8 +2049,6 @@ end
     computeMolecularMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
 Compute the molecular hydrogen mass of every gas cell in `data`.
-
-The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
 
 For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate molecular from atomic gas in the neutral phase given by the quantity "NH  ".
 
@@ -2133,7 +2127,7 @@ function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:U
 
     end
 
-    return fm .* dg["MASS"] .* HYDROGEN_MASSFRAC
+    return fm .* dg["MASS"]
 
 end
 
@@ -2141,8 +2135,6 @@ end
     computeNeutralMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
 Compute the neutral hydrogen mass of every gas cell in `data`.
-
-The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen.
 
 # Arguments
 
@@ -2209,7 +2201,7 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
     end
 
-    return fn .* dg["MASS"] .* HYDROGEN_MASSFRAC
+    return fn .* dg["MASS"]
 
 end
 
@@ -2217,8 +2209,6 @@ end
     computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
 Compute the "stellar mass" of every gas cell, which will be other than 0 only for simulation with an non-empty "FRAC" field in the snapshots.
-
-The constant value [`HYDROGEN_MASSFRAC`](@ref) is used as the fraction of gas mass that is hydrogen. This is applied only for consistency with the other mass rutines ([`computeIonizedMass`](@ref), [`computeAtomicMass`](@ref), [`computeMolecularMass`](@ref), and [`computeNeutralMass`](@ref)). Notice that there is no physical meaning to the "stellar mass" of a gas cell. So, it makes no sense to question if the "stellar fraction" computed here is a fraction of the total gas mass or only of the hydrogen mass.
 
 # Arguments
 
@@ -2257,7 +2247,7 @@ function computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     end
 
-    return fm .* dg["MASS"] .* HYDROGEN_MASSFRAC
+    return fm .* dg["MASS"]
 
 end
 
@@ -2438,45 +2428,45 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
     elseif quantity == :molecular_fraction
 
         molecular_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
-        hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
-        if iszero(hydrogen_mass)
+        if iszero(gas_mass)
             integrated_qty = NaN
         else
-            integrated_qty = molecular_mass / hydrogen_mass
+            integrated_qty = molecular_mass / gas_mass
         end
 
     elseif quantity == :atomic_fraction
 
         atomic_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
-        hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
-        if iszero(hydrogen_mass)
+        if iszero(gas_mass)
             integrated_qty = NaN
         else
-            integrated_qty = atomic_mass / hydrogen_mass
+            integrated_qty = atomic_mass / gas_mass
         end
 
     elseif quantity == :ionized_fraction
 
         ionized_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
-        hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
-        if iszero(hydrogen_mass)
+        if iszero(gas_mass)
             integrated_qty = NaN
         else
-            integrated_qty = ionized_mass / hydrogen_mass
+            integrated_qty = ionized_mass / gas_mass
         end
 
     elseif quantity == :neutral_fraction
 
         neutral_mass = sum(computeNeutralMass(data_dict); init=0.0u"Msun")
-        hydrogen_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
-        if iszero(hydrogen_mass)
+        if iszero(gas_mass)
             integrated_qty = NaN
         else
-            integrated_qty = neutral_mass / hydrogen_mass
+            integrated_qty = neutral_mass / gas_mass
         end
 
     elseif quantity == :stellar_area_density
@@ -2784,30 +2774,30 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :molecular_fraction
 
         molecular_mass = computeMolecularMass(data_dict)
-        hydrogen_mass = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
+        gas_mass = data_dict[:gas]["MASS"]
 
-        scatter_qty = molecular_mass ./ hydrogen_mass
+        scatter_qty = molecular_mass ./ gas_mass
 
     elseif quantity == :atomic_fraction
 
         atomic_mass = computeAtomicMass(data_dict)
-        hydrogen_mass = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
+        gas_mass = data_dict[:gas]["MASS"]
 
-        scatter_qty = atomic_mass ./ hydrogen_mass
+        scatter_qty = atomic_mass ./ gas_mass
 
     elseif quantity == :ionized_fraction
 
         ionized_mass = computeIonizedMass(data_dict)
-        hydrogen_mass = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
+        gas_mass = data_dict[:gas]["MASS"]
 
-        scatter_qty = ionized_mass ./ hydrogen_mass
+        scatter_qty = ionized_mass ./ gas_mass
 
     elseif quantity == :neutral_fraction
 
         neutral_mass = computeNeutralMass(data_dict)
-        hydrogen_mass = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
+        gas_mass = data_dict[:gas]["MASS"]
 
-        scatter_qty = neutral_mass ./ hydrogen_mass
+        scatter_qty = neutral_mass ./ gas_mass
 
     elseif quantity == :molecular_neutral_fraction
 
