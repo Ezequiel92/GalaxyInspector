@@ -158,6 +158,8 @@ Threshold density, above which the gas particles enter the star formation routin
 
 This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used in cosmological and non-cosmological simulations). Which is converted to internal units within the code using `PhysDensThresh = CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`. Then, to go to physical units again one has to do: `PhysDensThresh * UnitDensity_in_cgs * cf_a3inv * HubbleParam * HubbleParam`.
 
+PhysDensThresh = 1.03378e6 [internal units of density]
+
 For a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
 
 ``\\log_{10} \\rho [\\mathrm{M_\\odot \\, kpc^{-3}}] = 6.677``
@@ -326,7 +328,16 @@ const IndexType = Union{
     UnitRange{<:Integer},
     StepRange{<:Integer,<:Integer},
     Vector{<:Integer},
-    Vector{Bool},
+}
+
+"""
+Reduced index type.
+"""
+const ReducedIndexType = Union{
+    Integer,
+    UnitRange{<:Integer},
+    StepRange{<:Integer,<:Integer},
+    Vector{<:Integer},
 }
 
 # Dimensions of specific energy

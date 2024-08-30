@@ -395,6 +395,62 @@ function selectFilter(
 
 end
 
+"""
+    intersectFilters(
+        filter_a::Dict{Symbol,IndexType},
+        filter_b::Dict{Symbol,IndexType},
+    )::Dict{Symbol,IndexType}
+
+Generate the filter resulting from intersecting (AND in boolean logic) `filter_a` and `filter_b`.
+
+# Arguments
+
+  - `filter_a::Dict{Symbol,IndexType}`: First filter, as a dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+  - `filter_b::Dict{Symbol,IndexType}`: Second filter, as a dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function intersectFilters(
+    filter_a::Dict{Symbol,IndexType},
+    filter_b::Dict{Symbol,IndexType},
+)::Dict{Symbol,IndexType}
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    (
+        keys(filter_a) == keys(filter_b) ||
+        throw(ArgumentError("intersectFilters: The filters must have the sale list of components \
+        (their keys), but I got keys(filter_a) != keys(filter_b)"))
+    )
+
+    @inbounds for component in keys(filter_a)
+
+        indices[component] = filter_a[component] ∩ filter_b[component]
+
+    end
+
+    return indices
+
+end
+
 ####################################################################################################
 #
 # A filter function must take a data dictionary, and return a filter dictionary.
@@ -873,7 +929,6 @@ function filterExsituStars(
     warnings::Bool=true,
 )::Dict{Symbol,IndexType}
 
-
     birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict; warnings)
 
     # Sanity check
@@ -1222,31 +1277,39 @@ function filterSubhalo(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
+    # Find which cell/particle types are part of the keys of `data_dict`
+    components_in_dd = snapshotTypes(data_dict)
+
     # Fill the filter dictionary
     @inbounds for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
 
         component = INDEX_PARTICLE[i - 1]
 
-        @inbounds if first_idx == last_idx || iszero(last_idx)
-            indices[component] = Int[]
-        end
+        # Only compute the indices for components in `data_dict`
+        if component ∈ components_in_dd
 
-        if component == :stars
+            @inbounds if first_idx == last_idx || iszero(last_idx)
+                indices[component] = Int[]
+            end
 
-            # Find the indices of the stars, excluding wind particles
-            real_stars_idxs = findRealStars(data_dict[:snap_data].path)
+            if component == :stars
 
-            n_wind_before = count(x -> !(x), real_stars_idxs[1:(first_idx - 1)])
-            n_wind_between = count(x -> !(x), real_stars_idxs[first_idx:last_idx])
+                # Find the indices of the stars, excluding wind particles
+                real_stars_idxs = findRealStars(data_dict[:snap_data].path)
 
-            stars_first_idx = first_idx - n_wind_before
-            stars_last_idx = last_idx - n_wind_before - n_wind_between
+                n_wind_before = count(x -> !(x), real_stars_idxs[1:(first_idx - 1)])
+                n_wind_between = count(x -> !(x), real_stars_idxs[first_idx:last_idx])
 
-            indices[component] = stars_first_idx:stars_last_idx
+                stars_first_idx = first_idx - n_wind_before
+                stars_last_idx = last_idx - n_wind_before - n_wind_between
 
-        else
+                indices[component] = stars_first_idx:stars_last_idx
 
-            indices[component] = first_idx:last_idx
+            else
+
+                indices[component] = first_idx:last_idx
+
+            end
 
         end
 
@@ -1325,31 +1388,39 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
+    # Find which cell/particle types are part of the keys of `data_dict`
+    components_in_dd = snapshotTypes(data_dict)
+
     # Fill the filter dictionary
     @inbounds for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
 
         component = INDEX_PARTICLE[i - 1]
 
-        @inbounds if first_idx == last_idx || iszero(last_idx)
-            indices[component] = Int[]
-        end
+        # Only compute the indices for components in `data_dict`
+        if component ∈ components_in_dd
 
-        if component == :stars
+            @inbounds if first_idx == last_idx || iszero(last_idx)
+                indices[component] = Int[]
+            end
 
-            # Find the indices of the stars, excluding wind particles
-            real_stars_idxs = findRealStars(data_dict[:snap_data].path)
+            if component == :stars
 
-            n_wind_before = count(x -> !(x), real_stars_idxs[1:(first_idx - 1)])
-            n_wind_between = count(x -> !(x), real_stars_idxs[first_idx:last_idx])
+                # Find the indices of the stars, excluding wind particles
+                real_stars_idxs = findRealStars(data_dict[:snap_data].path)
 
-            stars_first_idx = first_idx - n_wind_before
-            stars_last_idx = last_idx - n_wind_before - n_wind_between
+                n_wind_before = count(x -> !(x), real_stars_idxs[1:(first_idx - 1)])
+                n_wind_between = count(x -> !(x), real_stars_idxs[first_idx:last_idx])
 
-            indices[component] = stars_first_idx:stars_last_idx
+                stars_first_idx = first_idx - n_wind_before
+                stars_last_idx = last_idx - n_wind_before - n_wind_between
 
-        else
+                indices[component] = stars_first_idx:stars_last_idx
 
-            indices[component] = first_idx:last_idx
+            else
+
+                indices[component] = first_idx:last_idx
+
+            end
 
         end
 
@@ -1410,6 +1481,67 @@ function filterGasDensity(
 
         @inbounds if component == :gas
             indices[component] = map(x -> min_ρ < x <= max_ρ, density)
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterGasACIT(
+        data_dict::Dict,
+        min_acit::Unitful.Time,
+        max_acit::Unitful.Time,
+    )::Dict{Symbol,IndexType}
+
+Filter out gas that is outside the accumulated integration time range [`min_acit`, `max_acit`].
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `min_acit::Unitful.Temperature`: Minimum accumulated integration time.
+  - `max_acit::Unitful.Temperature`: Maximum accumulated integration time.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterGasACIT(
+    data_dict::Dict,
+    min_acit::Unitful.Time,
+    max_acit::Unitful.Time,
+)::Dict{Symbol,IndexType}
+
+    acit = data_dict[:gas]["ACIT"]
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :gas
+            indices[component] = map(x -> min_acit < x <= max_acit, acit)
         else
             indices[component] = (:)
         end

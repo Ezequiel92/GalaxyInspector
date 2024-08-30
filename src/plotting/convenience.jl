@@ -3024,7 +3024,7 @@ function temperatureMap(
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        plotParams(:temperature).request,
+        mergeRequests(plotParams(:temperature).request, plotParams(:gas_mass_density).request),
     )
 
     @inbounds for simulation_path in simulation_paths
@@ -3543,6 +3543,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
         * `cell/particle type` -> idxs::IndexType
         * `cell/particle type` -> idxs::IndexType
         * ...
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `da_ff` filter function.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -3568,6 +3569,7 @@ function scatterDensityMap(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     colorbar::Bool=false,
     theme::Attributes=Theme(),
@@ -3582,6 +3584,7 @@ function scatterDensityMap(
             x_plot_params.request,
             y_plot_params.request,
             plotParams(:gas_mass_density).request,
+            ff_request,
         ),
     )
 
@@ -3653,7 +3656,7 @@ function scatterDensityMap(
             da_kwargs=[(; x_range, y_range, x_log, y_log, total, n_bins, filter_function=da_ff)],
             post_processing=getNothing,
             pp_args=(),
-            pp_kwargs=(;colors=[]),
+            pp_kwargs=(;),
             transform_box=true,
             translation,
             rotation,
@@ -6267,6 +6270,7 @@ function resolvedKennicuttSchmidtLaw(
                     f,
                     L"t = %$(rpad(round(time, sigdigits=3), 4, '0')) \, \mathrm{Gyr}",
                     position=(0.08, 0.98),
+                    fontsize=28,
                 )
 
                 if quantity == :gas_mass
@@ -6324,7 +6328,7 @@ function resolvedKennicuttSchmidtLaw(
                         ],
                         [sim_labels[sim_idx], pp_legend[2]],
                         nbanks=1,
-                        labelsize=20,
+                        labelsize=25,
                         rowgap=-20,
                         halign=:left,
                         valign=:top,
@@ -6551,8 +6555,8 @@ function integratedKennicuttSchmidtLaw(
             )
 
             # Allocate memory
-            x_values = similar(snapshot_numbers, Float64)
-            y_values = similar(snapshot_numbers, Float64)
+            x_values = similar(snapshot_numbers, Measurement{Float64})
+            y_values = similar(snapshot_numbers, Measurement{Float64})
 
             for (snap_idx, snapshot_number) in pairs(snapshot_numbers)
 
@@ -6574,8 +6578,11 @@ function integratedKennicuttSchmidtLaw(
                         deleteat!(x_data, x_idxs ∪ y_idxs)
                         deleteat!(y_data, x_idxs ∪ y_idxs)
 
-                        x_values[snap_idx] = log10(median(exp10.(x_data)))
-                        y_values[snap_idx] = log10(median(exp10.(y_data)))
+                        lin_x = exp10.(x_data)
+                        lin_y = exp10.(y_data .- log10Δt)
+
+                        x_values[snap_idx] = log10(median(lin_x) ± mad(lin_x; normalize=false))
+                        y_values[snap_idx] = log10(median(lin_y) ± mad(lin_y; normalize=false))
 
                     end
 
@@ -6583,7 +6590,31 @@ function integratedKennicuttSchmidtLaw(
 
             end
 
-            scatter!(ax, x_values, y_values .- log10Δt; color=Makie.wong_colors()[2], markersize=15)
+            scatter!(
+                ax,
+                Measurements.value.(x_values),
+                Measurements.value.(y_values);
+                color=Makie.wong_colors()[2],
+                markersize=15,
+            )
+
+            errorbars!(
+                ax,
+                Measurements.value.(x_values),
+                Measurements.value.(y_values),
+                Measurements.uncertainty.(y_values),
+                direction=:y,
+                color=Makie.wong_colors()[2],
+            )
+
+            errorbars!(
+                ax,
+                Measurements.value.(x_values),
+                Measurements.value.(y_values),
+                Measurements.uncertainty.(x_values),
+                direction=:x,
+                color=Makie.wong_colors()[2],
+            )
 
             if quantity == :gas_mass
 

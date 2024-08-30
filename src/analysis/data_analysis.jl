@@ -1284,17 +1284,19 @@ function daDensity2DProjection(
 
         # Project `mass_grid` to the target plane
         if projection_plane == :xy
-            density = dropdims(sum(mass_grid; dims=3) ./ voxel_area; dims=3)
+            dims = 3
         elseif projection_plane == :xz
             # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
-            density = dropdims(sum(mass_grid; dims=1) ./ voxel_area; dims=1)
+            dims = 1
         elseif projection_plane == :yz
             # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
-            density = dropdims(sum(mass_grid; dims=2) ./ voxel_area; dims=2)
+            dims = 2
         else
             throw(ArgumentError("daDensity2DProjection: The argument `projection_plane` must be \
             :xy, :xz or :yz, but I got :$(projection_plane)"))
         end
+
+        density = dropdims(sum(mass_grid; dims) ./ voxel_area; dims)
 
         # Set bins with a value of 0 to NaN
         replace!(x -> iszero(x) ? NaN : x, density)
@@ -1497,17 +1499,19 @@ function daGasSFR2DProjection(
 
         # Project `sfr_grid` to the target plane
         if projection_plane == :xy
-            sfr = dropdims(sum(sfr_grid; dims=3); dims=3)
+            dims = 3
         elseif projection_plane == :xz
             # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
-            sfr = dropdims(sum(sfr_grid; dims=1); dims=1)
+            dims = 1
         elseif projection_plane == :yz
             # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
-            sfr = dropdims(sum(sfr_grid; dims=2); dims=2)
+            dims = 2
         else
             throw(ArgumentError("daGasSFR2DProjection: The argument `projection_plane` must be \
             :xy, :xz or :yz, but I got :$(projection_plane)"))
         end
+
+        sfr = dropdims(sum(sfr_grid; dims); dims)
 
         # Set bins with a value of 0 to NaN
         replace!(x -> iszero(x) ? NaN : x, sfr)
@@ -1738,34 +1742,22 @@ function daMetallicity2DProjection(
 
         # Project `metal_mass_grid` to the target plane
         if projection_plane == :xy
-
-            metal_mass = dropdims(sum(metal_mass_grid; dims=3); dims=3)
-            norm_mass  = dropdims(sum(norm_mass_grid; dims=3); dims=3)
-
-            metallicity = metal_mass ./ norm_mass
-
+            dims = 3
         elseif projection_plane == :xz
-
             # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
-            metal_mass = dropdims(sum(metal_mass_grid; dims=1); dims=1)
-            norm_mass  = dropdims(sum(norm_mass_grid; dims=1); dims=1)
-
-            metallicity = metal_mass ./ norm_mass
-
+            dims = 1
         elseif projection_plane == :yz
-
             # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
-            metal_mass = dropdims(sum(metal_mass_grid; dims=2); dims=2)
-            norm_mass  = dropdims(sum(norm_mass_grid; dims=2); dims=2)
-
-            metallicity = metal_mass ./ norm_mass
-
+            dims = 2
         else
-
             throw(ArgumentError("daMetallicity2DProjection: The argument `projection_plane` must be \
             :xy, :xz or :yz, but I got :$(projection_plane)"))
-
         end
+
+        metal_mass = dropdims(sum(metal_mass_grid; dims); dims)
+        norm_mass  = dropdims(sum(norm_mass_grid; dims); dims)
+
+        metallicity = metal_mass ./ norm_mass
 
         # Set bins with a value of 0 to NaN
         replace!(x -> iszero(x) ? NaN : x, metallicity)
@@ -1952,7 +1944,17 @@ function daTemperature2DProjection(
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
+    # Set the units
+    m_unit = u"Msun"
+    l_unit = u"kpc"
+
     if type == :cells
+
+        # Load the gas densities
+        densities = ustrip.(m_unit * l_unit^-3, filtered_dd[:gas]["RHO "])
+
+        # Load the volume and area of the voxels
+        voxel_volume = ustrip(l_unit^3, grid.bin_volume)
 
         # Allocate memory
         physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
@@ -1972,25 +1974,33 @@ function daTemperature2DProjection(
 
         # Allocate memory
         temperature_grid = similar(grid.grid, Float64)
+        mass_grid        = similar(grid.grid, Float64)
 
-        # Compute the temperature of each voxel
+        # Compute the temperature and mass of each voxel
         @inbounds for i in eachindex(grid.grid)
             temperature_grid[i] = temperatures[idxs[i]]
+            mass_grid[i]        = densities[idxs[i]] * voxel_volume
         end
+
+        # Use the mass of each voxel as a weight
+        weighted_temperature = temperature_grid .* mass_grid
 
         # Project `temperature_grid` to the target plane
         if projection_plane == :xy
-            temperature = dropdims(sum(temperature_grid; dims=3); dims=3) ./ grid.n_bins
+            dims = 3
         elseif projection_plane == :xz
             # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
-            temperature = dropdims(sum(temperature_grid; dims=1); dims=1) ./ grid.n_bins
+            dims = 1
         elseif projection_plane == :yz
             # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
-            temperature = dropdims(sum(temperature_grid; dims=2); dims=2) ./ grid.n_bins
+            dims = 2
         else
             throw(ArgumentError("daTemperature2DProjection: The argument `projection_plane` must be \
             :xy, :xz or :yz, but I got :$(projection_plane)"))
         end
+
+        normalization = dropdims(sum(mass_grid; dims); dims)
+        temperature = dropdims(sum(weighted_temperature; dims); dims) ./ normalization
 
     elseif type == :particles
 

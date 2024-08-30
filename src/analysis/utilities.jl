@@ -1064,7 +1064,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:gas => ["SFR "]),
-            var_name = L"SFR_\mathrm{gas}",
+            var_name = L"\mathrm{SFR_{gas}}",
             unit     = u"Msun*yr^-1",
         )
 
