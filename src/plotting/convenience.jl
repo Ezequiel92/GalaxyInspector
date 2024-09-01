@@ -6201,10 +6201,10 @@ function resolvedKennicuttSchmidtLaw(
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
-            simulation_table = makeSimulationTable(simulation; warnings=false)
+            simulation_table = DataFrame(makeSimulationTable(simulation; warnings=false)[slice, :])
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
-            times            = ustrip.(u"Gyr", simulation_table[slice, :physical_times])
-            snapshot_numbers = simulation_table[slice, :numbers]
+            times            = ustrip.(u"Gyr", simulation_table[!, :physical_times])
+            snapshot_numbers = simulation_table[!, :numbers]
 
             for (time, snapshot_number) in zip(times, snapshot_numbers)
 
@@ -6335,6 +6335,347 @@ function resolvedKennicuttSchmidtLaw(
                         padding=(15, 0, 0, 30),
                     )
                 end
+
+                rowsize!(f.layout, 1, Makie.Fixed(pixelarea(ax.scene)[].widths[2]))
+
+                path = mkpath(
+                    joinpath(output_path, basename(simulation), string(quantity)),
+                )
+
+                Makie.save(joinpath(path, "$(snapshot_number).png"), f)
+
+            end
+
+        end
+
+    end
+
+    rm(temp_folder; recursive=true)
+
+end
+
+#TODO
+function resolvedKennicuttSchmidtLaw2(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    quantity::Symbol=:molecular_mass,
+    type::Symbol=:cells,
+    x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    n_bins::Int=100,
+    output_path::String="./resolvedKennicuttSchmidtLaw",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    print_range::Bool=false,
+    theme::Attributes=Theme(),
+)::Nothing
+
+    grid = CubicGrid(65.0u"kpc", 300)
+
+    (
+        quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
+        throw(ArgumentError("resolvedKennicuttSchmidtLaw: `quantity` can only be :gas_mass, \
+        :molecular_mass or :neutral_mass, but I got :$(quantity)"))
+    )
+
+    # Set a temporal folder for the JLD2 files
+    temp_folder = joinpath(output_path, "_temp_jld2")
+
+    # Write the JLD2 files with the density maps
+    for (qty, type) in zip([:stellar_mass, quantity], [:particles, type])
+
+        filter_function, translation, rotation, request = selectFilter(
+            filter_mode,
+            plotParams(qty).request,
+        )
+
+        plotSnapshot(
+            simulation_paths,
+            request,
+            [heatmap!];
+            pf_kwargs=[(;)],
+            # `plotSnapshot` configuration
+            output_path=temp_folder,
+            base_filename=string(qty),
+            output_format=".png",
+            warnings=false,
+            show_progress=true,
+            # Data manipulation options
+            slice,
+            filter_function,
+            da_functions=[daDensity2DProjection],
+            da_args=[(grid, qty, type)],
+            da_kwargs=[(; filter_function=dd->filterStellarAge(dd))],
+            post_processing=getNothing,
+            pp_args=(),
+            pp_kwargs=(;),
+            transform_box=true,
+            translation,
+            rotation,
+            smooth=0,
+            x_unit=u"kpc",
+            y_unit=u"kpc",
+            x_exp_factor=0,
+            y_exp_factor=0,
+            x_trim=(-Inf, Inf),
+            y_trim=(-Inf, Inf),
+            x_edges=false,
+            y_edges=false,
+            x_func=identity,
+            y_func=identity,
+            # Axes options
+            xaxis_label="auto_label",
+            yaxis_label="auto_label",
+            xaxis_var_name="x",
+            yaxis_var_name="y",
+            xaxis_scale_func=identity,
+            yaxis_scale_func=identity,
+            # Plotting options
+            save_figures=false,
+            backup_results=true,
+            theme=Theme(),
+            sim_labels=nothing,
+            title="",
+            colorbar=false,
+            # Animation options
+            animation=false,
+            animation_filename="animation.mp4",
+            framerate=15,
+        )
+
+    end
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(
+            plotParams(:gas_metallicity).request,
+            plotParams(:gas_mass_density).request,
+        ),
+    )
+
+    # Write the JLD2 file with the metallicity density
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [heatmap!];
+        pf_kwargs=[(;)],
+        # `plotSnapshot` configuration
+        output_path=temp_folder,
+        base_filename="gas_metallicity",
+        output_format=".png",
+        warnings=false,
+        show_progress=true,
+        # Data manipulation options
+        slice,
+        filter_function,
+        da_functions=[daMetallicity2DProjection],
+        da_args=[(grid, :gas, type)],
+        da_kwargs=[(;)],
+        post_processing=getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
+        transform_box=true,
+        translation,
+        rotation,
+        smooth=0,
+        x_unit=u"kpc",
+        y_unit=u"kpc",
+        x_exp_factor=0,
+        y_exp_factor=0,
+        x_trim=(-Inf, Inf),
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label="auto_label",
+        yaxis_label="auto_label",
+        xaxis_var_name="x",
+        yaxis_var_name="y",
+        xaxis_scale_func=identity,
+        yaxis_scale_func=identity,
+        # Plotting options
+        save_figures=false,
+        backup_results=true,
+        theme=Theme(),
+        sim_labels=nothing,
+        title="",
+        colorbar=false,
+        # Animation options
+        animation=false,
+        animation_filename="animation.mp4",
+        framerate=15,
+    )
+
+    # Choose the correct x label
+    if quantity == :gas_mass
+
+        x_label = getLabel(
+            plotParams(:gas_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :molecular_mass
+
+        x_label = getLabel(
+            plotParams(:molecular_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :neutral_mass
+
+        x_label = getLabel(
+            plotParams(:neutral_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    end
+
+    # Set the y label
+    y_label = getLabel(
+        plotParams(:sfr_area_density).var_name,
+        0,
+        u"Msun * yr^-1 * kpc^-2";
+        latex=true,
+    )
+
+    with_theme(merge(theme, theme_latexfonts(), DEFAULT_THEME)) do
+
+        for (sim_idx, simulation) in pairs(simulation_paths)
+
+            simulation_table = DataFrame(makeSimulationTable(simulation; warnings=false)[slice, :])
+            sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
+            times            = ustrip.(u"Gyr", simulation_table[!, :physical_times])
+            snapshot_numbers = simulation_table[!, :numbers]
+
+            for (time, snapshot_number) in zip(times, snapshot_numbers)
+
+                f = Figure()
+
+                ax = CairoMakie.Axis(
+                    f[1, 1];
+                    xlabel=L"$\log_{10}$ %$(x_label)",
+                    ylabel=L"$\log_{10}$ %$(y_label)",
+                    aspect=AxisAspect(1),
+                )
+
+                x_address = "$(quantity)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                y_address = "stellar_mass-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                z_address = "gas_metallicity-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+
+                jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r") do x_file
+
+                    jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r") do y_file
+
+                        jldopen(joinpath(temp_folder, "gas_metallicity.jld2"), "r") do z_file
+
+                            # Read the JLD2 files
+                            x_data = vec(x_file[x_address][3])
+                            y_data = vec(y_file[y_address][3])
+                            z_data = vec(z_file[z_address][3])
+
+                            # Delete 0s and NaNs in the data vectors
+                            x_idxs = map(x -> isnan(x) || iszero(x), x_data)
+                            y_idxs = map(x -> isnan(x) || iszero(x), y_data)
+                            z_idxs = map(x -> isnan(x) || iszero(x), z_data)
+
+                            deleteat!(x_data, x_idxs ∪ y_idxs ∪ z_idxs)
+                            deleteat!(y_data, x_idxs ∪ y_idxs ∪ z_idxs)
+                            deleteat!(z_data, x_idxs ∪ y_idxs ∪ z_idxs)
+
+                            y_data = y_data .- log10(ustrip(u"yr", AGE_RESOLUTION))
+
+                            # If there is no range specified, use the extrema of the x values
+                            if isnothing(x_range)
+                                xrange = extrema(x_data)
+                            else
+                                xrange = x_range
+                            end
+
+                            # If there is no range specified, use the extrema of the y values
+                            if isnothing(y_range)
+                                yrange = extrema(y_data)
+                            else
+                                yrange = y_range
+                            end
+
+                            # Compute the bin half width for each axis
+                            x_bin_h_width = 0.5 * (xrange[2] - xrange[1]) / n_bins
+                            y_bin_h_width = 0.5 * (yrange[2] - yrange[1]) / n_bins
+
+                            # Compute the center value of each bin for each axis
+                            x_axis = collect(
+                                range(
+                                    xrange[1] + x_bin_h_width;
+                                    length=n_bins,
+                                    step=2 * x_bin_h_width,
+                                ),
+                            )
+                            y_axis = collect(
+                                range(
+                                    yrange[1] + y_bin_h_width;
+                                    length=n_bins,
+                                    step=2 * y_bin_h_width,
+                                ),
+                            )
+
+                            # Compute the 2D histogram
+                            values = Float64.(histogram2D(
+                                permutedims(hcat(x_data, y_data), (2, 1)),
+                                collect(range(xrange[1], xrange[2]; length=n_bins + 1)),
+                                collect(range(yrange[1], yrange[2]; length=n_bins + 1));
+                            ))
+
+                            # Set bins with a value of 0 to NaN
+                            replace!(x -> iszero(x) ? NaN : x, values)
+
+                            # The transpose and reverse operation are to conform to the way heatmap!
+                            # expect the matrix to be structured, and log10 is used to enhance the contrast
+                            z_axis = reverse!(transpose(log10.(values)), dims=2)
+
+                            if print_range
+
+                                # Compute the mininimum and maximum of `z_axis`
+                                min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
+
+                                # Print the counts range
+                                @info(
+                                    "\nCounts range \
+                                    \n  Simulation:    $(basename(simulation)) \
+                                    \n  Snapshot:      $(snapshot_number) \
+                                    \n  Quantity:      $(quantity) \
+                                    \n  log₁₀(counts): $(min_max)\n\n"
+                                )
+
+                            end
+
+                            pf = heatmap!(
+                                ax,
+                                x_axis,
+                                y_axis,
+                                z_axis;
+                                colormap=:nipy_spectral,
+                            )
+
+                        end
+
+                    end
+
+                end
+
+                ppAnnotation!(
+                    f,
+                    L"t = %$(rpad(round(time, sigdigits=3), 4, '0')) \, \mathrm{Gyr}",
+                    position=(0.04, 0.98),
+                    fontsize=28,
+                    color=:white,
+                )
 
                 rowsize!(f.layout, 1, Makie.Fixed(pixelarea(ax.scene)[].widths[2]))
 
@@ -6541,9 +6882,9 @@ function integratedKennicuttSchmidtLaw(
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
-            simulation_table = makeSimulationTable(simulation; warnings=false)
+            simulation_table = DataFrame(makeSimulationTable(simulation; warnings=false)[slice, :])
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
-            snapshot_numbers = simulation_table[slice, :numbers]
+            snapshot_numbers = simulation_table[!, :numbers]
 
             f = Figure()
 
@@ -7107,10 +7448,10 @@ function resolvedMassMetallicityRelation(
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
-            simulation_table = makeSimulationTable(simulation; warnings=false)
+            simulation_table = DataFrame(makeSimulationTable(simulation; warnings=false)[slice, :])
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
-            times            = ustrip.(u"Gyr", simulation_table[slice, :physical_times])
-            snapshot_numbers = simulation_table[slice, :numbers]
+            times            = ustrip.(u"Gyr", simulation_table[!, :physical_times])
+            snapshot_numbers = simulation_table[!, :numbers]
 
             for (time, snapshot_number) in zip(times, snapshot_numbers)
 

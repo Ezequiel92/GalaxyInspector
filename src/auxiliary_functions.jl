@@ -1326,7 +1326,6 @@ Compute a 2D histogram of `positions`.
 # Arguments
 
   - `positions::Matrix{<:Number}`: Values for which the histogram will be constructed.
-  - `grid::SquareGrid`: A square grid.
   - `x_edges::Vector{<:Number}`: A sorted list of bin edges for the x axis.
   - `y_edges::Vector{<:Number}`: A sorted list of bin edges for the y axis.
 

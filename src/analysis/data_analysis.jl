@@ -1553,7 +1553,7 @@ function daGasSFR2DProjection(
 
         # Print the gas SFR range
         @info(
-            "\nDensity range \
+            "\nGas SFR range \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Type:       $(type) \
@@ -2039,7 +2039,7 @@ function daTemperature2DProjection(
 
         # Print the temperature range
         @info(
-            "\nDensity range \
+            "\nTemperature range \
             \n  Simulation:   $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:     $(filtered_dd[:snap_data].global_index) \
             \n  Type:         $(type) \
