@@ -5954,13 +5954,15 @@ function compareMolla2015(
 end
 
 """
-    resolvedKennicuttSchmidtLaw(
+    resolvedKSLawZScatter(
         simulation_paths::Vector{String},
         slice::IndexType;
         <keyword arguments>
     )::Nothing
 
 Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`. This method plots the KS relation at a fix moment in time.
+
+Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius [`DISK_R`](@ref) are consider. The color scale is given by the metallicity at each pixel
 
 # Arguments
 
@@ -5972,7 +5974,7 @@ Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998
       + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
-  - `output_path::String="./resolvedKennicuttSchmidtLaw"`: Path to the output folder.
+  - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -6010,30 +6012,33 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-function resolvedKennicuttSchmidtLaw(
+function resolvedKSLawZScatter(
     simulation_paths::Vector{String},
     slice::IndexType;
     quantity::Symbol=:molecular_mass,
     type::Symbol=:cells,
-    output_path::String="./resolvedKennicuttSchmidtLaw",
+    output_path::String="./resolvedKSLawZScatter",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(65.0u"kpc", 300)
+    grid = CubicGrid(BOX_L, 300)
 
     (
         quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
-        throw(ArgumentError("resolvedKennicuttSchmidtLaw: `quantity` can only be :gas_mass, \
+        throw(ArgumentError("resolvedKSLawZScatter: `quantity` can only be :gas_mass, \
         :molecular_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
     # Set a temporal folder for the JLD2 files
     temp_folder = joinpath(output_path, "_temp_jld2")
 
+    # For stars filter by age, for the gas filter by distance to the center
+    filters = [dd->filterStellarAge(dd), dd->filterWithinSphere(dd, (0.0u"kpc", DISK_R), :zero)]
+
     # Write the JLD2 files with the density maps
-    for (qty, type) in zip([:stellar_mass, quantity], [:particles, type])
+    for (qty, type, filter) in zip([:stellar_mass, quantity], [:particles, type], filters)
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,
@@ -6056,7 +6061,7 @@ function resolvedKennicuttSchmidtLaw(
             filter_function,
             da_functions=[daDensity2DProjection],
             da_args=[(grid, qty, type)],
-            da_kwargs=[(; filter_function=dd->filterStellarAge(dd))],
+            da_kwargs=[(; filter_function=filter)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -6121,7 +6126,7 @@ function resolvedKennicuttSchmidtLaw(
         filter_function,
         da_functions=[daMetallicity2DProjection],
         da_args=[(grid, :gas, type)],
-        da_kwargs=[(;)],
+        da_kwargs=[(; filter_function=filters[2])],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -6354,8 +6359,63 @@ function resolvedKennicuttSchmidtLaw(
 
 end
 
-#TODO
-function resolvedKennicuttSchmidtLaw2(
+"""
+    resolvedKSLawHeatmap(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot the resolved Kennicutt-Schmidt relation as a heatmap, for a given `quantity`. This method plots the KS relation at a fix moment in time.
+
+Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius [`DISK_R`](@ref) are consider. The color scale is given by the metallicity at each pixel
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
+
+      + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
+  - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the grid. If set to `nothing`, the extrema of the values will be used.
+  - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the grid. If set to `nothing`, the extrema of the values will be used.
+  - `n_bins::Int=100`: Number of bins per side of the grid.
+  - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic counts range.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function resolvedKSLawHeatmap(
     simulation_paths::Vector{String},
     slice::IndexType;
     quantity::Symbol=:molecular_mass,
@@ -6363,25 +6423,28 @@ function resolvedKennicuttSchmidtLaw2(
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     n_bins::Int=100,
-    output_path::String="./resolvedKennicuttSchmidtLaw",
+    output_path::String="./resolvedKSLawHeatmap",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     print_range::Bool=false,
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(65.0u"kpc", 300)
+    grid = CubicGrid(BOX_L, 300)
 
     (
         quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
-        throw(ArgumentError("resolvedKennicuttSchmidtLaw: `quantity` can only be :gas_mass, \
+        throw(ArgumentError("resolvedKSLawHeatmap: `quantity` can only be :gas_mass, \
         :molecular_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
     # Set a temporal folder for the JLD2 files
     temp_folder = joinpath(output_path, "_temp_jld2")
 
+    # For stars filter by age, for the gas filter by distance to the center
+    filters = [dd->filterStellarAge(dd), dd->filterWithinSphere(dd, (0.0u"kpc", DISK_R), :zero)]
+
     # Write the JLD2 files with the density maps
-    for (qty, type) in zip([:stellar_mass, quantity], [:particles, type])
+    for (qty, type, filter) in zip([:stellar_mass, quantity], [:particles, type], filters)
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,
@@ -6404,7 +6467,7 @@ function resolvedKennicuttSchmidtLaw2(
             filter_function,
             da_functions=[daDensity2DProjection],
             da_args=[(grid, qty, type)],
-            da_kwargs=[(; filter_function=dd->filterStellarAge(dd))],
+            da_kwargs=[(; filter_function=filter)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -6469,7 +6532,7 @@ function resolvedKennicuttSchmidtLaw2(
         filter_function,
         da_functions=[daMetallicity2DProjection],
         da_args=[(grid, :gas, type)],
-        da_kwargs=[(;)],
+        da_kwargs=[(; filter_function=filters[2])],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -6696,13 +6759,15 @@ function resolvedKennicuttSchmidtLaw2(
 end
 
 """
-    integratedKennicuttSchmidtLaw(
+    integratedKSLaw(
         simulation_paths::Vector{String},
         slice::IndexType;
         <keyword arguments>
     )::Nothing
 
 Plot the integarted Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`. This method plots the KS relation for the whole galaxy at different points in time.
+
+Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius [`DISK_R`](@ref) are consider.
 
 # Arguments
 
@@ -6714,7 +6779,7 @@ Plot the integarted Kennicutt-Schmidt relation plus the results of Kennicutt (19
       + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
-  - `output_path::String="./resolvedKennicuttSchmidtLaw"`: Path to the output folder.
+  - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -6752,30 +6817,33 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-function integratedKennicuttSchmidtLaw(
+function integratedKSLaw(
     simulation_paths::Vector{String},
     slice::IndexType;
     quantity::Symbol=:molecular_mass,
     type::Symbol=:cells,
-    output_path::String="./integratedKennicuttSchmidtLaw",
+    output_path::String="./integratedKSLaw",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(65.0u"kpc", 300)
+    grid = CubicGrid(BOX_L, 300)
 
     (
         quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
-        throw(ArgumentError("integratedKennicuttSchmidtLaw: `quantity` can only be :gas_mass, \
+        throw(ArgumentError("integratedKSLaw: `quantity` can only be :gas_mass, \
         :molecular_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
     # Set a temporal folder for the JLD2 files
     temp_folder = joinpath(output_path, "_temp_jld2")
 
+    # For stars filter by age, for the gas filter by distance to the center
+    filters = [dd->filterStellarAge(dd), dd->filterWithinSphere(dd, (0.0u"kpc", DISK_R), :zero)]
+
     # Write the JLD2 files with the density maps
-    for (qty, type) in zip([:stellar_mass, quantity], [:particles, type])
+    for (qty, type, filter) in zip([:stellar_mass, quantity], [:particles, type], filters)
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,
@@ -6798,7 +6866,7 @@ function integratedKennicuttSchmidtLaw(
             filter_function,
             da_functions=[daDensity2DProjection],
             da_args=[(grid, qty, type)],
-            da_kwargs=[(; filter_function=dd->filterStellarAge(dd))],
+            da_kwargs=[(; filter_function=filter)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -7104,7 +7172,7 @@ function fitResolvedKennicuttSchmidtLaw(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(65.0u"kpc", 300)
+    grid = CubicGrid(BOX_L, 300)
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
@@ -7240,7 +7308,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
       + `:all` -> Metallicity considering all elements, as ``Z / Z_\\odot``.
       + `:X`   -> Xlement ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref)
   - `mass::Bool=true`: If the x axis will be the stellar mass density or the SFR density.
-  - `output_path::String="./resolvedKennicuttSchmidtLaw"`: Path to the output folder.
+  - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -7283,7 +7351,7 @@ function resolvedMassMetallicityRelation(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(65.0u"kpc", 300)
+    grid = CubicGrid(BOX_L, 300)
 
     (
         element ∈ [:all, keys(ELEMENT_INDEX)...] ||

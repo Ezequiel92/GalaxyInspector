@@ -32,6 +32,11 @@ Characteristic radius used throughout the code.
 const DISK_R = 40.0u"kpc"
 
 """
+Characteristic box size used throughout the code.
+"""
+const BOX_L = 65.0u"kpc"
+
+"""
 Characteristic stellar age limit for the SFR and sSFR calculations.
 """
 const AGE_RESOLUTION = 200.0u"Myr"

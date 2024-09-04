@@ -105,8 +105,8 @@ export stellarHistory
 export stellarCircularity
 export compareFeldmann2020
 export compareMolla2015
-export resolvedKennicuttSchmidtLaw
-export integratedKennicuttSchmidtLaw
+export resolvedKSLawZScatter
+export integratedKSLaw
 export fitResolvedKennicuttSchmidtLaw
 
 end
