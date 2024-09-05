@@ -106,7 +106,9 @@ export stellarCircularity
 export compareFeldmann2020
 export compareMolla2015
 export resolvedKSLawZScatter
+export resolvedKSLawZScatterAllTimes
+export resolvedKSLawHeatmap
 export integratedKSLaw
-export fitResolvedKennicuttSchmidtLaw
+export fitResolvedKSLaw
 
 end
