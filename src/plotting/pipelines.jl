@@ -1040,7 +1040,7 @@ function plotTimeSeries(
         if backup_results
 
             # Save data in a JLD2 file
-            sim_name = "simulation-$(lpad(string(simulation_index), 3, "0"))"
+            sim_name = "simulation_$(lpad(string(simulation_index), 3, "0"))"
 
             jldopen(joinpath(output_path, "$(filename).jld2"), "a+"; compress=true) do f
                 address = "$(filename)/$sim_name"

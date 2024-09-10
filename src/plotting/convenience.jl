@@ -4246,6 +4246,7 @@ Plot a time series.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function timeSeries(
@@ -4259,6 +4260,7 @@ function timeSeries(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    backup_results::Bool=false,
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -4321,7 +4323,7 @@ function timeSeries(
         yaxis_scale_func,
         # Plotting options
         save_figures=true,
-        backup_results=false,
+        backup_results,
         theme,
         sim_labels,
         title="",
@@ -7702,7 +7704,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
   - `element::Symbol=:all`: Which metallicity to use. The options are:
 
       + `:all` -> Metallicity considering all elements, as ``Z / Z_\\odot``.
-      + `:X`   -> Xlement ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref)
+      + `:X`   -> Element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
   - `mass::Bool=true`: If the x axis will be the stellar mass density or the SFR density.
   - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -8003,5 +8005,351 @@ function resolvedMassMetallicityRelation(
     end
 
     rm(temp_folder; recursive=true)
+
+end
+
+"""
+    atomicGasCubes(
+        simulation_paths::Vector{String},
+        slice::ReducedIndexType;
+        <keyword arguments>
+    )::Nothing
+
+Create a HDF5 file with the physical position, atomic gas mass, velocity, and velocity dispersion at each voxel of a rectangular 3D grid.
+
+The metadata for each snapshot in the HDF5 file includes the physical time in Gyr, the scale factor, and the redshift of that snapshot.
+
+By default, the grid is centered at coordinates (0, 0, 0), has 300x300x300 voxels, and has a side length of [`BOX_L`](@ref). There are as many rows as there are voxels (27000000 by default).
+
+The stored quantities for each voxel are:
+
+Column 01: x coordinate [kpc]
+Column 02: y coordinate [kpc]
+Column 03: z coordinate [kpc]
+Column 04: Atomic gas mass [Msun]
+Column 05: Velocity in the x direction [km * s^-1]
+Column 06: Velocity in the y direction [km * s^-1]
+Column 07: Velocity in the z direction [km * s^-1]
+Column 08: Velocity dispersion in the x direction [km * s^-1]
+Column 09: Velocity dispersion in the y direction [km * s^-1]
+Column 10: Velocity dispersion in the z direction [km * s^-1]
+
+For Voronoi cells:
+
+The mass is the mass of atomic gas intersecting the voxel, so it only considers the cell that it is the closest to the voxel. The velocity is given by the weighted mean of the velocities of the `n_neighbors` nearest neighbors to the voxel. And the velocity dispersion, by the weighted standard deviation.
+
+Notice that for Voronoi cells, the mass will be sample at a sub-cell resolution (as long as voxel size < cell size), while the velocities are sample at a lower resolution (as long as `n_neighbors` > 1). The weights are given by the distance (in kpc) to each neighbor, using a Gaussian kernel.
+
+For particles:
+
+The mass is the accumulated mass of the particles within each voxel. The velocity is the mean of the velocities of those particles, and the velocity dispersion is the standard deviation.
+
+If there are no particles, the mass is 0, and the velocity and velocity dispersion are NaN. If there is only one particle, the mass and velocity are the ones from that particle, and the velocity dispersion is NaN.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::ReducedIndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13) or an `StepRange` (e.g. 5:2:13). Starts at 1.
+  - `type::Symbol=:cells`: If the gas will be assumed to be `:particles` or Voronoi `:cells`.
+  - `n_neighbors::Int=8`: Number of neighbors for the mean and standard deviation of the velocity. Setting this value to 1 maximizes the resolution for the velocity, and sets the standard deviation (columns 8, 9, and 10) to NaN.
+  - `grid::CubicGrid=CubicGrid(BOX_L, 300)`: Cubic grid.
+  - `output_file::String="./HI_cubes.hdf5"`: Path to the output HDF5 file.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+"""
+function atomicGasCubes(
+    simulation_paths::Vector{String},
+    slice::ReducedIndexType;
+    type::Symbol=:cells,
+    n_neighbors::Int=8,
+    grid::CubicGrid=CubicGrid(BOX_L, 300),
+    output_file::String="./HI_cubes.hdf5",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    show_progress::Bool=true,
+)::Nothing
+
+    # Set the number of columns and rows
+    n_rows = grid.n_bins^3
+    n_cols = 10
+
+    # Set the units
+    m_unit = u"Msun"
+    l_unit = u"kpc"
+    v_unit = u"km * s^-1"
+    t_unit = u"Gyr"
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(
+            plotParams(:atomic_mass).request,
+            Dict(:gas => ["POS ", "VEL ", "RHO ", "MASS"]),
+        ),
+    )
+
+    # For gas cells, reshape the grid to conform to the way `knn` expect the matrix to be structured
+    if type == :cells
+
+        physical_grid = Matrix{Float64}(undef, 3, n_rows)
+
+        @inbounds for i in eachindex(grid.grid)
+            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
+            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
+            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
+        end
+
+    end
+
+    # Create the output folder
+    mkpath(dirname(output_file))
+
+    # Create the output HDF5 file
+    hdf5_file = h5open(output_file, "w")
+
+    @inbounds for simulation_path in simulation_paths
+
+        simulation_name = basename(simulation_path)
+
+        prog_bar = Progress(
+            length(slice),
+            dt=0.5,
+            desc="Writing the HI cube for simulation $(simulation_name)... ",
+            color=:blue,
+            barglyphs=BarGlyphs("|#  |"),
+            enabled=show_progress,
+        )
+
+        # Create an HDF5 group for each simulation
+        hdf5_group = create_group(hdf5_file, simulation_name)
+
+        @inbounds for snap_n in slice
+
+            data_dict = makeDataDict(
+                simulation_path,
+                snap_n,
+                request;
+                warnings=true,
+            )
+
+            snapshot_number = lpad(string(data_dict[:snap_data].global_index), 3, "0")
+
+            # Filter the data
+            filterData!(data_dict; filter_function)
+
+            # Translate the data
+            translateData!(data_dict, translation)
+
+            # Rotate the data
+            rotateData!(data_dict, rotation)
+
+            # Load the gas quantities
+            gd = data_dict[:gas]
+
+            # Load the cell/particle positions
+            positions = gd["POS "]
+
+            # Load the cell/particle velocities
+            velocities = ustrip.(v_unit, gd["VEL "])
+
+            # Compute the mass of atomic gas in each cell
+            masses = scatterQty(data_dict, :atomic_mass)
+
+            if any(isempty, [masses, velocities, positions])
+                throw(ArgumentError("atomicGasCubes: Some data is missing (there appears to be \
+                no gas in the snapshot), so I cannot construct the HI cubes"))
+            end
+
+            # Column 01: x coordinate [kpc]
+            # Column 02: y coordinate [kpc]
+            # Column 03: z coordinate [kpc]
+            # Column 04: Atomic gas mass [Msun]
+            # Column 05: Velocity in the x direction [km * s^-1]
+            # Column 06: Velocity in the y direction [km * s^-1]
+            # Column 07: Velocity in the z direction [km * s^-1]
+            # Column 08: Velocity dispersion in the x direction [km * s^-1]
+            # Column 09: Velocity dispersion in the y direction [km * s^-1]
+            # Column 10: Velocity dispersion in the z direction [km * s^-1]
+            data_matrix = Matrix{Float64}(undef, n_rows, n_cols)
+
+            if type == :cells
+
+                # Compute the volume of each cell
+                cell_volumes = gd["MASS"] ./ gd["RHO "]
+
+                # Compute the atomic gas densities
+                densities = ustrip.(m_unit * l_unit^-3, masses ./ cell_volumes)
+
+                # Load the volume of the voxels
+                voxel_volume = ustrip(l_unit^3, grid.bin_volume)
+
+                # Compute the tree for a nearest neighbor search
+                kdtree = KDTree(ustrip.(l_unit, positions))
+
+                # Find the `n_neighbors` nearest cells to each voxel
+                idxs, dists = knn(kdtree, physical_grid, n_neighbors, true)
+
+                @inbounds for i in eachindex(grid.grid)
+
+                    # Physical coordinates of the voxel [l_unit]
+                    data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
+
+                    if isone(n_neighbors)
+
+                        # Atomic gas mass [m_unit]
+                        data_matrix[i, 4] = densities[idxs[i]] * voxel_volume
+
+                        # Neighbor velocity in the x direction [v_unit]
+                        data_matrix[i, 5] = velocities[1, idxs[i]]
+                        # Neighbor velocity in the y direction [v_unit]
+                        data_matrix[i, 6] = velocities[2, idxs[i]]
+                        # Neighbor velocity in the z direction [v_unit]
+                        data_matrix[i, 7] = velocities[3, idxs[i]]
+
+                        # For the case of only one neighbor, set the standard deviations to NaN
+                        data_matrix[i, 8]  = NaN
+                        data_matrix[i, 9]  = NaN
+                        data_matrix[i, 10] = NaN
+
+                    else
+
+                        # Atomic gas mass [m_unit]
+                        data_matrix[i, 4] = densities[idxs[i][1]] * voxel_volume
+
+                        # Compute the analytic weights using a Gaussian kernel
+                        neighbor_weights = aweights(evaluateNormal(dists[i]))
+
+                        # Neighbor velocities in the x direction [v_unit]
+                        vxs = velocities[1, idxs[i]]
+                        # Neighbor velocities in the y direction [v_unit]
+                        vys = velocities[2, idxs[i]]
+                        # Neighbor velocities in the z direction [v_unit]
+                        vzs = velocities[3, idxs[i]]
+
+                        # Mean and standard deviation of the neighbor velocities in the x direction [v_unit]
+                        data_matrix[i, 5], data_matrix[i, 8] = mean_and_std(vxs, neighbor_weights)
+                        # Mean and standard deviation of the neighbor velocities in the y direction [v_unit]
+                        data_matrix[i, 6], data_matrix[i, 9] = mean_and_std(vys, neighbor_weights)
+                        # Mean and standard deviation of the neighbor velocities in the z direction [v_unit]
+                        data_matrix[i, 7], data_matrix[i, 10] = mean_and_std(vzs, neighbor_weights)
+
+                    end
+
+                end
+
+            elseif type == :particles
+
+                # Find which particles are within each voxel
+                idxs = listHistogram3D(positions, grid)
+
+                @inbounds for i in eachindex(grid.grid)
+
+                    # Physical coordinates of the voxel [l_unit]
+                    data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
+
+                    # Atomic gas mass [m_unit]
+                    data_matrix[i, 4] = ustrip(m_unit, sum(masses[idxs[i]]; init=0.0 * m_unit))
+
+                    if isempty(idxs[i])
+
+                        # If the voxel has no particles, set the velocity and velocity dispersion to NaN
+                        data_matrix[i, 5]  = NaN
+                        data_matrix[i, 6]  = NaN
+                        data_matrix[i, 7]  = NaN
+                        data_matrix[i, 8]  = NaN
+                        data_matrix[i, 9]  = NaN
+                        data_matrix[i, 10] = NaN
+
+                    elseif isone(length(idxs[i]))
+
+                        # Velocity in the x direction [v_unit]
+                        data_matrix[i, 5] = velocities[1, idxs[i][1]]
+                        # Velocity in the y direction [v_unit]
+                        data_matrix[i, 6] = velocities[2, idxs[i][1]]
+                        # Velocity in the z direction [v_unit]
+                        data_matrix[i, 7] = velocities[3, idxs[i][1]]
+
+                        # If the voxel has a single particle, set the velocity dispersion to NaN
+                        data_matrix[i, 8]  = NaN
+                        data_matrix[i, 9]  = NaN
+                        data_matrix[i, 10] = NaN
+
+                    else
+
+                        # Velocities in the x direction of the particles within the voxel [v_unit]
+                        vxs = velocities[1, idxs[i]]
+                        # Velocities in the y direction of the particles within the voxel [v_unit]
+                        vys = velocities[2, idxs[i]]
+                        # Velocities in the z direction of the particles within the voxel [v_unit]
+                        vzs = velocities[3, idxs[i]]
+
+                        # Mean and standard deviation of the velocities in the x direction [v_unit]
+                        data_matrix[i, 5], data_matrix[i, 8] = mean_and_std(vxs)
+                        # Mean and standard deviation of the velocities in the y direction [v_unit]
+                        data_matrix[i, 6], data_matrix[i, 9] = mean_and_std(vys)
+                        # Mean and standard deviation of the velocities in the z direction [v_unit]
+                        data_matrix[i, 7], data_matrix[i, 10] = mean_and_std(vzs)
+
+                    end
+
+                end
+
+            else
+
+                throw(ArgumentError("atomicGasCubes: The argument `type` must be :cells or \
+                :particles, but I got :$(type)"))
+
+            end
+
+            # Go from column-major order (Julia) to row-major order (Python and C), for interoperability
+            hdf5_group["snap_$(snapshot_number)", shuffle=(), deflate=5] = permutedims(
+                data_matrix,
+                reverse(1:ndims(data_matrix)),
+            )
+
+            # Read the time, scale factor, and redshift
+            pt = ustrip.(t_unit, data_dict[:snap_data].physical_time)
+            sf = data_dict[:snap_data].scale_factor
+            rs = data_dict[:snap_data].redshift
+
+            # Write the metadata
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Time [Gyr]"]   = pt
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Scale factor"] = sf
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Redshift"]     = rs
+
+            next!(prog_bar)
+
+        end
+
+    end
+
+    close(hdf5_file)
+
+    return nothing
 
 end

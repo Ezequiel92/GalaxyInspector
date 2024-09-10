@@ -110,5 +110,7 @@ export resolvedKSLawZScatterAllTimes
 export resolvedKSLawHeatmap
 export integratedKSLaw
 export fitResolvedKSLaw
+export resolvedMassMetallicityRelation
+export atomicGasCubes
 
 end

@@ -161,6 +161,31 @@ function volume(r::Number)::Number
 end
 
 """
+    evaluateNormal(data::Vector{<:Number})::Vector{<:Number}
+
+Evaluate a normal distribution at the values in `data`.
+
+The mean and standard deviation of the distribution are the ones from the `data` itself.
+
+# Arguments
+
+  - `data::Vector{<:Number}`: Data vector used to compute the mean and standard deviation of the normal distribution.
+
+# Returns
+
+  - The normal distribution evaluated at the values in `data`.
+"""
+function evaluateNormal(data::Vector{<:Number})::Vector{<:Number}
+
+    μ  = mean(data)
+    σ2 = 2.0 * std(data; mean=μ)^2
+    d2 = @. (data - μ)^2
+
+    return @. (1.0 / sqrt(σ2 * π)) * exp(-d2 / σ2)
+
+end
+
+"""
 Always returns `nothing`, for any type and number of arguments.
 """
 getNothing(x...; y...)::Nothing = nothing
@@ -738,6 +763,80 @@ function listHistogram1D(
 end
 
 """
+    listHistogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Vector{Int},3}
+
+Compute a 3D histogram of `positions`, returning the full list of indices within each bin.
+
+# Arguments
+
+  - `positions::Matrix{<:Number}`: Positions of the points in the grid. Each column correspond to a point and each row is a dimension. This determines to which bin the index of each point will be added.
+  - `grid::CubicGrid`: A cubic grid.
+
+# Returns
+
+    - A tensor with the indices of the points within each bin.
+"""
+function listHistogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Vector{Int},3}
+
+    # Half bin size
+    h_bin_width = grid.bin_width * 0.5
+
+    # Compute the physical position of the grid borders
+    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
+    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
+    z_borders = (grid.z_ticks[1] - h_bin_width, grid.z_ticks[end] + h_bin_width)
+
+    # Allocate memory
+    histogram = Array{Vector{Int}}(undef, size(grid.grid))
+    @inbounds for i in eachindex(histogram)
+        histogram[i] = Int[]
+    end
+
+    @inbounds for (idx, point) in pairs(eachcol(positions))
+
+        !any(isnan, point) || continue
+
+        x = point[1]
+        y = point[2]
+        z = point[3]
+
+        !(x > x_borders[2] || x < x_borders[1]) || continue
+        !(y > y_borders[2] || y < y_borders[1]) || continue
+        !(z > z_borders[2] || z < z_borders[1]) || continue
+
+        if x == x_borders[1]
+            i_x = 1
+        elseif x == x_borders[2]
+            i_x = grid.n_bins
+        else
+            i_x = ceil(Int, (x - x_borders[1]) / grid.bin_width)
+        end
+
+        if y == y_borders[1]
+            i_y = 1
+        elseif y == y_borders[2]
+            i_y = grid.n_bins
+        else
+            i_y = ceil(Int, (y - y_borders[1]) / grid.bin_width)
+        end
+
+        if z == z_borders[1]
+            i_z = 1
+        elseif z == z_borders[2]
+            i_z = grid.n_bins
+        else
+            i_z = ceil(Int, (z - z_borders[1]) / grid.bin_width)
+        end
+
+        push!(histogram[grid.n_bins - i_y + 1, i_x, i_z], idx)
+
+    end
+
+    return histogram
+
+end
+
+"""
     histogram1D(
         positions::Vector{<:Number},
         values::Vector{<:Number},
@@ -1078,8 +1177,8 @@ function histogram2D(
     h_bin_width = grid.bin_width * 0.5
 
     # Compute the physical position of the grid borders
-    h_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
-    v_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
+    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
+    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
 
     # Allocate memory
     histogram = zeros(eltype(values), size(grid.grid))
@@ -1087,32 +1186,29 @@ function histogram2D(
 
     @inbounds for (i, point) in pairs(eachcol(positions))
 
-        !isnan(values[i]) || continue
+        !isnan(values[i])  || continue
+        !any(isnan, point) || continue
 
         x = point[1]
         y = point[2]
 
-        !isnan(x) || continue
-        !isnan(y) || continue
+        !(x > x_borders[2] || x < x_borders[1]) || continue
+        !(y > y_borders[2] || y < y_borders[1]) || continue
 
-        if x > h_borders[2] || x < h_borders[1] || y > v_borders[2] || y < v_borders[1]
-            continue
-        end
-
-        if x == h_borders[1]
+        if x == x_borders[1]
             i_x = 1
-        elseif x == h_borders[2]
+        elseif x == x_borders[2]
             i_x = grid.n_bins
         else
-            i_x = ceil(Int, (x - h_borders[1]) / grid.bin_width)
+            i_x = ceil(Int, (x - x_borders[1]) / grid.bin_width)
         end
 
-        if y == v_borders[1]
+        if y == y_borders[1]
             i_y = 1
-        elseif y == v_borders[2]
+        elseif y == y_borders[2]
             i_y = grid.n_bins
         else
-            i_y = ceil(Int, (y - v_borders[1]) / grid.bin_width)
+            i_y = ceil(Int, (y - y_borders[1]) / grid.bin_width)
         end
 
         histogram[grid.n_bins - i_y + 1, i_x] += values[i]
@@ -1190,8 +1286,8 @@ function histogram2D(
     n_x_bins = length(x_edges) - 1
     n_y_bins = length(y_edges) - 1
 
-    h_borders = (first(x_edges), last(x_edges))
-    v_borders = (first(y_edges), last(y_edges))
+    x_borders = (first(x_edges), last(x_edges))
+    y_borders = (first(y_edges), last(y_edges))
 
     # Allocate memory
     histogram = zeros(eltype(values), (n_x_bins, n_y_bins))
@@ -1199,25 +1295,22 @@ function histogram2D(
 
     @inbounds for (i, point) in pairs(eachcol(positions))
 
-        !isnan(values[i]) || continue
+        !isnan(values[i])  || continue
+        !any(isnan, point) || continue
 
         x = point[1]
         y = point[2]
 
-        !isnan(x) || continue
-        !isnan(y) || continue
+        !(x > x_borders[2] || x < x_borders[1]) || continue
+        !(y > y_borders[2] || y < y_borders[1]) || continue
 
-        if x > h_borders[2] || x < h_borders[1] || y > v_borders[2] || y < v_borders[1]
-            continue
-        end
-
-        if x == h_borders[1]
+        if x == x_borders[1]
             i_x = 1
         else
             i_x = searchsortedfirst(x_edges, x) - 1
         end
 
-        if y == v_borders[1]
+        if y == y_borders[1]
             i_y = 1
         else
             i_y = searchsortedfirst(y_edges, y) - 1
@@ -1272,38 +1365,36 @@ function histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int}
     h_bin_width = grid.bin_width * 0.5
 
     # Compute the physical position of the grid borders
-    h_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
-    v_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
+    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
+    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
 
     # Allocate memory
     histogram = zeros(Int, size(grid.grid))
 
     @inbounds for point in eachcol(positions)
 
+        !any(isnan, point) || continue
+
         x = point[1]
         y = point[2]
 
-        !isnan(x) || continue
-        !isnan(y) || continue
+        !(x > x_borders[2] || x < x_borders[1]) || continue
+        !(y > y_borders[2] || y < y_borders[1]) || continue
 
-        if x > h_borders[2] || x < h_borders[1] || y > v_borders[2] || y < v_borders[1]
-            continue
-        end
-
-        if x == h_borders[1]
+        if x == x_borders[1]
             i_x = 1
-        elseif x == h_borders[2]
+        elseif x == x_borders[2]
             i_x = grid.n_bins
         else
-            i_x = ceil(Int, (x - h_borders[1]) / grid.bin_width)
+            i_x = ceil(Int, (x - x_borders[1]) / grid.bin_width)
         end
 
-        if y == v_borders[1]
+        if y == y_borders[1]
             i_y = 1
-        elseif y == v_borders[2]
+        elseif y == y_borders[2]
             i_y = grid.n_bins
         else
-            i_y = ceil(Int, (y - v_borders[1]) / grid.bin_width)
+            i_y = ceil(Int, (y - y_borders[1]) / grid.bin_width)
         end
 
         histogram[grid.n_bins - i_y + 1, i_x] += 1
@@ -1345,37 +1436,221 @@ function histogram2D(
     n_x_bins = length(x_edges) - 1
     n_y_bins = length(y_edges) - 1
 
-    h_borders = (first(x_edges), last(x_edges))
-    v_borders = (first(y_edges), last(y_edges))
+    x_borders = (first(x_edges), last(x_edges))
+    y_borders = (first(y_edges), last(y_edges))
 
     # Allocate memory
     histogram = zeros(Int, (n_x_bins, n_y_bins))
 
     @inbounds for point in eachcol(positions)
 
+        !any(isnan, point) || continue
+
         x = point[1]
         y = point[2]
 
-        !isnan(x) || continue
-        !isnan(y) || continue
+        !(x > x_borders[2] || x < x_borders[1]) || continue
+        !(y > y_borders[2] || y < y_borders[1]) || continue
 
-        if x > h_borders[2] || x < h_borders[1] || y > v_borders[2] || y < v_borders[1]
-            continue
-        end
-
-        if x == h_borders[1]
+        if x == x_borders[1]
             i_x = 1
         else
             i_x = searchsortedfirst(x_edges, x) - 1
         end
 
-        if y == v_borders[1]
+        if y == y_borders[1]
             i_y = 1
         else
             i_y = searchsortedfirst(y_edges, y) - 1
         end
 
         histogram[n_y_bins - i_y + 1, i_x] += 1
+
+    end
+
+    return histogram
+
+end
+
+"""
+    histogram3D(
+        positions::Matrix{<:Number},
+        values::Vector{<:Number},
+        grid::CubicGrid;
+        <keyword arguments>
+    )::Array{<:Number,3}
+
+Compute a 3D histogram of `values`.
+
+# Arguments
+
+  - `positions::Matrix{<:Number}`: Positions of the values in the grid. Each column correspond to a value and each row is a dimension. This determines to which bin each value will be added.
+  - `values::Vector{<:Number}`: The values that will be added up in each square bin, according to their `positions`.
+  - `grid::CubicGrid`: A cubic grid.
+  - `total::Bool=true`: If the sum (default) or the mean of `values` will be computed in each bin.
+  - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
+
+# Returns
+
+  - A 3D tensor with the histogram values.
+"""
+function histogram3D(
+    positions::Matrix{<:Number},
+    values::Vector{<:Number},
+    grid::CubicGrid;
+    total::Bool=true,
+    empty_nan::Bool=true,
+)::Array{<:Number,3}
+
+    (
+        length(values) == size(positions, 2) ||
+        throw(ArgumentError("histogram3D: `values` must have as many elements as `positions` \
+        has columns, but I got length(values) = $(length(values)) and size(positions, 2) = \
+        $(size(positions, 2))"))
+    )
+
+    # Half bin size
+    h_bin_width = grid.bin_width * 0.5
+
+    # Compute the physical position of the grid borders
+    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
+    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
+    z_borders = (grid.z_ticks[1] - h_bin_width, grid.z_ticks[end] + h_bin_width)
+
+    # Allocate memory
+    histogram = zeros(eltype(values), size(grid.grid))
+    counts = zeros(Int, size(grid.grid))
+
+    @inbounds for (i, point) in pairs(eachcol(positions))
+
+        !isnan(values[i])  || continue
+        !any(isnan, point) || continue
+
+        x = point[1]
+        y = point[2]
+        z = point[3]
+
+        !(x > x_borders[2] || x < x_borders[1]) || continue
+        !(y > y_borders[2] || y < y_borders[1]) || continue
+        !(z > z_borders[2] || z < z_borders[1]) || continue
+
+        if x == x_borders[1]
+            i_x = 1
+        elseif x == x_borders[2]
+            i_x = grid.n_bins
+        else
+            i_x = ceil(Int, (x - x_borders[1]) / grid.bin_width)
+        end
+
+        if y == y_borders[1]
+            i_y = 1
+        elseif y == y_borders[2]
+            i_y = grid.n_bins
+        else
+            i_y = ceil(Int, (y - y_borders[1]) / grid.bin_width)
+        end
+
+        if z == z_borders[1]
+            i_z = 1
+        elseif z == z_borders[2]
+            i_z = grid.n_bins
+        else
+            i_z = ceil(Int, (z - z_borders[1]) / grid.bin_width)
+        end
+
+        histogram[grid.n_bins - i_y + 1, i_x, i_z] += values[i]
+        counts[grid.n_bins - i_y + 1, i_x, i_z] += 1
+
+    end
+
+    if empty_nan
+        # Set empty bins to NaN
+        nan = NaN * unit(first(values))
+
+        @inbounds for i in eachindex(histogram)
+            @inbounds if iszero(counts[i])
+                histogram[i] = nan
+            end
+        end
+    end
+
+    if !total
+        # Compute the mean value instead of just the sum for each bin
+        @inbounds for i in eachindex(histogram)
+            @inbounds if !iszero(counts[i])
+                histogram[i] /= counts[i]
+            end
+        end
+    end
+
+    return histogram
+
+end
+
+"""
+    histogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Int,3}
+
+Compute a 3D histogram of `positions`.
+
+# Arguments
+
+  - `positions::Matrix{<:Number}`: Values for which the histogram will be constructed.
+  - `grid::CubicGrid`: A cubic grid.
+
+# Returns
+
+  - A 3D tensor with the counts.
+"""
+function histogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Int,3}
+
+    # Half bin size
+    h_bin_width = grid.bin_width * 0.5
+
+    # Compute the physical position of the grid borders
+    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
+    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
+    z_borders = (grid.z_ticks[1] - h_bin_width, grid.z_ticks[end] + h_bin_width)
+
+    # Allocate memory
+    histogram = zeros(Int, size(grid.grid))
+
+    @inbounds for point in eachcol(positions)
+
+        !any(isnan, point) || continue
+
+        x = point[1]
+        y = point[2]
+        z = point[3]
+
+        !(x > x_borders[2] || x < x_borders[1]) || continue
+        !(y > y_borders[2] || y < y_borders[1]) || continue
+        !(z > z_borders[2] || z < z_borders[1]) || continue
+
+        if x == x_borders[1]
+            i_x = 1
+        elseif x == x_borders[2]
+            i_x = grid.n_bins
+        else
+            i_x = ceil(Int, (x - x_borders[1]) / grid.bin_width)
+        end
+
+        if y == y_borders[1]
+            i_y = 1
+        elseif y == y_borders[2]
+            i_y = grid.n_bins
+        else
+            i_y = ceil(Int, (y - y_borders[1]) / grid.bin_width)
+        end
+
+        if z == z_borders[1]
+            i_z = 1
+        elseif z == z_borders[2]
+            i_z = grid.n_bins
+        else
+            i_z = ceil(Int, (z - z_borders[1]) / grid.bin_width)
+        end
+
+        histogram[grid.n_bins - i_y + 1, i_x, i_z] += 1
 
     end
 
