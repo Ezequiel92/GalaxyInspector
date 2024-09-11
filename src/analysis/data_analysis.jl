@@ -443,6 +443,8 @@ Compute a profile.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -596,7 +598,7 @@ end
         Nothing,
     }
 
-Compute the profile og a mean quantity with error bars or bands.
+Compute the profile of a mean quantity with error bars or bands.
 
 # Arguments
 
@@ -629,6 +631,8 @@ Compute the profile og a mean quantity with error bars or bands.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -917,6 +921,8 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -2106,6 +2112,8 @@ Turn a scatter plot into a 2D histogram.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -2152,6 +2160,8 @@ Turn a scatter plot into a 2D histogram.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -2343,6 +2353,8 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -2389,6 +2401,8 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -2435,6 +2449,8 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -2539,20 +2555,33 @@ function daScatterWeightedDensity(
         and :$(z_quantity) have a diferent number of values. They should be the same"))
     )
 
+    # Delete NaN values
+    nan_x_idxs = map(isnan, x_values)
+    nan_y_idxs = map(isnan, y_values)
+    nan_z_idxs = map(isnan, z_values)
+    nan_idxs   = nan_x_idxs ∪ nan_y_idxs ∪ nan_z_idxs
+    deleteat!(x_values, nan_idxs)
+    deleteat!(y_values, nan_idxs)
+    deleteat!(z_values, nan_idxs)
+
     # If requested, apply log10 to the x axis data, ignoring 0 values
     if !isnothing(x_log)
-        null_x_idxs = findall(iszero, x_values)
+
+        null_x_idxs = map(iszero, x_values)
         x_values    = log10.(deleteat!(ustrip.(x_log, x_values), null_x_idxs))
-        y_values    = deleteat!(y_values, null_x_idxs)
-        z_values    = deleteat!(z_values, null_x_idxs)
+        deleteat!(y_values, null_x_idxs)
+        deleteat!(z_values, null_x_idxs)
+
     end
 
     # If requested, apply log10 to the y axis data, ignoring 0 values
     if !isnothing(y_log)
+
         null_y_idxs = findall(iszero, y_values)
-        x_values    = deleteat!(x_values, null_y_idxs)
         y_values    = log10.(deleteat!(ustrip.(y_log, y_values), null_y_idxs))
-        z_values    = deleteat!(z_values, null_y_idxs)
+        deleteat!(x_values, null_y_idxs)
+        deleteat!(z_values, null_y_idxs)
+
     end
 
     # If there is no range specified, use the extrema of the x values
@@ -2915,6 +2944,8 @@ Compute two quantities for every cell/particle in the simulation.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -2961,6 +2992,8 @@ Compute two quantities for every cell/particle in the simulation.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -3086,6 +3119,8 @@ Compute the values for a bar plot of the gas fractions, where the bins are a giv
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.

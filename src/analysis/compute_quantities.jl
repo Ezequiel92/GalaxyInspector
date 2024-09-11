@@ -2698,6 +2698,8 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
       + `:gas_number_density`         -> Gas number density.
@@ -2805,6 +2807,60 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         atomic_mass    = computeAtomicMass(data_dict)
 
         scatter_qty = molecular_mass ./ (atomic_mass .+ molecular_mass)
+
+    elseif quantity == :mol_eq_quotient
+
+        dg = data_dict[:gas]
+
+        iterator = zip(
+            dg["ETAD"],
+            dg["FRAC"][2, :],
+            dg["FRAC"][3, :],
+            dg["FRAC"][4, :],
+            τ_star.(dg["RHOC"] .* u"mp"),
+            τ_cond.(dg["RHOC"] .* u"mp", dg["PARZ"]),
+        )
+
+        # Allocate memory
+        scatter_qty = fill(NaN, length(dg["RHOC"]))
+
+        for (i, (ηd, fa, fm, fs, τS, τC)) in enumerate(iterator)
+
+            !(isnan(fa) || iszero(fa) || isone(fs) || iszero(fm)) || continue
+
+            mol_ls = (fa / fm) * (1 - fs)
+            mol_rs = uconvert(Unitful.NoUnits, ((ηd + 1) * τC) / τS)
+
+            scatter_qty[i] = log10(mol_ls / mol_rs)
+
+        end
+
+    elseif quantity == :ion_eq_quotient
+
+        dg = data_dict[:gas]
+
+        iterator = zip(
+            dg["ETAI"],
+            dg["PARR"],
+            dg["FRAC"][1, :],
+            dg["FRAC"][3, :],
+            GalaxyInspector.τ_star.(dg["RHOC"] .* u"mp"),
+            GalaxyInspector.τ_rec.(dg["RHOC"] .* u"mp"),
+        )
+
+        # Allocate memory
+        scatter_qty = fill(NaN, length(dg["RHOC"]))
+
+        for (i, (ηi, R, fi, fm, τS, τR)) in enumerate(iterator)
+
+            !(isnan(fi) || iszero(fi) || iszero(fm)) || continue
+
+            ion_ls = (fi * fi) / fm
+            ion_rs = uconvert(Unitful.NoUnits, ((ηi + R) * τR) / τS)
+
+            scatter_qty[i] = log10(ion_ls / ion_rs)
+
+        end
 
     elseif quantity == :gas_mass_density
 

@@ -2,6 +2,18 @@
 # General utilities to interact with the simulation data.
 ####################################################################################################
 
+@doc raw"""
+Time factor for the SF model, without the fraction factors.
+
+τ_star(ρ_cell)    $\equiv \tau_\mathrm{star}$
+τ_rec(ρ_cell)     $\equiv \tau_\mathrm{rec} \, f_i$
+τ_cond(ρ_cell, Z) $\equiv \tau_\mathrm{cond} \, (1 - f_s)$
+
+"""
+τ_star(ρ_cell) = C_star / sqrt(ρ_cell)
+τ_rec(ρ_cell) = C_rec / ρ_cell
+τ_cond(ρ_cell, Z) = C_cond / (ρ_cell * (Z + Zeff))
+
 """
     getUnitLabel(factor::Int, unit::Unitful.Units; <keyword arguments>)::AbstractString
 
@@ -597,6 +609,8 @@ Select the plotting parameters for a given `quantity`.
       + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:generic_fraction`           -> Parameters for plots with several diferent fraction.
       + `:gas_mass_density`           -> Gas mass density.
       + `:hydrogen_mass_density`      -> Hydrogen mass density.
@@ -830,6 +844,24 @@ function plotParams(quantity::Symbol)::PlotParams
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
             ),
             var_name = L"f_\mathrm{H_2}^\star",
+        )
+
+    elseif quantity == :mol_eq_quotient
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :gas => ["ETAD", "FRAC", "RHOC", "PARZ"],
+            ),
+            var_name = L"\log_{10} \, \mathrm{LS^{H_2} / RS^{H_2}}",
+        )
+
+    elseif quantity == :ion_eq_quotient
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :gas => ["ETAI", "PARR", "FRAC", "RHOC"],
+            ),
+            var_name = L"\log_{10} \, \mathrm{LS^{HII} / RS^{HII}}",
         )
 
     elseif quantity == :generic_fraction
