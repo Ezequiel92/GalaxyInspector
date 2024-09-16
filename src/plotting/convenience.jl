@@ -6027,6 +6027,7 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
+#TODO
 function resolvedKSLawZScatter(
     simulation_paths::Vector{String},
     slice::IndexType;
@@ -6436,6 +6437,7 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
+#TODO
 function resolvedKSLawZScatterAllTimes(
     simulation_paths::Vector{String},
     slice::IndexType;
@@ -6829,6 +6831,7 @@ Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within 
   - `print_range::Bool=false`: Print an info block detailing the logarithmic counts range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
+#TODO
 function resolvedKSLawHeatmap(
     simulation_paths::Vector{String},
     slice::IndexType;
@@ -7231,6 +7234,7 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
+#TODO
 function integratedKSLaw(
     simulation_paths::Vector{String},
     slice::IndexType;
@@ -7574,6 +7578,7 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
+#TODO
 function fitResolvedKSLaw(
     simulation_path::String,
     slice::IndexType;
@@ -7754,6 +7759,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
+#TODO
 function resolvedMassMetallicityRelation(
     simulation_paths::Vector{String},
     slice::IndexType;

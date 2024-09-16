@@ -482,7 +482,7 @@ function computeTimeTicks(
 
     if isCosmological(first_snapshot)
 
-        # For cosmological simulations, the time in the snapshot is the scale factor
+        # For cosmological simulations, the time field in the Header of the snapshot is the scale factor
         scale_factors = [readTime(path) for path in snapshot_paths]
         redshifts = @. (1.0 / scale_factors) - 1.0
         physical_times = computeTime(scale_factors, readSnapHeader(first_snapshot))
@@ -513,16 +513,16 @@ end
         electron_fraction::Vector{Float32},
     )::Vector{<:Unitful.Temperature}
 
-Compute the gas temperature of a group of gas cells.
+Compute the gas temperature.
 
 # Arguments
 
-  - `internal_energy::Vector{<:SpecificEnergy}`: Specific internal energy of every gas cell.
-  - `electron_fraction::Vector{Float32}`: Number fraction of electrons in every gas cell.
+  - `internal_energy::Vector{<:SpecificEnergy}`: Specific internal energy of every gas cell/particle.
+  - `electron_fraction::Vector{Float32}`: Number fraction of electrons in every gas cell/particle.
 
 # Returns
 
-  - The temperature of each gas cell.
+  - The temperature of each gas cell/particle.
 """
 function computeTemperature(
     internal_energy::Vector{<:SpecificEnergy},
@@ -627,7 +627,7 @@ end
 """
     computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
 
-Compute the center of mass of the whole system in `data`.
+Compute the center of mass of the whole system.
 
 # Arguments
 
@@ -829,7 +829,7 @@ end
 """
     computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will turn the total angular momentum, of the whole system in `data`, into the z axis; when view as an active (alibi) trasformation.
+Compute the rotation matrix that will turn the total angular momentum of the whole system, into the z axis; when view as an active (alibi) trasformation.
 
 # Arguments
 
@@ -949,7 +949,7 @@ end
 """
     computeGlobalAngularMomentum(data_dict::Dict; <keyword arguments>)::Vector{<:Number}
 
-Compute the total angular momentum with respect to the origin of the whole system in `data`.
+Compute the total angular momentum with respect to the origin of the whole system.
 
 # Arguments
 
@@ -1086,7 +1086,7 @@ end
 """
     computeGlobalSpinParameter(data_dict::Dict; <keyword arguments>)::Float64
 
-Compute the spin parameter of the whole system in `data`.
+Compute the spin parameter of the whole system.
 
 # Arguments
 
@@ -1894,7 +1894,7 @@ end
 """
     computeIonizedMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
-Compute the ionized hydrogen mass of every gas cell in `data`.
+Compute the ionized hydrogen mass of every gas cell/particle.
 
 # Arguments
 
@@ -1961,7 +1961,7 @@ end
 """
     computeAtomicMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
-Compute the atomic hydrogen mass of every gas cell in `data`.
+Compute the atomic hydrogen mass of every gas cell/particle.
 
 For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate atomic from molecular gas in the neutral phase given by the quantity "NH  ".
 
@@ -2048,7 +2048,7 @@ end
 """
     computeMolecularMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
-Compute the molecular hydrogen mass of every gas cell in `data`.
+Compute the molecular hydrogen mass of every gas cell/particle.
 
 For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate molecular from atomic gas in the neutral phase given by the quantity "NH  ".
 
@@ -2134,7 +2134,7 @@ end
 """
     computeNeutralMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
-Compute the neutral hydrogen mass of every gas cell in `data`.
+Compute the neutral hydrogen mass of every gas cell/particle.
 
 # Arguments
 
@@ -2257,7 +2257,7 @@ end
         <keyword arguments>
     )::Vector{<:Unitful.MassFlow}
 
-Compute the star formation rate of each stellar particle in `data`.
+Compute the star formation rate of each stellar particle.
 
 For stellar particles younger that `age_resol`, the SFR is its mass divided by `age_resol`. It is defined as 0 for older particles.
 

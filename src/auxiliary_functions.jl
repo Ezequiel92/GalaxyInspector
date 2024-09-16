@@ -1753,7 +1753,7 @@ Compute the difference between each consecutive pair of elements in `data`.
 
 # Arguments
 
-  - `data::Vector{<:Number}`: Values. It has to have at least 2 elements.
+  - `data::Vector{<:Number}`: Data vector. It has to have at least 2 elements.
 
 # Returns
 
