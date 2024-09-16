@@ -590,74 +590,78 @@ Select the plotting parameters for a given `quantity`.
 
   - `quantity::Symbol`: The options are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:generic_mass`               -> Parameters for plots with several diferent masses.
-      + `:stellar_number`             -> Number of stellar particles.
-      + `:gas_number`                 -> Number of gas cells.
-      + `:dm_number`                  -> Number of dark matter particles.
-      + `:bh_number`                  -> Number of black hole particles.
-      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
-      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
-      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
-      + `:generic_fraction`           -> Parameters for plots with several diferent fraction.
-      + `:gas_mass_density`           -> Gas mass density.
-      + `:hydrogen_mass_density`      -> Hydrogen mass density.
-      + `:gas_number_density`         -> Gas number density.
-      + `:molecular_number_density`   -> Molecular hydrogen number density.
-      + `:atomic_number_density`      -> Atomic hydrogen number density.
-      + `:ionized_number_density`     -> Ionized hydrogen number density.
-      + `:neutral_number_density`     -> Neutral hydrogen number density.
-      + `:stellar_area_density`       -> Stellar area mass density, for a radius of `DISK_R`.
-      + `:gas_area_density`           -> Gas area mass density, for a radius of `DISK_R`.
-      + `:molecular_area_density`     -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
-      + `:atomic_area_density`        -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
-      + `:ionized_area_density`       -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
-      + `:neutral_area_density`       -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
-      + `:sfr_area_density`           -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
-      + `:generic_area_density`       -> Parameters for plots with several diferent area densities.
-      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
-      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
-      + `:mass_accretion`             -> Gas accretion rate. Positive values mean gas infall into the virial radius ``R_{200}``, and negative values mean outflow.
-      + `:stellar_specific_am`        -> Norm of the stellar specific angular momentum.
-      + `:gas_specific_am`            -> Norm of the gas specific angular momentum.
-      + `:dm_specific_am`             -> Norm of the dark matter specific angular momentum.
-      + `:stellar_circularity`        -> Stellar circularity.
-      + `:stellar_vcirc`              -> Stellar circular velocity.
-      + `:stellar_vradial`            -> Stellar radial speed.
-      + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
-      + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate.
-      + `:ssfr`                       -> The specific star formation rate.
-      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-      + `:pressure`                   -> Gas pressure.
-      + `:scale_factor`               -> Scale factor.
-      + `:redshift`                   -> Redshift.
-      + `:physical_time`              -> Physical time since the Big Bang.
-      + `:lookback_time`              -> Physical time left to reach the last snapshot.
+      + `:stellar_mass`                -> Stellar mass.
+      + `:gas_mass`                    -> Gas mass.
+      + `:hydrogen_mass`               -> Hydrogen mass.
+      + `:dm_mass`                     -> Dark matter mass.
+      + `:bh_mass`                     -> Black hole mass.
+      + `:molecular_mass`              -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:generic_mass`                -> Parameters for plots with several diferent masses.
+      + `:stellar_number`              -> Number of stellar particles.
+      + `:gas_number`                  -> Number of gas cells.
+      + `:dm_number`                   -> Number of dark matter particles.
+      + `:bh_number`                   -> Number of black hole particles.
+      + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
+      + `:generic_fraction`            -> Parameters for plots with several diferent fraction.
+      + `:gas_mass_density`            -> Gas mass density.
+      + `:hydrogen_mass_density`       -> Hydrogen mass density.
+      + `:gas_number_density`          -> Gas number density.
+      + `:molecular_number_density`    -> Molecular hydrogen number density.
+      + `:br_molecular_number_density` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_number_density`       -> Atomic hydrogen number density.
+      + `:ionized_number_density`      -> Ionized hydrogen number density.
+      + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:stellar_area_density`        -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`            -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density`      -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:br_molecular_area_density`   -> Molecular hydrogen area mass density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_area_density`         -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`        -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`        -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`            -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:generic_area_density`        -> Parameters for plots with several diferent area densities.
+      + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`         -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`     -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`          -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`         -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`              -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:mass_accretion`              -> Gas accretion rate. Positive values mean gas infall into the virial radius ``R_{200}``, and negative values mean outflow.
+      + `:stellar_specific_am`         -> Norm of the stellar specific angular momentum.
+      + `:gas_specific_am`             -> Norm of the gas specific angular momentum.
+      + `:dm_specific_am`              -> Norm of the dark matter specific angular momentum.
+      + `:stellar_circularity`         -> Stellar circularity.
+      + `:stellar_vcirc`               -> Stellar circular velocity.
+      + `:stellar_vradial`             -> Stellar radial speed.
+      + `:stellar_vtangential`         -> Stellar tangential speed.
+      + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                 -> Stellar age.
+      + `:sfr`                         -> The star formation rate.
+      + `:ssfr`                        -> The specific star formation rate.
+      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                    -> Gas pressure.
+      + `:scale_factor`                -> Scale factor.
+      + `:redshift`                    -> Redshift.
+      + `:physical_time`               -> Physical time since the Big Bang.
+      + `:lookback_time`               -> Physical time left to reach the last snapshot.
 
 # Returns
 
@@ -719,9 +723,20 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "RHO ", "CTIM", "TAUS"],
             ),
             var_name   = L"M_\mathrm{H_2}",
+            exp_factor = 10,
+            unit       = u"Msun",
+        )
+
+    elseif quantity == :br_molecular_mass
+
+        plot_params = PlotParams(;
+            request    = Dict(
+                :gas => ["MASS", "PRES", "RHO "],
+            ),
+            var_name   = L"M_\mathrm{H_2^{BR}}",
             exp_factor = 10,
             unit       = u"Msun",
         )
@@ -730,7 +745,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
             var_name   = L"M_\mathrm{HI}",
             exp_factor = 10,
@@ -741,7 +756,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
             var_name   = L"M_\mathrm{HII}",
             exp_factor = 10,
@@ -752,7 +767,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
             var_name   = L"M_\mathrm{H2 + HI}",
             exp_factor = 10,
@@ -764,7 +779,7 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request    = Dict(
                 :stars   => ["MASS", "POS "],
-                :gas     => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
+                :gas     => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "CTIM", "TAUS"],
                 :dm_mass => ["MASS", "POS "],
                 :bh_mass => ["MASS", "POS "],
             ),
@@ -805,16 +820,25 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "CTIM", "TAUS"],
             ),
             var_name = L"f_\mathrm{H_2}",
+        )
+
+    elseif quantity == :br_molecular_fraction
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :gas => ["MASS", "POS ", "PRES"],
+            ),
+            var_name = L"f_\mathrm{H_2}^\mathrm{BR}",
         )
 
     elseif quantity == :atomic_fraction
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS"],
             ),
             var_name = L"f_\mathrm{HI}",
         )
@@ -823,7 +847,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS"],
             ),
             var_name = L"f_\mathrm{HII}",
         )
@@ -832,7 +856,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS"],
             ),
             var_name = L"f_\mathrm{H2 + H_I}",
         )
@@ -841,7 +865,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"f_\mathrm{H_2}^\star",
         )
@@ -868,7 +892,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"f",
         )
@@ -901,9 +925,19 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"n_\mathrm{H_2}",
+            unit     = u"cm^-3",
+        )
+
+    elseif quantity == :br_molecular_number_density
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :gas => ["MASS", "POS ", "PRES"],
+            ),
+            var_name = L"n_\mathrm{H_2}^{BR}",
             unit     = u"cm^-3",
         )
 
@@ -911,7 +945,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"n_\mathrm{HI}",
             unit     = u"cm^-3",
@@ -921,7 +955,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"n_\mathrm{HII}",
             unit     = u"cm^-3",
@@ -931,7 +965,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"n_\mathrm{H2 + HI}",
             unit     = u"cm^-3",
@@ -957,9 +991,19 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"\Sigma_\mathrm{H_2}",
+            unit     = u"Msun*pc^-2",
+        )
+
+    elseif quantity == :br_molecular_area_density
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :gas => ["MASS", "POS ", "PRES", "RHO "],
+            ),
+            var_name = L"\Sigma_\mathrm{H_2}^\mathrm{BR}",
             unit     = u"Msun*pc^-2",
         )
 
@@ -967,7 +1011,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"\Sigma_\mathrm{HI}",
             unit     = u"Msun*pc^-2",
@@ -977,7 +1021,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"\Sigma_\mathrm{HII}",
             unit     = u"Msun*pc^-2",
@@ -987,7 +1031,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
             var_name = L"\Sigma_\mathrm{H2 + HI}",
             unit     = u"Msun*pc^-2",
@@ -1006,7 +1050,7 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(
                 :stars => ["MASS", "POS ", "GAGE"],
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "DTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "CTIM", "TAUS"],
             ),
             var_name = L"\Sigma",
             unit     = u"Msun*pc^-2",

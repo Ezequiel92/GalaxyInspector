@@ -575,11 +575,12 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
   - `figure::Makie.Figure`: Makie figure to be drawn over.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_area_density`   -> Stellar area mass density.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density.
-      + `:sfr_area_density`       -> Star formation rate area density.
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. ``\\mathrm{X}`` can be O (oxygen), N (nitrogen), or C (carbon).
+      + `:stellar_area_density`      -> Stellar area mass density.
+      + `:molecular_area_density`    -> Molecular hydrogen area mass density.
+      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_area_density`       -> Atomic hydrogen area mass density.
+      + `:sfr_area_density`          -> Star formation rate area density.
+      + `:X_stellar_abundance`       -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. ``\\mathrm{X}`` can be O (oxygen), N (nitrogen), or C (carbon).
   - `color::ColorType=Makie.wong_colors()[6]`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `error_bars::Bool=true`: If the error bars will be plotted.
@@ -631,7 +632,7 @@ function ppMolla2015!(
     # Select the quantity for the y axis
     if quantity == :stellar_area_density
         y_data = 10 .^ (raw[!, "logΣ*"] .± raw[!, "logΣ* error"])
-    elseif quantity == :molecular_area_density
+    elseif quantity ∈ [:molecular_area_density, :br_molecular_area_density]
         y_data = raw[!, "ΣH2"] .± raw[!, "ΣH2 error"]
     elseif quantity == :atomic_area_density
         y_data = raw[!, "ΣHI"] .± raw[!, "ΣHI error"]
@@ -645,8 +646,9 @@ function ppMolla2015!(
         y_data = raw[!, "C/H"] .± raw[!, "ΔC/H"]
     else
         throw(ArgumentError("ppMolla2015: `x_quantity` can only be  :stellar_area_density, \
-        :molecular_area_density, :atomic_area_density, :sfr_area_density, :O_stellar_abundance, \
-        :N_stellar_abundance, or :C_stellar_abundance, but I got :$(quantity)"))
+        :molecular_area_density, :br_molecular_area_density, :atomic_area_density, \
+        :sfr_area_density, :O_stellar_abundance, :N_stellar_abundance, \
+        or :C_stellar_abundance, but I got :$(quantity)"))
     end
 
     y_values = Measurements.value.(y_data)
@@ -681,12 +683,14 @@ Draw a line, or scatter, plot using the experimental data from the xGASS and xCO
 
       + `:stellar_mass`      -> Stellar mass.
       + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:observational_sfr` -> The star formation rate of the last `AGE_RESOLUTION`.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`      -> Stellar mass.
       + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:observational_sfr` -> The star formation rate of the last `AGE_RESOLUTION`.
   - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
@@ -717,7 +721,7 @@ function ppFeldmann2020!(
 
         x_data = exp10.(raw[!, "lgMstar"])
 
-    elseif x_quantity == :molecular_mass
+    elseif x_quantity ∈ [:molecular_mass, :br_molecular_mass]
 
         x_data = raw[!, "MH2"]
 
@@ -732,7 +736,8 @@ function ppFeldmann2020!(
     else
 
         throw(ArgumentError("ppFeldmann2020!: `x_quantity` can only be :stellar_mass, \
-        :molecular_mass, :atomic_mass, or :observational_sfr, but I got :$(x_quantity)"))
+        :molecular_mass, :br_molecular_mass, :atomic_mass, or :observational_sfr, \
+        but I got :$(x_quantity)"))
 
     end
 
@@ -746,7 +751,7 @@ function ppFeldmann2020!(
 
         y_data = exp10.(raw[!, "lgMstar"] .+ err_mean)
 
-    elseif y_quantity == :molecular_mass
+    elseif y_quantity ∈ [:molecular_mass, :br_molecular_mass]
 
         y_data = raw[!, "MH2"] .± raw[!, "e_MH2"]
 
@@ -761,7 +766,8 @@ function ppFeldmann2020!(
     else
 
         throw(ArgumentError("ppFeldmann2020!: `y_quantity` can only be :stellar_mass, \
-        :molecular_mass, :atomic_mass, or :observational_sfr, but I got :$(y_quantity)"))
+        :molecular_mass, :br_molecular_mass, :atomic_mass, or :observational_sfr, \
+        but I got :$(y_quantity)"))
 
     end
 

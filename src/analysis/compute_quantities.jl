@@ -1151,7 +1151,7 @@ Compute the velocity of the given component center of mass.
 
 # Returns
 
-  - The velocity of the stellar center of mass.
+  - The velocity of the center of mass.
 """
 function computeComponentVcm(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Velocity}
 
@@ -1763,9 +1763,9 @@ function computeElementMass(
     )
 
     if component == :gas
-        z_block = "GMET"
+        block = "GMET"
     elseif component == :stars
-        z_block = "GME2"
+        block = "GME2"
     else
         throw(ArgumentError("computeElementMass: `component` can only be :stars or :gas, \
         but I got :$(component)"))
@@ -1773,14 +1773,14 @@ function computeElementMass(
 
     values = data_dict[component]
 
-    if any(isempty, [values[z_block], values["MASS"]])
+    if any(isempty, [values[block], values["MASS"]])
         return Unitful.Mass[]
     end
 
     if CODEBASE == :arepo
-        masses = setPositive(values[z_block][ELEMENT_INDEX[element], :]) .* values["MASS"]
+        masses = setPositive(values[block][ELEMENT_INDEX[element], :]) .* values["MASS"]
     elseif CODEBASE == :opengadget3
-        masses = setPositive(values[z_block][ELEMENT_INDEX[element], :])
+        masses = setPositive(values[block][ELEMENT_INDEX[element], :])
     else
         throw(ArgumentError("computeElementMass: I don't recognize the codebase :$(CODEBASE)"))
     end
@@ -1911,7 +1911,7 @@ Compute the ionized hydrogen mass of every gas cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our routine, and for cells that have entered it at least once.
+  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our SF routine, and for cells/particles that have entered it at least once.
 
 # Returns
 
@@ -1929,9 +1929,12 @@ function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
         @inbounds for i in eachindex(fi)
 
-            @inbounds if !isnan(dg["FRAC"][1, i]) && dg["DTIM"][i] < dg["TAUS"][i]
+            # Compute how much time has pass since the last time the cell/particle entered the SF routine
+            Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
 
-                # Fraction of ionized hydrogen according to our model
+            @inbounds if !isnan(dg["FRAC"][1, i]) && Δt < dg["TAUS"][i]
+
+                # Fraction of ionized hydrogen according to our SF model
                 @inbounds if normalize
                     fi[i] = dg["FRAC"][1, i] / (1.0 - dg["FRAC"][4, i])
                 else
@@ -1949,185 +1952,12 @@ function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
     else
 
-        # For simulations without our routine use the fraction of ionized hydrogen according to "NHP "
+        # For simulations without our SF routine use the fraction of ionized hydrogen from "NHP "
         fi = dg["NHP "] ./ (dg["NHP "] .+ dg["NH  "])
 
     end
 
     return fi .* dg["MASS"]
-
-end
-
-"""
-    computeAtomicMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
-
-Compute the atomic hydrogen mass of every gas cell/particle.
-
-For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate atomic from molecular gas in the neutral phase given by the quantity "NH  ".
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our routine, and for cells that have entered it at least once.
-
-# Returns
-
-  - The mass of atomic hydrogen in every gas cell.
-
-# References
-
-L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
-"""
-function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
-
-    dg = data_dict[:gas]
-
-    !(isempty(dg["MASS"]) || isempty(dg["NHP "]) || isempty(dg["NH  "])) || return Unitful.Mass[]
-
-    if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
-
-        fa = Vector{Float64}(undef, length(dg["MASS"]))
-
-        @inbounds for i in eachindex(fa)
-
-            @inbounds if !isnan(dg["FRAC"][2, i]) && dg["DTIM"][i] < dg["TAUS"][i]
-
-                # Fraction of atomic hydrogen according to our model
-                @inbounds if normalize
-                    fa[i] = dg["FRAC"][2, i] / (1.0 - dg["FRAC"][4, i])
-                else
-                    fa[i] = dg["FRAC"][2, i]
-                end
-
-            else
-
-                # When there is no data from our model, use the fraction of neutral hydrogen
-                # from "NH  " assuming that the fraction of molecular hydrogen is 0
-                fa[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
-
-            end
-
-        end
-
-    elseif !isempty(dg["PRES"])
-
-        # Fraction of neutral hydrogen according to "NH  "
-        fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
-
-        relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
-
-        # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
-        fm = 1.0 ./ (1.0 .+ relative_pressure)
-
-        # Use the fraction of neutral hydrogen that is not molecular according to the pressure relation,
-        # unless that value is negative, in which case assume that all neutral hydrogen is molecular
-        fa = setPositive(fn .- fm)
-
-    else
-
-        return Unitful.Mass[]
-
-    end
-
-    return fa .* dg["MASS"]
-
-end
-
-"""
-    computeMolecularMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
-
-Compute the molecular hydrogen mass of every gas cell/particle.
-
-For simulations without our routine use the pressure relation in Blitz et al. (2006) to separate molecular from atomic gas in the neutral phase given by the quantity "NH  ".
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our routine, and for cells that have entered it at least once.
-
-# Returns
-
-  - The mass of molecular hydrogen in every gas cell.
-
-# References
-
-L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
-"""
-function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
-
-    dg = data_dict[:gas]
-
-    !isempty(dg["MASS"]) || return Unitful.Mass[]
-
-    if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
-
-        fm = Vector{Float64}(undef, length(dg["MASS"]))
-
-        @inbounds for i in eachindex(fm)
-
-            @inbounds if !isnan(dg["FRAC"][3, i]) && dg["DTIM"][i] < dg["TAUS"][i]
-
-                # Fraction of molecular hydrogen according to our model
-                @inbounds if normalize
-                    fm[i] = dg["FRAC"][3, i] / (1.0 - dg["FRAC"][4, i])
-                else
-                    fm[i] = dg["FRAC"][3, i]
-                end
-
-            else
-
-                fm[i] = 0.0
-
-            end
-
-        end
-
-    elseif !isempty(dg["PRES"]) && !isempty(dg["NHP "]) && !isempty(dg["NH  "])
-
-        # Fraction of neutral hydrogen according to "NH  "
-        fn = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
-
-        relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
-
-        # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
-        fp = 1.0 ./ (1.0 .+ relative_pressure)
-
-        # Use the fraction of molecular hydrogen according to the pressure relation, unless
-        # that value is larger than the fraction of neutral hydrogen according to "NH  ",
-        # in which case assume that all neutral hydrogen is molecular
-        fm = [n >= p ? p : n for (n, p) in zip(fn, fp)]
-
-    else
-
-        return Unitful.Mass[]
-
-    end
-
-    return fm .* dg["MASS"]
 
 end
 
@@ -2151,7 +1981,7 @@ Compute the neutral hydrogen mass of every gas cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our routine, and for cells that have entered it at least once.
+  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our SF routine, and for cells that have entered it at least once.
 
 # Returns
 
@@ -2170,7 +2000,10 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
         @inbounds for i in eachindex(fa)
 
-            @inbounds if !isnan(dg["FRAC"][2, i]) && dg["DTIM"][i] < dg["TAUS"][i]
+            # Compute how much time has pass since the last time the cell/particle entered the SF routine
+            Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
+
+            @inbounds if !isnan(dg["FRAC"][2, i]) && Δt < dg["TAUS"][i]
 
                 # Fraction of atomic and molecular hydrogen according to our model
                 @inbounds if normalize
@@ -2184,7 +2017,6 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
             else
 
                 # When there is no data from our model, use the fraction of neutral hydrogen from "NH  "
-                # assuming that the fraction of molecular hydrogen is 0
                 fa[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
                 fm[i] = 0.0
 
@@ -2196,7 +2028,7 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
     else
 
-        # Fraction of neutral hydrogen according to "NH  "
+        # Fraction of neutral hydrogen according from "NH  "
         fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
 
     end
@@ -2206,9 +2038,195 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 end
 
 """
+    computeAtomicMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
+
+Compute the atomic hydrogen mass of every gas cell/particle.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our SF routine, and for cells that have entered it at least once.
+
+# Returns
+
+  - The mass of atomic hydrogen in every gas cell.
+"""
+function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
+
+    dg = data_dict[:gas]
+
+    !(isempty(dg["MASS"]) || isempty(dg["NHP "]) || isempty(dg["NH  "])) || return Unitful.Mass[]
+
+    if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+
+        fa = Vector{Float64}(undef, length(dg["MASS"]))
+
+        @inbounds for i in eachindex(fa)
+
+            # Compute how much time has pass since the last time the cell/particle entered the SF routine
+            Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
+
+            @inbounds if !isnan(dg["FRAC"][2, i]) && Δt < dg["TAUS"][i]
+
+                # Fraction of atomic hydrogen according to our model
+                @inbounds if normalize
+                    fa[i] = dg["FRAC"][2, i] / (1.0 - dg["FRAC"][4, i])
+                else
+                    fa[i] = dg["FRAC"][2, i]
+                end
+
+            else
+
+                # When there is no data from our model, use the fraction of neutral hydrogen from "NH  "
+                fa[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
+
+            end
+
+        end
+
+    else
+
+        return Unitful.Mass[]
+
+    end
+
+    return fa .* dg["MASS"]
+
+end
+
+"""
+    computeMolecularMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
+
+Compute the molecular hydrogen mass of every gas cell/particle.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our SF routine, and for cells that have entered it at least once.
+
+# Returns
+
+  - The mass of molecular hydrogen in every gas cell.
+"""
+function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
+
+    dg = data_dict[:gas]
+
+    if !isempty(dg["MASS"]) && "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+
+        fm = Vector{Float64}(undef, length(dg["MASS"]))
+
+        @inbounds for i in eachindex(fm)
+
+            # Compute how much time has pass since the last time the cell/particle entered the SF routine
+            Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
+
+            @inbounds if !isnan(dg["FRAC"][3, i]) && Δt < dg["TAUS"][i]
+
+                # Fraction of molecular hydrogen according to our model
+                @inbounds if normalize
+                    fm[i] = dg["FRAC"][3, i] / (1.0 - dg["FRAC"][4, i])
+                else
+                    fm[i] = dg["FRAC"][3, i]
+                end
+
+            else
+
+                # When there is no data from our model, assume no molecular hydrogen
+                fm[i] = 0.0
+
+            end
+
+        end
+
+    else
+
+        return Unitful.Mass[]
+
+    end
+
+    return fm .* dg["MASS"]
+
+end
+
+"""
+    computePressureMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
+
+Compute the molecular hydrogen mass of every gas cell/particle using the pressure relation in Blitz et al. (2006).
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - The mass of molecular hydrogen in every gas cell.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
+"""
+function computePressureMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
+
+    dg = data_dict[:gas]
+
+    if !isempty(dg["MASS"]) && !isempty(dg["PRES"])
+
+        relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
+
+        # Fraction of molecular hydrogen according to the pressure relation in Blitz et al. (2006)
+        fm = 1.0 ./ (1.0 .+ relative_pressure)
+
+    else
+
+        return Unitful.Mass[]
+
+    end
+
+    return fm .* dg["MASS"]
+
+end
+
+"""
     computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
-Compute the "stellar mass" of every gas cell, which will be other than 0 only for simulation with an non-empty "FRAC" field in the snapshots.
+Compute the "stellar mass" of every gas cell. It can be a non 0 value only for simulations with our SF routine.
 
 # Arguments
 
@@ -2327,45 +2345,48 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + ...
   - `quantity::Symbol`: The possibilities are:
 
-      + `:stellar_mass`           -> Stellar mass.
-      + `:gas_mass`               -> Gas mass.
-      + `:hydrogen_mass`          -> Hydrogen mass.
-      + `:dm_mass`                -> Dark matter mass.
-      + `:bh_mass`                -> Black hole mass.
-      + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar_number`         -> Number of stellar particles.
-      + `:gas_number`             -> Number of gas cells.
-      + `:dm_number`              -> Number of dark matter particles.
-      + `:bh_number`              -> Number of black hole particles.
-      + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
-      + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
-      + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
-      + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate.
-      + `:ssfr`                   -> The specific star formation rate.
-      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:scale_factor`           -> Scale factor.
-      + `:redshift`               -> Redshift.
-      + `:physical_time`          -> Physical time since the Big Bang.
-      + `:lookback_time`          -> Physical time left to reach the last snapshot.
+      + `:stellar_mass`              -> Stellar mass.
+      + `:gas_mass`                  -> Gas mass.
+      + `:hydrogen_mass`             -> Hydrogen mass.
+      + `:dm_mass`                   -> Dark matter mass.
+      + `:bh_mass`                   -> Black hole mass.
+      + `:molecular_mass`            -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_number`            -> Number of stellar particles.
+      + `:gas_number`                -> Number of gas cells.
+      + `:dm_number`                 -> Number of dark matter particles.
+      + `:bh_number`                 -> Number of black hole particles.
+      + `:molecular_fraction`        -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`     -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`          -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density`    -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_area_density`       -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`      -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`       -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_specific_am`       -> Norm of the stellar specific angular momentum.
+      + `:gas_specific_am`           -> Norm of the gas specific angular momentum.
+      + `:dm_specific_am`            -> Norm of the dark matter specific angular momentum.
+      + `:sfr`                       -> The star formation rate.
+      + `:ssfr`                      -> The specific star formation rate.
+      + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:scale_factor`              -> Scale factor.
+      + `:redshift`                  -> Redshift.
+      + `:physical_time`             -> Physical time since the Big Bang.
+      + `:lookback_time`             -> Physical time left to reach the last snapshot.
 
 # Returns
 
@@ -2396,6 +2417,10 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
     elseif quantity == :molecular_mass
 
         integrated_qty = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
+
+    elseif quantity == :br_molecular_mass
+
+        integrated_qty = sum(computePressureMolecularMass(data_dict); init=0.0u"Msun")
 
     elseif quantity == :atomic_mass
 
@@ -2428,6 +2453,17 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
     elseif quantity == :molecular_fraction
 
         molecular_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
+        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+
+        if iszero(gas_mass)
+            integrated_qty = NaN
+        else
+            integrated_qty = molecular_mass / gas_mass
+        end
+
+    elseif quantity == :br_molecular_fraction
+
+        molecular_mass = sum(computePressureMolecularMass(data_dict); init=0.0u"Msun")
         gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
 
         if iszero(gas_mass)
@@ -2480,6 +2516,10 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
     elseif quantity == :molecular_area_density
 
         integrated_qty = sum(computeMolecularMass(data_dict); init=0.0u"Msun") / area(DISK_R)
+
+    elseif quantity == :br_molecular_area_density
+
+        integrated_qty = sum(computePressureMolecularMass(data_dict); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :atomic_area_density
 
@@ -2684,52 +2724,55 @@ Compute a quantity for each cell/particle in `data_dict`.
       + ...
   - `quantity::Symbol`: The possibilities are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
-      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
-      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
-      + `:gas_mass_density`           -> Gas mass density.
-      + `:hydrogen_mass_density`      -> Hydrogen mass density.
-      + `:gas_number_density`         -> Gas number density.
-      + `:molecular_number_density`   -> Molecular hydrogen number density.
-      + `:atomic_number_density`      -> Atomic hydrogen number density.
-      + `:ionized_number_density`     -> Ionized hydrogen number density.
-      + `:neutral_number_density`     -> Neutral hydrogen number density.
-      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
-      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
-      + `:stellar_circularity`        -> Stellar circularity.
-      + `:stellar_vcirc`              -> Stellar circular velocity.
-      + `:stellar_vradial`            -> Stellar radial speed.
-      + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
-      + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate.
-      + `:ssfr`                       -> The specific star formation rate.
-      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-      + `:pressure`                   -> Gas pressure.
+      + `:stellar_mass`                -> Stellar mass.
+      + `:gas_mass`                    -> Gas mass.
+      + `:hydrogen_mass`               -> Hydrogen mass.
+      + `:dm_mass`                     -> Dark matter mass.
+      + `:bh_mass`                     -> Black hole mass.
+      + `:molecular_mass`              -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
+      + `:gas_mass_density`            -> Gas mass density.
+      + `:hydrogen_mass_density`       -> Hydrogen mass density.
+      + `:gas_number_density`          -> Gas number density.
+      + `:molecular_number_density`    -> Molecular hydrogen number density.
+      + `:br_molecular_number_density` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_number_density`       -> Atomic hydrogen number density.
+      + `:ionized_number_density`      -> Ionized hydrogen number density.
+      + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`         -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`     -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`          -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`         -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`              -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:stellar_circularity`         -> Stellar circularity.
+      + `:stellar_vcirc`               -> Stellar circular velocity.
+      + `:stellar_vradial`             -> Stellar radial speed.
+      + `:stellar_vtangential`         -> Stellar tangential speed.
+      + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                 -> Stellar age.
+      + `:sfr`                         -> The star formation rate.
+      + `:ssfr`                        -> The specific star formation rate.
+      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                    -> Gas pressure.
 
 # Returns
 
@@ -2761,6 +2804,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         scatter_qty = computeMolecularMass(data_dict)
 
+    elseif quantity == :br_molecular_mass
+
+        scatter_qty = computePressureMolecularMass(data_dict)
+
     elseif quantity == :atomic_mass
 
         scatter_qty = computeAtomicMass(data_dict)
@@ -2776,6 +2823,13 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :molecular_fraction
 
         molecular_mass = computeMolecularMass(data_dict)
+        gas_mass = data_dict[:gas]["MASS"]
+
+        scatter_qty = molecular_mass ./ gas_mass
+
+    elseif quantity == :br_molecular_fraction
+
+        molecular_mass = computePressureMolecularMass(data_dict)
         gas_mass = data_dict[:gas]["MASS"]
 
         scatter_qty = molecular_mass ./ gas_mass
@@ -2877,6 +2931,13 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :molecular_number_density
 
         molecular_mass = computeMolecularMass(data_dict)
+        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
+
+        scatter_qty = (molecular_mass ./ volumes) ./ (2 * Unitful.mp)
+
+    elseif quantity == :br_molecular_number_density
+
+        molecular_mass = computePressureMolecularMass(data_dict)
         volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
 
         scatter_qty = (molecular_mass ./ volumes) ./ (2 * Unitful.mp)

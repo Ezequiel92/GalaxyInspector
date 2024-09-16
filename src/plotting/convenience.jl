@@ -461,7 +461,7 @@ function snapshotReport(
         println(file, "\t\tGlobal center of mass:   $(global_cm) $(u"Mpc")\n")
 
         ############################################################################################
-        # Print the fraction of gas cells that have enter our routine
+        # Print the fraction of gas cells that have enter our SF routine
         ############################################################################################
 
         if !isempty(data_dict[:gas]["FRAC"])
@@ -474,7 +474,7 @@ function snapshotReport(
             stellar_gas_mass = sum(data_dict[:gas]["MASS"][idxs])
             mass_fraction = (stellar_gas_mass / sum(data_dict[:gas]["MASS"])) * 100
 
-            println(file, "\tFraction of gas cells that have enter our routine:\n")
+            println(file, "\tFraction of gas cells that have enter our SF routine:\n")
             println(file, "\t\t$(round(fraction, sigdigits=3))% of the cells")
             println(file, "\t\t$(round(mass_fraction, sigdigits=3))% of the mass\n")
 
@@ -2077,15 +2077,16 @@ Plot a 2D histogram of the density.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
   - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
 
-      + `:stellar_mass`   -> Stellar mass.
-      + `:gas_mass`       -> Gas mass.
-      + `:hydrogen_mass`  -> Hydrogen mass.
-      + `:dm_mass`        -> Dark matter mass.
-      + `:bh_mass`        -> Black hole mass.
-      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_mass`      -> Stellar mass.
+      + `:gas_mass`          -> Gas mass.
+      + `:hydrogen_mass`     -> Hydrogen mass.
+      + `:dm_mass`           -> Dark matter mass.
+      + `:bh_mass`           -> Black hole mass.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either `:particles` or Voronoi `:cells`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -2505,15 +2506,16 @@ Plot a 2D histogram of the density, with the velocity field.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
   - `quantities::Vector{Symbol}=[:gas_mass]`: Quantities for which the density will be calculated. The options are:
 
-      + `:stellar_mass`   -> Stellar mass.
-      + `:gas_mass`       -> Gas mass.
-      + `:hydrogen_mass`  -> Hydrogen mass.
-      + `:dm_mass`        -> Dark matter mass.
-      + `:bh_mass`        -> Black hole mass.
-      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`   -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`   -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_mass`      -> Stellar mass.
+      + `:gas_mass`          -> Gas mass.
+      + `:hydrogen_mass`     -> Hydrogen mass.
+      + `:dm_mass`           -> Dark matter mass.
+      + `:bh_mass`           -> Black hole mass.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either `:particles` or Voronoi `:cells`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -2602,6 +2604,7 @@ function densityMapVelField(
             :gas_mass,
             :hydrogen_mass,
             :molecular_mass,
+            :br_molecular_mass,
             :atomic_mass,
             :ionized_mass,
             :neutral_mass,
@@ -3123,100 +3126,106 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
-      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
-      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
-      + `:gas_mass_density`           -> Gas mass density.
-      + `:hydrogen_mass_density`      -> Hydrogen mass density.
-      + `:gas_number_density`         -> Gas number density.
-      + `:molecular_number_density`   -> Molecular hydrogen number density.
-      + `:atomic_number_density`      -> Atomic hydrogen number density.
-      + `:ionized_number_density`     -> Ionized hydrogen number density.
-      + `:neutral_number_density`     -> Neutral hydrogen number density.
-      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
-      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
-      + `:stellar_circularity`        -> Stellar circularity.
-      + `:stellar_vcirc`              -> Stellar circular velocity.
-      + `:stellar_vradial`            -> Stellar radial speed.
-      + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
-      + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate.
-      + `:ssfr`                       -> The specific star formation rate.
-      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-      + `:pressure`                   -> Gas pressure.
+      + `:stellar_mass`                -> Stellar mass.
+      + `:gas_mass`                    -> Gas mass.
+      + `:hydrogen_mass`               -> Hydrogen mass.
+      + `:dm_mass`                     -> Dark matter mass.
+      + `:bh_mass`                     -> Black hole mass.
+      + `:molecular_mass`              -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
+      + `:gas_mass_density`            -> Gas mass density.
+      + `:hydrogen_mass_density`       -> Hydrogen mass density.
+      + `:gas_number_density`          -> Gas number density.
+      + `:molecular_number_density`    -> Molecular hydrogen number density.
+      + `:br_molecular_number_density` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_number_density`       -> Atomic hydrogen number density.
+      + `:ionized_number_density`      -> Ionized hydrogen number density.
+      + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`         -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`     -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`          -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`         -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`              -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:stellar_circularity`         -> Stellar circularity.
+      + `:stellar_vcirc`               -> Stellar circular velocity.
+      + `:stellar_vradial`             -> Stellar radial speed.
+      + `:stellar_vtangential`         -> Stellar tangential speed.
+      + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                 -> Stellar age.
+      + `:sfr`                         -> The star formation rate.
+      + `:ssfr`                        -> The specific star formation rate.
+      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                    -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
-      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
-      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
-      + `:gas_mass_density`           -> Gas mass density.
-      + `:hydrogen_mass_density`      -> Hydrogen mass density.
-      + `:gas_number_density`         -> Gas number density.
-      + `:molecular_number_density`   -> Molecular hydrogen number density.
-      + `:atomic_number_density`      -> Atomic hydrogen number density.
-      + `:ionized_number_density`     -> Ionized hydrogen number density.
-      + `:neutral_number_density`     -> Neutral hydrogen number density.
-      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
-      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
-      + `:stellar_circularity`        -> Stellar circularity.
-      + `:stellar_vcirc`              -> Stellar circular velocity.
-      + `:stellar_vradial`            -> Stellar radial speed.
-      + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
-      + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate.
-      + `:ssfr`                       -> The specific star formation rate.
-      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-      + `:pressure`                   -> Gas pressure.
+      + `:stellar_mass`                -> Stellar mass.
+      + `:gas_mass`                    -> Gas mass.
+      + `:hydrogen_mass`               -> Hydrogen mass.
+      + `:dm_mass`                     -> Dark matter mass.
+      + `:bh_mass`                     -> Black hole mass.
+      + `:molecular_mass`              -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
+      + `:gas_mass_density`            -> Gas mass density.
+      + `:hydrogen_mass_density`       -> Hydrogen mass density.
+      + `:gas_number_density`          -> Gas number density.
+      + `:molecular_number_density`    -> Molecular hydrogen number density.
+      + `:br_molecular_number_density` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_number_density`       -> Atomic hydrogen number density.
+      + `:ionized_number_density`      -> Ionized hydrogen number density.
+      + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`         -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`     -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`          -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`         -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`              -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:stellar_circularity`         -> Stellar circularity.
+      + `:stellar_vcirc`               -> Stellar circular velocity.
+      + `:stellar_vradial`             -> Stellar radial speed.
+      + `:stellar_vtangential`         -> Stellar tangential speed.
+      + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                 -> Stellar age.
+      + `:sfr`                         -> The star formation rate.
+      + `:ssfr`                        -> The specific star formation rate.
+      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                    -> Gas pressure.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -3350,148 +3359,157 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
-      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
-      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
-      + `:gas_mass_density`           -> Gas mass density.
-      + `:hydrogen_mass_density`      -> Hydrogen mass density.
-      + `:gas_number_density`         -> Gas number density.
-      + `:molecular_number_density`   -> Molecular hydrogen number density.
-      + `:atomic_number_density`      -> Atomic hydrogen number density.
-      + `:ionized_number_density`     -> Ionized hydrogen number density.
-      + `:neutral_number_density`     -> Neutral hydrogen number density.
-      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
-      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
-      + `:stellar_circularity`        -> Stellar circularity.
-      + `:stellar_vcirc`              -> Stellar circular velocity.
-      + `:stellar_vradial`            -> Stellar radial speed.
-      + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
-      + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate.
-      + `:ssfr`                       -> The specific star formation rate.
-      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-      + `:pressure`                   -> Gas pressure.
+      + `:stellar_mass`                -> Stellar mass.
+      + `:gas_mass`                    -> Gas mass.
+      + `:hydrogen_mass`               -> Hydrogen mass.
+      + `:dm_mass`                     -> Dark matter mass.
+      + `:bh_mass`                     -> Black hole mass.
+      + `:molecular_mass`              -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
+      + `:gas_mass_density`            -> Gas mass density.
+      + `:hydrogen_mass_density`       -> Hydrogen mass density.
+      + `:gas_number_density`          -> Gas number density.
+      + `:molecular_number_density`    -> Molecular hydrogen number density.
+      + `:br_molecular_number_density` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_number_density`       -> Atomic hydrogen number density.
+      + `:ionized_number_density`      -> Ionized hydrogen number density.
+      + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`         -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`     -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`          -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`         -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`              -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:stellar_circularity`         -> Stellar circularity.
+      + `:stellar_vcirc`               -> Stellar circular velocity.
+      + `:stellar_vradial`             -> Stellar radial speed.
+      + `:stellar_vtangential`         -> Stellar tangential speed.
+      + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                 -> Stellar age.
+      + `:sfr`                         -> The star formation rate.
+      + `:ssfr`                        -> The specific star formation rate.
+      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                    -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
-      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
-      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
-      + `:gas_mass_density`           -> Gas mass density.
-      + `:hydrogen_mass_density`      -> Hydrogen mass density.
-      + `:gas_number_density`         -> Gas number density.
-      + `:molecular_number_density`   -> Molecular hydrogen number density.
-      + `:atomic_number_density`      -> Atomic hydrogen number density.
-      + `:ionized_number_density`     -> Ionized hydrogen number density.
-      + `:neutral_number_density`     -> Neutral hydrogen number density.
-      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
-      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
-      + `:stellar_circularity`        -> Stellar circularity.
-      + `:stellar_vcirc`              -> Stellar circular velocity.
-      + `:stellar_vradial`            -> Stellar radial speed.
-      + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
-      + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate.
-      + `:ssfr`                       -> The specific star formation rate.
-      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-      + `:pressure`                   -> Gas pressure.
+      + `:stellar_mass`                -> Stellar mass.
+      + `:gas_mass`                    -> Gas mass.
+      + `:hydrogen_mass`               -> Hydrogen mass.
+      + `:dm_mass`                     -> Dark matter mass.
+      + `:bh_mass`                     -> Black hole mass.
+      + `:molecular_mass`              -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
+      + `:gas_mass_density`            -> Gas mass density.
+      + `:hydrogen_mass_density`       -> Hydrogen mass density.
+      + `:gas_number_density`          -> Gas number density.
+      + `:molecular_number_density`    -> Molecular hydrogen number density.
+      + `:br_molecular_number_density` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_number_density`       -> Atomic hydrogen number density.
+      + `:ionized_number_density`      -> Ionized hydrogen number density.
+      + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`         -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`     -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`          -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`         -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`              -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:stellar_circularity`         -> Stellar circularity.
+      + `:stellar_vcirc`               -> Stellar circular velocity.
+      + `:stellar_vradial`             -> Stellar radial speed.
+      + `:stellar_vtangential`         -> Stellar tangential speed.
+      + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                 -> Stellar age.
+      + `:sfr`                         -> The star formation rate.
+      + `:ssfr`                        -> The specific star formation rate.
+      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                    -> Gas pressure.
   - `z_quantity::Symbol`: Quantity for the z axis (weights). The options are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
-      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
-      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
-      + `:gas_mass_density`           -> Gas mass density.
-      + `:hydrogen_mass_density`      -> Hydrogen mass density.
-      + `:gas_number_density`         -> Gas number density.
-      + `:molecular_number_density`   -> Molecular hydrogen number density.
-      + `:atomic_number_density`      -> Atomic hydrogen number density.
-      + `:ionized_number_density`     -> Ionized hydrogen number density.
-      + `:neutral_number_density`     -> Neutral hydrogen number density.
-      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`        -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`        -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_radial_distance`    -> Distance of every stellar particle to the origin.
-      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
-      + `:dm_radial_distance`         -> Distance of every dark matter particle to the origin.
-      + `:stellar_xy_distance`        -> Projected distance of every stellar particle to the origin.
-      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
-      + `:dm_xy_distance`             -> Projected distance of every dark matter particle to the origin.
-      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
-      + `:stellar_circularity`        -> Stellar circularity.
-      + `:stellar_vcirc`              -> Stellar circular velocity.
-      + `:stellar_vradial`            -> Stellar radial speed.
-      + `:stellar_vtangential`        -> Stellar tangential speed.
-      + `:stellar_vzstar`             -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
-      + `:stellar_age`                -> Stellar age.
-      + `:sfr`                        -> The star formation rate.
-      + `:ssfr`                       -> The specific star formation rate.
-      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-      + `:pressure`                   -> Gas pressure.
+      + `:stellar_mass`                -> Stellar mass.
+      + `:gas_mass`                    -> Gas mass.
+      + `:hydrogen_mass`               -> Hydrogen mass.
+      + `:dm_mass`                     -> Dark matter mass.
+      + `:bh_mass`                     -> Black hole mass.
+      + `:molecular_mass`              -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
+      + `:gas_mass_density`            -> Gas mass density.
+      + `:hydrogen_mass_density`       -> Hydrogen mass density.
+      + `:gas_number_density`          -> Gas number density.
+      + `:molecular_number_density`    -> Molecular hydrogen number density.
+      + `:br_molecular_number_density` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_number_density`       -> Atomic hydrogen number density.
+      + `:ionized_number_density`      -> Ionized hydrogen number density.
+      + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`         -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`     -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`          -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`         -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`              -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:stellar_circularity`         -> Stellar circularity.
+      + `:stellar_vcirc`               -> Stellar circular velocity.
+      + `:stellar_vradial`             -> Stellar radial speed.
+      + `:stellar_vtangential`         -> Stellar tangential speed.
+      + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                 -> Stellar age.
+      + `:sfr`                         -> The star formation rate.
+      + `:ssfr`                        -> The specific star formation rate.
+      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                    -> Gas pressure.
   - `z_unit::Unitful.Units`: Target unit for the z axis.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
@@ -3925,33 +3943,36 @@ Only for gas cells that have entered out routine.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Target quantity. The possibilities are:
 
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:molecular_fraction`         -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`            -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`           -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`           -> Gas mass fraction of neutral hydrogen.
-      + `:molecular_neutral_fraction` -> Fraction of molecular hydrogen in the neutral gas.
-      + `:mol_eq_quotient`            -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`            -> Equilibrium quotient for the ionized fraction equation of the SF model.
-      + `:gas_mass_density`           -> Gas mass density.
-      + `:hydrogen_mass_density`      -> Hydrogen mass density.
-      + `:gas_number_density`         -> Gas number density.
-      + `:molecular_number_density`   -> Molecular hydrogen number density.
-      + `:atomic_number_density`      -> Atomic hydrogen number density.
-      + `:ionized_number_density`     -> Ionized hydrogen number density.
-      + `:neutral_number_density`     -> Neutral hydrogen number density.
-      + `:gas_metallicity`            -> Mass fraction of all elements above He in the gas (solar units).
-      + `:X_gas_abundance`            -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:gas_radial_distance`        -> Distance of every gas cell to the origin.
-      + `:gas_xy_distance`            -> Projected distance of every gas cell to the origin.
-      + `:gas_sfr`                    -> SFR associated to each gas particle/cell within the code.
-      + `:temperature`                -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
-      + `:pressure`                   -> Gas pressure.
+      + `:gas_mass`                    -> Gas mass.
+      + `:hydrogen_mass`               -> Hydrogen mass.
+      + `:molecular_mass`              -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
+      + `:gas_mass_density`            -> Gas mass density.
+      + `:hydrogen_mass_density`       -> Hydrogen mass density.
+      + `:gas_number_density`          -> Gas number density.
+      + `:molecular_number_density`    -> Molecular hydrogen number density.
+      + `:br_molecular_number_density` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_number_density`       -> Atomic hydrogen number density.
+      + `:ionized_number_density`      -> Ionized hydrogen number density.
+      + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
+      + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
+      + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
+      + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                    -> Gas pressure.
   - `edges::Vector{<:Number}`: A sorted list of bin edges for `quantity`.
   - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
   - `axis_label::Union{AbstractString,Nothing}=nothing`: Label for the axis. It can contain the string `auto_label`, which will be replaced by the default label: `var_name` / 10^`exp_factor` `unit`. If set to `nothing` a label will be assigned automaticaly.
@@ -4145,86 +4166,92 @@ Plot a time series.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
-      + `:stellar_mass`           -> Stellar mass.
-      + `:gas_mass`               -> Gas mass.
-      + `:hydrogen_mass`          -> Hydrogen mass.
-      + `:dm_mass`                -> Dark matter mass.
-      + `:bh_mass`                -> Black hole mass.
-      + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar_number`         -> Number of stellar particles.
-      + `:gas_number`             -> Number of gas cells.
-      + `:dm_number`              -> Number of dark matter particles.
-      + `:bh_number`              -> Number of black hole particles.
-      + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
-      + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
-      + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
-      + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate.
-      + `:ssfr`                   -> The specific star formation rate.
-      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:scale_factor`           -> Scale factor.
-      + `:redshift`               -> Redshift.
-      + `:physical_time`          -> Physical time since the Big Bang.
-      + `:lookback_time`          -> Physical time left to reach the last snapshot.
+      + `:stellar_mass`              -> Stellar mass.
+      + `:gas_mass`                  -> Gas mass.
+      + `:hydrogen_mass`             -> Hydrogen mass.
+      + `:dm_mass`                   -> Dark matter mass.
+      + `:bh_mass`                   -> Black hole mass.
+      + `:molecular_mass`            -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_number`            -> Number of stellar particles.
+      + `:gas_number`                -> Number of gas cells.
+      + `:dm_number`                 -> Number of dark matter particles.
+      + `:bh_number`                 -> Number of black hole particles.
+      + `:molecular_fraction`        -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`     -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`          -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density`    -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_area_density`       -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`      -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`       -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_specific_am`       -> Norm of the stellar specific angular momentum.
+      + `:gas_specific_am`           -> Norm of the gas specific angular momentum.
+      + `:dm_specific_am`            -> Norm of the dark matter specific angular momentum.
+      + `:sfr`                       -> The star formation rate.
+      + `:ssfr`                      -> The specific star formation rate.
+      + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:scale_factor`              -> Scale factor.
+      + `:redshift`                  -> Redshift.
+      + `:physical_time`             -> Physical time since the Big Bang.
+      + `:lookback_time`             -> Physical time left to reach the last snapshot.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_mass`           -> Stellar mass.
-      + `:gas_mass`               -> Gas mass.
-      + `:hydrogen_mass`          -> Hydrogen mass.
-      + `:dm_mass`                -> Dark matter mass.
-      + `:bh_mass`                -> Black hole mass.
-      + `:molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`            -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`           -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`           -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar_number`         -> Number of stellar particles.
-      + `:gas_number`             -> Number of gas cells.
-      + `:dm_number`              -> Number of dark matter particles.
-      + `:bh_number`              -> Number of black hole particles.
-      + `:molecular_fraction`     -> Gas mass fraction of molecular hydrogen.
-      + `:atomic_fraction`        -> Gas mass fraction of atomic hydrogen.
-      + `:ionized_fraction`       -> Gas mass fraction of ionized hydrogen.
-      + `:neutral_fraction`       -> Gas mass fraction of neutral hydrogen.
-      + `:stellar_area_density`   -> Stellar area mass density, for a radius of `DISK_R`.
-      + `:gas_area_density`       -> Gas area mass density, for a radius of `DISK_R`.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
-      + `:ionized_area_density`   -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
-      + `:neutral_area_density`   -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
-      + `:gas_metallicity`        -> Mass fraction of all elements above He in the gas (solar units).
-      + `:stellar_metallicity`    -> Mass fraction of all elements above He in the stars (solar units).
-      + `:X_gas_abundance`        -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
-      + `:stellar_specific_am`    -> Norm of the stellar specific angular momentum.
-      + `:gas_specific_am`        -> Norm of the gas specific angular momentum.
-      + `:dm_specific_am`         -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                    -> The star formation rate.
-      + `:ssfr`                   -> The specific star formation rate.
-      + `:observational_sfr`      -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`     -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:scale_factor`           -> Scale factor.
-      + `:redshift`               -> Redshift.
-      + `:physical_time`          -> Physical time since the Big Bang.
-      + `:lookback_time`          -> Physical time left to reach the last snapshot.
+      + `:stellar_mass`              -> Stellar mass.
+      + `:gas_mass`                  -> Gas mass.
+      + `:hydrogen_mass`             -> Hydrogen mass.
+      + `:dm_mass`                   -> Dark matter mass.
+      + `:bh_mass`                   -> Black hole mass.
+      + `:molecular_mass`            -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`         -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_number`            -> Number of stellar particles.
+      + `:gas_number`                -> Number of gas cells.
+      + `:dm_number`                 -> Number of dark matter particles.
+      + `:bh_number`                 -> Number of black hole particles.
+      + `:molecular_fraction`        -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`     -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
+      + `:gas_area_density`          -> Gas area mass density, for a radius of `DISK_R`.
+      + `:molecular_area_density`    -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
+      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_area_density`       -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
+      + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`      -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`       -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_specific_am`       -> Norm of the stellar specific angular momentum.
+      + `:gas_specific_am`           -> Norm of the gas specific angular momentum.
+      + `:dm_specific_am`            -> Norm of the dark matter specific angular momentum.
+      + `:sfr`                       -> The star formation rate.
+      + `:ssfr`                      -> The specific star formation rate.
+      + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:scale_factor`              -> Scale factor.
+      + `:redshift`                  -> Redshift.
+      + `:physical_time`             -> Physical time since the Big Bang.
+      + `:lookback_time`             -> Physical time left to reach the last snapshot.
   - `y_log::Bool=true`: If the y axis is will have a log10 scale. Only works if `fraction` = false.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `fraction::Bool=false`: If the `y_quantity` will be represented as a fraction of the last value. If `cumulative` = true, this will apply to the accumulated values.
@@ -4788,19 +4815,20 @@ Plot a density profile.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantities::Vector{Symbol}`: Quantities for the y axis. The options are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:sfr`                        -> The star formation rate.
-      + `:ssfr`                       -> The specific star formation rate.
-      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_mass`       -> Stellar mass.
+      + `:gas_mass`           -> Gas mass.
+      + `:hydrogen_mass`      -> Hydrogen mass.
+      + `:dm_mass`            -> Dark matter mass.
+      + `:bh_mass`            -> Black hole mass.
+      + `:molecular_mass`     -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`  -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`        -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`       -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`       -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:sfr`                -> The star formation rate.
+      + `:ssfr`               -> The specific star formation rate.
+      + `:observational_sfr`  -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr` -> The specific star formation rate of the last `AGE_RESOLUTION`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
@@ -4877,6 +4905,10 @@ function densityProfile(
     elseif quantity == :molecular_mass
 
         yaxis_var_name = L"\Sigma_\mathrm{H_2}"
+
+    elseif quantity == :br_molecular_mass
+
+        yaxis_var_name = L"\Sigma_\mathrm{H_2}^\mathrm{BR}"
 
     elseif quantity == :atomic_mass
 
@@ -4985,19 +5017,20 @@ Plot a density profile.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantities::Vector{Symbol}`: Quantities for the y axis. The options are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:sfr`                        -> The star formation rate.
-      + `:ssfr`                       -> The specific star formation rate.
-      + `:observational_sfr`          -> The star formation rate of the last `AGE_RESOLUTION`.
-      + `:observational_ssfr`         -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_mass`       -> Stellar mass.
+      + `:gas_mass`           -> Gas mass.
+      + `:hydrogen_mass`      -> Hydrogen mass.
+      + `:dm_mass`            -> Dark matter mass.
+      + `:bh_mass`            -> Black hole mass.
+      + `:molecular_mass`     -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`  -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`        -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`       -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`       -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:sfr`                -> The star formation rate.
+      + `:ssfr`               -> The specific star formation rate.
+      + `:observational_sfr`  -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr` -> The specific star formation rate of the last `AGE_RESOLUTION`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
@@ -5139,15 +5172,16 @@ Plot a mass profile.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantities::Vector{Symbol}`: Quantities for the y axis. The options are:
 
-      + `:stellar_mass`               -> Stellar mass.
-      + `:gas_mass`                   -> Gas mass.
-      + `:hydrogen_mass`              -> Hydrogen mass.
-      + `:dm_mass`                    -> Dark matter mass.
-      + `:bh_mass`                    -> Black hole mass.
-      + `:molecular_mass`             -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`                -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:ionized_mass`               -> Ionized hydrogen (``\\mathrm{HII}``) mass.
-      + `:neutral_mass`               -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_mass`      -> Stellar mass.
+      + `:gas_mass`          -> Gas mass.
+      + `:hydrogen_mass`     -> Hydrogen mass.
+      + `:dm_mass`           -> Dark matter mass.
+      + `:bh_mass`           -> Black hole mass.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
@@ -5684,16 +5718,18 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
-      + `:stellar_mass`   -> Stellar mass.
-      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:sfr`            -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_mass`      -> Stellar mass.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:sfr`               -> The star formation rate of the last `AGE_RESOLUTION`.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_mass`   -> Stellar mass.
-      + `:molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
-      + `:atomic_mass`    -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:sfr`            -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_mass`      -> Stellar mass.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:sfr`               -> The star formation rate of the last `AGE_RESOLUTION`.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
   - `output_path::String="./"`: Path to the output folder.
@@ -5825,13 +5861,14 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_area_density`   -> Stellar area mass density.
-      + `:molecular_area_density` -> Molecular hydrogen area mass density.
-      + `:atomic_area_density`    -> Atomic hydrogen area mass density.
-      + `:sfr_area_density`       -> Star formation rate area density, for the last `AGE_RESOLUTION`.
-      + `:O_stellar_abundance`    -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
-      + `:N_stellar_abundance`    -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
-      + `:C_stellar_abundance`    -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
+      + `:stellar_area_density`      -> Stellar area mass density.
+      + `:molecular_area_density`    -> Molecular hydrogen area mass density.
+      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_area_density`       -> Atomic hydrogen area mass density.
+      + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION`.
+      + `:O_stellar_abundance`       -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
+      + `:N_stellar_abundance`       -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
+      + `:C_stellar_abundance`       -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -5887,7 +5924,7 @@ function compareMolla2015(
 
         grid = CircularGrid(16.5u"kpc", 14; shift=2.5u"kpc")
 
-    elseif quantity ∈ [:molecular_area_density, :sfr_area_density]
+    elseif quantity ∈ [:molecular_area_density, :br_molecular_area_density, :sfr_area_density]
 
         grid = CircularGrid(19.5u"kpc", 20; shift=-0.5u"kpc")
 
@@ -5985,9 +6022,10 @@ Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within 
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
   - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -6043,9 +6081,9 @@ function resolvedKSLawZScatter(
     stellar_grid = CubicGrid(BOX_L, BIGIEL_N_BINS ÷ BIGIEL_FACTOR)
 
     (
-        quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
+        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
         throw(ArgumentError("resolvedKSLawZScatter: `quantity` can only be :gas_mass, \
-        :molecular_mass or :neutral_mass, but I got :$(quantity)"))
+        :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
     # Set a temporal folder for the JLD2 files
@@ -6202,6 +6240,15 @@ function resolvedKSLawZScatter(
             latex=true,
         )
 
+    elseif quantity == :br_molecular_mass
+
+        x_label = getLabel(
+            plotParams(:br_molecular_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
     elseif quantity == :neutral_mass
 
         x_label = getLabel(
@@ -6311,7 +6358,7 @@ function resolvedKSLawZScatter(
                         warnings=false,
                     )
 
-                elseif quantity == :molecular_mass
+                elseif quantity ∈ [:molecular_mass, :br_molecular_mass]
 
                     pp_legend = ppBigiel2008!(
                         f,
@@ -6395,9 +6442,10 @@ Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within 
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:br_molecular_mass` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
   - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -6452,9 +6500,9 @@ function resolvedKSLawZScatterAllTimes(
     grid = CubicGrid(BOX_L, 300)
 
     (
-        quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
+        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
         throw(ArgumentError("resolvedKSLawZScatter: `quantity` can only be :gas_mass, \
-        :molecular_mass or :neutral_mass, but I got :$(quantity)"))
+        :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
     # Set a temporal folder for the JLD2 files
@@ -6604,6 +6652,15 @@ function resolvedKSLawZScatterAllTimes(
 
         x_label = getLabel(
             plotParams(:molecular_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :br_molecular_mass
+
+        x_label = getLabel(
+            plotParams(:br_molecular_area_density).var_name,
             0,
             u"Msun * kpc^-2";
             latex=true,
@@ -6712,7 +6769,7 @@ function resolvedKSLawZScatterAllTimes(
                     warnings=false,
                 )
 
-            elseif quantity == :molecular_mass
+            elseif quantity ∈ [:molecular_mass, :br_molecular_mass]
 
                 pp_legend = ppBigiel2008!(
                     f,
@@ -6792,9 +6849,10 @@ Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within 
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:br_molecular_mass` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the grid. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the grid. If set to `nothing`, the extrema of the values will be used.
@@ -6849,9 +6907,9 @@ function resolvedKSLawHeatmap(
     grid = CubicGrid(BOX_L, 300)
 
     (
-        quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
+        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
         throw(ArgumentError("resolvedKSLawHeatmap: `quantity` can only be :gas_mass, \
-        :molecular_mass or :neutral_mass, but I got :$(quantity)"))
+        :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
     # Set a temporal folder for the JLD2 files
@@ -7001,6 +7059,15 @@ function resolvedKSLawHeatmap(
 
         x_label = getLabel(
             plotParams(:molecular_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :br_molecular_mass
+
+        x_label = getLabel(
+            plotParams(:br_molecular_area_density).var_name,
             0,
             u"Msun * kpc^-2";
             latex=true,
@@ -7192,9 +7259,10 @@ Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within 
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:br_molecular_mass` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
   - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -7249,9 +7317,9 @@ function integratedKSLaw(
     grid = CubicGrid(BOX_L, 300)
 
     (
-        quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
+        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
         throw(ArgumentError("integratedKSLaw: `quantity` can only be :gas_mass, \
-        :molecular_mass or :neutral_mass, but I got :$(quantity)"))
+        :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
     # Set a temporal folder for the JLD2 files
@@ -7338,6 +7406,15 @@ function integratedKSLaw(
 
         x_label = getLabel(
             plotParams(:molecular_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :br_molecular_mass
+
+        x_label = getLabel(
+            plotParams(:br_molecular_area_density).var_name,
             0,
             u"Msun * kpc^-2";
             latex=true,
@@ -7457,7 +7534,7 @@ function integratedKSLaw(
                     warnings=false,
                 )
 
-            elseif quantity == :molecular_mass
+            elseif quantity ∈ [:molecular_mass, :br_molecular_mass]
 
                 pp_legend = ppBigiel2008!(
                     f,
@@ -7535,9 +7612,10 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`       -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass` -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`   -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:br_molecular_mass` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
   - `output_path::String="./"`: Path to the output folder.
@@ -7612,6 +7690,15 @@ function fitResolvedKSLaw(
 
         x_label = getLabel(
             plotParams(:molecular_area_density).var_name,
+            0,
+            u"Msun * kpc^-2";
+            latex=true,
+        )
+
+    elseif quantity == :br_molecular_mass
+
+        x_label = getLabel(
+            plotParams(:br_molecular_area_density).var_name,
             0,
             u"Msun * kpc^-2";
             latex=true,
