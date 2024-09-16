@@ -37,6 +37,16 @@ Characteristic box size used throughout the code.
 const BOX_L = 65.0u"kpc"
 
 """
+With `BOX_L` = 65.0 kpc, 430 bins gives pixels with a side length of ~ 151 pc, so we choose a resolution reduction factor of 5 to target a final pixel sizes of 151 pc * 5 = 755pc ~ 750 pc, as in Bigiel et al. (2008).
+
+# References
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+"""
+const BIGIEL_N_BINS  = 348
+const BIGIEL_FACTOR  = 4
+
+"""
 Characteristic stellar age limit for the SFR and sSFR calculations.
 """
 const AGE_RESOLUTION = 200.0u"Myr"
@@ -276,6 +286,20 @@ const A_BIGIEL2008_MOLECULAR = −2.06 ± 0.17
 const N_BIGIEL2008_MOLECULAR = 0.96 ± 0.07
 const A_BIGIEL2008_NEUTRAL   = −2.39 ± 0.28
 const N_BIGIEL2008_NEUTRAL   = 1.85 ± 0.70
+
+@doc raw"""
+Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$, taken from Bigiel et al. (2008) (Section 4.3, Equation 3).
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{HI, H_2, gas}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
+```
+
+# References
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+"""
+const A_BIGIEL2008_BF_MOLECULAR = −2.1 ± 0.2
+const N_BIGIEL2008_BF_MOLECULAR = 1.0 ± 0.2
 
 @doc raw"""
 Slope and intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Eq. 4).

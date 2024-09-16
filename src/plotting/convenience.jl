@@ -3587,13 +3587,14 @@ function scatterDensityMap(
 
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
+    z_plot_params = plotParams(z_quantity)
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
         mergeRequests(
             x_plot_params.request,
             y_plot_params.request,
-            plotParams(:gas_mass_density).request,
+            z_plot_params.request,
             ff_request,
         ),
     )
@@ -6037,7 +6038,8 @@ function resolvedKSLawZScatter(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(BOX_L, 300)
+    gas_grid = CubicGrid(BOX_L, BIGIEL_N_BINS)
+    stellar_grid = CubicGrid(BOX_L, BIGIEL_N_BINS ÷ BIGIEL_FACTOR)
 
     (
         quantity ∈ [:gas_mass, :molecular_mass, :neutral_mass] ||
@@ -6049,10 +6051,12 @@ function resolvedKSLawZScatter(
     temp_folder = joinpath(output_path, "_temp_jld2")
 
     # For stars filter by age, for the gas filter by distance to the center
-    filters = [dd->filterStellarAge(dd), dd->filterWithinSphere(dd, (0.0u"kpc", DISK_R), :zero)]
+    filters = [dd->filterStellarAge(dd), dd->filterWithinSphere(dd, (0.0u"kpc", 10.0u"kpc"), :zero)]
+
+    iterator = zip([:stellar_mass, quantity], [:particles, type], [stellar_grid, gas_grid], filters)
 
     # Write the JLD2 files with the density maps
-    for (qty, type, filter) in zip([:stellar_mass, quantity], [:particles, type], filters)
+    for (qty, type, grid, filter) in iterator
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,
@@ -6139,7 +6143,7 @@ function resolvedKSLawZScatter(
         slice,
         filter_function,
         da_functions=[daMetallicity2DProjection],
-        da_args=[(grid, :gas, type)],
+        da_args=[(gas_grid, :gas, type)],
         da_kwargs=[(; filter_function=filters[2])],
         post_processing=getNothing,
         pp_args=(),
@@ -6246,10 +6250,10 @@ function resolvedKSLawZScatter(
 
                         jldopen(joinpath(temp_folder, "gas_metallicity.jld2"), "r") do z_file
 
-                            # Read the JLD2 files
-                            x_data = vec(x_file[x_address][3])
+                            # Reduce resolution of the images with gas density
+                            x_data = vec(reduceResolution(x_file[x_address][3], BIGIEL_FACTOR))
                             y_data = vec(y_file[y_address][3])
-                            z_data = vec(z_file[z_address][3])
+                            z_data = vec(reduceResolution(z_file[z_address][3], BIGIEL_FACTOR))
 
                             # Delete 0s and NaNs in the data vectors
                             x_idxs = map(x -> isnan(x) || iszero(x), x_data)

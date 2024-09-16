@@ -1808,10 +1808,17 @@ function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Nu
     )
 
     (
+        factor > 1 || throw(ArgumentError("reduceResolution: `factor` must be >= 1, \
+        but I got `factor` = $(factor)."))
+    )
+
+    (
         r % factor == 0 ||
         throw(ArgumentError("reduceResolution: `factor` must divide the size of `hr_matrix` \
-        exactly, but I got rows / factor = $(r / factor)."))
+        exactly, but I got number of rows / `factor` = $(r / factor)."))
     )
+
+    !isone(factor) || return hr_matrix
 
     # Compute the size of the new matrix
     new_size = r ÷ factor
@@ -1845,6 +1852,72 @@ function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Nu
 end
 
 """
+    reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
+
+Reduce the number of ticks in `hr_ticks` by `factor` keeping the total length of the axis the same and assuming `hr_ticks` are regularly spaced.
+
+# Arguments
+
+  - `hr_ticks::Vector{<:Number}`: Original "high resolution" list of ticks.
+  - `factor::Int`: Factor by wich the number of ticks will be reduced. It has to divede the size of `hr_ticks` exactly.
+
+# Returns
+
+  - The new shorter tick list.
+"""
+function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
+
+    l =length(hr_ticks)
+    (
+        l % factor == 0 ||
+        throw(ArgumentError("reduceTicks: `factor` must divide the size of `hr_ticks` \
+        exactly, but I got length(`hr_ticks`) / `factor` = $(l / factor)."))
+    )
+
+    (
+        factor > 1 || throw(ArgumentError("reduceTicks: `factor` must be >= 1, \
+        but I got `factor` = $(factor)."))
+    )
+
+    !isone(factor) || hr_ticks
+
+    # Compute the size of the new vector
+    new_size = l ÷ factor
+
+    # Allocate memory
+    lr_ticks = similar(hr_ticks, new_size)
+
+    if iseven(factor)
+
+        shift = factor ÷ 2
+
+        @inbounds for i in eachindex(lr_ticks)
+
+            idx = (i - 1) * factor + shift
+
+            lr_ticks[i] = (hr_ticks[idx] + hr_ticks[idx + 1]) / 2.0
+
+        end
+
+    else
+
+        shift = ceil(Int, factor / 2)
+
+        @inbounds for i in eachindex(lr_ticks)
+
+            idx = (i - 1) * factor + shift
+
+            lr_ticks[i] = hr_ticks[idx]
+
+        end
+
+    end
+
+    return lr_ticks
+
+end
+
+"""
     projectIntoCircularGrid(
         image::Matrix{<:Number},
         n_bins::Int;
@@ -1857,11 +1930,11 @@ Project `image` into a circular grid, averaging the values in each concentric ri
 
   - `image::Matrix{<:Number}`: Original matrix. It has to be a square matrix.
   - `n_bins::Int`: Number of bins for the circular grid.
-  - `inscribed::Bool=true`: If the circular grid will be inscribed in `image` when doing the projection.
+  - `inscribed::Bool=true`: If the circular grid will be inscribed in `image` when doing the projection. If set to false, the matrix will be inscribed into the circular grid instead.
 
 # Returns
 
-  - A vector with the average values.
+  - A vector with the averages of the values in each concentric ring.
 """
 function projectIntoCircularGrid(
     image::Matrix{<:Number},
@@ -1876,14 +1949,17 @@ function projectIntoCircularGrid(
         but it has $(c) columns and $(r) rows."))
     )
 
-    # Construct a square grid
+    # Construct a square grid center in (0, 0)
     square_grid = SquareGrid(1.0, r)
 
-    # Construct a circular grid
+    # Construct a circular grid center in (0, 0)
     circular_grid = CircularGrid(inscribed ? 0.5 : sqrt(0.5), n_bins)
 
+    # Compute the radial distance to the origin of each pixel in the square grid
+    positions = norm.(vec(square_grid.grid))
+
     profile = histogram1D(
-        norm.(vec(square_grid.grid)),
+        positions,
         vec(image),
         circular_grid;
         total=false,

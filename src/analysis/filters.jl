@@ -679,6 +679,106 @@ function filterHotGas(data_dict::Dict, max_temp::Unitful.Temperature)::Dict{Symb
 end
 
 """
+    filterEqGas(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out gas cells that have the molecular or ionized equation in or out of equilibrium, according to `equation` and `filtered_phase`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `limit_percent::Float64=1.0`: Allowed deviation from equilibrium, in percent.
+  - `equation::Symbol=:molecular`: Which equilibrium equation will be used. The options are :molecular and :ionized.
+  - `filtered_phase::Symbol=:non_eq`: Which phase will be filtered out, the equilibrium phase (:eq) or the non-equilibrium phase (:non_eq).
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterEqGas(
+    data_dict::Dict;
+    limit_percent::Float64=1.0,
+    equation::Symbol=:molecular,
+    filtered_phase::Symbol=:non_eq,
+)::Dict{Symbol,IndexType}
+
+    if equation == :molecular
+
+        eq_quotient = GalaxyInspector.scatterQty(data_dict, :mol_eq_quotient)
+
+    elseif equation == :ionized
+
+        eq_quotient = GalaxyInspector.scatterQty(data_dict, :ion_eq_quotient)
+
+    else
+
+        throw(ArgumentError("filterEqGas: `equation` can only be :molecular or :ionized, \
+        but I got :$(equation)"))
+
+    end
+
+    (
+        (0.0 <= limit_percent <= 100.0) ||
+        throw(ArgumentError("filterEqGas: `limit_percent` must be a number between 0 and 100, \
+        but I got :$(limit_percent)"))
+    )
+
+    # Compute the limits of the quotient in log space
+    log_limit_l = -log10(1.0 + (limit_percent / 100.0)) # Lower imit
+    log_limit_h = -log10(1.0 - (limit_percent / 100.0)) # Upper limit
+
+    if filtered_phase == :non_eq
+
+        idxs = map(x -> log_limit_l < x < log_limit_h, eq_quotient)
+
+    elseif filtered_phase == :eq
+
+        idxs = map(x -> log_limit_h < x || x < log_limit_l, eq_quotient)
+
+    else
+
+        throw(ArgumentError("filterEqGas: `filtered_phase` can only be :non_eq or :eq, \
+        but I got :$(filtered_phase)"))
+
+    end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :gas
+            indices[component] = idxs
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
     filterYoungStars(data_dict::Dict)::Dict{Symbol,IndexType}
 
 Filter out stars that where born one or more snapshots ago.

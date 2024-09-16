@@ -1455,7 +1455,7 @@ function bigiel2008(
     log10ΣH = @. log10(uconvert(Unitful.NoUnits, ΣH / 10.0u"Msun * pc^-2"))
 
     if molecular
-        log10Σsfr = @. A_BIGIEL2008_MOLECULAR + log10ΣH * N_BIGIEL2008_MOLECULAR
+        log10Σsfr = @. A_BIGIEL2008_BF_MOLECULAR + log10ΣH * N_BIGIEL2008_BF_MOLECULAR
     else
         log10Σsfr = @. A_BIGIEL2008_NEUTRAL + log10ΣH * N_BIGIEL2008_NEUTRAL
     end
@@ -1506,7 +1506,7 @@ function invBigiel2008(
     log10Σsfr = @. log10(ustrip(u"Msun * yr^-1 * kpc^-2", Σsfr ))
 
     if molecular
-        log10ΣH = @. (log10Σsfr - A_BIGIEL2008_MOLECULAR) / N_BIGIEL2008_MOLECULAR
+        log10ΣH = @. (log10Σsfr - A_BIGIEL2008_BF_MOLECULAR) / N_BIGIEL2008_BF_MOLECULAR
     else
         log10ΣH = @. (log10Σsfr - A_BIGIEL2008_NEUTRAL) / N_BIGIEL2008_NEUTRAL
     end
