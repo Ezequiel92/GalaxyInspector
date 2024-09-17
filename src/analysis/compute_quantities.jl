@@ -508,6 +508,54 @@ function computeTimeTicks(
 end
 
 """
+
+    computeR25(
+        stellar_profile::Vector{<:SurfaceDensity},
+        ticks::Vector{<:Unitful.Length};
+        <keyword arguments>
+    )::Unitful.Length
+
+Compute the radial distance corresponding to a stellar area density `factor` times smaller the the maximum value of the profile.
+
+# Arguments
+
+  - `stellar_profile::Vector{<:SurfaceDensity}`: Stellar mass profile.
+  - `ticks::Vector{<:Unitful.Length}`: Radial distance corresponding to each bin of the profile.
+  - `factor::Float64=0.25`: Mass factor.
+  - `warnings::Bool=true`: If a warning will be given when no bin in the profile has `factor` times the maximum area density or less. In such a case, the last distance value of the profile is returned.
+
+# Returns
+
+  - The radial distance corresponding to a stellar area density `factor` times smaller the the maximum value of the profile.
+"""
+function computeR25(
+    stellar_profile::Vector{<:SurfaceDensity},
+    ticks::Vector{<:Unitful.Length};
+    factor::Float64=0.25,
+    warnings::Bool=true,
+)::Unitful.Length
+
+    max_val, max_idx = findmax(stellar_profile)
+
+    r25_idx = findfirst(x -> x <= max_val * factor, stellar_profile[max_idx:end])
+
+    if isnothing(r25_idx)
+
+        (
+            !warnings || @warn("computeR25: I could not find a area density equal to $(factor) of \
+            the maximum area density (further away radially than that maximum). \
+            Returning the last tick value.")
+        )
+
+        return ticks[end]
+
+    end
+
+    return ticks[r25_idx]
+
+end
+
+"""
     computeTemperature(
         internal_energy::Vector{<:SpecificEnergy},
         electron_fraction::Vector{Float32},
