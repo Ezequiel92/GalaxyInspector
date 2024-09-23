@@ -1415,3 +1415,59 @@ function makeDataDict(
     )
 
 end
+
+"""
+    countSnapshot(simulation_path::String; warnings::Bool=true)::Int
+
+Count the number of snapshots in `simulation_path`.
+
+!!! note
+
+    This function count the number of snapshots, no the number of snapshot files. So if each snapshot is made of more than one files, the count will not change.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `warnings::Bool=true`: If a warning will be raised when no snapshot files or folders are found.
+
+# Returns
+
+  - The number of snapshots.
+"""
+function countSnapshot(simulation_path::String; warnings::Bool=true)::Int
+
+    (
+        isdir(simulation_path) ||
+        throw(ArgumentError("countSnapshot: $(simulation_path) does not exist as a directory"))
+    )
+
+    # Get the full list of paths to every snapshot in `simulation_path`
+    path_list = [
+        glob("*/*/$(SNAP_BASENAME)_*", simulation_path)
+        glob("*/$(SNAP_BASENAME)_*", simulation_path)
+        glob("$(SNAP_BASENAME)_*", simulation_path)
+    ]
+
+    # Check for an empty folder
+    if isempty(path_list)
+
+        (
+            !warnings ||
+            @warn("countSnapshot: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
+            within $(simulation_path), or any of its subfolders")
+        )
+
+        return 0
+
+    end
+
+    if readSnapHeader(first(path_list)).num_files > 1
+        # If there are multiple files per snapshot, get the path to the snapshot directory
+        map!(dirname, path_list, path_list)
+        # Delete duplicates
+        unique!(path_list)
+    end
+
+    return length(path_list)
+
+end

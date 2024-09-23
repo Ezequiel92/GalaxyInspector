@@ -187,7 +187,7 @@ function snapshotReport(
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
                 Dict(
-                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "DTIM", "TAUS", "ID  "],
+                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "CTIM", "TAUS", "ID  "],
                     :stars => ["ACIT", "PARZ", "RHOC", "ID  "],
                 ),
             ),
@@ -546,7 +546,17 @@ function snapshotReport(
         # Print the maximum and minimum values of each parameter of the ODEs
         ############################################################################################
 
-        quantities = ["ODIT", "ACIT", "DTIM", "TAUS", "RHOC", "PARZ", "ETAD", "ETAI", "PARR"]
+        quantities = [
+            "ODIT",
+            "ACIT",
+            "DTIM",
+            "TAUS",
+            "RHOC",
+            "PARZ",
+            "ETAD",
+            "ETAI",
+            "PARR",
+        ]
         names = [
             "integration time",
             "accumulated integration time",
@@ -6024,7 +6034,9 @@ end
 
 Plot the Kennicutt-Schmidt law.
 
-Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `rmax_gas` are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
+!!! note
+
+    Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `rmax_gas` are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
 
 # Arguments
 
@@ -6744,6 +6756,10 @@ end
 
 Plot the resolved Kennicutt-Schmidt relation with its linear fit.
 
+!!! note
+
+    Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `rmax_gas` are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
+
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
@@ -6755,6 +6771,7 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
       + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_mass`      -> Neutral mass surface density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
+  - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -6794,12 +6811,12 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-#TODO
 function fitResolvedKSLaw(
     simulation_path::String,
     slice::IndexType;
     quantity::Symbol=:molecular_mass,
     type::Symbol=:cells,
+    rmax_gas::Unitful.Length=DISK_R,
     x_range::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
@@ -6807,7 +6824,14 @@ function fitResolvedKSLaw(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(BOX_L, 300)
+    # Compute the number of bins in the low resolution grid (pixel size of ~ BIGIEL_PX_SIZE)
+    lr_n_bins = round(Int, uconvert(Unitful.NoUnits, BOX_L / BIGIEL_PX_SIZE))
+
+    # Compute the interger factor between the high resolution grid (~ 400px)
+    # and the low resolution grid (`lr_n_bins`px)
+    factor = 400 ÷ lr_n_bins
+
+    grid = CubicGrid(BOX_L, factor * lr_n_bins)
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
@@ -6868,7 +6892,7 @@ function fitResolvedKSLaw(
         pf_kwargs=[(; color=Makie.wong_colors()[1], markersize=6, marker=:circle)],
         # `plotSnapshot` configuration
         output_path,
-        base_filename="ks-law_fit",
+        base_filename="ks_law-fit",
         output_format=".png",
         warnings=false,
         show_progress=true,
@@ -6877,7 +6901,14 @@ function fitResolvedKSLaw(
         filter_function,
         da_functions=[daKennicuttSchmidtLaw],
         da_args=[(grid, quantity)],
-        da_kwargs=[(; type, filter_function=dd->filterStellarAge(dd))],
+        da_kwargs=[
+            (;
+                type,
+                reduce_factor=factor,
+                stellar_ff=dd->filterStellarAge(dd),
+                gas_ff=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero),
+            ),
+        ],
         post_processing=ppFitLine!,
         pp_args=(),
         pp_kwargs=(;),
@@ -6943,6 +6974,10 @@ end
 
 Plot the resolved mass-metallicity relation. This method plots the M-Z relation at a fix moment in time.
 
+!!! note
+
+    Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `DISK_R` are consider.
+
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
@@ -6984,7 +7019,6 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
-#TODO
 function resolvedMassMetallicityRelation(
     simulation_paths::Vector{String},
     slice::IndexType;
@@ -6996,7 +7030,7 @@ function resolvedMassMetallicityRelation(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(BOX_L, 300)
+    grid = CubicGrid(BOX_L, 400)
 
     (
         element ∈ [:all, keys(ELEMENT_INDEX)...] ||

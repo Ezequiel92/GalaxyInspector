@@ -146,7 +146,33 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
       + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_mass`      -> Neutral mass surface density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
-  - `filter_function::Function=filterNothing`: A function with the signature:
+  - `reduce_factor::Int=1`: Factor by which the grid resolution will be reduce after computing the density map. It has to divide the size of the grid exactly.
+  - `stellar_ff::Function=filterNothing`: Filter function for the stars. It has to be a function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+  - `gas_ff::Function=filterNothing`: Filter function for the gas. It has to be a function with the signature:
 
     `filter_function(data_dict) -> indices`
 
@@ -192,7 +218,9 @@ function daKennicuttSchmidtLaw(
     grid::CubicGrid,
     quantity::Symbol;
     type::Symbol=:cells,
-    filter_function::Function=filterNothing,
+    reduce_factor::Int=1,
+    stellar_ff::Function=filterNothing,
+    gas_ff::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Float64}},Nothing}
 
     (
@@ -201,6 +229,10 @@ function daKennicuttSchmidtLaw(
         :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
+    # Log factor to go from stellar surface density to SFR surface density
+    # log10(Σsfr) = log10(Σ*) - log10Δt
+    log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
+
     _, _, stellar_density = daDensity2DProjection(
         data_dict,
         grid,
@@ -208,7 +240,7 @@ function daKennicuttSchmidtLaw(
         :particles;
         projection_plane=:xy,
         print_range=false,
-        filter_function,
+        filter_function=stellar_ff,
     )
 
     _, _, gas_density = daDensity2DProjection(
@@ -218,22 +250,24 @@ function daKennicuttSchmidtLaw(
         type;
         projection_plane=:xy,
         print_range=false,
-        filter_function,
+        filter_function=gas_ff,
     )
 
-    x_axis = vec(gas_density)
-    y_axis = vec(stellar_density)
+    x_axis = vec(reduceResolution(gas_density, reduce_factor))
+    y_axis = vec(reduceResolution(stellar_density, reduce_factor))
 
     # Delete 0s and NaNs in the data vectors
     x_idxs = map(x -> isnan(x) || iszero(x), x_axis)
     y_idxs = map(x -> isnan(x) || iszero(x), y_axis)
 
-    deleteat!(x_axis, x_idxs ∪ y_idxs)
-    deleteat!(y_axis, x_idxs ∪ y_idxs)
+    delete_idxs = x_idxs ∪ y_idxs
+
+    deleteat!(x_axis, delete_idxs)
+    deleteat!(y_axis, delete_idxs)
 
     !any(isempty.([x_axis, y_axis])) || return nothing
 
-    return x_axis, y_axis .- log10(ustrip(u"yr", AGE_RESOLUTION))
+    return x_axis, y_axis .- log10Δt
 
 end
 
@@ -1029,106 +1063,6 @@ function daLineHistogram(
     norm_counts = isPositive(norm) ? counts ./ norm : counts ./ maximum(counts)
 
     return grid.grid, norm_counts
-
-end
-
-"""
-    daStellarCircHistogram(
-        data_dict::Dict,
-        quantity::Symbol,
-        grid::LinearGrid;
-        <keyword arguments>
-    )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
-
-Compute a 1D histogram of a given `quantity`.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `quantity::Symbol`: The possibilities are:
-
-      + `:stellar_circularity`        -> Stellar circularity.
-      + `:stellar_vcirc`              -> Stellar circular velocity.
-  - `grid::LinearGrid`: Linear grid.
-  - `filter_function::Function=filterNothing`: A function with the signature:
-
-    `filter_function(data_dict) -> indices`
-
-    where
-
-      + `data_dict::Dict`: A dictionary with the following shape:
-
-        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * ...
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * ...
-      + `indices::Dict`: A dictionary with the following shape:
-
-        * `cell/particle type` -> idxs::IndexType
-        * `cell/particle type` -> idxs::IndexType
-        * `cell/particle type` -> idxs::IndexType
-        * ...
-  - `norm::Int=1`: Number of count that will be use to normalize the histogram.
-
-# Returns
-
-  - A tuple with two elements:
-
-      + A vector with the value corresponding to each bin.
-      + A vector with the counts, normalized to the maximum value.
-"""
-function daStellarCircHistogram(
-    data_dict::Dict,
-    quantity::Symbol,
-    grid::LinearGrid;
-    filter_function::Function=filterNothing,
-    norm::Int=1,
-)::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
-
-    (
-        quantity ∈ [:stellar_circularity, :stellar_vcirc] ||
-        throw(ArgumentError("daCircularityHistogram: `quantity` can only be :stellar_vcirc \
-        or :stellar_circularity, but I got :$(quantity)"))
-    )
-
-    (
-        isPositive(norm) ||
-        throw(ArgumentError("daCircularityHistogram: `norm` must be a positive interger, \
-        but I got norm = $(norm)"))
-    )
-
-    # Compute the indices of the target stars
-    stellar_idxs = filter_function(data_dict)[:stars]
-
-    # Compute the values
-    values = scatterQty(data_dict, quantity)
-
-    # Return nothing if there are no stars before of after filtering
-    !(isempty(values) || isempty(values[stellar_idxs])) || return nothing
-
-    # Compute the quantity histogram
-    counts = histogram1D(values[stellar_idxs], grid)
-
-    return grid.grid, counts ./ norm
 
 end
 
