@@ -2952,7 +2952,7 @@ Plot a 2D histogram of the temperature.
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
-  - `type::Symbol=:cells`: Component type for the temperature fields. It can be either `:particles` or Voronoi `:cells`.
+  - `type::Symbol=:cells`: If the gas will be assumed to be in `:particles` or in Voronoi `:cells`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -4199,12 +4199,12 @@ Plot a time series.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
-      + `:gas_area_density`          -> Gas area mass density, for a radius of `DISK_R`.
-      + `:molecular_area_density`    -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
-      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
+      + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
+      + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
+      + `:br_molecular_area_density` -> Molecular mass surface density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_area_density`       -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
-      + `:neutral_area_density`      -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
@@ -4243,12 +4243,12 @@ Plot a time series.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
-      + `:gas_area_density`          -> Gas area mass density, for a radius of `DISK_R`.
-      + `:molecular_area_density`    -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
-      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
+      + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
+      + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
+      + `:br_molecular_area_density` -> Molecular mass surface density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_area_density`       -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
-      + `:neutral_area_density`      -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
@@ -5872,8 +5872,8 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_area_density`      -> Stellar area mass density.
-      + `:molecular_area_density`    -> Molecular hydrogen area mass density.
-      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006).
+      + `:molecular_area_density`    -> Molecular mass surface density.
+      + `:br_molecular_area_density` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_area_density`       -> Atomic hydrogen area mass density.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION`.
       + `:O_stellar_abundance`       -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
@@ -6024,7 +6024,7 @@ end
 
 Plot the Kennicutt-Schmidt law.
 
-Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius [`DISK_R`](@ref) are consider. The color scale is given by the metallicity at each pixel.
+Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `rmax_gas` are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
 
 # Arguments
 
@@ -6032,26 +6032,26 @@ Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within 
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`          -> Gas area mass density. This one can be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one can be plotted with the results of Bigiel et al. (2008).
-      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006). This one can be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one can be plotted with the results of Bigiel et al. (2008).
-  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
+      + `:gas_mass`          -> Gas mass surface density. This one can be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular mass surface density. This one can be plotted with the results of Bigiel et al. (2008).
+      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one can be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`      -> Neutral mass surface density. This one can be plotted with the results of Bigiel et al. (2008).
+  - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
   - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends, experimental measurements or several simulations at once.
-  - `integrated::Bool=false`: If the integrated (one point per galaxy) or resolved (several point per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = :scatter, the central value is computed with the weighted median, and the error bars are the median absolute deviation.
-  - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a pixel of the 2D projected galaxy) can be weighted by a gas quantity computed for each pixel. If `integrated` = true, the meadian will be computed with this weight in mind, if `integrated` = false, each point will have a color given by the weight. The options are:
+  - `integrated::Bool=false`: If the integrated (one point per galaxy) or resolved (several point per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = :scatter, the central value is the weighted median, and the error bars are the median absolute deviations.
+  - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a pixel of the 2D projected galaxy) can be weighted by a gas quantity. If `integrated` = true, the median will be computed with this weight in mind, if `integrated` = false, each point will have a color given by the weight. The posible weights are:
 
-      + `:gas_mass_density` -> Gas area mass density of each pixel. See the documentation for the function [`daDensity2DProjection`](@ref).
+      + `:gas_mass_density` -> Gas mass surface density of each pixel. See the documentation for the function [`daDensity2DProjection`](@ref).
       + `:gas_sfr`          -> The total gas SFR of the column associated with each pixel. See the documentation for the function [`daGasSFR2DProjection`](@ref).
       + `:gas_metallicity`  -> The total metallicity of the column associated with each pixel. See the documentation for the function [`daMetallicity2DProjection`](@ref).
       + `:temperature`      -> The mean gas temperature of the column associated with each pixel. See the documentation for the function [`daTemperature2DProjection`](@ref).
   - `measurements::Bool=true`: If the experimental fits from Kennicutt (1998) or Bigiel et al. (2008) will be plotted alongside the simulation results. The fits are plotted as a line with uncertanty bands.
-  - `rmax_gas::Unitful.Length=15.0u"kpc"`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
+  - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the heatmap grid. If set to `nothing`, the extrema of the values will be used. Only relevant if `plot_type` = :heatmap.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the values will be used. Only relevant if `plot_type` = :heatmap.
   - `n_bins::Int=100`: Number of bins per side of the heatmap grid. Only relevant if `plot_type` = :heatmap.
   - `colorbar::Bool=false`: If a colorbar will be added.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic color range.
+  - `print_range::Bool=false`: Print an info block detailing the color range.
   - `output_file::String="./kennicutt_schmidt_law.png"`: Path to the output file.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -6090,6 +6090,7 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
+#TODO
 function kennicuttSchmidtLaw(
     simulation_paths::Vector{String},
     slice::IndexType;
@@ -6099,7 +6100,7 @@ function kennicuttSchmidtLaw(
     integrated::Bool=false,
     gas_weights::Union{Symbol,Nothing}=nothing,
     measurements::Bool=true,
-    rmax_gas::Unitful.Length=15.0u"kpc",
+    rmax_gas::Unitful.Length=DISK_R,
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     n_bins::Int=100,
@@ -6769,11 +6770,11 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:br_molecular_mass` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
+      + `:gas_mass`          -> Gas mass surface density. This one will be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular mass surface density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`      -> Neutral mass surface density. This one will be plotted with the results of Bigiel et al. (2008).
+  - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -7318,7 +7319,7 @@ If there are no particles, the mass is 0, and the velocity and velocity dispersi
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::ReducedIndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13) or an `StepRange` (e.g. 5:2:13). Starts at 1.
-  - `type::Symbol=:cells`: If the gas will be assumed to be `:particles` or Voronoi `:cells`.
+  - `type::Symbol=:cells`: If the gas density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
   - `n_neighbors::Int=8`: Number of neighbors for the mean and standard deviation of the velocity. Setting this value to 1 maximizes the resolution for the velocity, and sets the standard deviation (columns 8, 9, and 10) to NaN.
   - `grid::CubicGrid=CubicGrid(BOX_L, 300)`: Cubic grid.
   - `output_file::String="./HI_cubes.hdf5"`: Path to the output HDF5 file.

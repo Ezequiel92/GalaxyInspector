@@ -2365,12 +2365,12 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
-      + `:gas_area_density`          -> Gas area mass density, for a radius of `DISK_R`.
-      + `:molecular_area_density`    -> Molecular hydrogen area mass density, for a radius of `DISK_R`.
-      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
+      + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
+      + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
+      + `:br_molecular_area_density` -> Molecular mass surface density, for a radius of `DISK_R`, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_area_density`       -> Atomic hydrogen area mass density, for a radius of `DISK_R`.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
-      + `:neutral_area_density`      -> Neutral hydrogen area mass density, for a radius of `DISK_R`.
+      + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).

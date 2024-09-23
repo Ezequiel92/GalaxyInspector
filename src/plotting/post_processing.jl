@@ -576,8 +576,8 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_area_density`      -> Stellar area mass density.
-      + `:molecular_area_density`    -> Molecular hydrogen area mass density.
-      + `:br_molecular_area_density` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006).
+      + `:molecular_area_density`    -> Molecular mass surface density.
+      + `:br_molecular_area_density` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_area_density`       -> Atomic hydrogen area mass density.
       + `:sfr_area_density`          -> Star formation rate area density.
       + `:X_stellar_abundance`       -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. ``\\mathrm{X}`` can be O (oxygen), N (nitrogen), or C (carbon).
