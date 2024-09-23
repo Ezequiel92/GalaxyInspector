@@ -372,7 +372,8 @@ Draw a line plot with the fit for the KS relation in Kennicutt (1998).
   - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
   - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{gas})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{gas}`` (`x_log` = false).
-  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
+  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}`` (`y_log` = false).
+  - `extend::Float64=0.0`: By default the y axis limits of the line will be the vertical range of point in the plot. This can be extended by the fraction `extend` of the vertical range.
   - `color::ColorType=Makie.wong_colors()[6]`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `linewidth::Int=3`: Line width.
@@ -395,6 +396,7 @@ function ppKennicutt1998!(
     y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2",
     x_log::Bool=true,
     y_log::Bool=true,
+    extend::Float64=0.0,
     color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
     linewidth::Int=3,
@@ -411,6 +413,16 @@ function ppKennicutt1998!(
 
     # Get the extrema of the y coordinates
     y_limits = [extrema(Float64[point[2] for point in points])...]
+
+    # Extend the y limits the required amount
+    if extend > 0.0
+
+        extension = (y_limits[2] - y_limits[1]) * extend
+
+        y_limits[1] -= extension
+        y_limits[2] += extension
+
+    end
 
     # Compute the extrema of the star formation area density
     if y_log
@@ -475,6 +487,7 @@ Draw a line plot with the fit for the KS relation in Bigiel et al. (2008).
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
   - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
   - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
+  - `extend::Float64=0.0`: By default the y axis limits of the line will be the vertical range of point in the plot. This can be extended by the fraction `extend` of the vertical range.
   - `color::ColorType=Makie.wong_colors()[6]`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `linewidth::Int=3`: Line width.
@@ -498,6 +511,7 @@ function ppBigiel2008!(
     y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2",
     x_log::Bool=true,
     y_log::Bool=true,
+    extend::Float64=0.0,
     color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
     linewidth::Int=3,
@@ -514,6 +528,16 @@ function ppBigiel2008!(
 
     # Get the extrema of the y coordinates
     y_limits = [extrema(Float64[point[2] for point in points])...]
+
+    # Extend the y limits the required amount
+    if extend > 0.0
+
+        extension = (y_limits[2] - y_limits[1]) * extend
+
+        y_limits[1] -= extension
+        y_limits[2] += extension
+
+    end
 
     # Compute the extrema of the star formation area density
     if y_log
