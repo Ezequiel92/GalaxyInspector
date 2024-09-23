@@ -6135,10 +6135,10 @@ function kennicuttSchmidtLaw(
 
         if plot_type == :heatmap
 
-            plot_type = :scatter
-
-            !warnings || @warn("kennicuttSchmidtLaw: If `integarted` is set to true, \
+            !warnings || @warn("kennicuttSchmidtLaw: If `integrated` is set to true, \
             `plot_type` = :heatmap will be ignored and default to :scatter.")
+
+            plot_type = :scatter
 
         end
 
@@ -6160,28 +6160,29 @@ function kennicuttSchmidtLaw(
 
         if !isnothing(gas_weights)
 
-            gas_weights = nothing
+            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, \
+            `gas_weights` = :$(gas_weights) will be ignored and default to nothing.")
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, `gas_weights` \
-            will default to nothing.")
+            gas_weights = nothing
 
         end
 
         if measurements
 
-            measurements = false
+            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, \
+            `measurements` = true will be ignored and default to false.")
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, `measurements` \
-            will default to false.")
+            measurements = false
 
         end
 
         if ns > 1
 
-            plot_type = :scatter
-
             !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, only one \
-            simulation can be plotted at a time. `plot_type` will default to :scatter.")
+            simulation at a time can be plotted, but I got length(simulation_paths) = $(ns) > 1. \
+            `plot_type` = :heatmap will be ignored and default to :scatter.")
+
+            plot_type = :scatter
 
         end
 
@@ -6191,13 +6192,14 @@ function kennicuttSchmidtLaw(
 
         if (plot_type == :scatter && isnothing(gas_weights)) || integrated
 
-            colorbar = false
-
             (
                 !warnings || @warn("kennicuttSchmidtLaw: `colorbar` is set to true, \
                 but there is no color range in the plot (either `plot_type` = :scatter and \
-                `gas_weights` = nothing or `integrated` = true).")
+                `gas_weights` = nothing or `integrated` = true). `colorbar` = true will be \
+                ignored and default to false")
             )
+
+            colorbar = false
 
         end
 
