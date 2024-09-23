@@ -2524,6 +2524,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `y_quantity`, if you want to use log10(`y_quantity`) for the y axis.
   - `total::Bool=true`: If the sum (default) or the mean of `z_quantity` will be used as the value of each pixel.
   - `n_bins::Int=100`: Number of bins per side of the grid.
+  - `print_range::Bool=false`: Print an info block detailing the color range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -2570,6 +2571,7 @@ function daScatterWeightedDensity(
     y_log::Union{Unitful.Units,Nothing}=nothing,
     total::Bool=true,
     n_bins::Int=100,
+    print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
@@ -2639,20 +2641,36 @@ function daScatterWeightedDensity(
     y_axis = collect(range(y_range[1] + y_bin_h_width; length=n_bins, step=2 * y_bin_h_width))
 
     # Compute the 2D histogram
-    values = ustrip.(z_unit, histogram2D(
+    values = log10.(ustrip.(z_unit, histogram2D(
         permutedims(hcat(x_values, y_values), (2, 1)),
         z_values,
         collect(range(x_range[1], x_range[2]; length=n_bins + 1)),
         collect(range(y_range[1], y_range[2]; length=n_bins + 1));
         total,
-    ))
+    )))
+
+    if print_range
+
+        # Compute the mininimum and maximum values
+        min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
+
+        # Print the color range
+        @info(
+            "\nColor range \
+            \n  Simulation:  $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:    $(filtered_dd[:snap_data].global_index) \
+            \n  Quantity:    $(z_quantity) \
+            \n  Color range: $(min_max)\n\n"
+        )
+
+    end
 
     # Set bins with a value of 0 to NaN
     replace!(x -> iszero(x) ? NaN : x, values)
 
     # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured,
     # and log10 is used to enhance the contrast
-    z_axis = reverse!(transpose(log10.(values)), dims=2)
+    z_axis = reverse!(transpose(values), dims=2)
 
     return x_axis, y_axis, z_axis
 

@@ -118,8 +118,8 @@ Some of the features are:
 
   - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_var_name` [10^`x_exp_factor` `x_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section arround `auto_label` is delimited with a `\$ \$` pair.
   - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` [10^`y_exp_factor` `y_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section arround `auto_label` is delimited with a `\$ \$` pair.
-  - `xaxis_var_name::AbstractString=""`: Name of the variable for the x axis.
-  - `yaxis_var_name::AbstractString=""`: Name of the variable for the y axis.
+  - `xaxis_var_name::AbstractString="x"`: Name of the variable for the x axis.
+  - `yaxis_var_name::AbstractString="y"`: Name of the variable for the y axis.
   - `xaxis_scale_func::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `yaxis_scale_func::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
 
@@ -180,8 +180,8 @@ function plotSnapshot(
     # Axes options
     xaxis_label::AbstractString="auto_label",
     yaxis_label::AbstractString="auto_label",
-    xaxis_var_name::AbstractString="",
-    yaxis_var_name::AbstractString="",
+    xaxis_var_name::AbstractString="x",
+    yaxis_var_name::AbstractString="y",
     xaxis_scale_func::Function=identity,
     yaxis_scale_func::Function=identity,
     # Plotting options
@@ -237,7 +237,7 @@ function plotSnapshot(
     set_theme!()
 
     # Construct a new theme
-    current_theme = merge(theme, theme_latexfonts(), DEFAULT_THEME)
+    current_theme = merge(theme, DEFAULT_THEME, theme_latexfonts())
 
     # Apply the new theme
     set_theme!(current_theme)
@@ -834,8 +834,8 @@ Some of the features are:
 
   - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_var_name` [10^`x_exp_factor` `x_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section arround `auto_label` is delimited with a `\$ \$` pair.
   - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` [10^`y_exp_factor` `y_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section arround `auto_label` is delimited with a `\$ \$` pair.
-  - `xaxis_var_name::AbstractString=""`: Name of the variable for the x axis.
-  - `yaxis_var_name::AbstractString=""`: Name of the variable for the y axis.
+  - `xaxis_var_name::AbstractString="x"`: Name of the variable for the x axis.
+  - `yaxis_var_name::AbstractString="y"`: Name of the variable for the y axis.
   - `xaxis_scale_func::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `yaxis_scale_func::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
 
@@ -882,8 +882,8 @@ function plotTimeSeries(
     # Axes options
     xaxis_label::AbstractString="auto_label",
     yaxis_label::AbstractString="auto_label",
-    xaxis_var_name::AbstractString="",
-    yaxis_var_name::AbstractString="",
+    xaxis_var_name::AbstractString="x",
+    yaxis_var_name::AbstractString="y",
     xaxis_scale_func::Function=identity,
     yaxis_scale_func::Function=identity,
     # Plotting options
@@ -904,9 +904,13 @@ function plotTimeSeries(
     # Set up the canvas for the figures.
     ################################################################################################
 
-    # Apply the global theme defined in `./src/constants/globals.jl`
-    current_theme = merge(theme, theme_latexfonts(), DEFAULT_THEME)
+    # Reset the current theme
     set_theme!()
+
+    # Construct a new theme
+    current_theme = merge(theme, DEFAULT_THEME, theme_latexfonts())
+
+    # Apply the new theme
     set_theme!(current_theme)
 
     # Create the figure

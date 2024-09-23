@@ -37,14 +37,13 @@ Characteristic box size used throughout the code.
 const BOX_L = 65.0u"kpc"
 
 """
-With `BOX_L` = 65.0 kpc, 430 bins gives pixels with a side length of ~ 151 pc, so we choose a resolution reduction factor of 5 to target a final pixel sizes of 151 pc * 5 = 755pc ~ 750 pc, as in Bigiel et al. (2008).
+Spatial resolution used in Bigiel et al. (2008).
 
 # References
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-const BIGIEL_N_BINS  = 348
-const BIGIEL_FACTOR  = 4
+const BIGIEL_PX_SIZE  = 750.0u"pc"
 
 """
 Characteristic stellar age limit for the SFR and sSFR calculations.

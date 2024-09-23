@@ -3579,6 +3579,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `colorbar::Bool=false`: If a colorbar will be added.
+  - `print_range::Bool=false`: Print an info block detailing the color range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function scatterDensityMap(
@@ -3600,6 +3601,7 @@ function scatterDensityMap(
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     colorbar::Bool=false,
+    print_range::Bool=false,
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -3682,7 +3684,18 @@ function scatterDensityMap(
             filter_function,
             da_functions=[daScatterWeightedDensity],
             da_args=[(x_quantity, y_quantity, z_quantity, z_unit)],
-            da_kwargs=[(; x_range, y_range, x_log, y_log, total, n_bins, filter_function=da_ff)],
+            da_kwargs=[
+                (;
+                    x_range,
+                    y_range,
+                    x_log,
+                    y_log,
+                    total,
+                    n_bins,
+                    print_range,
+                    filter_function=da_ff,
+                ),
+            ],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -4362,7 +4375,7 @@ function timeSeries(
         xaxis_scale_func=identity,
         yaxis_scale_func,
         # Plotting options
-        save_figures=true,
+        save_figures=!backup_results,
         backup_results,
         theme,
         sim_labels,
@@ -5833,10 +5846,7 @@ function compareFeldmann2020(
         # Plotting options
         save_figures=true,
         backup_results=false,
-        theme=merge(
-            theme,
-            Theme(size=(850, 850), Legend=(nbanks=1,)),
-        ),
+        theme=merge(theme, Theme(size=(850, 850), Legend=(nbanks=1,))),
         sim_labels,
         title="",
     )
@@ -6006,13 +6016,13 @@ function compareMolla2015(
 end
 
 """
-    resolvedKSLawZScatter(
+    kennicuttSchmidtLaw(
         simulation_paths::Vector{String},
         slice::IndexType;
         <keyword arguments>
     )::Nothing
 
-Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`. This method plots the KS relation at a fix moment in time.
+Plot the Kennicutt-Schmidt law.
 
 Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius [`DISK_R`](@ref) are consider. The color scale is given by the metallicity at each pixel.
 
@@ -6022,12 +6032,27 @@ Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within 
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
-      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_mass`          -> Gas area mass density. This one can be plotted with the results of Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one can be plotted with the results of Bigiel et al. (2008).
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006). This one can be plotted with the results of Bigiel et al. (2008).
+      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one can be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
-  - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
+  - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends, experimental measurements or several simulations at once.
+  - `integrated::Bool=false`: If the integrated (one point per galaxy) or resolved (several point per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = :scatter, the central value is computed with the weighted median, and the error bars are the median absolute deviation.
+  - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a pixel of the 2D projected galaxy) can be weighted by a gas quantity computed for each pixel. If `integrated` = true, the meadian will be computed with this weight in mind, if `integrated` = false, each point will have a color given by the weight. The options are:
+
+      + `:gas_mass_density` -> Gas area mass density of each pixel. See the documentation for the function [`daDensity2DProjection`](@ref).
+      + `:gas_sfr`          -> The total gas SFR of the column associated with each pixel. See the documentation for the function [`daGasSFR2DProjection`](@ref).
+      + `:gas_metallicity`  -> The total metallicity of the column associated with each pixel. See the documentation for the function [`daMetallicity2DProjection`](@ref).
+      + `:temperature`      -> The mean gas temperature of the column associated with each pixel. See the documentation for the function [`daTemperature2DProjection`](@ref).
+  - `measurements::Bool=true`: If the experimental fits from Kennicutt (1998) or Bigiel et al. (2008) will be plotted alongside the simulation results. The fits are plotted as a line with uncertanty bands.
+  - `rmax_gas::Unitful.Length=15.0u"kpc"`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
+  - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the heatmap grid. If set to `nothing`, the extrema of the values will be used. Only relevant if `plot_type` = :heatmap.
+  - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the values will be used. Only relevant if `plot_type` = :heatmap.
+  - `n_bins::Int=100`: Number of bins per side of the heatmap grid. Only relevant if `plot_type` = :heatmap.
+  - `colorbar::Bool=false`: If a colorbar will be added.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic color range.
+  - `output_file::String="./kennicutt_schmidt_law.png"`: Path to the output file.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -6065,458 +6090,231 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-#TODO
-function resolvedKSLawZScatter(
+function kennicuttSchmidtLaw(
     simulation_paths::Vector{String},
     slice::IndexType;
     quantity::Symbol=:molecular_mass,
     type::Symbol=:cells,
-    output_path::String="./resolvedKSLawZScatter",
+    plot_type::Symbol=:scatter,
+    integrated::Bool=false,
+    gas_weights::Union{Symbol,Nothing}=nothing,
+    measurements::Bool=true,
+    rmax_gas::Unitful.Length=15.0u"kpc",
+    x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
+    n_bins::Int=100,
+    colorbar::Bool=false,
+    print_range::Bool=false,
+    output_file::String="./kennicutt_schmidt_law.png",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    warnings::Bool=true,
     theme::Attributes=Theme(),
 )::Nothing
 
-    gas_grid = CubicGrid(BOX_L, BIGIEL_N_BINS)
-    stellar_grid = CubicGrid(BOX_L, BIGIEL_N_BINS ÷ BIGIEL_FACTOR)
+    ns = length(simulation_paths)
+
+    ################################################################################################
+    # Check arguments
+    ################################################################################################
 
     (
         quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
-        throw(ArgumentError("resolvedKSLawZScatter: `quantity` can only be :gas_mass, \
+        throw(ArgumentError("kennicuttSchmidtLaw: `quantity` can only be :gas_mass, \
         :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
-    # Set a temporal folder for the JLD2 files
-    temp_folder = joinpath(output_path, "_temp_jld2")
-
-    # For stars filter by age, for the gas filter by distance to the center
-    filters = [dd->filterStellarAge(dd), dd->filterWithinSphere(dd, (0.0u"kpc", 10.0u"kpc"), :zero)]
-
-    iterator = zip([:stellar_mass, quantity], [:particles, type], [stellar_grid, gas_grid], filters)
-
-    # Write the JLD2 files with the density maps
-    for (qty, type, grid, filter) in iterator
-
-        filter_function, translation, rotation, request = selectFilter(
-            filter_mode,
-            plotParams(qty).request,
-        )
-
-        plotSnapshot(
-            simulation_paths,
-            request,
-            [heatmap!];
-            pf_kwargs=[(;)],
-            # `plotSnapshot` configuration
-            output_path=temp_folder,
-            base_filename=string(qty),
-            output_format=".png",
-            warnings=false,
-            show_progress=true,
-            # Data manipulation options
-            slice,
-            filter_function,
-            da_functions=[daDensity2DProjection],
-            da_args=[(grid, qty, type)],
-            da_kwargs=[(; filter_function=filter)],
-            post_processing=getNothing,
-            pp_args=(),
-            pp_kwargs=(;),
-            transform_box=true,
-            translation,
-            rotation,
-            smooth=0,
-            x_unit=u"kpc",
-            y_unit=u"kpc",
-            x_exp_factor=0,
-            y_exp_factor=0,
-            x_trim=(-Inf, Inf),
-            y_trim=(-Inf, Inf),
-            x_edges=false,
-            y_edges=false,
-            x_func=identity,
-            y_func=identity,
-            # Axes options
-            xaxis_label="auto_label",
-            yaxis_label="auto_label",
-            xaxis_var_name="x",
-            yaxis_var_name="y",
-            xaxis_scale_func=identity,
-            yaxis_scale_func=identity,
-            # Plotting options
-            save_figures=false,
-            backup_results=true,
-            theme=Theme(),
-            sim_labels=nothing,
-            title="",
-            colorbar=false,
-            # Animation options
-            animation=false,
-            animation_filename="animation.mp4",
-            framerate=15,
-        )
-
-    end
-
-    filter_function, translation, rotation, request = selectFilter(
-        filter_mode,
-        mergeRequests(
-            plotParams(:gas_metallicity).request,
-            plotParams(:gas_mass_density).request,
-        ),
+    (
+        plot_type ∈ [:scatter, :heatmap] ||
+        throw(ArgumentError("kennicuttSchmidtLaw: `plot_type` can only be :scatter or :heatmap, \
+        but I got :$(plot_type)"))
     )
 
-    # Write the JLD2 file with the metallicity density
-    plotSnapshot(
-        simulation_paths,
-        request,
-        [heatmap!];
-        pf_kwargs=[(;)],
-        # `plotSnapshot` configuration
-        output_path=temp_folder,
-        base_filename="gas_metallicity",
-        output_format=".png",
-        warnings=false,
-        show_progress=true,
-        # Data manipulation options
-        slice,
-        filter_function,
-        da_functions=[daMetallicity2DProjection],
-        da_args=[(gas_grid, :gas, type)],
-        da_kwargs=[(; filter_function=filters[2])],
-        post_processing=getNothing,
-        pp_args=(),
-        pp_kwargs=(;),
-        transform_box=true,
-        translation,
-        rotation,
-        smooth=0,
-        x_unit=u"kpc",
-        y_unit=u"kpc",
-        x_exp_factor=0,
-        y_exp_factor=0,
-        x_trim=(-Inf, Inf),
-        y_trim=(-Inf, Inf),
-        x_edges=false,
-        y_edges=false,
-        x_func=identity,
-        y_func=identity,
-        # Axes options
-        xaxis_label="auto_label",
-        yaxis_label="auto_label",
-        xaxis_var_name="x",
-        yaxis_var_name="y",
-        xaxis_scale_func=identity,
-        yaxis_scale_func=identity,
-        # Plotting options
-        save_figures=false,
-        backup_results=true,
-        theme=Theme(),
-        sim_labels=nothing,
-        title="",
-        colorbar=false,
-        # Animation options
-        animation=false,
-        animation_filename="animation.mp4",
-        framerate=15,
-    )
+    if integrated
 
-    # Choose the correct x label
-    if quantity == :gas_mass
+        if plot_type == :heatmap
 
-        x_label = getLabel(
-            plotParams(:gas_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
+            plot_type = :scatter
 
-    elseif quantity == :molecular_mass
-
-        x_label = getLabel(
-            plotParams(:molecular_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    elseif quantity == :br_molecular_mass
-
-        x_label = getLabel(
-            plotParams(:br_molecular_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    elseif quantity == :neutral_mass
-
-        x_label = getLabel(
-            plotParams(:neutral_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    end
-
-    # Set the y label
-    y_label = getLabel(
-        plotParams(:sfr_area_density).var_name,
-        0,
-        u"Msun * yr^-1 * kpc^-2";
-        latex=true,
-    )
-
-    with_theme(merge(theme, theme_latexfonts(), DEFAULT_THEME)) do
-
-        for (sim_idx, simulation) in pairs(simulation_paths)
-
-            simulation_table = DataFrame(makeSimulationTable(simulation; warnings=false)[slice, :])
-            sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
-            times            = ustrip.(u"Gyr", simulation_table[!, :physical_times])
-            snapshot_numbers = simulation_table[!, :numbers]
-
-            for (time, snapshot_number) in zip(times, snapshot_numbers)
-
-                f = Figure()
-
-                ax = CairoMakie.Axis(
-                    f[1, 1];
-                    xlabel=L"$\log_{10}$ %$(x_label)",
-                    ylabel=L"$\log_{10}$ %$(y_label)",
-                    aspect=AxisAspect(1),
-                )
-
-                x_address = "$(quantity)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-                y_address = "stellar_mass-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-                z_address = "gas_metallicity-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-
-                jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r") do x_file
-
-                    jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r") do y_file
-
-                        jldopen(joinpath(temp_folder, "gas_metallicity.jld2"), "r") do z_file
-
-                            # Reduce resolution of the images with gas density
-                            x_data = vec(reduceResolution(x_file[x_address][3], BIGIEL_FACTOR))
-                            y_data = vec(y_file[y_address][3])
-                            z_data = vec(reduceResolution(z_file[z_address][3], BIGIEL_FACTOR))
-
-                            # Delete 0s and NaNs in the data vectors
-                            x_idxs = map(x -> isnan(x) || iszero(x), x_data)
-                            y_idxs = map(x -> isnan(x) || iszero(x), y_data)
-                            z_idxs = map(x -> isnan(x) || iszero(x), z_data)
-
-                            deleteat!(x_data, x_idxs ∪ y_idxs ∪ z_idxs)
-                            deleteat!(y_data, x_idxs ∪ y_idxs ∪ z_idxs)
-                            deleteat!(z_data, x_idxs ∪ y_idxs ∪ z_idxs)
-
-                            pf = scatter!(
-                                ax,
-                                x_data,
-                                y_data .- log10(ustrip(u"yr", AGE_RESOLUTION));
-                                markersize=6,
-                                color=z_data,
-                                colormap=:nipy_spectral,
-                            )
-
-                            # Print the colorbar
-                            Colorbar(
-                                f[1, 2],
-                                pf,
-                                label=L"$\log_{10}$ %$(plotParams(:gas_metallicity).var_name)",
-                                labelsize=25,
-                                ticklabelsize=25,
-                                labelpadding=4,
-                            )
-
-                        end
-
-                    end
-
-                end
-
-                ppAnnotation!(
-                    f,
-                    L"t = %$(rpad(round(time, sigdigits=3), 4, '0')) \, \mathrm{Gyr}",
-                    position=(0.08, 0.98),
-                    fontsize=28,
-                )
-
-                if quantity == :gas_mass
-
-                    pp_legend = ppKennicutt1998!(
-                        f;
-                        x_unit=u"Msun * kpc^-2",
-                        y_unit=u"Msun * yr^-1 * kpc^-2",
-                        x_log=true,
-                        y_log=true,
-                        color=Makie.wong_colors()[1],
-                        linestyle=nothing,
-                        linewidth=3,
-                        warnings=false,
-                    )
-
-                elseif quantity ∈ [:molecular_mass, :br_molecular_mass]
-
-                    pp_legend = ppBigiel2008!(
-                        f,
-                        true;
-                        x_unit=u"Msun * kpc^-2",
-                        y_unit=u"Msun * yr^-1 * kpc^-2",
-                        x_log=true,
-                        y_log=true,
-                        color=Makie.wong_colors()[1],
-                        linestyle=nothing,
-                        linewidth=3,
-                        warnings=false,
-                    )
-
-                elseif quantity == :neutral_mass
-
-                    pp_legend = ppBigiel2008!(
-                        f,
-                        false;
-                        x_unit=u"Msun * kpc^-2",
-                        y_unit=u"Msun * yr^-1 * kpc^-2",
-                        x_log=true,
-                        y_log=true,
-                        color=Makie.wong_colors()[1],
-                        linestyle=nothing,
-                        linewidth=3,
-                        warnings=false,
-                    )
-
-                end
-
-                if !isnothing(sim_labels)
-                    Makie.Legend(
-                        f[1, 1],
-                        [
-                            MarkerElement(; color=:gray40, marker=:circle, markersize=20),
-                            pp_legend[1],
-                        ],
-                        [sim_labels[sim_idx], pp_legend[2]],
-                        nbanks=1,
-                        labelsize=25,
-                        rowgap=-20,
-                        halign=:left,
-                        valign=:top,
-                        padding=(15, 0, 0, 30),
-                    )
-                end
-
-                rowsize!(f.layout, 1, Makie.Fixed(pixelarea(ax.scene)[].widths[2]))
-
-                path = mkpath(
-                    joinpath(output_path, basename(simulation), string(quantity)),
-                )
-
-                Makie.save(joinpath(path, "$(snapshot_number).png"), f)
-
-            end
+            !warnings || @warn("kennicuttSchmidtLaw: If `integarted` is set to true, \
+            `plot_type` = :heatmap will be ignored and default to :scatter.")
 
         end
 
     end
 
-    rm(temp_folder; recursive=true)
+    if !isnothing(sim_labels)
 
-end
+        nl = length(sim_labels)
 
-"""
-    resolvedKSLawZScatterAllTimes(
-        simulation_paths::Vector{String},
-        slice::IndexType;
-        <keyword arguments>
-    )::Nothing
+        (
+            ns == nl || throw(ArgumentError("kennicuttSchmidtLaw: `sim_labels` must have as many
+            elements as `simulation_paths`, but I got length(simulation_paths) = $(ns) \
+            != length(sim_labels) = $(nl)"))
+        )
 
-Plot the resolved Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`. This method plots the KS relation for all snapshot in `slice` together.
+    end
 
-Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius [`DISK_R`](@ref) are consider. The color scale is given by the metallicity at each pixel.
+    if plot_type == :heatmap
 
-# Arguments
+        if !isnothing(gas_weights)
 
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
+            gas_weights = nothing
 
-      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:br_molecular_mass` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
-  - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
-  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, `gas_weights` \
+            will default to nothing.")
 
-      + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
-      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
-      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-      + A dictionary with three entries:
+        end
 
-          + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+        if measurements
 
-              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
-              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
-              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+            measurements = false
 
-              + `:zero`                       -> No rotation is appplied.
-              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
-              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
-              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
-              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
-              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
-              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
-  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, `measurements` \
+            will default to false.")
 
-# References
+        end
 
-R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+        if ns > 1
 
-F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
-"""
-#TODO
-function resolvedKSLawZScatterAllTimes(
-    simulation_paths::Vector{String},
-    slice::IndexType;
-    quantity::Symbol=:molecular_mass,
-    type::Symbol=:cells,
-    output_path::String="./resolvedKSLawZScatter",
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
-    theme::Attributes=Theme(),
-)::Nothing
+            plot_type = :scatter
 
-    grid = CubicGrid(BOX_L, 300)
+            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, only one \
+            simulation can be plotted at a time. `plot_type` will default to :scatter.")
 
-    (
-        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
-        throw(ArgumentError("resolvedKSLawZScatter: `quantity` can only be :gas_mass, \
-        :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
+        end
+
+    end
+
+    if colorbar
+
+        if (plot_type == :scatter && isnothing(gas_weights)) || integrated
+
+            colorbar = false
+
+            (
+                !warnings || @warn("kennicuttSchmidtLaw: `colorbar` is set to true, \
+                but there is no color range in the plot (either `plot_type` = :scatter and \
+                `gas_weights` = nothing or `integrated` = true).")
+            )
+
+        end
+
+    end
+
+    ################################################################################################
+    # Compute grids
+    ################################################################################################
+
+    # Compute the number of bins in the low resolution grid (with a pixel size of ~ BIGIEL_PX_SIZE)
+    lr_n_bins = round(Int, uconvert(Unitful.NoUnits, BOX_L / BIGIEL_PX_SIZE))
+
+    # Compute the interger factor between the high resolution grid (~ 400px)
+    # and the low resolution grid (`lr_n_bins`px)
+    factor = 400 ÷ lr_n_bins
+
+    stellar_grid = CubicGrid(BOX_L, lr_n_bins)
+    gas_grid     = CubicGrid(BOX_L, factor * lr_n_bins)
+
+    ################################################################################################
+    # Compute the density maps and save them as JLD2 files
+    ################################################################################################
+
+    # Set a folder for the JLD2 files
+    temp_folder = joinpath(dirname(output_file), "_temp_jld2")
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        plotParams(:stellar_mass).request,
     )
 
-    # Set a temporal folder for the JLD2 files
-    temp_folder = joinpath(output_path, "_temp_jld2")
+    # Compute the stellar map
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [heatmap!];
+        pf_kwargs=[(;)],
+        output_path=temp_folder,
+        base_filename=string(:stellar_mass),
+        slice,
+        filter_function,
+        da_functions=[daDensity2DProjection],
+        da_args=[(stellar_grid, :stellar_mass, :particles)],
+        da_kwargs=[(; filter_function=dd->filterStellarAge(dd))],
+        transform_box=true,
+        translation,
+        rotation,
+        x_unit=u"kpc",
+        y_unit=u"kpc",
+        save_figures=false,
+        backup_results=true,
+    )
 
-    # For stars filter by age, for the gas filter by distance to the center
-    filters = [dd->filterStellarAge(dd), dd->filterWithinSphere(dd, (0.0u"kpc", DISK_R), :zero)]
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        plotParams(quantity).request,
+    )
 
-    # Write the JLD2 files with the density maps
-    for (qty, type, filter) in zip([:stellar_mass, quantity], [:particles, type], filters)
+    # Compute the `quantity` map
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [heatmap!];
+        pf_kwargs=[(;)],
+        output_path=temp_folder,
+        base_filename=string(quantity),
+        slice,
+        filter_function,
+        da_functions=[daDensity2DProjection],
+        da_args=[(gas_grid, quantity, type)],
+        da_kwargs=[(; filter_function=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero))],
+        transform_box=true,
+        translation,
+        rotation,
+        x_unit=u"kpc",
+        y_unit=u"kpc",
+        save_figures=false,
+        backup_results=true,
+    )
+
+    # Compute the weights map
+    if !isnothing(gas_weights)
+
+        if gas_weights == :gas_mass_density
+
+            da_function = daDensity2DProjection
+            da_args     = [(gas_grid, :gas_mass, type)]
+            c_label     = L"\log_{10} \, \Sigma_\mathrm{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
+
+        elseif gas_weights == :gas_sfr
+
+            da_function = daGasSFR2DProjection
+            da_args     = [(gas_grid, type)]
+            c_label     = L"\log_{10} \, \mathrm{SFR_{gas} \,\, [M_\odot \, yr^{-1}]}"
+
+        elseif gas_weights == :gas_metallicity
+
+            da_function = daMetallicity2DProjection
+            da_args     = [(gas_grid, :gas, type)]
+            c_label     = L"$\log_{10}$ %$(plotParams(:gas_metallicity).var_name)"
+
+        elseif gas_weights == :temperature
+
+            da_function = daTemperature2DProjection
+            da_args     = [(gas_grid, type)]
+            c_label     = plotParams(:temperature).axis_label
+
+        else
+
+            throw(ArgumentError("kennicuttSchmidtLaw: `gas_weights` can only be \
+            :gas_mass_density, :gas_sfr, :gas_metallicity or :temperature, but I got \
+            :$(gas_weights)"))
+
+        end
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,
-            plotParams(qty).request,
+            mergeRequests(plotParams(gas_weights).request, plotParams(:gas_mass_density).request),
         )
 
         plotSnapshot(
@@ -6524,168 +6322,92 @@ function resolvedKSLawZScatterAllTimes(
             request,
             [heatmap!];
             pf_kwargs=[(;)],
-            # `plotSnapshot` configuration
             output_path=temp_folder,
-            base_filename=string(qty),
-            output_format=".png",
-            warnings=false,
-            show_progress=true,
-            # Data manipulation options
+            base_filename="gas_weights",
             slice,
             filter_function,
-            da_functions=[daDensity2DProjection],
-            da_args=[(grid, qty, type)],
-            da_kwargs=[(; filter_function=filter)],
-            post_processing=getNothing,
-            pp_args=(),
-            pp_kwargs=(;),
+            da_functions=[da_function],
+            da_args,
+            da_kwargs=[
+                (;
+                    filter_function=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero),
+                    print_range,
+                ),
+            ],
             transform_box=true,
             translation,
             rotation,
-            smooth=0,
             x_unit=u"kpc",
             y_unit=u"kpc",
-            x_exp_factor=0,
-            y_exp_factor=0,
-            x_trim=(-Inf, Inf),
-            y_trim=(-Inf, Inf),
-            x_edges=false,
-            y_edges=false,
-            x_func=identity,
-            y_func=identity,
-            # Axes options
-            xaxis_label="auto_label",
-            yaxis_label="auto_label",
-            xaxis_var_name="x",
-            yaxis_var_name="y",
-            xaxis_scale_func=identity,
-            yaxis_scale_func=identity,
-            # Plotting options
             save_figures=false,
             backup_results=true,
-            theme=Theme(),
-            sim_labels=nothing,
-            title="",
-            colorbar=false,
-            # Animation options
-            animation=false,
-            animation_filename="animation.mp4",
-            framerate=15,
         )
 
     end
 
-    filter_function, translation, rotation, request = selectFilter(
-        filter_mode,
-        mergeRequests(
-            plotParams(:gas_metallicity).request,
-            plotParams(:gas_mass_density).request,
-        ),
-    )
-
-    # Write the JLD2 file with the metallicity density
-    plotSnapshot(
-        simulation_paths,
-        request,
-        [heatmap!];
-        pf_kwargs=[(;)],
-        # `plotSnapshot` configuration
-        output_path=temp_folder,
-        base_filename="gas_metallicity",
-        output_format=".png",
-        warnings=false,
-        show_progress=true,
-        # Data manipulation options
-        slice,
-        filter_function,
-        da_functions=[daMetallicity2DProjection],
-        da_args=[(grid, :gas, type)],
-        da_kwargs=[(; filter_function=filters[2])],
-        post_processing=getNothing,
-        pp_args=(),
-        pp_kwargs=(;),
-        transform_box=true,
-        translation,
-        rotation,
-        smooth=0,
-        x_unit=u"kpc",
-        y_unit=u"kpc",
-        x_exp_factor=0,
-        y_exp_factor=0,
-        x_trim=(-Inf, Inf),
-        y_trim=(-Inf, Inf),
-        x_edges=false,
-        y_edges=false,
-        x_func=identity,
-        y_func=identity,
-        # Axes options
-        xaxis_label="auto_label",
-        yaxis_label="auto_label",
-        xaxis_var_name="x",
-        yaxis_var_name="y",
-        xaxis_scale_func=identity,
-        yaxis_scale_func=identity,
-        # Plotting options
-        save_figures=false,
-        backup_results=true,
-        theme=Theme(),
-        sim_labels=nothing,
-        title="",
-        colorbar=false,
-        # Animation options
-        animation=false,
-        animation_filename="animation.mp4",
-        framerate=15,
-    )
+    ################################################################################################
+    # Set the axis labels
+    ################################################################################################
 
     # Choose the correct x label
     if quantity == :gas_mass
 
-        x_label = getLabel(
-            plotParams(:gas_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
+        x_label = getLabel(plotParams(:gas_area_density).var_name, 0, u"Msun * kpc^-2")
 
     elseif quantity == :molecular_mass
 
-        x_label = getLabel(
-            plotParams(:molecular_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
+        x_label = getLabel(plotParams(:molecular_area_density).var_name, 0, u"Msun * kpc^-2")
 
     elseif quantity == :br_molecular_mass
 
-        x_label = getLabel(
-            plotParams(:br_molecular_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
+        x_label = getLabel(plotParams(:br_molecular_area_density).var_name, 0, u"Msun * kpc^-2")
 
     elseif quantity == :neutral_mass
 
-        x_label = getLabel(
-            plotParams(:neutral_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
+        x_label = getLabel(plotParams(:neutral_area_density).var_name, 0, u"Msun * kpc^-2")
 
     end
 
     # Set the y label
-    y_label = getLabel(
-        plotParams(:sfr_area_density).var_name,
-        0,
-        u"Msun * yr^-1 * kpc^-2";
-        latex=true,
+    y_label = getLabel(plotParams(:sfr_area_density).var_name, 0, u"Msun * yr^-1 * kpc^-2")
+
+    ################################################################################################
+    # Read and plot the data
+    ################################################################################################
+
+    # Log factor to go from stellar surface density to SFR surface density
+    # log10(Σsfr) = log10(Σ*) - log10Δt
+    log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
+
+    # Set the plot theme
+    current_theme = merge(
+        theme,
+        Theme(
+            Legend=(
+                nbanks=1,
+                labelsize=25,
+                rowgap=-15,
+                halign=:left,
+                valign=:top,
+                padding=(15, 0, 0, 0),
+            ),
+        ),
+        DEFAULT_THEME,
+        theme_latexfonts(),
     )
 
-    with_theme(merge(theme, theme_latexfonts(), DEFAULT_THEME)) do
+    with_theme(current_theme) do
+
+        f = Figure()
+
+        ax = CairoMakie.Axis(
+            f[1, 1];
+            xlabel=L"$\log_{10}$ %$(x_label)",
+            ylabel=L"$\log_{10}$ %$(y_label)",
+            aspect=AxisAspect(1),
+        )
+
+        colors = current_theme[:palette][:color][][2:(ns + 1)]
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
@@ -6693,45 +6415,131 @@ function resolvedKSLawZScatterAllTimes(
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
             snapshot_numbers = simulation_table[!, :numbers]
 
-            f = Figure()
-
-            ax = CairoMakie.Axis(
-                f[1, 1];
-                xlabel=L"$\log_{10}$ %$(x_label)",
-                ylabel=L"$\log_{10}$ %$(y_label)",
-                aspect=AxisAspect(1),
-            )
+            # Allocate memory for the heatmap
+            if plot_type == :heatmap
+                x_heatmap = Float64[]
+                y_heatmap = Float64[]
+            end
 
             for snapshot_number in snapshot_numbers
 
+                ####################################################################################
+                # Read the JLD2 files and sanitize the data
+                ####################################################################################
+
                 x_address = "$(quantity)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                x_file    = jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r")
+                x_data    = vec(reduceResolution(x_file[x_address][3], factor))
+                x_idxs    = map(x -> isnan(x) || iszero(x), x_data)
+
                 y_address = "stellar_mass-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-                z_address = "gas_metallicity-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                y_file    = jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r")
+                y_data    = vec(y_file[y_address][3])
+                y_idxs    = map(x -> isnan(x) || iszero(x), y_data)
 
-                jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r") do x_file
+                delete_idxs = x_idxs ∪ y_idxs
 
-                    jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r") do y_file
+                if !isnothing(gas_weights)
 
-                        jldopen(joinpath(temp_folder, "gas_metallicity.jld2"), "r") do z_file
+                    z_address = "gas_weights-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                    z_file    = jldopen(joinpath(temp_folder, "gas_weights.jld2"), "r")
+                    z_data    = vec(reduceResolution(z_file[z_address][3], factor))
+                    z_idxs    = map(x -> isnan(x) || iszero(x), z_data)
 
-                            # Read the JLD2 files
-                            x_data = vec(x_file[x_address][3])
-                            y_data = vec(y_file[y_address][3])
-                            z_data = vec(z_file[z_address][3])
+                    delete_idxs = delete_idxs ∪ z_idxs
 
-                            # Delete 0s and NaNs in the data vectors
-                            x_idxs = map(x -> isnan(x) || iszero(x), x_data)
-                            y_idxs = map(x -> isnan(x) || iszero(x), y_data)
-                            z_idxs = map(x -> isnan(x) || iszero(x), z_data)
+                    deleteat!(z_data, delete_idxs)
 
-                            deleteat!(x_data, x_idxs ∪ y_idxs ∪ z_idxs)
-                            deleteat!(y_data, x_idxs ∪ y_idxs ∪ z_idxs)
-                            deleteat!(z_data, x_idxs ∪ y_idxs ∪ z_idxs)
+                end
+
+                deleteat!(x_data, delete_idxs)
+                deleteat!(y_data, delete_idxs)
+                y_data .-= log10Δt
+
+                if integrated
+
+                    lin_x = exp10.(x_data)
+                    lin_y = exp10.(y_data)
+
+                    if !isnothing(gas_weights)
+
+                        w_z = weights(exp10.(z_data))
+
+                        μx = median(lin_x, w_z)
+                        μy = median(lin_y, w_z)
+
+                    else
+
+                        μx = median(lin_x)
+                        μy = median(lin_y)
+
+                    end
+
+                    σx = mad(lin_x; center=μx, normalize=false)
+                    σy = mad(lin_y; center=μy, normalize=false)
+
+                    x_data = [log10(μx ± σx)]
+                    y_data = [log10(μy ± σy)]
+
+                end
+
+                if plot_type == :heatmap
+
+                    append!(x_heatmap, x_data)
+                    append!(y_heatmap, y_data)
+
+                end
+
+                close(x_file)
+                close(y_file)
+                isnothing(gas_weights) || close(z_file)
+
+                ####################################################################################
+                # Plot the Kennicutt-Schmidt law
+                ####################################################################################
+
+                if  plot_type == :scatter
+
+                    if integrated
+
+                        scatter!(
+                            ax,
+                            Measurements.value.(x_data),
+                            Measurements.value.(y_data);
+                            color=colors[sim_idx],
+                            markersize=15,
+                        )
+
+                        errorbars!(
+                            ax,
+                            Measurements.value.(x_data),
+                            Measurements.value.(y_data),
+                            Measurements.uncertainty.(y_data);
+                            color=colors[sim_idx],
+                            direction=:y,
+                        )
+
+                        errorbars!(
+                            ax,
+                            Measurements.value.(x_data),
+                            Measurements.value.(y_data),
+                            Measurements.uncertainty.(x_data);
+                            color=colors[sim_idx],
+                            direction=:x,
+                        )
+
+                    else
+
+                        if isnothing(gas_weights)
+
+                            scatter!(ax, x_data, y_data; color=colors[sim_idx], markersize=6)
+
+                        else
 
                             scatter!(
                                 ax,
                                 x_data,
-                                y_data .- log10(ustrip(u"yr", AGE_RESOLUTION));
+                                y_data;
                                 markersize=6,
                                 color=z_data,
                                 colormap=:nipy_spectral,
@@ -6745,15 +6553,108 @@ function resolvedKSLawZScatterAllTimes(
 
             end
 
-            # Print the colorbar
-            Colorbar(
-                f[1, 2],
-                label=L"$\log_{10}$ %$(plotParams(:gas_metallicity).var_name)",
-                labelsize=25,
-                ticklabelsize=25,
-                labelpadding=4,
-                colormap=:nipy_spectral,
-            )
+            if plot_type == :heatmap
+
+                # If there is no range specified, use the extrema of the x values
+                if isnothing(x_range)
+                    xrange = extrema(x_heatmap)
+                else
+                    xrange = x_range
+                end
+
+                # If there is no range specified, use the extrema of the y values
+                if isnothing(y_range)
+                    yrange = extrema(y_heatmap)
+                else
+                    yrange = y_range
+                end
+
+                # Compute the bin half width for each axis
+                x_bin_h_width = 0.5 * (xrange[2] - xrange[1]) / n_bins
+                y_bin_h_width = 0.5 * (yrange[2] - yrange[1]) / n_bins
+
+                # Compute the center value of each bin for each axis
+                x_axis = collect(
+                    range(
+                        xrange[1] + x_bin_h_width;
+                        length=n_bins,
+                        step=2 * x_bin_h_width,
+                    ),
+                )
+                y_axis = collect(
+                    range(
+                        yrange[1] + y_bin_h_width;
+                        length=n_bins,
+                        step=2 * y_bin_h_width,
+                    ),
+                )
+
+                # Compute the 2D histogram
+                values = Float64.(histogram2D(
+                    permutedims(hcat(x_heatmap, y_heatmap), (2, 1)),
+                    collect(range(xrange[1], xrange[2]; length=n_bins + 1)),
+                    collect(range(yrange[1], yrange[2]; length=n_bins + 1));
+                ))
+
+                # Set bins with a value of 0 to NaN
+                replace!(x -> iszero(x) ? NaN : x, values)
+
+                # The transpose and reverse operation are to conform to the way heatmap!
+                # expect the matrix to be structured, and log10 is used to enhance the contrast
+                z_axis = reverse!(transpose(log10.(values)), dims=2)
+
+                heatmap!(
+                    ax,
+                    x_axis,
+                    y_axis,
+                    z_axis;
+                    colormap=:nipy_spectral,
+                )
+
+                if print_range
+
+                    # Compute the mininimum and maximum of `z_axis`
+                    min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
+
+                    # Print the count range
+                    @info(
+                        "\nCount range \
+                        \n  Simulation:    $(basename(simulation)) \
+                        \n  Quantity:      $(quantity) \
+                        \n  log₁₀(counts): $(min_max)\n\n"
+                    )
+
+                end
+
+            end
+
+        end
+
+        ############################################################################################
+        # Plot the experimental mesurements and the legend
+        ############################################################################################
+
+        if !isnothing(sim_labels) && plot_type == :scatter
+
+            if !isnothing(gas_weights) && !integrated
+
+                markers = [
+                    MarkerElement(; color=:gray40, marker=:circle, markersize=20) for
+                    _ in eachindex(sim_labels)
+                ]
+
+            else
+
+                markers = [
+                    MarkerElement(; color, marker=:circle, markersize=20) for
+                    color in colors
+                ]
+
+            end
+
+        end
+
+        if measurements
 
             if quantity == :gas_mass
 
@@ -6801,799 +6702,55 @@ function resolvedKSLawZScatterAllTimes(
 
             end
 
-            if !isnothing(sim_labels)
-                Makie.Legend(
-                    f[1, 1],
-                    [
-                        MarkerElement(; color=:gray40, marker=:circle, markersize=20),
-                        pp_legend[1],
-                    ],
-                    [sim_labels[sim_idx], pp_legend[2]],
-                    nbanks=1,
-                    labelsize=25,
-                    rowgap=-20,
-                    halign=:left,
-                    valign=:top,
-                    padding=(15, 0, 0, 10),
-                )
+            if !isnothing(sim_labels) && plot_type == :scatter
+
+                Makie.Legend(f[1, 1], [markers..., pp_legend[1]], [sim_labels..., pp_legend[2]])
+
+            end
+
+        else
+
+            if !isnothing(sim_labels) && plot_type == :scatter
+
+                Makie.Legend(f[1, 1], markers, sim_labels)
+
+            end
+
+        end
+
+        if !isnothing(sim_labels) && plot_type == :heatmap
+
+            ppAnnotation!(f, sim_labels[1]; position=(0.04, 0.98), color=:white, fontsize=30)
+
+        end
+
+        ############################################################################################
+        # Print the colorbar
+        ############################################################################################
+
+        if colorbar
+
+            if plot_type == :heatmap
+                Colorbar(f[1, 2]; label=L"\log_{10} \, \mathrm{count}", colormap=:nipy_spectral)
+            else
+                Colorbar(f[1, 2]; label=c_label, colormap=:nipy_spectral)
             end
 
             rowsize!(f.layout, 1, Makie.Fixed(pixelarea(ax.scene)[].widths[2]))
 
-            path = mkpath(joinpath(output_path, basename(simulation)))
-
-            Makie.save(joinpath(path, "$(string(quantity)).png"), f)
-
         end
+
+        ############################################################################################
+        # Save the plot
+        ############################################################################################
+
+        Makie.save(output_file, f)
 
     end
 
     rm(temp_folder; recursive=true)
 
-end
-
-"""
-    resolvedKSLawHeatmap(
-        simulation_paths::Vector{String},
-        slice::IndexType;
-        <keyword arguments>
-    )::Nothing
-
-Plot the resolved Kennicutt-Schmidt relation as a heatmap, for a given `quantity`. This method plots the KS relation at a fix moment in time.
-
-Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius [`DISK_R`](@ref) are consider. The color scale is given by the metallicity at each pixel.
-
-# Arguments
-
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
-
-      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:br_molecular_mass` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
-  - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the grid. If set to `nothing`, the extrema of the values will be used.
-  - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the grid. If set to `nothing`, the extrema of the values will be used.
-  - `n_bins::Int=100`: Number of bins per side of the grid.
-  - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
-  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
-
-      + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
-      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
-      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-      + A dictionary with three entries:
-
-          + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
-
-              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
-              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
-              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
-
-              + `:zero`                       -> No rotation is appplied.
-              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
-              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
-              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
-              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
-              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
-              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic counts range.
-  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-"""
-#TODO
-function resolvedKSLawHeatmap(
-    simulation_paths::Vector{String},
-    slice::IndexType;
-    quantity::Symbol=:molecular_mass,
-    type::Symbol=:cells,
-    x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
-    y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
-    n_bins::Int=100,
-    output_path::String="./resolvedKSLawHeatmap",
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    print_range::Bool=false,
-    theme::Attributes=Theme(),
-)::Nothing
-
-    grid = CubicGrid(BOX_L, 300)
-
-    (
-        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
-        throw(ArgumentError("resolvedKSLawHeatmap: `quantity` can only be :gas_mass, \
-        :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
-    )
-
-    # Set a temporal folder for the JLD2 files
-    temp_folder = joinpath(output_path, "_temp_jld2")
-
-    # For stars filter by age, for the gas filter by distance to the center
-    filters = [dd->filterStellarAge(dd), dd->filterWithinSphere(dd, (0.0u"kpc", DISK_R), :zero)]
-
-    # Write the JLD2 files with the density maps
-    for (qty, type, filter) in zip([:stellar_mass, quantity], [:particles, type], filters)
-
-        filter_function, translation, rotation, request = selectFilter(
-            filter_mode,
-            plotParams(qty).request,
-        )
-
-        plotSnapshot(
-            simulation_paths,
-            request,
-            [heatmap!];
-            pf_kwargs=[(;)],
-            # `plotSnapshot` configuration
-            output_path=temp_folder,
-            base_filename=string(qty),
-            output_format=".png",
-            warnings=false,
-            show_progress=true,
-            # Data manipulation options
-            slice,
-            filter_function,
-            da_functions=[daDensity2DProjection],
-            da_args=[(grid, qty, type)],
-            da_kwargs=[(; filter_function=filter)],
-            post_processing=getNothing,
-            pp_args=(),
-            pp_kwargs=(;),
-            transform_box=true,
-            translation,
-            rotation,
-            smooth=0,
-            x_unit=u"kpc",
-            y_unit=u"kpc",
-            x_exp_factor=0,
-            y_exp_factor=0,
-            x_trim=(-Inf, Inf),
-            y_trim=(-Inf, Inf),
-            x_edges=false,
-            y_edges=false,
-            x_func=identity,
-            y_func=identity,
-            # Axes options
-            xaxis_label="auto_label",
-            yaxis_label="auto_label",
-            xaxis_var_name="x",
-            yaxis_var_name="y",
-            xaxis_scale_func=identity,
-            yaxis_scale_func=identity,
-            # Plotting options
-            save_figures=false,
-            backup_results=true,
-            theme=Theme(),
-            sim_labels=nothing,
-            title="",
-            colorbar=false,
-            # Animation options
-            animation=false,
-            animation_filename="animation.mp4",
-            framerate=15,
-        )
-
-    end
-
-    filter_function, translation, rotation, request = selectFilter(
-        filter_mode,
-        mergeRequests(
-            plotParams(:gas_metallicity).request,
-            plotParams(:gas_mass_density).request,
-        ),
-    )
-
-    # Write the JLD2 file with the metallicity density
-    plotSnapshot(
-        simulation_paths,
-        request,
-        [heatmap!];
-        pf_kwargs=[(;)],
-        # `plotSnapshot` configuration
-        output_path=temp_folder,
-        base_filename="gas_metallicity",
-        output_format=".png",
-        warnings=false,
-        show_progress=true,
-        # Data manipulation options
-        slice,
-        filter_function,
-        da_functions=[daMetallicity2DProjection],
-        da_args=[(grid, :gas, type)],
-        da_kwargs=[(; filter_function=filters[2])],
-        post_processing=getNothing,
-        pp_args=(),
-        pp_kwargs=(;),
-        transform_box=true,
-        translation,
-        rotation,
-        smooth=0,
-        x_unit=u"kpc",
-        y_unit=u"kpc",
-        x_exp_factor=0,
-        y_exp_factor=0,
-        x_trim=(-Inf, Inf),
-        y_trim=(-Inf, Inf),
-        x_edges=false,
-        y_edges=false,
-        x_func=identity,
-        y_func=identity,
-        # Axes options
-        xaxis_label="auto_label",
-        yaxis_label="auto_label",
-        xaxis_var_name="x",
-        yaxis_var_name="y",
-        xaxis_scale_func=identity,
-        yaxis_scale_func=identity,
-        # Plotting options
-        save_figures=false,
-        backup_results=true,
-        theme=Theme(),
-        sim_labels=nothing,
-        title="",
-        colorbar=false,
-        # Animation options
-        animation=false,
-        animation_filename="animation.mp4",
-        framerate=15,
-    )
-
-    # Choose the correct x label
-    if quantity == :gas_mass
-
-        x_label = getLabel(
-            plotParams(:gas_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    elseif quantity == :molecular_mass
-
-        x_label = getLabel(
-            plotParams(:molecular_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    elseif quantity == :br_molecular_mass
-
-        x_label = getLabel(
-            plotParams(:br_molecular_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    elseif quantity == :neutral_mass
-
-        x_label = getLabel(
-            plotParams(:neutral_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    end
-
-    # Set the y label
-    y_label = getLabel(
-        plotParams(:sfr_area_density).var_name,
-        0,
-        u"Msun * yr^-1 * kpc^-2";
-        latex=true,
-    )
-
-    with_theme(merge(theme, theme_latexfonts(), DEFAULT_THEME)) do
-
-        for (sim_idx, simulation) in pairs(simulation_paths)
-
-            simulation_table = DataFrame(makeSimulationTable(simulation; warnings=false)[slice, :])
-            sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
-            times            = ustrip.(u"Gyr", simulation_table[!, :physical_times])
-            snapshot_numbers = simulation_table[!, :numbers]
-
-            for (time, snapshot_number) in zip(times, snapshot_numbers)
-
-                f = Figure()
-
-                ax = CairoMakie.Axis(
-                    f[1, 1];
-                    xlabel=L"$\log_{10}$ %$(x_label)",
-                    ylabel=L"$\log_{10}$ %$(y_label)",
-                    aspect=AxisAspect(1),
-                )
-
-                x_address = "$(quantity)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-                y_address = "stellar_mass-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-                z_address = "gas_metallicity-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-
-                jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r") do x_file
-
-                    jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r") do y_file
-
-                        jldopen(joinpath(temp_folder, "gas_metallicity.jld2"), "r") do z_file
-
-                            # Read the JLD2 files
-                            x_data = vec(x_file[x_address][3])
-                            y_data = vec(y_file[y_address][3])
-                            z_data = vec(z_file[z_address][3])
-
-                            # Delete 0s and NaNs in the data vectors
-                            x_idxs = map(x -> isnan(x) || iszero(x), x_data)
-                            y_idxs = map(x -> isnan(x) || iszero(x), y_data)
-                            z_idxs = map(x -> isnan(x) || iszero(x), z_data)
-
-                            deleteat!(x_data, x_idxs ∪ y_idxs ∪ z_idxs)
-                            deleteat!(y_data, x_idxs ∪ y_idxs ∪ z_idxs)
-                            deleteat!(z_data, x_idxs ∪ y_idxs ∪ z_idxs)
-
-                            y_data = y_data .- log10(ustrip(u"yr", AGE_RESOLUTION))
-
-                            # If there is no range specified, use the extrema of the x values
-                            if isnothing(x_range)
-                                xrange = extrema(x_data)
-                            else
-                                xrange = x_range
-                            end
-
-                            # If there is no range specified, use the extrema of the y values
-                            if isnothing(y_range)
-                                yrange = extrema(y_data)
-                            else
-                                yrange = y_range
-                            end
-
-                            # Compute the bin half width for each axis
-                            x_bin_h_width = 0.5 * (xrange[2] - xrange[1]) / n_bins
-                            y_bin_h_width = 0.5 * (yrange[2] - yrange[1]) / n_bins
-
-                            # Compute the center value of each bin for each axis
-                            x_axis = collect(
-                                range(
-                                    xrange[1] + x_bin_h_width;
-                                    length=n_bins,
-                                    step=2 * x_bin_h_width,
-                                ),
-                            )
-                            y_axis = collect(
-                                range(
-                                    yrange[1] + y_bin_h_width;
-                                    length=n_bins,
-                                    step=2 * y_bin_h_width,
-                                ),
-                            )
-
-                            # Compute the 2D histogram
-                            values = Float64.(histogram2D(
-                                permutedims(hcat(x_data, y_data), (2, 1)),
-                                collect(range(xrange[1], xrange[2]; length=n_bins + 1)),
-                                collect(range(yrange[1], yrange[2]; length=n_bins + 1));
-                            ))
-
-                            # Set bins with a value of 0 to NaN
-                            replace!(x -> iszero(x) ? NaN : x, values)
-
-                            # The transpose and reverse operation are to conform to the way heatmap!
-                            # expect the matrix to be structured, and log10 is used to enhance the contrast
-                            z_axis = reverse!(transpose(log10.(values)), dims=2)
-
-                            if print_range
-
-                                # Compute the mininimum and maximum of `z_axis`
-                                min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
-
-                                # Print the counts range
-                                @info(
-                                    "\nCounts range \
-                                    \n  Simulation:    $(basename(simulation)) \
-                                    \n  Snapshot:      $(snapshot_number) \
-                                    \n  Quantity:      $(quantity) \
-                                    \n  log₁₀(counts): $(min_max)\n\n"
-                                )
-
-                            end
-
-                            pf = heatmap!(
-                                ax,
-                                x_axis,
-                                y_axis,
-                                z_axis;
-                                colormap=:nipy_spectral,
-                            )
-
-                        end
-
-                    end
-
-                end
-
-                ppAnnotation!(
-                    f,
-                    L"t = %$(rpad(round(time, sigdigits=3), 4, '0')) \, \mathrm{Gyr}",
-                    position=(0.04, 0.98),
-                    fontsize=28,
-                    color=:white,
-                )
-
-                rowsize!(f.layout, 1, Makie.Fixed(pixelarea(ax.scene)[].widths[2]))
-
-                path = mkpath(
-                    joinpath(output_path, basename(simulation), string(quantity)),
-                )
-
-                Makie.save(joinpath(path, "$(snapshot_number).png"), f)
-
-            end
-
-        end
-
-    end
-
-    rm(temp_folder; recursive=true)
-
-end
-
-"""
-    integratedKSLaw(
-        simulation_paths::Vector{String},
-        slice::IndexType;
-        <keyword arguments>
-    )::Nothing
-
-Plot the integarted Kennicutt-Schmidt relation plus the results of Kennicutt (1998) or Bigiel et al. (2008), depending on the chosen `quantity`. This method plots the KS relation for the whole galaxy at different points in time.
-
-Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius [`DISK_R`](@ref) are consider.
-
-# Arguments
-
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
-
-      + `:gas_mass`          -> Gas area mass density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass`    -> Molecular hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:br_molecular_mass` -> Molecular hydrogen area mass density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`      -> Neutral hydrogen area mass density. This one will be plotted with the results of Bigiel et al. (2008).
-  - `type::Symbol=:cells`: If the density in the x axis will be calculated assuming gas as `:particles` or Voronoi `:cells`.
-  - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
-  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
-
-      + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
-      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
-      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-      + A dictionary with three entries:
-
-          + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
-
-              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
-              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
-              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
-
-              + `:zero`                       -> No rotation is appplied.
-              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
-              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
-              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
-              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
-              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
-              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
-  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-
-# References
-
-R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
-
-F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
-"""
-#TODO
-function integratedKSLaw(
-    simulation_paths::Vector{String},
-    slice::IndexType;
-    quantity::Symbol=:molecular_mass,
-    type::Symbol=:cells,
-    output_path::String="./integratedKSLaw",
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
-    theme::Attributes=Theme(),
-)::Nothing
-
-    grid = CubicGrid(BOX_L, 300)
-
-    (
-        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
-        throw(ArgumentError("integratedKSLaw: `quantity` can only be :gas_mass, \
-        :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
-    )
-
-    # Set a temporal folder for the JLD2 files
-    temp_folder = joinpath(output_path, "_temp_jld2")
-
-    # For stars filter by age, for the gas filter by distance to the center
-    filters = [dd->filterStellarAge(dd), dd->filterWithinSphere(dd, (0.0u"kpc", DISK_R), :zero)]
-
-    # Write the JLD2 files with the density maps
-    for (qty, type, filter) in zip([:stellar_mass, quantity], [:particles, type], filters)
-
-        filter_function, translation, rotation, request = selectFilter(
-            filter_mode,
-            plotParams(qty).request,
-        )
-
-        plotSnapshot(
-            simulation_paths,
-            request,
-            [heatmap!];
-            pf_kwargs=[(;)],
-            # `plotSnapshot` configuration
-            output_path=temp_folder,
-            base_filename=string(qty),
-            output_format=".png",
-            warnings=false,
-            show_progress=true,
-            # Data manipulation options
-            slice,
-            filter_function,
-            da_functions=[daDensity2DProjection],
-            da_args=[(grid, qty, type)],
-            da_kwargs=[(; filter_function=filter)],
-            post_processing=getNothing,
-            pp_args=(),
-            pp_kwargs=(;),
-            transform_box=true,
-            translation,
-            rotation,
-            smooth=0,
-            x_unit=u"kpc",
-            y_unit=u"kpc",
-            x_exp_factor=0,
-            y_exp_factor=0,
-            x_trim=(-Inf, Inf),
-            y_trim=(-Inf, Inf),
-            x_edges=false,
-            y_edges=false,
-            x_func=identity,
-            y_func=identity,
-            # Axes options
-            xaxis_label="auto_label",
-            yaxis_label="auto_label",
-            xaxis_var_name="x",
-            yaxis_var_name="y",
-            xaxis_scale_func=identity,
-            yaxis_scale_func=identity,
-            # Plotting options
-            save_figures=false,
-            backup_results=true,
-            theme=Theme(),
-            sim_labels=nothing,
-            title="",
-            colorbar=false,
-            # Animation options
-            animation=false,
-            animation_filename="animation.mp4",
-            framerate=15,
-        )
-
-    end
-
-    # Choose the correct x label
-    if quantity == :gas_mass
-
-        x_label = getLabel(
-            plotParams(:gas_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    elseif quantity == :molecular_mass
-
-        x_label = getLabel(
-            plotParams(:molecular_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    elseif quantity == :br_molecular_mass
-
-        x_label = getLabel(
-            plotParams(:br_molecular_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    elseif quantity == :neutral_mass
-
-        x_label = getLabel(
-            plotParams(:neutral_area_density).var_name,
-            0,
-            u"Msun * kpc^-2";
-            latex=true,
-        )
-
-    end
-
-    # Set the y label
-    y_label = getLabel(
-        plotParams(:sfr_area_density).var_name,
-        0,
-        u"Msun * yr^-1 * kpc^-2";
-        latex=true,
-    )
-
-    log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
-
-    with_theme(merge(theme, theme_latexfonts(), DEFAULT_THEME)) do
-
-        for (sim_idx, simulation) in pairs(simulation_paths)
-
-            simulation_table = DataFrame(makeSimulationTable(simulation; warnings=false)[slice, :])
-            sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
-            snapshot_numbers = simulation_table[!, :numbers]
-
-            f = Figure()
-
-            ax = CairoMakie.Axis(
-                f[1, 1];
-                xlabel=L"$\log_{10}$ %$(x_label)",
-                ylabel=L"$\log_{10}$ %$(y_label)",
-                aspect=AxisAspect(1),
-            )
-
-            # Allocate memory
-            x_values = similar(snapshot_numbers, Measurement{Float64})
-            y_values = similar(snapshot_numbers, Measurement{Float64})
-
-            for (snap_idx, snapshot_number) in pairs(snapshot_numbers)
-
-                x_address = "$(quantity)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-                y_address = "stellar_mass-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-
-                jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r") do x_file
-
-                    jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r") do y_file
-
-                        # Read the JLD2 files
-                        x_data = vec(x_file[x_address][3])
-                        y_data = vec(y_file[y_address][3])
-
-                        # Delete 0s and NaNs in the data vectors
-                        x_idxs = map(x -> isnan(x) || iszero(x), x_data)
-                        y_idxs = map(x -> isnan(x) || iszero(x), y_data)
-
-                        deleteat!(x_data, x_idxs ∪ y_idxs)
-                        deleteat!(y_data, x_idxs ∪ y_idxs)
-
-                        lin_x = exp10.(x_data)
-                        lin_y = exp10.(y_data .- log10Δt)
-
-                        x_values[snap_idx] = log10(median(lin_x) ± mad(lin_x; normalize=false))
-                        y_values[snap_idx] = log10(median(lin_y) ± mad(lin_y; normalize=false))
-
-                    end
-
-                end
-
-            end
-
-            scatter!(
-                ax,
-                Measurements.value.(x_values),
-                Measurements.value.(y_values);
-                color=Makie.wong_colors()[2],
-                markersize=15,
-            )
-
-            errorbars!(
-                ax,
-                Measurements.value.(x_values),
-                Measurements.value.(y_values),
-                Measurements.uncertainty.(y_values),
-                direction=:y,
-                color=Makie.wong_colors()[2],
-            )
-
-            errorbars!(
-                ax,
-                Measurements.value.(x_values),
-                Measurements.value.(y_values),
-                Measurements.uncertainty.(x_values),
-                direction=:x,
-                color=Makie.wong_colors()[2],
-            )
-
-            if quantity == :gas_mass
-
-                pp_legend = ppKennicutt1998!(
-                    f;
-                    x_unit=u"Msun * kpc^-2",
-                    y_unit=u"Msun * yr^-1 * kpc^-2",
-                    x_log=true,
-                    y_log=true,
-                    color=Makie.wong_colors()[1],
-                    linestyle=nothing,
-                    linewidth=3,
-                    warnings=false,
-                )
-
-            elseif quantity ∈ [:molecular_mass, :br_molecular_mass]
-
-                pp_legend = ppBigiel2008!(
-                    f,
-                    true;
-                    x_unit=u"Msun * kpc^-2",
-                    y_unit=u"Msun * yr^-1 * kpc^-2",
-                    x_log=true,
-                    y_log=true,
-                    color=Makie.wong_colors()[1],
-                    linestyle=nothing,
-                    linewidth=3,
-                    warnings=false,
-                )
-
-            elseif quantity == :neutral_mass
-
-                pp_legend = ppBigiel2008!(
-                    f,
-                    false;
-                    x_unit=u"Msun * kpc^-2",
-                    y_unit=u"Msun * yr^-1 * kpc^-2",
-                    x_log=true,
-                    y_log=true,
-                    color=Makie.wong_colors()[1],
-                    linestyle=nothing,
-                    linewidth=3,
-                    warnings=false,
-                )
-
-            end
-
-            if !isnothing(sim_labels)
-                Makie.Legend(
-                    f[1, 1],
-                    [
-                        MarkerElement(;
-                            color=Makie.wong_colors()[2],
-                            marker=:circle,
-                            markersize=15,
-                        ),
-                        pp_legend[1],
-                    ],
-                    [sim_labels[sim_idx], pp_legend[2]],
-                    nbanks=1,
-                    labelsize=25,
-                    rowgap=-10,
-                    padding=(0, 10, 10, 0),
-                )
-            end
-
-            path = mkpath(joinpath(output_path, string(quantity)))
-
-            Makie.save(joinpath(path, "$(basename(simulation)).png"), f)
-
-        end
-
-    end
-
-    rm(temp_folder; recursive=true)
+    return nothing
 
 end
 
@@ -8019,7 +7176,7 @@ function resolvedMassMetallicityRelation(
         ylabel = plotParams(Symbol(element, "_gas_abundance")).axis_label
     end
 
-    with_theme(merge(theme, theme_latexfonts(), DEFAULT_THEME)) do
+    with_theme(theme, merge(theme_latexfonts(), DEFAULT_THEME)) do
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
@@ -8114,6 +7271,8 @@ function resolvedMassMetallicityRelation(
     end
 
     rm(temp_folder; recursive=true)
+
+    return nothing
 
 end
 
