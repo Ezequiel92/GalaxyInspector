@@ -6090,7 +6090,6 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-#TODO
 function kennicuttSchmidtLaw(
     simulation_paths::Vector{String},
     slice::IndexType;
@@ -6209,7 +6208,7 @@ function kennicuttSchmidtLaw(
     # Compute grids
     ################################################################################################
 
-    # Compute the number of bins in the low resolution grid (with a pixel size of ~ BIGIEL_PX_SIZE)
+    # Compute the number of bins in the low resolution grid (pixel size of ~ BIGIEL_PX_SIZE)
     lr_n_bins = round(Int, uconvert(Unitful.NoUnits, BOX_L / BIGIEL_PX_SIZE))
 
     # Compute the interger factor between the high resolution grid (~ 400px)
@@ -6236,7 +6235,6 @@ function kennicuttSchmidtLaw(
         simulation_paths,
         request,
         [heatmap!];
-        pf_kwargs=[(;)],
         output_path=temp_folder,
         base_filename=string(:stellar_mass),
         slice,
@@ -6263,7 +6261,6 @@ function kennicuttSchmidtLaw(
         simulation_paths,
         request,
         [heatmap!];
-        pf_kwargs=[(;)],
         output_path=temp_folder,
         base_filename=string(quantity),
         slice,
@@ -6324,7 +6321,6 @@ function kennicuttSchmidtLaw(
             simulation_paths,
             request,
             [heatmap!];
-            pf_kwargs=[(;)],
             output_path=temp_folder,
             base_filename="gas_weights",
             slice,
@@ -6352,7 +6348,6 @@ function kennicuttSchmidtLaw(
     # Set the axis labels
     ################################################################################################
 
-    # Choose the correct x label
     if quantity == :gas_mass
 
         x_label = getLabel(plotParams(:gas_area_density).var_name, 0, u"Msun * kpc^-2")
@@ -6371,7 +6366,6 @@ function kennicuttSchmidtLaw(
 
     end
 
-    # Set the y label
     y_label = getLabel(plotParams(:sfr_area_density).var_name, 0, u"Msun * yr^-1 * kpc^-2")
 
     ################################################################################################
@@ -6414,11 +6408,12 @@ function kennicuttSchmidtLaw(
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
-            simulation_table = DataFrame(makeSimulationTable(simulation; warnings=false)[slice, :])
+            simulation_table = DataFrame(makeSimulationTable(simulation; warnings)[slice, :])
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
             snapshot_numbers = simulation_table[!, :numbers]
 
-            # Allocate memory for the heatmap
+            # Allocate memory for the heatmap, for a heatmap we need to accumulate the values
+            # for every snapshot before plotting
             if plot_type == :heatmap
                 x_heatmap = Float64[]
                 y_heatmap = Float64[]
@@ -6457,8 +6452,10 @@ function kennicuttSchmidtLaw(
 
                 deleteat!(x_data, delete_idxs)
                 deleteat!(y_data, delete_idxs)
+
                 y_data .-= log10Δt
 
+                # For the integrated Kennicutt-Schmidt law, compute the gas and stellar densities median and mad
                 if integrated
 
                     lin_x = exp10.(x_data)
@@ -6558,14 +6555,14 @@ function kennicuttSchmidtLaw(
 
             if plot_type == :heatmap
 
-                # If there is no range specified, use the extrema of the x values
+                # If there is no specified range, use the extrema of the x values
                 if isnothing(x_range)
                     xrange = extrema(x_heatmap)
                 else
                     xrange = x_range
                 end
 
-                # If there is no range specified, use the extrema of the y values
+                # If there is no specified range, use the extrema of the y values
                 if isnothing(y_range)
                     yrange = extrema(y_heatmap)
                 else
@@ -6592,15 +6589,12 @@ function kennicuttSchmidtLaw(
                     ),
                 )
 
-                # Compute the 2D histogram
-                values = Float64.(histogram2D(
+                # Compute the 2D histogram (number of pixels in each bin)
+                values = histogram2D(
                     permutedims(hcat(x_heatmap, y_heatmap), (2, 1)),
                     collect(range(xrange[1], xrange[2]; length=n_bins + 1)),
                     collect(range(yrange[1], yrange[2]; length=n_bins + 1));
-                ))
-
-                # Set bins with a value of 0 to NaN
-                replace!(x -> iszero(x) ? NaN : x, values)
+                )
 
                 # The transpose and reverse operation are to conform to the way heatmap!
                 # expect the matrix to be structured, and log10 is used to enhance the contrast
@@ -6634,7 +6628,7 @@ function kennicuttSchmidtLaw(
         end
 
         ############################################################################################
-        # Plot the experimental mesurements and the legend
+        # Plot the experimental fits and the legend
         ############################################################################################
 
         if !isnothing(sim_labels) && plot_type == :scatter
@@ -6649,8 +6643,7 @@ function kennicuttSchmidtLaw(
             else
 
                 markers = [
-                    MarkerElement(; color, marker=:circle, markersize=20) for
-                    color in colors
+                    MarkerElement(; color, marker=:circle, markersize=20) for color in colors
                 ]
 
             end
@@ -6664,13 +6657,8 @@ function kennicuttSchmidtLaw(
                 pp_legend = ppKennicutt1998!(
                     f;
                     x_unit=u"Msun * kpc^-2",
-                    y_unit=u"Msun * yr^-1 * kpc^-2",
-                    x_log=true,
-                    y_log=true,
                     color=Makie.wong_colors()[1],
-                    linestyle=nothing,
-                    linewidth=3,
-                    warnings=false,
+                    warnings,
                 )
 
             elseif quantity ∈ [:molecular_mass, :br_molecular_mass]
@@ -6679,13 +6667,8 @@ function kennicuttSchmidtLaw(
                     f,
                     true;
                     x_unit=u"Msun * kpc^-2",
-                    y_unit=u"Msun * yr^-1 * kpc^-2",
-                    x_log=true,
-                    y_log=true,
                     color=Makie.wong_colors()[1],
-                    linestyle=nothing,
-                    linewidth=3,
-                    warnings=false,
+                    warnings,
                 )
 
             elseif quantity == :neutral_mass
@@ -6694,13 +6677,8 @@ function kennicuttSchmidtLaw(
                     f,
                     false;
                     x_unit=u"Msun * kpc^-2",
-                    y_unit=u"Msun * yr^-1 * kpc^-2",
-                    x_log=true,
-                    y_log=true,
                     color=Makie.wong_colors()[1],
-                    linestyle=nothing,
-                    linewidth=3,
-                    warnings=false,
+                    warnings,
                 )
 
             end
@@ -6723,7 +6701,7 @@ function kennicuttSchmidtLaw(
 
         if !isnothing(sim_labels) && plot_type == :heatmap
 
-            ppAnnotation!(f, sim_labels[1]; position=(0.04, 0.98), color=:white, fontsize=30)
+            ppAnnotation!(f, sim_labels[1]; color=:white, fontsize=30)
 
         end
 

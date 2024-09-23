@@ -2301,12 +2301,12 @@ function daScatterDensity(
         y_values    = log10.(deleteat!(ustrip.(y_log, y_values), null_y_idxs))
     end
 
-    # If there is no range specified, use the extrema of the x values
+    # If there is no specified range, use the extrema of the x values
     if isnothing(x_range)
         x_range = extrema(x_values)
     end
 
-    # If there is no range specified, use the extrema of the y values
+    # If there is no specified range, use the extrema of the y values
     if isnothing(y_range)
         y_range = extrema(y_values)
     end
@@ -2622,12 +2622,12 @@ function daScatterWeightedDensity(
 
     end
 
-    # If there is no range specified, use the extrema of the x values
+    # If there is no specified range, use the extrema of the x values
     if isnothing(x_range)
         x_range = extrema(x_values)
     end
 
-    # If there is no range specified, use the extrema of the y values
+    # If there is no specified range, use the extrema of the y values
     if isnothing(y_range)
         y_range = extrema(y_values)
     end
