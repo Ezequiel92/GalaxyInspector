@@ -146,7 +146,7 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
       + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_mass`      -> Neutral mass surface density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
-  - `reduce_factor::Int=1`: Factor by which the grid resolution will be reduce after computing the density map. It has to divide the size of the grid exactly.
+  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. It has to be a function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -218,7 +218,7 @@ function daKennicuttSchmidtLaw(
     grid::CubicGrid,
     quantity::Symbol;
     type::Symbol=:cells,
-    reduce_factor::Int=1,
+    reduce::Int=1,
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Float64}},Nothing}
@@ -238,6 +238,7 @@ function daKennicuttSchmidtLaw(
         grid,
         :stellar_mass,
         :particles;
+        reduce,
         projection_plane=:xy,
         print_range=false,
         filter_function=stellar_ff,
@@ -248,13 +249,14 @@ function daKennicuttSchmidtLaw(
         grid,
         quantity,
         type;
+        reduce,
         projection_plane=:xy,
         print_range=false,
         filter_function=gas_ff,
     )
 
-    x_axis = vec(reduceResolution(gas_density, reduce_factor))
-    y_axis = vec(reduceResolution(stellar_density, reduce_factor))
+    x_axis = vec(gas_density)
+    y_axis = vec(stellar_density)
 
     # Delete 0s and NaNs in the data vectors
     x_idxs = map(x -> isnan(x) || iszero(x), x_axis)
@@ -1113,6 +1115,7 @@ If the source of the field are Voronoi cells, the density of the cells that cros
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -1154,6 +1157,7 @@ function daDensity2DProjection(
     grid::CubicGrid,
     quantity::Symbol,
     type::Symbol;
+    reduce::Int=1,
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
@@ -1289,13 +1293,18 @@ function daDensity2DProjection(
 
     end
 
+    # Reduce the resolution of the result by the given factor `reduce`
+    density = reduceResolution(density ./ physical_factor, reduce)
+    x_axis  = reduceTicks(grid.x_ticks, reduce)
+    y_axis  = reduceTicks(grid.y_ticks, reduce)
+
     # Apply log10 to enhance the contrast
-    values = log10.(density ./ physical_factor)
+    log_density = log10.(density)
 
     if print_range
 
-        # Compute the mininimum and maximum values
-        min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
+        # Compute the mininimum and maximum of `log_density`
+        min_max = isempty(log_density) ? (NaN, NaN) : extrema(filter(!isnan, log_density))
 
         # Print the density range
         @info(
@@ -1315,14 +1324,14 @@ function daDensity2DProjection(
     # Depending on the `type` and `projection_plane`, different operations
     # are applied to keep the axis consistent between cells and particles
     if type == :particles || projection_plane == :xy
-        z_axis = reverse!(transpose(values), dims=2)
+        z_axis = reverse!(transpose(log_density), dims=2)
     elseif projection_plane == :yz
-        z_axis = reverse!(values, dims=1)
+        z_axis = reverse!(log_density, dims=1)
     else
-        z_axis = values
+        z_axis = log_density
     end
 
-    return grid.x_ticks, grid.y_ticks, z_axis
+    return x_axis, y_axis, z_axis
 
 end
 
@@ -1360,6 +1369,7 @@ If the source of the field are Voronoi cells, the density of the cells that cros
       + ...
   - `grid::CubicGrid`: Cubic grid.
   - `type::Symbol`: Gas component type. The options are: `:particles` or Voronoi `:cells`.
+  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic SFR range.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -1400,6 +1410,7 @@ function daGasSFR2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
     type::Symbol;
+    reduce::Int=1,
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
@@ -1504,13 +1515,18 @@ function daGasSFR2DProjection(
 
     end
 
+    # Reduce the resolution of the result by the given factor `reduce`
+    sfr     = reduceResolution(sfr, reduce)
+    x_axis  = reduceTicks(grid.x_ticks, reduce)
+    y_axis  = reduceTicks(grid.y_ticks, reduce)
+
     # Apply log10 to enhance the contrast
-    values = log10.(sfr)
+    log_sfr = log10.(sfr)
 
     if print_range
 
-        # Compute the mininimum and maximum values
-        min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
+        # Compute the mininimum and maximum of `log_sfr`
+        min_max = isempty(log_sfr) ? (NaN, NaN) : extrema(filter(!isnan, log_sfr))
 
         # Print the gas SFR range
         @info(
@@ -1529,14 +1545,14 @@ function daGasSFR2DProjection(
     # Depending on the `type` and `projection_plane`, different operations
     # are applied to keep the axis consistent between cells and particles
     if type == :particles || projection_plane == :xy
-        z_axis = reverse!(transpose(values), dims=2)
+        z_axis = reverse!(transpose(log_sfr), dims=2)
     elseif projection_plane == :yz
-        z_axis = reverse!(values, dims=1)
+        z_axis = reverse!(log_sfr, dims=1)
     else
-        z_axis = values
+        z_axis = log_sfr
     end
 
-    return grid.x_ticks, grid.y_ticks, z_axis
+    return x_axis, y_axis, z_axis
 
 end
 
@@ -1575,6 +1591,7 @@ The metallicity in each pixel is the total metal mass divided by the total gas m
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can be either `:stars` or `:gas`.
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic metallicity range.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -1617,6 +1634,7 @@ function daMetallicity2DProjection(
     component::Symbol,
     type::Symbol;
     element::Symbol=:all,
+    reduce::Int=1,
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
@@ -1767,18 +1785,23 @@ function daMetallicity2DProjection(
 
     end
 
+    # Reduce the resolution of the result by the given factor `reduce`
+    metallicity = reduceResolution(metallicity, reduce)
+    x_axis      = reduceTicks(grid.x_ticks, reduce)
+    y_axis      = reduceTicks(grid.y_ticks, reduce)
+
     # Apply log10 to enhance the contrast
     if element == :all
-        values = log10.(metallicity ./ SOLAR_METALLICITY)
+        log_metallicity = log10.(metallicity ./ SOLAR_METALLICITY)
     else
         # Add 12 so the result is by convention 12 + log10(X / H)
-        values = 12 .+ log10.(metallicity)
+        log_metallicity = 12 .+ log10.(metallicity)
     end
 
     if print_range
 
-        # Compute the mininimum and maximum values
-        min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
+        # Compute the mininimum and maximum of `log_metallicity`
+        min_max = isempty(log_metallicity) ? (NaN, NaN) : extrema(filter(!isnan, log_metallicity))
 
         # Print the metallicity range
         @info(
@@ -1803,14 +1826,14 @@ function daMetallicity2DProjection(
     # Depending on the `type` and `projection_plane`, different operations
     # are applied to keep the axis consistent between cells and particles
     if type == :particles || projection_plane == :xy
-        z_axis = reverse!(transpose(values), dims=2)
+        z_axis = reverse!(transpose(log_metallicity), dims=2)
     elseif projection_plane == :yz
-        z_axis = reverse!(values, dims=1)
+        z_axis = reverse!(log_metallicity, dims=1)
     else
-        z_axis = values
+        z_axis = log_metallicity
     end
 
-    return grid.x_ticks, grid.y_ticks, z_axis
+    return x_axis, y_axis, z_axis
 
 end
 
@@ -1847,6 +1870,7 @@ The temperature in each pixel is the mean temperature of the column given by tha
       + ...
   - `grid::CubicGrid`: Cubic grid.
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic temperature range.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -1887,6 +1911,7 @@ function daTemperature2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
     type::Symbol;
+    reduce::Int=1,
     projection_plane::Symbol=:xy,
     print_range::Bool=false,
     filter_function::Function=filterNothing,
@@ -1993,8 +2018,13 @@ function daTemperature2DProjection(
 
     end
 
+    # Reduce the resolution of the result by the given factor `reduce`
+    temperature = reduceResolution(temperature, reduce)
+    x_axis      = reduceTicks(grid.x_ticks, reduce)
+    y_axis      = reduceTicks(grid.y_ticks, reduce)
+
     # Apply log10 to enhance the contrast
-    values = log10.(temperature)
+    log_temperature = log10.(temperature)
 
     if print_range
 
@@ -2005,7 +2035,7 @@ function daTemperature2DProjection(
             \n  Snapshot:     $(filtered_dd[:snap_data].global_index) \
             \n  Type:         $(type) \
             \n  Plane:        $(projection_plane) \
-            \n  log₁₀(T [K]): $(extrema(values))\n\n"
+            \n  log₁₀(T [K]): $(extrema(log_temperature))\n\n"
         )
 
     end
@@ -2015,14 +2045,14 @@ function daTemperature2DProjection(
     # Depending on the `type` and `projection_plane`, different operations
     # are applied to keep the axis consistent between cells and particles
     if type == :particles || projection_plane == :xy
-        z_axis = reverse!(transpose(values), dims=2)
+        z_axis = reverse!(transpose(log_temperature), dims=2)
     elseif projection_plane == :yz
-        z_axis = reverse!(values, dims=1)
+        z_axis = reverse!(log_temperature, dims=1)
     else
-        z_axis = values
+        z_axis = log_temperature
     end
 
-    return grid.x_ticks, grid.y_ticks, z_axis
+    return x_axis, y_axis, z_axis
 
 end
 

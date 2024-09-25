@@ -2130,6 +2130,7 @@ Plot a 2D histogram of the density.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
+  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
@@ -2178,6 +2179,7 @@ function densityMap(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
+    reduce::Int=1,
     print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
@@ -2234,6 +2236,7 @@ function densityMap(
                     da_args=[(grid, quantity, ring(types, i))],
                     da_kwargs=[
                         (;
+                            reduce,
                             projection_plane,
                             print_range,
                             filter_function=da_ff,
@@ -6059,6 +6062,7 @@ Plot the Kennicutt-Schmidt law.
       + `:temperature`      -> The mean gas temperature of the column associated with each pixel. See the documentation for the function [`daTemperature2DProjection`](@ref).
   - `measurements::Bool=true`: If the experimental fits from Kennicutt (1998) or Bigiel et al. (2008) will be plotted alongside the simulation results. The fits are plotted as a line with uncertanty bands.
   - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
+  - `reduce_resolution::Bool=true`: If the resolution of the 2D grids will be reduce after the density projection to have pixels of a size ~ [`BIGIEL_PX_SIZE`](@ref).
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the heatmap grid. If set to `nothing`, the extrema of the values will be used. Only relevant if `plot_type` = :heatmap.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the values will be used. Only relevant if `plot_type` = :heatmap.
   - `n_bins::Int=100`: Number of bins per side of the heatmap grid. Only relevant if `plot_type` = :heatmap.
@@ -6112,6 +6116,7 @@ function kennicuttSchmidtLaw(
     gas_weights::Union{Symbol,Nothing}=nothing,
     measurements::Bool=true,
     rmax_gas::Unitful.Length=DISK_R,
+    reduce_resolution::Bool=true,
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     n_bins::Int=100,
@@ -6220,15 +6225,26 @@ function kennicuttSchmidtLaw(
     # Compute grids
     ################################################################################################
 
-    # Compute the number of bins in the low resolution grid (pixel size of ~ BIGIEL_PX_SIZE)
-    lr_n_bins = round(Int, uconvert(Unitful.NoUnits, BOX_L / BIGIEL_PX_SIZE))
+    if reduce_resolution
 
-    # Compute the interger factor between the high resolution grid (~ 400px)
-    # and the low resolution grid (`lr_n_bins`px)
-    factor = 400 ÷ lr_n_bins
+        # Compute the number of bins in the low resolution grid (pixel size of ~ BIGIEL_PX_SIZE)
+        lr_n_bins = round(Int, uconvert(Unitful.NoUnits, BOX_L / BIGIEL_PX_SIZE))
 
-    stellar_grid = CubicGrid(BOX_L, lr_n_bins)
-    gas_grid     = CubicGrid(BOX_L, factor * lr_n_bins)
+        # Compute the interger factor between the high resolution grid (~ 400px)
+        # and the low resolution grid (`lr_n_bins`px)
+        reduce = 400 ÷ lr_n_bins
+
+        stellar_grid = CubicGrid(BOX_L, reduce * lr_n_bins)
+        gas_grid     = CubicGrid(BOX_L, reduce * lr_n_bins)
+
+    else
+
+        reduce = 1
+
+        stellar_grid = CubicGrid(BOX_L, 400)
+        gas_grid     = CubicGrid(BOX_L, 400)
+
+    end
 
     ################################################################################################
     # Compute the density maps and save them as JLD2 files
@@ -6253,7 +6269,7 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(stellar_grid, :stellar_mass, :particles)],
-        da_kwargs=[(; filter_function=dd->filterStellarAge(dd))],
+        da_kwargs=[(; reduce, filter_function=dd->filterStellarAge(dd))],
         transform_box=true,
         translation,
         rotation,
@@ -6279,7 +6295,9 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(gas_grid, quantity, type)],
-        da_kwargs=[(; filter_function=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero))],
+        da_kwargs=[
+            (; reduce, filter_function=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero)),
+        ],
         transform_box=true,
         translation,
         rotation,
@@ -6341,6 +6359,7 @@ function kennicuttSchmidtLaw(
             da_args,
             da_kwargs=[
                 (;
+                    reduce,
                     filter_function=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero),
                     print_range,
                 ),
@@ -6439,7 +6458,7 @@ function kennicuttSchmidtLaw(
 
                 x_address = "$(quantity)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                 x_file    = jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r")
-                x_data    = vec(reduceResolution(x_file[x_address][3], factor))
+                x_data    = vec(x_file[x_address][3])
                 x_idxs    = map(x -> isnan(x) || iszero(x), x_data)
 
                 y_address = "stellar_mass-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
@@ -6453,7 +6472,7 @@ function kennicuttSchmidtLaw(
 
                     z_address = "gas_weights-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                     z_file    = jldopen(joinpath(temp_folder, "gas_weights.jld2"), "r")
-                    z_data    = vec(reduceResolution(z_file[z_address][3], factor))
+                    z_data    = vec(z_file[z_address][3])
                     z_idxs    = map(x -> isnan(x) || iszero(x), z_data)
 
                     delete_idxs = delete_idxs ∪ z_idxs
@@ -6467,7 +6486,8 @@ function kennicuttSchmidtLaw(
 
                 y_data .-= log10Δt
 
-                # For the integrated Kennicutt-Schmidt law, compute the gas and stellar densities median and mad
+                # For the integrated Kennicutt-Schmidt law, compute the gas and stellar
+                # densities median and mad
                 if integrated
 
                     lin_x = exp10.(x_data)
@@ -6609,8 +6629,8 @@ function kennicuttSchmidtLaw(
                 )
 
                 # The transpose and reverse operation are to conform to the way heatmap!
-                # expect the matrix to be structured, and log10 is used to enhance the contrast
-                z_axis = reverse!(transpose(log10.(values)), dims=2)
+                # expect the matrix to be structured
+                z_axis = reverse!(transpose(values), dims=2)
 
                 heatmap!(
                     ax,
@@ -6628,9 +6648,9 @@ function kennicuttSchmidtLaw(
                     # Print the count range
                     @info(
                         "\nCount range \
-                        \n  Simulation:    $(basename(simulation)) \
-                        \n  Quantity:      $(quantity) \
-                        \n  log₁₀(counts): $(min_max)\n\n"
+                        \n  Simulation: $(basename(simulation)) \
+                        \n  Quantity:   $(quantity) \
+                        \n  Counts:     $(min_max)\n\n"
                     )
 
                 end
@@ -6987,6 +7007,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
       + `:all` -> Metallicity considering all elements, as ``Z / Z_\\odot``.
       + `:X`   -> Element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
   - `mass::Bool=true`: If the x axis will be the stellar mass density or the SFR density.
+  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -7024,6 +7045,7 @@ function resolvedMassMetallicityRelation(
     slice::IndexType;
     element::Symbol=:all,
     mass::Bool=true,
+    reduce::Int=1,
     output_path::String="./resolvedMassMetallicityRelation",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
@@ -7063,7 +7085,7 @@ function resolvedMassMetallicityRelation(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(grid, :stellar_mass, :particles)],
-        da_kwargs=[(; filter_function=dd->filterStellarAge(dd))],
+        da_kwargs=[(; reduce, filter_function=dd->filterStellarAge(dd))],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
