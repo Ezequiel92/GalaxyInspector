@@ -1800,6 +1800,8 @@ Reduce the number of rows and columns of `hr_matrix` by `factor`, averaging its 
 """
 function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Number}
 
+    !isone(factor) || return hr_matrix
+
     r, c = size(hr_matrix)
     (
         r == c ||
@@ -1808,7 +1810,7 @@ function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Nu
     )
 
     (
-        factor > 1 || throw(ArgumentError("reduceResolution: `factor` must be >= 1, \
+        factor >= 1 || throw(ArgumentError("reduceResolution: `factor` must be >= 1, \
         but I got `factor` = $(factor)."))
     )
 
@@ -1817,8 +1819,6 @@ function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Nu
         throw(ArgumentError("reduceResolution: `factor` must divide the size of `hr_matrix` \
         exactly, but I got number of rows / `factor` = $(r / factor)."))
     )
-
-    !isone(factor) || return hr_matrix
 
     # Compute the size of the new matrix
     new_size = r ÷ factor
@@ -1867,7 +1867,9 @@ Reduce the number of ticks in `hr_ticks` by `factor` keeping the total length of
 """
 function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
 
-    l =length(hr_ticks)
+    !isone(factor) || hr_ticks
+
+    l = length(hr_ticks)
     (
         l % factor == 0 ||
         throw(ArgumentError("reduceTicks: `factor` must divide the size of `hr_ticks` \
@@ -1875,11 +1877,9 @@ function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
     )
 
     (
-        factor > 1 || throw(ArgumentError("reduceTicks: `factor` must be >= 1, \
+        factor >= 1 || throw(ArgumentError("reduceTicks: `factor` must be >= 1, \
         but I got `factor` = $(factor)."))
     )
-
-    !isone(factor) || hr_ticks
 
     # Compute the size of the new vector
     new_size = l ÷ factor

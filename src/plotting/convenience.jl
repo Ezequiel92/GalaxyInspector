@@ -6158,6 +6158,11 @@ function kennicuttSchmidtLaw(
 
         end
 
+        if reduce_resolution
+            !warnings || @warn("kennicuttSchmidtLaw: `integrated` and `reduce_resolution` are set \
+            to true. Are you sure you want this?")
+        end
+
     end
 
     if !isnothing(sim_labels)

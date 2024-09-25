@@ -1263,9 +1263,6 @@ function daDensity2DProjection(
 
         density = dropdims(sum(mass_grid; dims) ./ voxel_area; dims)
 
-        # Set bins with a value of 0 to NaN
-        replace!(x -> iszero(x) ? NaN : x, density)
-
     elseif type == :particles
 
         # Project the particles to the given plane
@@ -1283,7 +1280,7 @@ function daDensity2DProjection(
         # Compute the 2D histogram
         density = ustrip.(
             m_unit * l_unit^-2,
-            histogram2D(pos_2D, masses, flattenGrid(grid); empty_nan=true) ./ grid.bin_area,
+            histogram2D(pos_2D, masses, flattenGrid(grid); empty_nan=false) ./ grid.bin_area,
         )
 
     else
@@ -1297,6 +1294,9 @@ function daDensity2DProjection(
     density = reduceResolution(density ./ physical_factor, reduce)
     x_axis  = reduceTicks(grid.x_ticks, reduce)
     y_axis  = reduceTicks(grid.y_ticks, reduce)
+
+    # Set bins with a value of 0 to NaN
+    replace!(x -> iszero(x) ? NaN : x, density)
 
     # Apply log10 to enhance the contrast
     log_density = log10.(density)
@@ -1485,9 +1485,6 @@ function daGasSFR2DProjection(
 
         sfr = dropdims(sum(sfr_grid; dims); dims)
 
-        # Set bins with a value of 0 to NaN
-        replace!(x -> iszero(x) ? NaN : x, sfr)
-
     elseif type == :particles
 
         # Project the particles to the given plane
@@ -1505,7 +1502,7 @@ function daGasSFR2DProjection(
         # Compute the 2D histogram
         sfr = ustrip.(
             m_unit * t_unit^-1,
-            histogram2D(pos_2D, sfrs, flattenGrid(grid); empty_nan=true),
+            histogram2D(pos_2D, sfrs, flattenGrid(grid); empty_nan=false),
         )
 
     else
@@ -1519,6 +1516,9 @@ function daGasSFR2DProjection(
     sfr     = reduceResolution(sfr, reduce)
     x_axis  = reduceTicks(grid.x_ticks, reduce)
     y_axis  = reduceTicks(grid.y_ticks, reduce)
+
+    # Set bins with a value of 0 to NaN
+    replace!(x -> iszero(x) ? NaN : x, sfr)
 
     # Apply log10 to enhance the contrast
     log_sfr = log10.(sfr)
@@ -1738,9 +1738,6 @@ function daMetallicity2DProjection(
 
         metallicity = metal_mass ./ norm_mass
 
-        # Set bins with a value of 0 to NaN
-        replace!(x -> iszero(x) ? NaN : x, metallicity)
-
     elseif type == :particles
 
         # Project the particles to the given plane
@@ -1789,6 +1786,9 @@ function daMetallicity2DProjection(
     metallicity = reduceResolution(metallicity, reduce)
     x_axis      = reduceTicks(grid.x_ticks, reduce)
     y_axis      = reduceTicks(grid.y_ticks, reduce)
+
+    # Set bins with a value of 0 to NaN
+    replace!(x -> iszero(x) ? NaN : x, metallicity)
 
     # Apply log10 to enhance the contrast
     if element == :all
@@ -2008,7 +2008,7 @@ function daTemperature2DProjection(
             temperatures,
             flattenGrid(grid);
             total=false,
-            empty_nan=true,
+            empty_nan=false,
         )
 
     else
@@ -2022,6 +2022,9 @@ function daTemperature2DProjection(
     temperature = reduceResolution(temperature, reduce)
     x_axis      = reduceTicks(grid.x_ticks, reduce)
     y_axis      = reduceTicks(grid.y_ticks, reduce)
+
+    # Set bins with a value of 0 to NaN
+    replace!(x -> iszero(x) ? NaN : x, temperature)
 
     # Apply log10 to enhance the contrast
     log_temperature = log10.(temperature)
