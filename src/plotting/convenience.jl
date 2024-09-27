@@ -6061,7 +6061,11 @@ Plot the Kennicutt-Schmidt law.
       + `:gas_sfr`          -> The total gas SFR of the column associated with each pixel. See the documentation for the function [`daGasSFR2DProjection`](@ref).
       + `:gas_metallicity`  -> The total metallicity of the column associated with each pixel. See the documentation for the function [`daMetallicity2DProjection`](@ref).
       + `:temperature`      -> The mean gas temperature of the column associated with each pixel. See the documentation for the function [`daTemperature2DProjection`](@ref).
-  - `measurements::Bool=true`: If the experimental fits from Kennicutt (1998) or Bigiel et al. (2008) will be plotted alongside the simulation results. The fits are plotted as a line with uncertanty bands.
+  - `measurements::Bool=true`: If the experimental measurements from Kennicutt (1998) or Bigiel et al. (2008) will be plotted alongside the simulation results.
+  - `measurement_type::Union{String,Symbol}=:fits`: Type of measurement to plot, only valid if `measurement` = true. The option are:
+
+      + `:fits`: The fits are plotted as a line with uncertanty bands.
+      + `"NGC XXX"`: Plot the resolved data of the given galaxy, from Bigiel et al. (2010), as a scatter plot. See the documentation of [`ppBigiel2010!`](@ref) for options.
   - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
   - `reduce_resolution::Bool=true`: If the resolution of the 2D grids will be reduce after the density projection to have pixels of a size ~ [`BIGIEL_PX_SIZE`](@ref).
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the heatmap grid. If set to `nothing`, the extrema of the values will be used. Only relevant if `plot_type` = :heatmap.
@@ -6106,6 +6110,8 @@ Plot the Kennicutt-Schmidt law.
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
 """
 function kennicuttSchmidtLaw(
     simulation_paths::Vector{String},
@@ -6117,6 +6123,7 @@ function kennicuttSchmidtLaw(
     sfr_density::Bool=true,
     gas_weights::Union{Symbol,Nothing}=nothing,
     measurements::Bool=true,
+    measurement_type::Union{String,Symbol}=:fits,
     rmax_gas::Unitful.Length=DISK_R,
     reduce_resolution::Bool=true,
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
@@ -6235,6 +6242,14 @@ function kennicuttSchmidtLaw(
             colorbar = false
 
         end
+
+    end
+
+    if measurements && isa(measurement_type, String) && integrated
+
+        !warnings || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
+        `measurement_type` to plot the resolved measurements of galaxy $(measurement_type). \
+        Are you sure you want this?")
 
     end
 
@@ -6713,34 +6728,67 @@ function kennicuttSchmidtLaw(
 
         if measurements
 
-            if quantity == :gas_mass
+            if measurement_type == :fits
 
-                pp_legend = ppKennicutt1998!(
-                    f;
-                    x_unit=u"Msun * kpc^-2",
-                    color=Makie.wong_colors()[1],
-                    warnings,
-                )
+                if quantity == :gas_mass
 
-            elseif quantity ∈ [:molecular_mass, :br_molecular_mass]
+                    pp_legend = ppKennicutt1998!(
+                        f;
+                        x_unit=u"Msun * kpc^-2",
+                        color=Makie.wong_colors()[1],
+                        warnings,
+                    )
 
-                pp_legend = ppBigiel2008!(
-                    f,
-                    true;
-                    x_unit=u"Msun * kpc^-2",
-                    color=Makie.wong_colors()[1],
-                    warnings,
-                )
+                elseif quantity ∈ [:molecular_mass, :br_molecular_mass]
 
-            elseif quantity == :neutral_mass
+                    pp_legend = ppBigiel2008!(
+                        f,
+                        true;
+                        x_unit=u"Msun * kpc^-2",
+                        color=Makie.wong_colors()[1],
+                        warnings,
+                    )
 
-                pp_legend = ppBigiel2008!(
-                    f,
-                    false;
-                    x_unit=u"Msun * kpc^-2",
-                    color=Makie.wong_colors()[1],
-                    warnings,
-                )
+                elseif quantity == :neutral_mass
+
+                    pp_legend = ppBigiel2008!(
+                        f,
+                        false;
+                        x_unit=u"Msun * kpc^-2",
+                        color=Makie.wong_colors()[1],
+                        warnings,
+                    )
+
+                end
+
+            else
+
+                if quantity ∈ [:molecular_mass, :br_molecular_mass]
+
+                    pp_legend = ppBigiel2010!(
+                        f;
+                        galaxy=measurement_type,
+                        quantity=:molecular,
+                        x_unit=u"Msun * kpc^-2",
+                    )
+
+                elseif quantity == :neutral_mass
+
+                    pp_legend = ppBigiel2010!(
+                        f;
+                        galaxy=measurement_type,
+                        quantity=:neutral,
+                        x_unit=u"Msun * kpc^-2",
+                    )
+
+                else
+
+                    throw(ArgumentError("kennicuttSchmidtLaw: `measurement_type` is set to plot \
+                    the resolved measurements of galaxy $(measurement_type). The only resolved \
+                    data in Bigiel et al. (2010) is for :molecular, :atomic or :neutral gas. \
+                    But you have set `quantity` = :gas_mass."))
+
+                end
 
             end
 

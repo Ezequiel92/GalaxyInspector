@@ -1027,10 +1027,10 @@ Draw a scatter plot of SFR surface density vs the gas surface density (Kennicutt
       + `:molecular` -> Surface density of molecular gas.
       + `:neutral`   -> Surface density of neutral gas.
       + `:atomic`    -> Surface density of atomic gas.
-  - `xlog::Bool=true`: If the x axis will be plotted as the log10 of the gas surface density.
-  - `ylog::Bool=true`: If the y axis will be plotted as the log10 of the SFR surface density.
-  - `xunit::Unitful.Units=u"Msun * kpc^-2"`: Unit for the x axis.
-  - `yunit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2"`: Unit for the y axis.
+  - `x_log::Bool=true`: If the x axis will be plotted as the log10 of the gas surface density.
+  - `y_log::Bool=true`: If the y axis will be plotted as the log10 of the SFR surface density.
+  - `x_unit::Unitful.Units=u"Msun * kpc^-2"`: Unit for the x axis.
+  - `y_unit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2"`: Unit for the y axis.
 
 # Returns
 
@@ -1047,10 +1047,10 @@ function ppBigiel2010!(
 	figure::Makie.Figure;
 	galaxy::String="NGC 628",
 	quantity::Symbol=:molecular,
-	xlog::Bool=true,
-	ylog::Bool=true,
-	xunit::Unitful.Units=u"Msun * kpc^-2",
-	yunit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2"
+	x_log::Bool=true,
+	y_log::Bool=true,
+	x_unit::Unitful.Units=u"Msun * kpc^-2",
+	y_unit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2"
 )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
 	################################################################################################
@@ -1180,27 +1180,34 @@ function ppBigiel2010!(
 	deleteat!(Σsfr, idxs)
 
 	# Set the correct scale and units
-	if xlog
-		Σg = log10.(ustrip.(xunit, Σg))
+	if x_log
+		Σg = log10.(ustrip.(x_unit, Σg))
 	else
-		Σg = ustrip.(xunit, Σg)
+		Σg = ustrip.(x_unit, Σg)
 	end
 
-	if ylog
-		Σsfr = log10.(ustrip.(yunit, Σsfr))
+	if y_log
+		Σsfr = log10.(ustrip.(y_unit, Σsfr))
 	else
-		Σsfr = ustrip.(yunit, Σsfr)
+		Σsfr = ustrip.(y_unit, Σsfr)
 	end
 
 	################################################################################################
 	# Plot the galaxy data
 	################################################################################################
 
-	sp = scatter!(figure.current_axis.x, Σg, Σsfr; color=:gray45, marker=:star4, markersize=10)
+	sp = scatter!(
+        figure.current_axis.x,
+        Σg,
+        Σsfr;
+        color=(:gray60, 0.7),
+        marker=:star4,
+        markersize=10,
+    )
 
 	# Put the post processing elements at the back of the plot
     translate!(Accum, sp, 0, 0, -10)
 
-    return ([MarkerElement(; color=:gray45, marker=:star4)], ["$(galaxy) - Bigiel et al. 2010"])
+    return ([MarkerElement(; color=:gray60, marker=:star4)], ["$(galaxy) - Bigiel et al. 2010"])
 
 end
