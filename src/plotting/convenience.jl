@@ -4946,7 +4946,7 @@ function densityProfile(
 
     elseif quantity == :neutral_mass
 
-        yaxis_var_name = L"\Sigma_\mathrm{H2 + HI}"
+        yaxis_var_name = L"\Sigma_\mathrm{HI + H_2}"
 
     elseif quantity ∈ [:sfr, :observational_sfr]
 
@@ -5484,7 +5484,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `slice::IndexType`: Snapshot at which the stellar ages will be read. If set to several snapshots, one plot per snapshot will be done. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:sfr`                 -> The star formation rate.
@@ -6054,6 +6054,7 @@ Plot the Kennicutt-Schmidt law.
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
   - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends, experimental measurements or several simulations at once.
   - `integrated::Bool=false`: If the integrated (one point per galaxy) or resolved (several point per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = :scatter, the central value is the weighted median, and the error bars are the median absolute deviations.
+  - `sfr_density::Bool=true`: If the quantity for the y axis will be the SFR surface density, if set to false the quantity will be the stellar mass surface density.
   - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a pixel of the 2D projected galaxy) can be weighted by a gas quantity. If `integrated` = true, the median will be computed with this weight in mind, if `integrated` = false, each point will have a color given by the weight. The posible weights are:
 
       + `:gas_mass_density` -> Gas mass surface density of each pixel. See the documentation for the function [`daDensity2DProjection`](@ref).
@@ -6113,6 +6114,7 @@ function kennicuttSchmidtLaw(
     type::Symbol=:cells,
     plot_type::Symbol=:scatter,
     integrated::Bool=false,
+    sfr_density::Bool=true,
     gas_weights::Union{Symbol,Nothing}=nothing,
     measurements::Bool=true,
     rmax_gas::Unitful.Length=DISK_R,
@@ -6177,11 +6179,21 @@ function kennicuttSchmidtLaw(
 
     end
 
+    if !sfr_density && measurements
+
+        !warnings || @warn("kennicuttSchmidtLaw: If `sfr_density` = false, `measurements` = true \
+        will be ignored and default to false. The experimental measurements are for the SFR \
+        surface density.")
+
+        measurements = false
+
+    end
+
     if plot_type == :heatmap
 
         if !isnothing(gas_weights)
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, \
+            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
             `gas_weights` = :$(gas_weights) will be ignored and default to nothing.")
 
             gas_weights = nothing
@@ -6190,7 +6202,7 @@ function kennicuttSchmidtLaw(
 
         if measurements
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, \
+            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
             `measurements` = true will be ignored and default to false.")
 
             measurements = false
@@ -6199,7 +6211,7 @@ function kennicuttSchmidtLaw(
 
         if ns > 1
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` == :heatmap, only one \
+            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, only one \
             simulation at a time can be plotted, but I got length(simulation_paths) = $(ns) > 1. \
             `plot_type` = :heatmap will be ignored and default to :scatter.")
 
@@ -6402,15 +6414,25 @@ function kennicuttSchmidtLaw(
 
     end
 
-    y_label = getLabel(plotParams(:sfr_area_density).var_name, 0, u"Msun * yr^-1 * kpc^-2")
+    if sfr_density
+
+        y_label = getLabel(plotParams(:sfr_area_density).var_name, 0, u"Msun * yr^-1 * kpc^-2")
+
+    else
+
+        y_label = getLabel(plotParams(:stellar_area_density).var_name, 0, u"Msun * kpc^-2")
+
+    end
 
     ################################################################################################
     # Read and plot the data
     ################################################################################################
 
-    # Log factor to go from stellar surface density to SFR surface density
-    # log10(Σsfr) = log10(Σ*) - log10Δt
-    log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
+    if sfr_density
+        # Log factor to go from stellar surface density to SFR surface density
+        # log10(Σsfr) = log10(Σ*) - log10Δt
+        log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
+    end
 
     # Set the plot theme
     current_theme = merge(
@@ -6489,7 +6511,9 @@ function kennicuttSchmidtLaw(
                 deleteat!(x_data, delete_idxs)
                 deleteat!(y_data, delete_idxs)
 
-                y_data .-= log10Δt
+                if sfr_density
+                    y_data .-= log10Δt
+                end
 
                 # For the integrated Kennicutt-Schmidt law, compute the gas and stellar
                 # densities median and mad
@@ -6749,9 +6773,9 @@ function kennicuttSchmidtLaw(
         if colorbar
 
             if plot_type == :heatmap
-                Colorbar(f[1, 2]; label=L"\log_{10} \, \mathrm{count}", colormap=:nipy_spectral)
+                Colorbar(f[1, 2], f.content[1].scene.plots[1]; label=L"\mathrm{Counts}")
             else
-                Colorbar(f[1, 2]; label=c_label, colormap=:nipy_spectral)
+                Colorbar(f[1, 2], f.content[1].scene.plots[1]; label=c_label)
             end
 
             rowsize!(f.layout, 1, Makie.Fixed(pixelarea(ax.scene)[].widths[2]))

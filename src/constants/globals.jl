@@ -37,15 +37,6 @@ Characteristic box size used throughout the code.
 const BOX_L = 65.0u"kpc"
 
 """
-Spatial resolution used in Bigiel et al. (2008).
-
-# References
-
-F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
-"""
-const BIGIEL_PX_SIZE  = 750.0u"pc"
-
-"""
 Characteristic stellar age limit for the SFR and sSFR calculations.
 """
 const AGE_RESOLUTION = 200.0u"Myr"
@@ -331,6 +322,39 @@ Path to the file with the global galaxy properties, taken from Feldmann (2020).
 R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*. Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
 """
 const FELDMANN2020_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/Feldmann2020.csv")
+
+"""
+Spatial resolution used in Bigiel et al. (2008).
+
+# References
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+"""
+const BIGIEL_PX_SIZE = 750.0u"pc"
+
+"""
+Path to the file with the galaxy data from Bigiel et al. (2010) (Table 2).
+
+# References
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2010_TABLE_2 = joinpath(
+    @__DIR__,
+    "../../experimental_data/Bigiel2010/aj351668t2_mrt.txt",
+)
+
+"""
+Path to the file with the galaxy data from Bigiel et al. (2010) (Table 3).
+
+# References
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2010_TABLE_3 = joinpath(
+    @__DIR__,
+    "../../experimental_data/Bigiel2010/aj351668t3_mrt.txt",
+)
 
 """
 Reference pressure for the molecular fraction-pressure relation, taken from Blitz et al. (2006).

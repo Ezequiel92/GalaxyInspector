@@ -32,6 +32,29 @@ julia> ring([1, 2, 3], -5)
 ring(vec::Vector, index::Integer) = vec[mod1(index, length(vec))]
 
 """
+    parserWS(data::AbstractString)::Union{Float64,Missing}
+
+Parse a string as a Float64, ignoring white spaces. If the string is empty return missing.
+
+# Arguments
+
+  - `data::AbstractString`: String to be parsed.
+
+# Returns
+
+  - Number in the string as a Float64.
+"""
+function parserWS(data::AbstractString)::Union{Float64,Missing}
+
+	clean_data = strip(data)
+
+	!isempty(clean_data) || return missing
+
+	return parse(Float64, clean_data)
+
+end
+
+"""
     safeSelect(vec::Vector, index::IndexType; warnings::Bool=true)
 
 Make the indexing operation `vec[index]` ignore indices that are out of bounds.

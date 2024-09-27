@@ -869,11 +869,11 @@ function daStellarHistory(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    birth_ticks   = filtered_dd[:stars]["GAGE"]
-    masses        = filtered_dd[:stars]["MASS"]
+    birth_ticks = filtered_dd[:stars]["GAGE"]
+    masses      = filtered_dd[:stars]["MASS"]
 
-    # Return `nothing` if any of the necessary quantities are missing
-    !any(isempty, [birth_ticks, masses]) || return nothing
+    # Return `nothing` if there are less than 3 stars
+    !any(x -> x <= 2, length.([birth_ticks, masses])) || return nothing
 
     # Compute the stellar birth dates
     if filtered_dd[:sim_data].cosmological

@@ -769,7 +769,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request    = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
-            var_name   = L"M_\mathrm{H2 + HI}",
+            var_name   = L"M_\mathrm{HI + H_2}",
             exp_factor = 10,
             unit       = u"Msun",
         )
@@ -858,7 +858,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS"],
             ),
-            var_name = L"f_\mathrm{H2 + H_I}",
+            var_name = L"f_\mathrm{H_I + H_2}",
         )
 
     elseif quantity == :molecular_neutral_fraction
@@ -967,7 +967,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
-            var_name = L"n_\mathrm{H2 + HI}",
+            var_name = L"n_\mathrm{HI + H_2}",
             unit     = u"cm^-3",
         )
 
@@ -1033,7 +1033,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
             ),
-            var_name = L"\Sigma_\mathrm{H2 + HI}",
+            var_name = L"\Sigma_\mathrm{HI + H_2}",
             unit     = u"Msun*pc^-2",
         )
 

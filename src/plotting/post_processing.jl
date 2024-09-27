@@ -284,7 +284,7 @@ function ppFitLine!(
     x_limits = @. (y_limits - intercept_mean) / slope_mean
 
     # Plot the linear fit
-    lines!(
+    lp = lines!(
         figure.current_axis.x,
         Makie.inverse_transform(x_scaling).(x_limits),
         Makie.inverse_transform(y_scaling).(y_limits);
@@ -346,13 +346,17 @@ function ppFitLine!(
     uncertainties = Measurements.uncertainty.(y_band)
 
     # Draw the uncertainty band
-    band!(
+    bp = band!(
         figure.current_axis.x,
         x_band,
         values .- uncertainties,
         values .+ uncertainties;
         color=(color, 0.3),
     )
+
+    # Put the post processing elements at the back of the plot
+    translate!(Accum, bp, 0, 0, -10)
+    translate!(Accum, lp, 0, 0, -9)
 
     return nothing
 
@@ -414,10 +418,17 @@ function ppKennicutt1998!(
     # Get the extrema of the y coordinates
     y_limits = [extrema(Float64[point[2] for point in points])...]
 
+    # Compute the vertical range, and if it is too small extend it
+    y_range = y_limits[2] - y_limits[1]
+
+    if iszero(extend) && (abs(y_range / y_limits[1]) < 0.1)
+        extend = 0.4 / abs(y_range / y_limits[1])
+    end
+
     # Extend the y limits the required amount
     if extend > 0.0
 
-        extension = (y_limits[2] - y_limits[1]) * extend
+        extension = y_range * extend
 
         y_limits[1] -= extension
         y_limits[2] += extension
@@ -456,7 +467,7 @@ function ppKennicutt1998!(
     values        = Measurements.value.(y_axis)
     uncertainties = Measurements.uncertainty.(y_axis)
 
-    band!(
+    bp = band!(
         figure.current_axis.x,
         x_axis,
         values .- uncertainties,
@@ -464,7 +475,11 @@ function ppKennicutt1998!(
         color=(color, 0.3),
     )
 
-    lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+    lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+
+    # Put the post processing elements at the back of the plot
+    translate!(Accum, bp, 0, 0, -10)
+    translate!(Accum, lp, 0, 0, -9)
 
     return [LineElement(; color, linestyle, linewidth)], ["Kennicutt (1998)"]
 
@@ -529,10 +544,17 @@ function ppBigiel2008!(
     # Get the extrema of the y coordinates
     y_limits = [extrema(Float64[point[2] for point in points])...]
 
+    # Compute the vertical range, and if it is too small extend it
+    y_range = y_limits[2] - y_limits[1]
+
+    if iszero(extend) && (abs(y_range / y_limits[1]) < 0.1)
+        extend = 0.4 / abs(y_range / y_limits[1])
+    end
+
     # Extend the y limits the required amount
     if extend > 0.0
 
-        extension = (y_limits[2] - y_limits[1]) * extend
+        extension = y_range * extend
 
         y_limits[1] -= extension
         y_limits[2] += extension
@@ -571,7 +593,7 @@ function ppBigiel2008!(
     values        = Measurements.value.(y_axis)
     uncertainties = Measurements.uncertainty.(y_axis)
 
-    band!(
+    bp = band!(
         figure.current_axis.x,
         x_axis,
         values .- uncertainties,
@@ -579,7 +601,11 @@ function ppBigiel2008!(
         color=(color, 0.25),
     )
 
-	lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+	lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+
+    # Put the post processing elements at the back of the plot
+    translate!(Accum, bp, 0, 0, -10)
+    translate!(Accum, lp, 0, 0, -9)
 
     return [LineElement(; color, linestyle, linewidth)], ["Bigiel et al. (2008)"]
 
@@ -905,7 +931,7 @@ function ppFeldmann2020!(
     y_axis_uncertainty = Measurements.uncertainty.(y_axis)
 
     # Plot the mean line
-    lines!(
+    lp = lines!(
         figure.current_axis.x,
         x_axis,
         Makie.inverse_transform(y_scaling).(y_axis_value);
@@ -926,7 +952,11 @@ function ppFeldmann2020!(
     # Construct the 2σ lower band
     low_band_2σ = Makie.inverse_transform(y_scaling).(y_axis_value .- 2 * y_axis_uncertainty)
     # Plot the 2σ lower band
-    band!(figure.current_axis.x, x_axis, low_band_2σ, ylower_1σ; color=(:orange, 0.15))
+    bp = band!(figure.current_axis.x, x_axis, low_band_2σ, ylower_1σ; color=(:orange, 0.15))
+
+    # Put the post processing elements at the back of the plot
+    translate!(Accum, bp, 0, 0, -10)
+    translate!(Accum, lp, 0, 0, -9)
 
     return (
         [PolyElement(; color=(:red, 0.3)), PolyElement(; color=(:orange, 0.3))],
@@ -973,5 +1003,204 @@ function ppBarPlotLabels(
     end
 
     return [PolyElement(polycolor=colors[i]) for i in 1:length(labels)], labels
+
+end
+
+"""
+    ppBigiel2010!(
+	    figure::Makie.Figure;
+        <keyword arguments>
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+Draw a scatter plot of SFR surface density vs the gas surface density (Kennicutt-Schmidt law) for a given galaxy, using the data of Bigiel et al. (2010).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure to be drawn over.
+  - `galaxy::String="NGC 628"`: Target galaxy. The options are:
+
+      + With molecular and and atomic data (Table 2): "NGC 628", "NGC 3184", "NGC 3521", "NGC 4736", "NGC 5055", "NGC 5194", "NGC 6946".
+      + With only atomic data (Table 3): "NGC 925", "NGC 2403", "NGC 2841", "NGC 2903", "NGC 3198", "NGC 3351", "NGC 3621", "NGC 3627", "NGC 5236", "NGC 5457", "NGC 7331", "NGC 7793".
+    For more information see Bigiel et al. (2010).
+  - `quantity::Symbol=:molecular`: Gas quantity for the x axis. The options are:
+
+      + `:molecular` -> Surface density of molecular gas.
+      + `:neutral`   -> Surface density of neutral gas.
+      + `:atomic`    -> Surface density of atomic gas.
+  - `xlog::Bool=true`: If the x axis will be plotted as the log10 of the gas surface density.
+  - `ylog::Bool=true`: If the y axis will be plotted as the log10 of the SFR surface density.
+  - `xunit::Unitful.Units=u"Msun * kpc^-2"`: Unit for the x axis.
+  - `yunit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2"`: Unit for the y axis.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `MarkerElement` to be used as the marker.
+      + The label string.
+
+# References
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+function ppBigiel2010!(
+	figure::Makie.Figure;
+	galaxy::String="NGC 628",
+	quantity::Symbol=:molecular,
+	xlog::Bool=true,
+	ylog::Bool=true,
+	xunit::Unitful.Units=u"Msun * kpc^-2",
+	yunit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2"
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+	################################################################################################
+	# Table 2 from Bigiel et al. 2010
+	################################################################################################
+
+	raw_data_2 = readdlm(BIGIEL2010_TABLE_2, '\t', skipstart=48, header=true)[1]
+
+	table_2 = DataFrame(
+		gtype=String[],
+		name=String[],
+		logHI=Union{Float64,Missing}[],
+		logH2=Union{Float64,Missing}[],
+		logSFR=Union{Float64,Missing}[],
+	)
+
+	for row in eachrow(raw_data_2)
+
+		data = row[1]
+
+		gtype  = strip(data[1:13])
+		name   = strip(data[14:24])
+		logHI  = parserWS(data[26:29])
+		logH2  = parserWS(data[36:39])
+		logSFR = parserWS(data[46:50])
+
+		push!(table_2, [gtype name logHI logH2 logSFR])
+
+	end
+
+	spirals_2 = filter(:gtype => isequal("Spirals"), table_2)
+
+	################################################################################################
+	# Table 3 from Bigiel et al. 2010
+	################################################################################################
+
+	raw_data_3 = readdlm(BIGIEL2010_TABLE_3, '\t', skipstart=46, header=true)[1]
+
+	table_3 = DataFrame(
+		gtype=String[],
+		name=String[],
+		logHI=Union{Float64,Missing}[],
+		SFR=Union{Float64,Missing}[],
+	)
+
+	for row in eachrow(raw_data_3)
+
+		data = row[1]
+
+		gtype = strip(data[1:8])
+		name  = strip(data[9:19])
+		logHI = parserWS(data[21:25])
+		SFR   = parserWS(data[32:37])
+
+		push!(table_3, [gtype name logHI SFR])
+
+	end
+
+	spirals_3 = filter(:gtype => isequal("Spirals"), table_3)
+
+	################################################################################################
+	# Find the target galaxy and read the data
+	################################################################################################
+
+	if quantity == :molecular
+
+		target_galaxy = filter(:name => isequal(galaxy), spirals_2)
+
+		if isempty(target_galaxy)
+
+			throw(ArgumentError("ppBigiel2010!: `galaxy` = $(galaxy) is not a spiral galaxy in \
+            Table 2 of Bigiel et al. 2010 (notice that you have `quantity` = $(quantity))."))
+
+		end
+
+		Σg   = exp10.(target_galaxy[!, :logH2]) .* u"Msun * pc^-2"
+		Σsfr = exp10.(target_galaxy[!, :logSFR]) .* u"Msun * yr^-1 * kpc^-2"
+
+    elseif quantity == :neutral
+
+        target_galaxy = filter(:name => isequal(galaxy), spirals_2)
+
+		if isempty(target_galaxy)
+
+			throw(ArgumentError("ppBigiel2010!: `galaxy` = $(galaxy) is not a spiral galaxy in \
+            Table 2 of Bigiel et al. 2010 (notice that you have `quantity` = $(quantity))."))
+
+		end
+
+        ΣH2   = exp10.(target_galaxy[!, :logH2]) .* u"Msun * pc^-2"
+        ΣHI   = exp10.(target_galaxy[!, :logHI]) .* u"Msun * pc^-2"
+
+		Σg   = ΣH2 .+ ΣHI
+		Σsfr = exp10.(target_galaxy[!, :logSFR]) .* u"Msun * yr^-1 * kpc^-2"
+
+	elseif quantity == :atomic
+
+		target_galaxy = filter(:name => isequal(galaxy), spirals_2)
+
+		if isempty(target_galaxy)
+
+			target_galaxy = filter(:name => isequal(galaxy), spirals_3)
+
+			if isempty(target_galaxy)
+
+				throw(ArgumentError("ppBigiel2010!: `galaxy` $(galaxy) is not a spiral galaxy in \
+                Table 2 or 3 of Bigiel et al. 2010."))
+
+			end
+
+		end
+
+		Σg   = exp10.(target_galaxy[!, :logHI]) .* u"Msun * pc^-2"
+		Σsfr = target_galaxy[!, :SFR] .* u"Msun * yr^-1 * kpc^-2"
+
+	else
+
+		throw(ArgumentError("ppBigiel2010!: `quantity` can only be :molecular, :neutral or \
+        :atomic, but I got :$(quantity)."))
+
+	end
+
+	# Delete missing data
+	idxs = map(ismissing, Σg) ∪ map(ismissing, Σsfr)
+
+    deleteat!(Σg, idxs)
+	deleteat!(Σsfr, idxs)
+
+	# Set the correct scale and units
+	if xlog
+		Σg = log10.(ustrip.(xunit, Σg))
+	else
+		Σg = ustrip.(xunit, Σg)
+	end
+
+	if ylog
+		Σsfr = log10.(ustrip.(yunit, Σsfr))
+	else
+		Σsfr = ustrip.(yunit, Σsfr)
+	end
+
+	################################################################################################
+	# Plot the galaxy data
+	################################################################################################
+
+	sp = scatter!(figure.current_axis.x, Σg, Σsfr; color=:gray45, marker=:star4, markersize=10)
+
+	# Put the post processing elements at the back of the plot
+    translate!(Accum, sp, 0, 0, -10)
+
+    return ([MarkerElement(; color=:gray45, marker=:star4)], ["$(galaxy) - Bigiel et al. 2010"])
 
 end
