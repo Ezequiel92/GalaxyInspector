@@ -7193,7 +7193,7 @@ function fitResolvedKSLaw(
 end
 
 """
-    resolvedMassMetallicityRelation(
+    massMetallicityRelation(
         simulation_paths::Vector{String},
         slice::IndexType;
         <keyword arguments>
@@ -7247,13 +7247,13 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
-function resolvedMassMetallicityRelation(
+function massMetallicityRelation(
     simulation_paths::Vector{String},
     slice::IndexType;
     element::Symbol=:all,
     mass::Bool=true,
     reduce::Int=1,
-    output_path::String="./resolvedMassMetallicityRelation",
+    output_path::String="./massMetallicityRelation",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -7263,7 +7263,7 @@ function resolvedMassMetallicityRelation(
 
     (
         element ∈ [:all, keys(ELEMENT_INDEX)...] ||
-        throw(ArgumentError("resolvedMassMetallicityRelation: `quantity` can only be :all or any \
+        throw(ArgumentError("massMetallicityRelation: `quantity` can only be :all or any \
         of the keys of `ELEMENT_INDEX` (see `./src/constants/globals.jl`), but I got :$(quantity)"))
     )
 

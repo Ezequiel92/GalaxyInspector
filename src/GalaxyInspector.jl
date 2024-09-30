@@ -107,7 +107,7 @@ export compareFeldmann2020
 export compareMolla2015
 export kennicuttSchmidtLaw
 export fitResolvedKSLaw
-export resolvedMassMetallicityRelation
+export massMetallicityRelation
 export atomicGasCubes
 
 end
