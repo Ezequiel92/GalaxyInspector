@@ -141,32 +141,42 @@ const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
 """
 Threshold density, above which the gas particles enter the star formation routine.
 
-This value corresponds to `CritOverDensity` ``= 57.7 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used only in cosmological simulations). Which is converted to internal units within the code using `OverDensThresh = CritOverDensity * OmegaBaryon * 3 * Hubble * Hubble / (8 * M_PI * G)`. Then, to go to physical units again one has to do: `OverDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
+This value corresponds to `CritOverDensity` ``= 57.7 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used only in cosmological simulations). Which is converted to internal units within the code using `OverDensThresh` = `CritOverDensity` * `OmegaBaryon` * 3 * `Hubble` * `Hubble` / (8 * `M_PI` * `G`)`. Then, to go to physical units again one has to do: `OverDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
 
 Using the unit factors,
 
-`UnitLength_in_cm`         = 3.085678e24
-`UnitMass_in_g`            = 1.989e+43
-`UnitVelocity_in_cm_per_s` = 100000
+`UnitLength_in_cm`         = ``3.085678 \\times 10^{24}``
+
+`UnitMass_in_g`            = ``1.989 \\times 10^{43}``
+
+`UnitVelocity_in_cm_per_s` = ``100000``
 
 The derived units,
 
-`UnitTime_in_s`      = `UnitLength_in_cm` * `UnitVelocity_in_cm_per_s`^-1 = 3.08568e19
-`UnitDensity_in_cgs` = `UnitMass_in_g` * `UnitLength_in_cm^-3`            = 6.76991e-31
+`UnitTime_in_s`      = `UnitLength_in_cm` * `UnitVelocity_in_cm_per_s`^-1 = ``3.08568 \\times 10^{19}``
+
+`UnitDensity_in_cgs` = `UnitMass_in_g` * `UnitLength_in_cm^-3`            = ``6.76991 \\times 10^{-31}``
+
 
 The parameters,
 
-`OmegaBaryon`       = 0.048
-`HubbleParam`       = 0.6777
-`PROTONMASS`        = 1.67262178e-24
-`HYDROGEN_MASSFRAC` = 0.76
-`GRAVITY`           = 6.6738e-8
-`HUBBLE`            = 3.2407789e-18
+`OmegaBaryon`       = ``0.048``
+
+`HubbleParam`       = ``0.6777``
+
+`PROTONMASS`        = ``1.67262178 \\times 10^{-24}``
+
+`HYDROGEN_MASSFRAC` = ``0.76``
+
+`GRAVITY`           = ``6.6738 \\times 10^{-8}``
+
+`HUBBLE`            = ``3.2407789 \\times 10^{-18}``
 
 And the derived parameters,
 
-Hubble = `HUBBLE` * `UnitTime_in_s`                                              = 100
-G      = `GRAVITY` * `UnitLength_in_cm`^-3 * `UnitMass_in_g` * `UnitTime_in_s`^2 = 43.0187
+Hubble = `HUBBLE` * `UnitTime_in_s`                                              = ``100``
+
+G      = `GRAVITY` * `UnitLength_in_cm`^-3 * `UnitMass_in_g` * `UnitTime_in_s`^2 = ``43.0187``
 
 We get,
 
@@ -468,7 +478,7 @@ Default plot theme.
 
 On the graphic units used:
 
-We know that ``1 \\, \\mathrm{mm} = 2.83466 \\, \\mathrm{pt}`` and ``1 \\, \\mathrm{in} = 25,4 \\, \\mathrm{mm}``. Then, if we want ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}`` in vector graphics, we have to use `pt_per_unit` = 0.283466.
+We know that ``1 \\, \\mathrm{mm} = 2.83466 \\, \\mathrm{pt}`` and ``1 \\, \\mathrm{in} = 25.4 \\, \\mathrm{mm}``. Then, if we want ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}`` in vector graphics, we have to use `pt_per_unit` = 0.283466.
 For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is 600. So, using `px_per_unit` = ``2.3622`` we get ``23.622 \\, \\mathrm{px/mm} \\sim 600 \\, \\mathrm{px/in}`` (remember that ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}``).
 """
 const DEFAULT_THEME = Theme(
