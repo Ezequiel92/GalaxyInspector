@@ -45,7 +45,7 @@ Write a text file with information about a given snapshot.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1.
   - `warnings::Bool=true`: If a warning will be given when there is missing files.
 """
 function snapshotReport(
@@ -3899,7 +3899,7 @@ Plot the atomic gas to molecular gas transition for a set of metallicity ranges.
       + `:heatmap` -> Heatmap. One figure per range will be produced.
       + `:scatter` -> Scatter plot. A single figure with every range will be produced.
   - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are included.
   - `output_path::String="./"`: Path to the output folder.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """

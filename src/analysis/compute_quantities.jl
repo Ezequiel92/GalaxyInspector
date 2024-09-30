@@ -5,7 +5,7 @@
 """
     computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
-Read the position of the potencial minimum of a given halo or subhalo.
+Read the position of the particle/cell at the potencial minimum of a given halo or subhalo.
 
 # Arguments
 
@@ -25,11 +25,11 @@ Read the position of the potencial minimum of a given halo or subhalo.
   - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, the potencial minimum of the whole halo with index `halo_idx` is returned.
+      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If it is set to 0, the potencial minimum of the halo with index `halo_idx` is returned.
 
 # Returns
 
-  - The specified potencial minimum.
+  - The position of the potencial minimum.
 """
 function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
@@ -211,7 +211,7 @@ Read the velocity of the center of mass of a given halo or subhalo.
   - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, the velocity of the whole halo with index `halo_idx` is returned.
+      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If it is set to 0, the potencial minimum of the halo with index `halo_idx` is returned.
 
 # Returns
 

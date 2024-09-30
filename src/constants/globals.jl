@@ -141,40 +141,40 @@ const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
 """
 Threshold density, above which the gas particles enter the star formation routine.
 
-This value corresponds to `CritOverDensity` ``= 57.7 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used only in cosmological simulations). Which is converted to internal units within the code using `OverDensThresh = CritOverDensity * OmegaBaryon * 3 * Hubble * Hubble / (8 * M_PI * G)`. Then, to go to physical units again one has to do: `OverDensThresh * UnitDensity_in_cgs * cf_a3inv * HubbleParam * HubbleParam`.
+This value corresponds to `CritOverDensity` ``= 57.7 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used only in cosmological simulations). Which is converted to internal units within the code using `OverDensThresh = CritOverDensity * OmegaBaryon * 3 * Hubble * Hubble / (8 * M_PI * G)`. Then, to go to physical units again one has to do: `OverDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
 
 Using the unit factors,
 
-UnitLength_in_cm         = 3.085678e24
-UnitMass_in_g            = 1.989e+43
-UnitVelocity_in_cm_per_s = 100000
+`UnitLength_in_cm`         = 3.085678e24
+`UnitMass_in_g`            = 1.989e+43
+`UnitVelocity_in_cm_per_s` = 100000
 
 The derived units,
 
-UnitTime_in_s      = UnitLength_in_cm * UnitVelocity_in_cm_per_s^-1 = 3.08568e19
-UnitDensity_in_cgs = UnitMass_in_g * UnitLength_in_cm^-3            = 6.76991e-31
+`UnitTime_in_s`      = `UnitLength_in_cm` * `UnitVelocity_in_cm_per_s`^-1 = 3.08568e19
+`UnitDensity_in_cgs` = `UnitMass_in_g` * `UnitLength_in_cm^-3`            = 6.76991e-31
 
 The parameters,
 
-OmegaBaryon       = 0.048
-HubbleParam       = 0.6777
-PROTONMASS        = 1.67262178e-24
-HYDROGEN_MASSFRAC = 0.76
-GRAVITY           = 6.6738e-8
-HUBBLE            = 3.2407789e-18
+`OmegaBaryon`       = 0.048
+`HubbleParam`       = 0.6777
+`PROTONMASS`        = 1.67262178e-24
+`HYDROGEN_MASSFRAC` = 0.76
+`GRAVITY`           = 6.6738e-8
+`HUBBLE`            = 3.2407789e-18
 
 And the derived parameters,
 
-Hubble = HUBBLE * UnitTime_in_s                                          = 100
-G      = GRAVITY * UnitLength_in_cm^-3 * UnitMass_in_g * UnitTime_in_s^2 = 43.0187
+Hubble = `HUBBLE` * `UnitTime_in_s`                                              = 100
+G      = `GRAVITY` * `UnitLength_in_cm`^-3 * `UnitMass_in_g` * `UnitTime_in_s`^2 = 43.0187
 
 We get,
 
-OverDensThresh = 76.8495 [internal units of density]
+`OverDensThresh` = 76.8495 [internal units of density]
 
-And for a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``1.42857e-5 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
+And for a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``1.42857 \\times 10^{-5} \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
 
-``\\log_{10} \\rho [\\mathrm{M_\\odot \\, kpc^{-3}}] = 2.548``
+``\\log_{10} \\rho \\ [\\mathrm{M_\\odot \\, kpc^{-3}}] = 2.548``
 
 """
 const COSMO_THRESHOLD_DENSITY = 353.059u"Msun*kpc^-3"
@@ -182,13 +182,13 @@ const COSMO_THRESHOLD_DENSITY = 353.059u"Msun*kpc^-3"
 """
 Threshold density, above which the gas particles enter the star formation routine.
 
-This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used in cosmological and non-cosmological simulations). Which is converted to internal units within the code using `PhysDensThresh = CritPhysDensity * PROTONMASS / HYDROGEN_MASSFRAC / UnitDensity_in_cgs`. Then, to go to physical units again one has to do: `PhysDensThresh * UnitDensity_in_cgs * cf_a3inv * HubbleParam * HubbleParam`.
+This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used in cosmological and non-cosmological simulations). Which is converted to internal units within the code using `PhysDensThresh` = `CritPhysDensity` * `PROTONMASS` / `HYDROGEN_MASSFRAC` / `UnitDensity_in_cgs`. Then, to go to physical units again one has to do: `PhysDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
 
-PhysDensThresh = 1.03378e6 [internal units of density]
+`PhysDensThresh` = ``1.03378 \\times 10^{6}`` [internal units of density]
 
 For a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
 
-``\\log_{10} \\rho [\\mathrm{M_\\odot \\, kpc^{-3}}] = 6.677``
+``\\log_{10} \\rho \\, [\\mathrm{M_\\odot \\, kpc^{-3}}] = 6.677``
 """
 const THRESHOLD_DENSITY = 4.749326307150211e6u"Msun*kpc^-3"
 
@@ -278,7 +278,7 @@ const A_BIGIEL2008_NEUTRAL   = −2.39 ± 0.28
 const N_BIGIEL2008_NEUTRAL   = 1.85 ± 0.70
 
 @doc raw"""
-Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$, taken from Bigiel et al. (2008) (Section 4.3, Equation 3).
+$A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$, taken from Bigiel et al. (2008) (Section 4.3, Equation 3).
 
 ```math
 \Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{HI, H_2, gas}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
@@ -289,13 +289,25 @@ Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ a
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
 const A_BIGIEL2008_BF_MOLECULAR = −2.1 ± 0.2
+
+@doc raw"""
+Power-law index, N at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$, taken from Bigiel et al. (2008) (Section 4.3, Equation 3).
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{HI, H_2, gas}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
+```
+
+# References
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+"""
 const N_BIGIEL2008_BF_MOLECULAR = 1.0 ± 0.2
 
 @doc raw"""
-Slope and intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Eq. 4).
+Slope of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Eq. 4).
 
 ```math
-\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{gas}}{1 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \mathrm{M_\odot \, yr^{-1] \, kpc^{-2}} \, ,
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{gas}}{1 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \mathrm{M_\odot \, yr^{-1} \, kpc^{-2}} \, ,
 ```
 
 # References
@@ -303,6 +315,18 @@ Slope and intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (S
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 """
 const N_KS98 = 1.4 ± 0.15
+
+@doc raw"""
+Intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Eq. 4).
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{gas}}{1 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \mathrm{M_\odot \, yr^{-1} \, kpc^{-2}} \, ,
+```
+
+# References
+
+R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+"""
 const a_KS98 = 2.5e-4 ± 0.7e-4
 
 """

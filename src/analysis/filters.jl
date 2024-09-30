@@ -931,7 +931,7 @@ Filter out stars that where born outside the given halo and subhalo (exsitu), le
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are consider insitu.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are consider insitu.
   - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
 # Returns
@@ -1010,7 +1010,7 @@ Filter out stars that where born inside the given halo and subhalo (insitu), lea
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, only stars born outside halo `halo_idx` are consider exsitu.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, only stars born outside halo `halo_idx` are consider exsitu.
   - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
 # Returns
@@ -1287,7 +1287,7 @@ Filter out cells/particles that do not belong to a given halo and subhalo.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative the target halo. Starts at 1. If set to 0, all subhalos of the target halo are included.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are included.
 
 # Returns
 
