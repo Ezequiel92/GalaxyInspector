@@ -1,10 +1,10 @@
 ####################################################################################################
-# Constants and data structures.
+# Constants and data structures
 ####################################################################################################
 
-##################
-# Code constants.
-##################
+#################
+# Code constants
+#################
 
 """
 Base name of the snapshot files, set in the code variable `SnapshotFileBase`.
@@ -26,9 +26,9 @@ Solar metallicity, as used in OpenGadget3.
 """
 const SOLAR_METALLICITY = 0.02
 
-#######################
-# Cell/particle types.
-#######################
+######################
+# Cell/particle types
+######################
 
 """
 Current cell/particle index in use.
@@ -40,9 +40,9 @@ Current human readable name of each cell/particle type in use.
 """
 const PARTICLE_NAMES = ISOLATED_PARTICLE_NAMES
 
-####################
-# Tracked elements.
-####################
+###################
+# Tracked elements
+###################
 
 """
 Code index for each tracked element.
@@ -66,9 +66,9 @@ List of element indices above helium.
 """
 const METAL_LIST = [2, 3, 4, 5, 6, 8, 9, 10, 11]
 
-################################
-# Quantities in the simulation.
-################################
+#############################################################
+# Quantities that can be in a sanpshot or group catalog file
+#############################################################
 
 """
 Dictionary of dimensional properties for the quantities in the code.

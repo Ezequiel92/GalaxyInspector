@@ -1,5 +1,5 @@
 ####################################################################################################
-# Pipeline functions.
+# Pipeline functions
 ####################################################################################################
 
 """
@@ -230,7 +230,7 @@ function plotSnapshot(
     )
 
     ################################################################################################
-    # Set up the canvas for the figures.
+    # Set up the canvas for the figures
     ################################################################################################
 
     # Reset the current theme
@@ -257,7 +257,7 @@ function plotSnapshot(
     axes = Makie.Axis(figure[1, 1]; xlabel, ylabel)
 
     ################################################################################################
-    # Set up the animation.
+    # Set up the animation
     ################################################################################################
 
     if animation
@@ -275,7 +275,7 @@ function plotSnapshot(
     end
 
     ################################################################################################
-    # Main loop.
+    # Main loop
     ################################################################################################
 
     # Initialize the progress bar
@@ -331,7 +331,7 @@ function plotSnapshot(
             end
 
             ########################################################################################
-            # Compute the metadata for the current snapshot and simulation.
+            # Compute the metadata for the current snapshot and simulation
             ########################################################################################
 
             # Get the snapshot file path
@@ -368,7 +368,7 @@ function plotSnapshot(
             )
 
             ########################################################################################
-            # Select the plot and data analysis functions.
+            # Select the plot and data analysis functions
             ########################################################################################
 
             # Get the plot function and its arguments for the current simulation
@@ -381,7 +381,7 @@ function plotSnapshot(
             da_kwarg = ring(da_kwargs, simulation_index)
 
             ########################################################################################
-            # Read and transform the data in the snapshot.
+            # Read and transform the data in the snapshot
             ########################################################################################
 
             data_dict = merge(
@@ -404,7 +404,7 @@ function plotSnapshot(
             end
 
             ########################################################################################
-            # Compute the values to be plotted.
+            # Compute the values to be plotted
             ########################################################################################
 
             # Apply the analysis function
@@ -901,7 +901,7 @@ function plotTimeSeries(
     n_simulations = length(simulation_paths)
 
     ################################################################################################
-    # Set up the canvas for the figures.
+    # Set up the canvas for the figures
     ################################################################################################
 
     # Reset the current theme
@@ -933,7 +933,7 @@ function plotTimeSeries(
     )
 
     ################################################################################################
-    # Main loop.
+    # Main loop
     ################################################################################################
 
     # Initialize the progress bar
@@ -967,7 +967,7 @@ function plotTimeSeries(
     @inbounds for (simulation_index, simulation_path) in pairs(simulation_paths)
 
         ############################################################################################
-        # Compute the metadata for the current simulation.
+        # Compute the metadata for the current simulation
         ############################################################################################
 
         # Make a dataframe with the following columns:
@@ -996,7 +996,7 @@ function plotTimeSeries(
         )
 
         ############################################################################################
-        # Select the plot and data analysis functions.
+        # Select the plot and data analysis functions
         ############################################################################################
 
         # Get the plot function and its arguments for the current simulation
@@ -1009,7 +1009,7 @@ function plotTimeSeries(
         da_kwarg = ring(da_kwargs, simulation_index)
 
         ############################################################################################
-        # Compute the values to be plotted.
+        # Compute the values to be plotted
         ############################################################################################
 
         # Apply the analysis function

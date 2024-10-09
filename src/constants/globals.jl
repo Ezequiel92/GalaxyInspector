@@ -1,10 +1,10 @@
 ####################################################################################################
-# Constants and data structures.
+# Constants and data structures
 ####################################################################################################
 
-#################
-# Configuration.
-#################
+################
+# Configuration
+################
 
 """
 Choose a codebase.
@@ -12,7 +12,7 @@ Choose a codebase.
 const CODEBASE = :arepo
 
 """
-If physical units (lengths) will be used throughout, instead of comoving units (lengths).
+If physical units (lengths) will be used, instead of comoving units (lengths).
 """
 PHYSICAL_UNITS = false
 
@@ -26,24 +26,28 @@ Relative path, within the simulation directory, of the `cpu.txt` file.
 """
 const CPU_REL_PATH = "output/cpu.txt"
 
+########################
+# Characteristic scales
+########################
+
 """
-Characteristic radius used throughout the code.
+Characteristic radius.
 """
 const DISK_R = 40.0u"kpc"
 
 """
-Characteristic box size used throughout the code.
+Characteristic box size.
 """
 const BOX_L = 65.0u"kpc"
 
 """
-Characteristic stellar age limit for the SFR and sSFR calculations.
+Characteristic stellar age limit for the SFR and sSFR.
 """
 const AGE_RESOLUTION = 200.0u"Myr"
 
-#######################
-# Cell/particle types.
-#######################
+######################
+# Cell/particle types
+######################
 
 """
 Code index for each type of cell/particle.
@@ -63,7 +67,7 @@ const LONG_PARTICLE_INDEX = Dict(
 )
 
 """
-Human readable name corresponding to each type of cell/particle.
+Human readable name for each type of cell/particle.
 """
 const LONG_PARTICLE_NAMES = Dict(
     :gas        => "Gas cells",
@@ -76,28 +80,28 @@ const LONG_PARTICLE_NAMES = Dict(
 )
 
 """
-Human readable name corresponding to each type of cell/particle.
+Human readable name for each type of cell/particle.
 """
 const ISOLATED_PARTICLE_NAMES = Dict(
-    :gas        => "Gas cells",
-    :halo       => "DM particles",
-    :disk       => "Stellar disk",
-    :bulge      => "Stellar bulge",
+    :gas   => "Gas cells",
+    :halo  => "DM particles",
+    :disk  => "Stellar disk",
+    :bulge => "Stellar bulge",
 )
 
 """
-Human readable name corresponding to each morphological component.
+Human readable name for each morphological component.
 """
 const MORPHOLOGICAL_COMPONENTS = Dict(
-    :disk        => "Disk",
-    :bulge       => "Bulge",
-    :thin_disk   => "Thin disk",
-    :thick_disk  => "Thick disk",
+    :disk       => "Disk",
+    :bulge      => "Bulge",
+    :thin_disk  => "Thin disk",
+    :thick_disk => "Thick disk",
 )
 
-#############################
-# Constants of the SF model.
-#############################
+############################
+# Constants of the SF model
+############################
 
 # Star formation efficiency
 const ϵff  = 1.0
@@ -116,9 +120,9 @@ const C_star = sqrt(3π / 32u"G") / ϵff
 const C_rec  = u"mp" / αH
 const C_cond = (u"mp" * Zsun) / (2 * Rsun * Cρ)
 
-########################################
-# Reference values from the literature.
-########################################
+#######################################
+# Reference values from the literature
+#######################################
 
 """
 Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{kpc}``.
@@ -139,7 +143,7 @@ See the documentation [here](https://www.tng-project.org/data/docs/specification
 const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
 
 """
-Threshold density, above which the gas particles enter the star formation routine.
+Cosmological threshold density above which the gas cells/particles can turn into stars.
 
 This value corresponds to `CritOverDensity` ``= 57.7 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used only in cosmological simulations). Which is converted to internal units within the code using `OverDensThresh` = `CritOverDensity` * `OmegaBaryon` * 3 * `Hubble` * `Hubble` / (8 * `M_PI` * `G`)`. Then, to go to physical units again one has to do: `OverDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
 
@@ -156,7 +160,6 @@ The derived units,
 `UnitTime_in_s`      = `UnitLength_in_cm` * `UnitVelocity_in_cm_per_s`^-1 = ``3.08568 \\times 10^{19}``
 
 `UnitDensity_in_cgs` = `UnitMass_in_g` * `UnitLength_in_cm^-3`            = ``6.76991 \\times 10^{-31}``
-
 
 The parameters,
 
@@ -178,11 +181,11 @@ Hubble = `HUBBLE` * `UnitTime_in_s`                                             
 
 G      = `GRAVITY` * `UnitLength_in_cm`^-3 * `UnitMass_in_g` * `UnitTime_in_s`^2 = ``43.0187``
 
-We get,
+One gets,
 
 `OverDensThresh` = 76.8495 [internal units of density]
 
-And for a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``1.42857 \\times 10^{-5} \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
+And, for a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``1.42857 \\times 10^{-5} \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
 
 ``\\log_{10} \\rho \\ [\\mathrm{M_\\odot \\, kpc^{-3}}] = 2.548``
 
@@ -190,7 +193,7 @@ And for a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result i
 const COSMO_THRESHOLD_DENSITY = 353.059u"Msun*kpc^-3"
 
 """
-Threshold density, above which the gas particles enter the star formation routine.
+Threshold density above which the gas cells/particles can turn into stars.
 
 This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used in cosmological and non-cosmological simulations). Which is converted to internal units within the code using `PhysDensThresh` = `CritPhysDensity` * `PROTONMASS` / `HYDROGEN_MASSFRAC` / `UnitDensity_in_cgs`. Then, to go to physical units again one has to do: `PhysDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
 
@@ -200,7 +203,7 @@ For a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a 
 
 ``\\log_{10} \\rho \\, [\\mathrm{M_\\odot \\, kpc^{-3}}] = 6.677``
 """
-const THRESHOLD_DENSITY = 4.749326307150211e6u"Msun*kpc^-3"
+const THRESHOLD_DENSITY = 4.749326e6u"Msun*kpc^-3"
 
 @doc raw"""
 Hubble constant in $\mathrm{Gyr^{-1}}$.
@@ -210,7 +213,7 @@ This value corresponds to $H_0 = 0.102201 \, \mathrm{Gyr}^{-1} = 100 \, \mathrm{
 const HUBBLE_CONSTANT = 0.102201
 
 """
-Dictionary with the subhalo numbers for the MW and M31 in Hestia simulations.
+Subhalo numbers for the MW and M31 in Hestia simulations.
 """
 const HESTIA_SUBHALOS = Dict(
     "Hestia17-11" => Dict(
@@ -272,7 +275,9 @@ const ATOMIC_WEIGHTS = Dict(
 )
 
 @doc raw"""
-Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$, taken from Bigiel et al. (2008) (Table 2, Average).
+Kennicutt-Schmidt law fits for molecular and neutral gas, from Bigiel et al. (2008) (Table 2, Average).
+
+Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$ are given.
 
 ```math
 \Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{HI, H_2, gas}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
@@ -288,10 +293,12 @@ const A_BIGIEL2008_NEUTRAL   = −2.39 ± 0.28
 const N_BIGIEL2008_NEUTRAL   = 1.85 ± 0.70
 
 @doc raw"""
-$A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$, taken from Bigiel et al. (2008) (Section 4.3, Equation 3).
+Kennicutt-Schmidt law best-fit for molecular gas, from Bigiel et al. (2008) (Section 4.3, Equation 3).
+
+Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$ are given.
 
 ```math
-\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{HI, H_2, gas}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
 ```
 
 # References
@@ -299,22 +306,75 @@ $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surfa
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
 const A_BIGIEL2008_BF_MOLECULAR = −2.1 ± 0.2
+const N_BIGIEL2008_BF_MOLECULAR = 1.0 ± 0.2
 
-@doc raw"""
-Power-law index, N at the fiducial gas surface density of $10 \, \mathrm{M_\odot \, pc^{-2}}$, taken from Bigiel et al. (2008) (Section 4.3, Equation 3).
-
-```math
-\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{HI, H_2, gas}}{10 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
-```
+"""
+Spatial resolution used in Bigiel et al. (2008).
 
 # References
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-const N_BIGIEL2008_BF_MOLECULAR = 1.0 ± 0.2
+const BIGIEL_PX_SIZE = 750.0u"pc"
 
 @doc raw"""
-Slope of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Eq. 4).
+Range of values for
+
+```math
+\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
+```
+in the seven spiral in Table 1 of Bigiel et al. (2008), with associated molecular data.
+
+The actual values for the SFR density are taken from Table 2 in Bigiel et al. (2010), using only the ones with associated molecular data.
+
+# References
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2008_SFR_RANGE = exp10.([-2.99, -0.33]) .* u"Msun * yr^-1 * kpc^-2"
+
+"""
+Path to the file with Table 2 from Bigiel et al. (2010).
+
+# References
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2010_TABLE_2 = joinpath(
+    @__DIR__,
+    "../../experimental_data/Bigiel2010/aj351668t2_mrt.txt",
+)
+
+"""
+Path to the file with Table 3 from Bigiel et al. (2010).
+
+# References
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2010_TABLE_3 = joinpath(
+    @__DIR__,
+    "../../experimental_data/Bigiel2010/aj351668t3_mrt.txt",
+)
+
+@doc raw"""
+Range of values for
+
+```math
+\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
+```
+from the combine data (Table 1 and 2) in Kennicutt (1998).
+
+# References
+
+R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+"""
+const KS98_SFR_RANGE = exp10.([-3.55, 2.98]) .* u"Msun * yr^-1 * kpc^-2"
+
+@doc raw"""
+Slope of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Equation 4).
 
 ```math
 \Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{gas}}{1 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \mathrm{M_\odot \, yr^{-1} \, kpc^{-2}} \, ,
@@ -327,7 +387,7 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 const N_KS98 = 1.4 ± 0.15
 
 @doc raw"""
-Intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Eq. 4).
+Intercept of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Equation 4).
 
 ```math
 \Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{gas}}{1 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \mathrm{M_\odot \, yr^{-1} \, kpc^{-2}} \, ,
@@ -340,7 +400,7 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 const a_KS98 = 2.5e-4 ± 0.7e-4
 
 """
-Path to the file with the Milky Way profiles, taken from Mollá et al. (2015).
+Path to the file with the Milky Way profiles from Mollá et al. (2015).
 
 # References
 
@@ -349,7 +409,7 @@ M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the in
 const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/Mollá2015.csv")
 
 """
-Path to the file with the global galaxy properties, taken from Feldmann (2020).
+Path to the file with the global galactic properties from Feldmann (2020).
 
 # References
 
@@ -358,63 +418,28 @@ R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*
 const FELDMANN2020_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/Feldmann2020.csv")
 
 """
-Spatial resolution used in Bigiel et al. (2008).
+Reference pressure for the molecular fraction-pressure relation, taken from Blitz et al. (2006) (Table 2, "Mean" row, Third column).
 
 # References
-
-F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
-"""
-const BIGIEL_PX_SIZE = 750.0u"pc"
-
-"""
-Path to the file with the galaxy data from Bigiel et al. (2010) (Table 2).
-
-# References
-
-F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
-"""
-const BIGIEL2010_TABLE_2 = joinpath(
-    @__DIR__,
-    "../../experimental_data/Bigiel2010/aj351668t2_mrt.txt",
-)
-
-"""
-Path to the file with the galaxy data from Bigiel et al. (2010) (Table 3).
-
-# References
-
-F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
-"""
-const BIGIEL2010_TABLE_3 = joinpath(
-    @__DIR__,
-    "../../experimental_data/Bigiel2010/aj351668t3_mrt.txt",
-)
-
-"""
-Reference pressure for the molecular fraction-pressure relation, taken from Blitz et al. (2006).
-
-# References
-
-Table 2, "Mean" row, Third column.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 const P0 = 3.5e4u"K*cm^-3" * Unitful.k
 
 """
-Reference exponent for the molecular fraction-pressure relation, taken from Blitz et al. (2006).
+Reference exponent for the molecular fraction-pressure relation, taken from Blitz et al. (2006) (Table 2, "Mean" row, Second column).
+
+We use -α here.
 
 # References
-
-Table 2, "Mean" row, Second column. (We use -α here).
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 const ALPHA_BLITZ = -0.92
 
-################
-# Type aliases.
-################
+###############
+# Type aliases
+###############
 
 """
 Color type.
@@ -459,9 +484,9 @@ const ReducedIndexType = Union{
 # Dimensions of angular momentum
 @derived_dimension AngularMomentum Unitful.𝐌 * Unitful.𝐋^2 * Unitful.𝐓^-1 true
 
-##########################
-# Makie.jl default theme.
-##########################
+#########################
+# Makie.jl default theme
+#########################
 
 """
 Default list of marker types.
@@ -476,9 +501,8 @@ const LINE_STYLES = [:solid, :dash, :dot, :dashdot, :dashdotdot]
 """
 Default plot theme.
 
-On the graphic units used:
+Regarding the graphic units used, we know that ``1 \\, \\mathrm{mm} = 2.83466 \\, \\mathrm{pt}`` and ``1 \\, \\mathrm{in} = 25.4 \\, \\mathrm{mm}``. Then, if we want ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}`` in vector graphics, we have to use `pt_per_unit` = 0.283466.
 
-We know that ``1 \\, \\mathrm{mm} = 2.83466 \\, \\mathrm{pt}`` and ``1 \\, \\mathrm{in} = 25.4 \\, \\mathrm{mm}``. Then, if we want ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}`` in vector graphics, we have to use `pt_per_unit` = 0.283466.
 For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is 600. So, using `px_per_unit` = ``2.3622`` we get ``23.622 \\, \\mathrm{px/mm} \\sim 600 \\, \\mathrm{px/in}`` (remember that ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}``).
 """
 const DEFAULT_THEME = Theme(
@@ -576,9 +600,9 @@ const DEFAULT_THEME = Theme(
     Hist=(strokecolor=:black, strokewidth=1),
 )
 
-##############
-# Structures.
-##############
+#############
+# Structures
+#############
 
 """
 Dimensional information about a physical quantity.
@@ -587,7 +611,7 @@ Dimensional information about a physical quantity.
 
   - `hdf5_name::String`: HDF5 block name.
   - `dimensions::Unitful.Dimensions`: Physical dimensions of the quantity, e.g. `Unitful.𝐋 * Unitful.𝐓^-1`.
-  - `unit::Union{Unitful.Units,Symbol}`: Units of the quantity within the code. It can be a unit from [Unitful](https://github.com/PainterQubits/Unitful.jl) or [UnitfulAstro](https://github.com/JuliaAstro/UnitfulAstro.jl), or it can be the symbol `:internal` which denotes internal code units.
+  - `unit::Union{Unitful.Units,Symbol}`: Units of the quantity within the simulation code. It can be a unit from [Unitful](https://github.com/PainterQubits/Unitful.jl) or [UnitfulAstro](https://github.com/JuliaAstro/UnitfulAstro.jl), or it can be the symbol `:internal` which denotes internal code units.
 """
 struct Qty
     hdf5_name::String
@@ -675,7 +699,7 @@ Metadata for a simulation.
 
       + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0).
       + `true`  -> Cosmological simulation (`ComovingIntegrationOn` = 1).
-  - `table::DataFrame`: A dataframe where each row is a snapshot, and with 8 colums:
+  - `table::DataFrame`: A dataframe where each row is a snapshot, and the following 8 colums:
 
       + `:ids`            -> Dataframe index of each snapshot, i.e. if there are 10 snapshots in total it runs from 1 to 10.
       + `:numbers`        -> Number in the file name of each snapshot.
@@ -683,8 +707,8 @@ Metadata for a simulation.
       + `:redshifts`      -> Redshift of each snapshot.
       + `:physical_times` -> Physical time since the Big Bang.
       + `:lookback_times` -> Physical time left to reach the last snapshot.
-      + `:snapshot_paths` -> Full path to the snapshots.
-      + `:groupcat_paths` -> Full path to the group catalog files.
+      + `:snapshot_paths` -> Full path to each snapshots.
+      + `:groupcat_paths` -> Full path to each group catalog files.
 """
 struct Simulation
     path::String
@@ -733,7 +757,7 @@ struct GroupCatalog
 end
 
 """
-Unit conversion struct.
+Unit conversion factors.
 
 # Fields
 
@@ -845,7 +869,7 @@ Linear grid (1D).
 
 # Fields
 
-  - `grid::Vector{<:Number}`: Vector with the center value of each bin.
+  - `grid::Vector{<:Number}`: Vector with the central value of each bin.
   - `ticks::Vector{<:Number}`: Vector with the edges of the bins.
   - `bin_widths::Vector{<:Number}`: Widths of the bins.
   - `log::Bool`: If the grid is logarithmic.
@@ -877,7 +901,7 @@ struct LinearGrid
         # +-----------------------------+-----------------------------+-----------------------------+
         #
         # +-----------------------------+-----------------------------+-----------------------------+
-        # |<-- thick[1] (= `start`)     |<-- thick[2]     thick[3] -->|      thick[4] (= `stop`) -->|
+        # |<-- tick[1] (= `start`)      |<-- tick[2]       tick[3] -->|       tick[4] (= `stop`) -->|
         # +-----------------------------+-----------------------------+-----------------------------+
 
         (
@@ -887,27 +911,31 @@ struct LinearGrid
         )
 
         if log
+
             (
                 isPositive(start) ||
                 throw(ArgumentError("LinearGrid: For a logarithmic grid you need a \
                 positive `start`, but I got start = $(start)"))
             )
 
-            # Length unit
+            # Unit of length
             u_l = unit(start)
 
             log_start = log10(ustrip(start))
-            log_stop = log10(ustrip(u_l, stop))
+            log_stop  = log10(ustrip(u_l, stop))
 
-            width = (log_stop - log_start) / n_bins
-            grid = [exp10((i - 0.5) * width + log_start) * u_l for i in 1:n_bins]
-            ticks = [exp10(i * width + log_start) * u_l for i in 0:n_bins]
+            width      = (log_stop - log_start) / n_bins
+            grid       = [exp10((i - 0.5) * width + log_start) * u_l for i in 1:n_bins]
+            ticks      = [exp10(i * width + log_start) * u_l for i in 0:n_bins]
             bin_widths = [ticks[i + 1] - ticks[i] for i in 1:n_bins]
+
         else
-            width = (stop - start) / n_bins
-            grid = [(i - 0.5) * width + start for i in 1:n_bins]
-            ticks = [i * width + start for i in 0:n_bins]
+
+            width      = (stop - start) / n_bins
+            grid       = [(i - 0.5) * width + start for i in 1:n_bins]
+            ticks      = [i * width + start for i in 0:n_bins]
             bin_widths = [width for _ in 1:n_bins]
+
         end
 
         new(grid, ticks, bin_widths, log)
@@ -920,7 +948,7 @@ Square grid (2D).
 
 # Fields
 
-  - `grid::Matrix{NTuple{2,<:Number}}`: Matrix with the physical coordinates of the center of each pixel in the grid.
+  - `grid::Matrix{NTuple{2,<:Number}}`: Matrix with the physical coordinates of each pixel in the grid.
   - `x_ticks::Vector{<:Number}`: Full set of possible values for the x coordinate.
   - `y_ticks::Vector{<:Number}`: Full set of possible values for the y coordinate.
   - `physical_size::Number`: Side length of the square grid.
@@ -960,12 +988,11 @@ struct SquareGrid
 
         # Example of a 3x3 grid:
         #
-        # x_ticks = [0, 1, 2]
-        # y_ticks = [0, 1, 2]
-        #
-        # n_bins = 3
+        # x_ticks       = [0, 1, 2]
+        # y_ticks       = [0, 1, 2]
+        # n_bins        = 3
         # physical_size = 3
-        # center = [1, 1, 1]
+        # center        = [1, 1, 1]
         #
         # Reference system:
         #
@@ -974,7 +1001,7 @@ struct SquareGrid
         #   |
         #   |
         #   |
-        #   -------→ x
+        #    -------→ x
         #
         # +------------------+------------------+------------------+
         # |      i = 1       |      i = 4       |      i = 7       |
@@ -989,10 +1016,10 @@ struct SquareGrid
 
         # Compute the bin dimensions
         bin_width = physical_size / n_bins
-        bin_area = bin_width * bin_width
+        bin_area  = bin_width * bin_width
 
-        # Compute the x and y coordinates of the center of each square bin
-        shift = 0.5 * (physical_size - bin_width)
+        # Compute the x and y coordinates of each square bin
+        shift   = 0.5 * (physical_size - bin_width)
         x_ticks = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
         y_ticks = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
 
@@ -1023,7 +1050,7 @@ Cubic grid (3D).
 
 # Fields
 
-  - `grid::Array{NTuple{3,<:Number},3}`: Matrix with the physical coordinates of the center of each voxel in the grid.
+  - `grid::Array{NTuple{3,<:Number},3}`: Matrix with the physical coordinates of each voxel in the grid.
   - `x_ticks::Vector{<:Number}`: Full set of possible values for the x coordinate.
   - `y_ticks::Vector{<:Number}`: Full set of possible values for the y coordinate.
   - `z_ticks::Vector{<:Number}`: Full set of possible values for the z coordinate.
@@ -1067,13 +1094,12 @@ struct CubicGrid
 
         # Example of a 3x3x3 grid:
         #
-        # x_ticks = [0, 1, 2]
-        # y_ticks = [0, 1, 2]
-        # z_ticks = [0, 1, 2]
-        #
-        # n_bins = 3
+        # x_ticks       = [0, 1, 2]
+        # y_ticks       = [0, 1, 2]
+        # z_ticks       = [0, 1, 2]
+        # n_bins        = 3
         # physical_size = 3
-        # center = [1, 1, 1]
+        # center        = [1, 1, 1]
         #
         # Reference system:
         #
@@ -1122,8 +1148,8 @@ struct CubicGrid
         bin_area   = bin_width * bin_width
         bin_volume = bin_area * bin_width
 
-        # Compute the x, y, and z coordinates of the center of each square bin
-        shift = 0.5 * (physical_size - bin_width)
+        # Compute the x, y, and z coordinates of each cubic bin
+        shift   = 0.5 * (physical_size - bin_width)
         x_ticks = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
         y_ticks = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
         z_ticks = [(i - 1) * bin_width - shift + center[3] for i in 1:n_bins]
@@ -1150,13 +1176,15 @@ struct CubicGrid
 end
 
 """
-Circular grid (2D or 3D), formed by a series of concentric rings or spherical shells.
+Circular grid (2D or 3D).
+
+Series of concentric rings or spherical shells.
 
 # Fields
 
   - `grid::Vector{<:Number}`: Vector with the distance of each bin to the center of the grid.
   - `ticks::Vector{<:Number}`: Vector with the edges of the bins.
-  - `center::Vector{<:Number}`: 3D location of the center of the grid. For the 2D grid, the grid is assumed to be in the xy plane.
+  - `center::Vector{<:Number}`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
   - `bin_area::Vector{<:Number}`: Area of each ring.
   - `bin_volumes::Vector{<:Number}`: Volume of each spherical shell.
   - `log::Bool`: If the grid is logarithmic.
@@ -1182,7 +1210,7 @@ struct CircularGrid
 
       - `radius::Number`: Radius of the grid (equal to the last bin tick).
       - `n_bins::Int`: Number of bins.
-      - `center::Vector{<:Number}=zeros(typeof(radius), 3)`: 3D location of the center of the grid. For the 2D grid, the grid is assumed to be in the xy plane.
+      - `center::Vector{<:Number}=zeros(typeof(radius), 3)`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
       - `log::Bool=false`: If the bins will be logarithmic.
       - `shift::Number=zero(radius)`: Distance of the first bin tick to the center.
     """
@@ -1203,7 +1231,7 @@ struct CircularGrid
         # +-----------+-------------------------+-------------------------+-------------------------+
         #
         # +-----------+-------------------------+-------------------------+-------------------------+
-        # |<--shift-->|<-- thick[1] thick[2] -->|             thick[3] -->|             thick[4] -->|
+        # |<--shift-->|<-- tick[1]   tick[2] -->|              tick[3] -->|              tick[4] -->|
         # +-----------+-------------------------+-------------------------+-------------------------+
 
         (
@@ -1223,19 +1251,22 @@ struct CircularGrid
             # Length unit
             u_l = unit(radius)
 
-            log_shift = log10(ustrip(u_l, shift))
+            log_shift  = log10(ustrip(u_l, shift))
             log_radius = log10(ustrip(radius))
 
             width = (log_radius - log_shift) / n_bins
-            grid = [exp10((i - 0.5) * width + log_shift) * u_l for i in 1:n_bins]
+            grid  = [exp10((i - 0.5) * width + log_shift) * u_l for i in 1:n_bins]
             ticks = [exp10(i * width + log_shift) * u_l for i in 0:n_bins]
+
         else
+
             width = (radius - shift) / n_bins
-            grid = [(i - 0.5) * width + shift for i in 1:n_bins]
+            grid  = [(i - 0.5) * width + shift for i in 1:n_bins]
             ticks = [i * width + shift for i in 0:n_bins]
+
         end
 
-        bin_areas = [area(ticks[i + 1]) - area(ticks[i]) for i in 1:n_bins]
+        bin_areas   = [area(ticks[i + 1]) - area(ticks[i]) for i in 1:n_bins]
         bin_volumes = [volume(ticks[i + 1]) - volume(ticks[i]) for i in 1:n_bins]
 
         new(grid, ticks, center, bin_areas, bin_volumes, log)
@@ -1262,9 +1293,9 @@ Plotting parameters for a quantity.
     axis_label::AbstractString = "auto_label"
 end
 
-###########################
-# Code specific constants.
-###########################
+##########################
+# Code specific constants
+##########################
 
 if CODEBASE == :arepo
     include("./arepo.jl")
@@ -1274,9 +1305,9 @@ else
     throw(ArgumentError("GalaxyInspector: I don't recognize the codebase :$(CODEBASE)"))
 end
 
-#######################
-# Cell/particle types.
-#######################
+######################
+# Cell/particle types
+######################
 
 """
 Type of cell/particle corresponding to each code index.
@@ -1299,13 +1330,13 @@ Default filter dictionary that does not exclude any cells/particles.
 const PASS_ALL = Dict(key => (:) for key in keys(PARTICLE_INDEX))
 
 """
-Filter out every cell/particle.
+Filter that excludes every cell/particle.
 """
 const PASS_NONE = Dict(key => Int[] for key in keys(PARTICLE_INDEX))
 
-####################
-# Tracked elements.
-####################
+###################
+# Tracked elements
+###################
 
 """
 Symbol list for the gas abundance quantities.

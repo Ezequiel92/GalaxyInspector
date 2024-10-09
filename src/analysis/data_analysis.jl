@@ -1,9 +1,9 @@
 ####################################################################################################
-# Data analysis functions.
+# Data analysis functions
 ####################################################################################################
 
 ####################################################################################################
-# Signature for the plotSnapshot function in ./src/plotting/pipelines.jl.
+# Signature for the plotSnapshot function in ./src/plotting/pipelines.jl
 ####################################################################################################
 #
 # A data analysis functions for plotSnapshot must take a dictionary with the following shape:
@@ -119,7 +119,7 @@ end
         grid::CubicGrid,
         quantity::Symbol;
         <keyword arguments>
-    )::Union{Tuple{Vector{<:SurfaceDensity},Vector{<:MassFlowDensity}},Nothing}
+    )::Union{NTuple{2,Vector{<:Float64}},Nothing}
 
 Compute the gas mass surface density and the SFR surface density, used in the Kennicutt-Schmidt law.
 
@@ -1009,6 +1009,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `grid::LinearGrid`: Linear grid.
+  - `type::Symbol`: Type of cell/particle.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -1046,15 +1047,20 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
 function daLineHistogram(
     data_dict::Dict,
     quantity::Symbol,
-    grid::LinearGrid;
+    grid::LinearGrid,
+    type::Symbol;
     filter_function::Function=filterNothing,
     norm::Int=0,
 )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
-    filtered_dd = filterData(data_dict; filter_function)
-
     # Compute the values
-    values = scatterQty(filtered_dd, quantity)
+    scatter_qty = scatterQty(data_dict, quantity)
+
+    # Filter after computing the values, to preserve quantities that depends on
+    # global properties (e.g. global gravitational potential)
+    idxs = filter_function(data_dict)[type]
+
+    values = scatter_qty[idxs]
 
     !isempty(values) || return nothing
 
@@ -1081,10 +1087,6 @@ Project a 3D density field into a given plane.
 
 If the source of the field are particles, a simple 2D histogram is used.
 If the source of the field are Voronoi cells, the density of the cells that cross the line of sight of each pixel are added up.
-
-!!! note
-
-    By default, ``\\mathrm{M_\\odot \\, kpc^{-2}}`` is used as unit of density, so the output will be ``\\log_{10}(\\rho \\, [\\mathrm{M_\\odot \\, kpc^{-2}}])``.
 
 # Arguments
 
@@ -1117,6 +1119,8 @@ If the source of the field are Voronoi cells, the density of the cells that cros
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
+  - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
+  - `l_unit::Unitful.Units=u"kpc"`: Length unit.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1159,6 +1163,8 @@ function daDensity2DProjection(
     type::Symbol;
     reduce::Int=1,
     projection_plane::Symbol=:xy,
+    m_unit::Unitful.Units=u"Msun",
+    l_unit::Unitful.Units=u"kpc",
     print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
@@ -1207,10 +1213,6 @@ function daDensity2DProjection(
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
-    # Set the units
-    m_unit = u"Msun"
-    l_unit = u"kpc"
-
     if type == :cells
 
         # Compute the volume of each cell
@@ -1236,7 +1238,7 @@ function daDensity2DProjection(
             physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
         end
 
-        # Find the nearest neighboring cell to each voxel
+        # Find the nearest cell to each voxel
         idxs, _ = nn(kdtree, physical_grid)
 
         # Allocate memory
@@ -1346,11 +1348,7 @@ end
 Project the 3D gas SFR field into a given plane.
 
 If the source of the field are particles, a simple 2D histogram is used.
-If the source of the field are Voronoi cells, the density of the cells that cross the line of sight of each pixel are used to rescale the gas SFR.
-
-!!! note
-
-    By default, ``\\mathrm{M_\\odot \\, yr^{-1}}`` is used as unit of SFR, so the output will be ``\\log_{10}(\\mathrm{SFR \\, [M_\\odot \\, yr^{-1}]})``.
+If the source of the field are Voronoi cells, the gas SFR densities of the cells that cross the line of sight of each pixel are used.
 
 # Arguments
 
@@ -1371,6 +1369,9 @@ If the source of the field are Voronoi cells, the density of the cells that cros
   - `type::Symbol`: Gas component type. The options are: `:particles` or Voronoi `:cells`.
   - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
+  - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
+  - `l_unit::Unitful.Units=u"kpc"`: Length unit.
+  - `t_unit::Unitful.Units=u"yr"`: Time unit.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic SFR range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1412,6 +1413,9 @@ function daGasSFR2DProjection(
     type::Symbol;
     reduce::Int=1,
     projection_plane::Symbol=:xy,
+    m_unit::Unitful.Units=u"Msun",
+    l_unit::Unitful.Units=u"kpc",
+    t_unit::Unitful.Units=u"yr",
     print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
@@ -1428,11 +1432,6 @@ function daGasSFR2DProjection(
     if any(isempty, [positions, sfrs])
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
-
-    # Set the units
-    m_unit = u"Msun"
-    l_unit = u"kpc"
-    t_unit = u"yr"
 
     if type == :cells
 
@@ -1455,7 +1454,7 @@ function daGasSFR2DProjection(
             physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
         end
 
-        # Find the nearest neighboring cell to each voxel
+        # Find the nearest cell to each voxel
         idxs, _ = nn(kdtree, physical_grid)
 
         # Allocate memory
@@ -1571,7 +1570,7 @@ The metallicity in each pixel is the total metal mass divided by the total gas m
 
 !!! note
 
-    By default, the metallicity is given in solar units.
+    By default, the total metallicity (`element` = :all) is given in solar units.
 
 # Arguments
 
@@ -1591,6 +1590,7 @@ The metallicity in each pixel is the total metal mass divided by the total gas m
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can be either `:stars` or `:gas`.
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `element::Symbol=:all`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref). Set it to :all if you want the total metallicity.
   - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `print_range::Bool=false`: Print an info block detailing the logarithmic metallicity range.
@@ -1699,7 +1699,7 @@ function daMetallicity2DProjection(
         # Compute the tree for a nearest neighbor search
         kdtree = KDTree(ustrip.(u"kpc", positions))
 
-        # Find the nearest neighboring cell to each voxel
+        # Find the nearest cell to each voxel
         idxs, _ = nn(kdtree, physical_grid)
 
         # Allocate memory
@@ -1955,7 +1955,7 @@ function daTemperature2DProjection(
         # Compute the tree for a nearest neighbor search
         kdtree = KDTree(ustrip.(u"kpc", positions))
 
-        # Find the nearest neighboring cell to each voxel
+        # Find the nearest cell to each voxel
         idxs, _ = nn(kdtree, physical_grid)
 
         # Allocate memory
@@ -3229,19 +3229,13 @@ function daGasFractions(
     !isempty(gas_qty) || return nothing
 
     # Compute the mass of each gas phase
+    ionized_mass = computeIonizedMass(filtered_dd)
+    atomic_mass  = computeAtomicMass(filtered_dd)
     if include_stars
-
-        ionized_mass   = computeIonizedMass(filtered_dd; normalize=false)
-        atomic_mass    = computeAtomicMass(filtered_dd; normalize=false)
         molecular_mass = computeMolecularMass(filtered_dd; normalize=false)
         stellar_mass   = computeStellarGasMass(filtered_dd)
-
     else
-
-        ionized_mass   = computeIonizedMass(filtered_dd)
-        atomic_mass    = computeAtomicMass(filtered_dd)
         molecular_mass = computeMolecularMass(filtered_dd)
-
     end
 
     # If any of the necessary quantities are missing return nothing
@@ -3372,7 +3366,7 @@ function daStellarBTHistogram(data_dict::Dict)::Union{Tuple{Vector{<:Unitful.Tim
 end
 
 ####################################################################################################
-# Signature for the plotTimeSeries function in ./src/plotting/pipelines.jl.
+# Signature for the plotTimeSeries function in ./src/plotting/pipelines.jl
 ####################################################################################################
 #
 # A data analysis functions for plotTimeSeries must take a Simulation struct, and return two
@@ -4340,5 +4334,162 @@ function daCPUtxt(
     end
 
     return x_axis, y_axis
+
+end
+
+"""
+    daVSFLaw(
+        data_dict::Dict,
+        grid::CubicGrid,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Union{NTuple{2,Vector{<:Float64}},Nothing}
+
+Compute the gas mass density and the SFR density, used in the volumetric star formation (VSF) law.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `grid::CubicGrid`: Cubic grid.
+  - `quantity::Symbol`: Quantity for the x axis. The options are:
+
+      + `:gas_mass`          -> Gas density.
+      + `:hydrogen_mass`     -> Hydrogen density.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) density.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
+      + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
+      + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
+  - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `stellar_ff::Function=filterNothing`: Filter function for the stars. It has to be a function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+  - `gas_ff::Function=filterNothing`: Filter function for the gas. It has to be a function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with log10(ρH / M⊙ * pc^-2).
+      + A vector with log10(ρsfr / M⊙ * yr^-1 * kpc^-2).
+
+    It returns `nothing` if any of the necessary quantities are missing.
+"""
+function daVSFLaw(
+    data_dict::Dict,
+    grid::CubicGrid,
+    quantity::Symbol;
+    type::Symbol=:cells,
+    print_range::Bool=false,
+    stellar_ff::Function=filterNothing,
+    gas_ff::Function=filterNothing,
+)::Union{NTuple{2,Vector{<:Float64}},Nothing}
+
+    (
+        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
+        throw(ArgumentError("daVSFLaw: `quantity` can only be :gas_mass, \
+        :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
+    )
+
+    # Log factor to go from stellar surface density to SFR surface density
+    # log10(Σsfr) = log10(Σ*) - log10Δt
+    log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
+
+    stellar_density = density3DProjection(
+        data_dict,
+        grid,
+        :stellar_mass,
+        :particles;
+        print_range,
+        m_unit=u"Msun",
+        l_unit=u"kpc",
+        filter_function=stellar_ff,
+    )
+
+    gas_density = density3DProjection(
+        data_dict,
+        grid,
+        quantity,
+        type;
+        print_range,
+        m_unit=u"Msun",
+        l_unit=u"pc",
+        filter_function=gas_ff,
+    )
+
+    x_axis = vec(gas_density)
+    y_axis = vec(stellar_density)
+
+    # Delete NaNs in the data vectors
+    x_idxs = map(isnan, x_axis)
+    y_idxs = map(isnan, y_axis)
+
+    delete_idxs = x_idxs ∪ y_idxs
+
+    deleteat!(x_axis, delete_idxs)
+    deleteat!(y_axis, delete_idxs)
+
+    !any(isempty.([x_axis, y_axis])) || return nothing
+
+    return log10.(x_axis), log10.(y_axis) .- log10Δt
 
 end

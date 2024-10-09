@@ -1,5 +1,5 @@
 ####################################################################################################
-# Opinionated convenience functions.
+# Opinionated convenience functions
 ####################################################################################################
 
 """
@@ -853,7 +853,7 @@ function snapshotReport(
             end
 
             ########################################################################################
-            # Print the mass of each hydrogen phase between `DISK_R` y and the virial radius.
+            # Print the mass of each hydrogen phase between `DISK_R` y and the virial radius
             ########################################################################################
 
             if :gas in component_list
@@ -6168,35 +6168,40 @@ Plot the Kennicutt-Schmidt law.
 
     Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `rmax_gas` are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
 
+!!! note
+
+    This function uses physical units regardless of the global setting [`PHYSICAL_UNITS`](@ref).
+
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`          -> Gas mass surface density. This one can be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass`    -> Molecular mass surface density. This one can be plotted with the results of Bigiel et al. (2008).
-      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one can be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`      -> Neutral mass surface density. This one can be plotted with the results of Bigiel et al. (2008).
-  - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
+      + `:gas_mass`          -> Total gas mass surface density.
+      + `:molecular_mass`    -> Molecular mass surface density. This one can be plotted with the results of Bigiel et al. (2008) and Bigiel et al. (2010).
+      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one can be plotted with the results of Bigiel et al. (2008) and Bigiel et al. (2010).
+      + `:neutral_mass`      -> Neutral mass surface density. This one can be plotted with the results of Bigiel et al. (2008), Bigiel et al. (2010), and Kennicutt (1998).
+  - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in :particles or in Voronoi :cells.
   - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends, experimental measurements or several simulations at once.
   - `integrated::Bool=false`: If the integrated (one point per galaxy) or resolved (several point per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = :scatter, the central value is the weighted median, and the error bars are the median absolute deviations.
   - `sfr_density::Bool=true`: If the quantity for the y axis will be the SFR surface density, if set to false the quantity will be the stellar mass surface density.
-  - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a pixel of the 2D projected galaxy) can be weighted by a gas quantity. If `integrated` = true, the median will be computed with this weight in mind, if `integrated` = false, each point will have a color given by the weight. The posible weights are:
+  - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a pixel of the 2D projected galaxy) can be weighted by a gas quantity. If `integrated` = true, the median will be computed with these weights in mind. If `integrated` = false, each point will have a color given by the weight. The posible weights are:
 
       + `:gas_mass_density` -> Gas mass surface density of each pixel. See the documentation for the function [`daDensity2DProjection`](@ref).
       + `:gas_sfr`          -> The total gas SFR of the column associated with each pixel. See the documentation for the function [`daGasSFR2DProjection`](@ref).
       + `:gas_metallicity`  -> The total metallicity of the column associated with each pixel. See the documentation for the function [`daMetallicity2DProjection`](@ref).
       + `:temperature`      -> The mean gas temperature of the column associated with each pixel. See the documentation for the function [`daTemperature2DProjection`](@ref).
-  - `measurements::Bool=true`: If the experimental measurements from Kennicutt (1998) or Bigiel et al. (2008) will be plotted alongside the simulation results.
+  - `measurements::Bool=true`: If the experimental measurements from Kennicutt (1998), Bigiel et al. (2008) or Bigiel et al. (2010) will be plotted alongside the simulation results.
   - `measurement_type::Union{String,Symbol}=:fits`: Type of measurement to plot, only valid if `measurement` = true. The option are:
 
-      + `:fits`: The fits are plotted as a line with uncertanty bands.
-      + `"NGC XXX"`: Plot the resolved data of the given galaxy, from Bigiel et al. (2010), as a scatter plot. See the documentation of [`ppBigiel2010!`](@ref) for options.
+      + `:fits`: Fits from Bigiel et al. (2008) and/or Kennicutt (1998) depending on the quantity in the x axis. The fits will be plotted as lines with uncertanty bands.
+      + `"NGC XXX"`: Plot the resolved data of the given NGC galaxy as a scatter plot. Uses the data from Bigiel et al. (2010). See the documentation of [`ppBigiel2010!`](@ref) for options.
+      + `:all`: Plot the data of every galaxy in Bigiel et al. (2010), as a scatter plot.
   - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
-  - `reduce_resolution::Bool=true`: If the resolution of the 2D grids will be reduce after the density projection to have pixels of a size ~ [`BIGIEL_PX_SIZE`](@ref).
-  - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the heatmap grid. If set to `nothing`, the extrema of the values will be used. Only relevant if `plot_type` = :heatmap.
-  - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the values will be used. Only relevant if `plot_type` = :heatmap.
+  - `reduce_resolution::Bool=true`: If the resolution of the 2D grids will be reduce after the 2D projection to have pixels of a physical size ~ [`BIGIEL_PX_SIZE`](@ref).
+  - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the heatmap grid. If set to `nothing`, the extrema of the x values will be used. Only relevant if `plot_type` = :heatmap.
+  - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the y values will be used. Only relevant if `plot_type` = :heatmap.
   - `n_bins::Int=100`: Number of bins per side of the heatmap grid. Only relevant if `plot_type` = :heatmap.
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `print_range::Bool=false`: Print an info block detailing the color range.
@@ -6234,6 +6239,8 @@ Plot the Kennicutt-Schmidt law.
 
 # References
 
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
+
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
@@ -6264,6 +6271,18 @@ function kennicuttSchmidtLaw(
     warnings::Bool=true,
     theme::Attributes=Theme(),
 )::Nothing
+
+    # Save the origial value of the global `PHYSICAL_UNITS`
+    og_pu_value = PHYSICAL_UNITS
+
+    if !og_pu_value && warnings
+        @warn("kennicuttSchmidtLaw: The global `PHYSICAL_UNITS` is set to false, \
+        but Kennicutt-Schmidt law plots must be in physical units, so the global \
+        setting will be ignored and default to true.")
+    end
+
+    # Kennicutt-Schmidt law plots must be in physical units even for cosmological simulations
+    global PHYSICAL_UNITS = true
 
     ns = length(simulation_paths)
 
@@ -6313,13 +6332,43 @@ function kennicuttSchmidtLaw(
 
     end
 
-    if !sfr_density && measurements
+    if measurements
 
-        !warnings || @warn("kennicuttSchmidtLaw: If `sfr_density` = false, `measurements` = true \
-        will be ignored and default to false. The experimental measurements are for the SFR \
-        surface density.")
+        if !sfr_density
 
-        measurements = false
+            !warnings || @warn("kennicuttSchmidtLaw: If `sfr_density` = false, \
+            `measurements` = true will be ignored and default to false. The experimental \
+            measurements are only for the SFR surface density.")
+
+            measurements = false
+
+        end
+
+        if quantity == :gas_mass
+
+            !warnings || @warn("kennicuttSchmidtLaw: There are no measurements \
+            (fits or otherwise) for `quantity` = :gas_mass. `measurements` = true will be \
+            ignored and default to false.")
+
+            measurements = false
+
+        end
+
+        if isa(measurement_type, String) && integrated
+
+            !warnings || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
+            `measurement_type` to plot the resolved measurement of galaxy $(measurement_type). \
+            Are you sure you want this?")
+
+        end
+
+        if measurement_type == :all && integrated
+
+            !warnings || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
+            `measurement_type` to plot the resolved measurements of all galaxies in \
+            Bigiel et al. (2010). Are you sure you want this?")
+
+        end
 
     end
 
@@ -6355,28 +6404,16 @@ function kennicuttSchmidtLaw(
 
     end
 
-    if colorbar
+    if colorbar && ((plot_type == :scatter && isnothing(gas_weights)) || integrated)
 
-        if (plot_type == :scatter && isnothing(gas_weights)) || integrated
+        (
+            !warnings || @warn("kennicuttSchmidtLaw: `colorbar` is set to true, \
+            but there is no color range in the plot (either `plot_type` = :scatter and \
+            `gas_weights` = nothing or `integrated` = true). `colorbar` = true will be \
+            ignored and default to false")
+        )
 
-            (
-                !warnings || @warn("kennicuttSchmidtLaw: `colorbar` is set to true, \
-                but there is no color range in the plot (either `plot_type` = :scatter and \
-                `gas_weights` = nothing or `integrated` = true). `colorbar` = true will be \
-                ignored and default to false")
-            )
-
-            colorbar = false
-
-        end
-
-    end
-
-    if measurements && isa(measurement_type, String) && integrated
-
-        !warnings || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
-        `measurement_type` to plot the resolved measurements of galaxy $(measurement_type). \
-        Are you sure you want this?")
+        colorbar = false
 
     end
 
@@ -6429,7 +6466,7 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(stellar_grid, :stellar_mass, :particles)],
-        da_kwargs=[(; reduce, filter_function=dd->filterStellarAge(dd))],
+        da_kwargs=[(; reduce, filter_function=dd->filterStellarAge(dd; age=AGE_RESOLUTION))],
         transform_box=true,
         translation,
         rotation,
@@ -6574,7 +6611,7 @@ function kennicuttSchmidtLaw(
     ################################################################################################
 
     if sfr_density
-        # Log factor to go from stellar surface density to SFR surface density
+        # Factor to go from stellar surface density to SFR surface density
         # log10(Σsfr) = log10(Σ*) - log10Δt
         log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
     end
@@ -6607,7 +6644,7 @@ function kennicuttSchmidtLaw(
             aspect=AxisAspect(1),
         )
 
-        colors = current_theme[:palette][:color][][2:(ns + 1)]
+        colors = [:grey25, current_theme[:palette][:color][][2:ns]...]
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
@@ -6615,7 +6652,7 @@ function kennicuttSchmidtLaw(
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
             snapshot_numbers = simulation_table[!, :numbers]
 
-            # Allocate memory for the heatmap, for a heatmap we need to accumulate the values
+            # Allocate memory for the heatmap. For a heatmap we need to accumulate the values
             # for every snapshot before plotting
             if plot_type == :heatmap
                 x_heatmap = Float64[]
@@ -6661,7 +6698,7 @@ function kennicuttSchmidtLaw(
                 end
 
                 # For the integrated Kennicutt-Schmidt law, compute the gas and stellar
-                # densities median and mad
+                # densities median and median absolute deviation
                 if integrated
 
                     lin_x = exp10.(x_data)
@@ -6738,7 +6775,14 @@ function kennicuttSchmidtLaw(
 
                         if isnothing(gas_weights)
 
-                            scatter!(ax, x_data, y_data; color=colors[sim_idx], markersize=6)
+                            scatter!(
+                                ax,
+                                x_data,
+                                y_data;
+                                color=(colors[sim_idx], 0.5),
+                                markersize=6,
+                                alpha=1.0,
+                            )
 
                         else
 
@@ -6806,13 +6850,7 @@ function kennicuttSchmidtLaw(
                 # expect the matrix to be structured
                 z_axis = reverse!(transpose(values), dims=2)
 
-                heatmap!(
-                    ax,
-                    x_axis,
-                    y_axis,
-                    z_axis;
-                    colormap=:nipy_spectral,
-                )
+                heatmap!(ax, x_axis, y_axis, z_axis; colormap=:nipy_spectral)
 
                 if print_range
 
@@ -6842,7 +6880,7 @@ function kennicuttSchmidtLaw(
             if !isnothing(gas_weights) && !integrated
 
                 markers = [
-                    MarkerElement(; color=:gray40, marker=:circle, markersize=20) for
+                    MarkerElement(; color=:grey25, marker=:circle, markersize=20) for
                     _ in eachindex(sim_labels)
                 ]
 
@@ -6860,33 +6898,36 @@ function kennicuttSchmidtLaw(
 
             if measurement_type == :fits
 
-                if quantity == :gas_mass
-
-                    pp_legend = ppKennicutt1998!(
-                        f;
-                        x_unit=u"Msun * kpc^-2",
-                        color=Makie.wong_colors()[1],
-                        warnings,
-                    )
-
-                elseif quantity ∈ [:molecular_mass, :br_molecular_mass]
+                if quantity ∈ [:molecular_mass, :br_molecular_mass]
 
                     pp_legend = ppBigiel2008!(
                         f,
                         true;
                         x_unit=u"Msun * kpc^-2",
-                        color=Makie.wong_colors()[1],
+                        colors=[Makie.wong_colors()[1], Makie.wong_colors()[2]],
                         warnings,
                     )
 
                 elseif quantity == :neutral_mass
 
-                    pp_legend = ppBigiel2008!(
+                    legend_bigiel = ppBigiel2008!(
                         f,
                         false;
                         x_unit=u"Msun * kpc^-2",
-                        color=Makie.wong_colors()[1],
+                        colors=[Makie.wong_colors()[1], Makie.wong_colors()[2]],
                         warnings,
+                    )
+
+                    legend_kennicut = ppKennicutt1998!(
+                        f;
+                        x_unit=u"Msun * kpc^-2",
+                        colors=[Makie.wong_colors()[3], Makie.wong_colors()[4]],
+                        warnings,
+                    )
+
+                    pp_legend = (
+                        vcat(legend_bigiel[1], legend_kennicut[1]),
+                        vcat(legend_bigiel[2], legend_kennicut[2]),
                     )
 
                 end
@@ -6911,20 +6952,13 @@ function kennicuttSchmidtLaw(
                         x_unit=u"Msun * kpc^-2",
                     )
 
-                else
-
-                    throw(ArgumentError("kennicuttSchmidtLaw: `measurement_type` is set to plot \
-                    the resolved measurements of galaxy $(measurement_type). The only resolved \
-                    data in Bigiel et al. (2010) is for :molecular, :atomic or :neutral gas. \
-                    But you have set `quantity` = :gas_mass."))
-
                 end
 
             end
 
             if !isnothing(sim_labels) && plot_type == :scatter
 
-                Makie.Legend(f[1, 1], [markers..., pp_legend[1]], [sim_labels..., pp_legend[2]])
+                Makie.Legend(f[1, 1], vcat(markers, pp_legend[1]), vcat(sim_labels, pp_legend[2]))
 
             end
 
@@ -6970,6 +7004,8 @@ function kennicuttSchmidtLaw(
 
     rm(temp_folder; recursive=true)
 
+    global PHYSICAL_UNITS = og_pu_value
+
     return nothing
 
 end
@@ -6981,7 +7017,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot the resolved Kennicutt-Schmidt relation with its linear fit.
+Plot the resolved Kennicutt-Schmidt relation with an optional linear fit.
 
 !!! note
 
@@ -6993,11 +7029,12 @@ Plot the resolved Kennicutt-Schmidt relation with its linear fit.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
-      + `:gas_mass`          -> Gas mass surface density. This one will be plotted with the results of Kennicutt (1998).
-      + `:molecular_mass`    -> Molecular mass surface density. This one will be plotted with the results of Bigiel et al. (2008).
-      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
-      + `:neutral_mass`      -> Neutral mass surface density. This one will be plotted with the results of Bigiel et al. (2008).
+      + `:gas_mass`          -> Gas mass surface density.
+      + `:molecular_mass`    -> Molecular mass surface density.
+      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006).
+      + `:neutral_mass`      -> Neutral mass surface density.
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
+  - `fit::Bool=true`: If a fit of the plotted values will be added on top of the scatter plot.
   - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
   - `output_path::String="./"`: Path to the output folder.
@@ -7043,6 +7080,7 @@ function fitResolvedKSLaw(
     slice::IndexType;
     quantity::Symbol=:molecular_mass,
     type::Symbol=:cells,
+    fit::Bool=true,
     rmax_gas::Unitful.Length=DISK_R,
     x_range::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
@@ -7119,7 +7157,7 @@ function fitResolvedKSLaw(
         pf_kwargs=[(; color=Makie.wong_colors()[1], markersize=6, marker=:circle)],
         # `plotSnapshot` configuration
         output_path,
-        base_filename="ks_law-fit",
+        base_filename="ks_law",
         output_format=".png",
         warnings=false,
         show_progress=true,
@@ -7136,7 +7174,7 @@ function fitResolvedKSLaw(
                 gas_ff=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero),
             ),
         ],
-        post_processing=ppFitLine!,
+        post_processing=fit ? ppFitLine! : getNothing,
         pp_args=(),
         pp_kwargs=(;),
         transform_box=true,
@@ -7163,21 +7201,9 @@ function fitResolvedKSLaw(
         # Plotting and animation options
         save_figures=true,
         backup_results=false,
-        ##########################
-        # left, right, bottom, top
-        ##########################
         theme=merge(
             theme,
-            Theme(
-                size=(880, 880),
-                Axis=(aspect=AxisAspect(1),),
-                Legend=(
-                    labelsize=20,
-                    halign=:left,
-                    valign=:top,
-                    padding=(15, 0, 0, 125),
-                ),
-            ),
+            Theme(Legend=(labelsize=20, halign=:left, valign=:top, padding=(15, 0, 0, 125)),),
         ),
         sim_labels=[sim_label],
         title="",
@@ -7186,6 +7212,175 @@ function fitResolvedKSLaw(
         animation=false,
         animation_filename="animation.mp4",
         framerate=10,
+    )
+
+    return nothing
+
+end
+
+"""
+    fitVSFLaw(
+        simulation_path::String,
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot the resolved volumetric star formation (VSF) law with an optional linear fit.
+
+!!! note
+
+    Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `rmax_gas` are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `quantity::Symbol`: Quantity for the x axis. The options are:
+
+      + `:gas_mass`          -> Gas density.
+      + `:hydrogen_mass`     -> Hydrogen density.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) density.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
+      + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
+      + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
+  - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
+  - `fit::Bool=true`: If a fit of the plotted values will be added on top of the scatter plot.
+  - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles.
+  - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `sim_label::Union{String,Nothing}=basename(simulation_path)`: Label for the scatter plot. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function fitVSFLaw(
+    simulation_path::String,
+    slice::IndexType;
+    quantity::Symbol=:molecular_mass,
+    type::Symbol=:cells,
+    fit::Bool=true,
+    rmax_gas::Unitful.Length=DISK_R,
+    x_range::NTuple{2,<:Real}=(-Inf, Inf),
+    output_path::String="./",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    sim_label::Union{String,Nothing}=basename(simulation_path),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    grid = CubicGrid(BOX_L, 400)
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(plotParams(quantity).request, plotParams(:stellar_mass).request),
+    )
+
+    # Choose the correct x label
+    if quantity == :gas_mass
+
+        x_label = getLabel(
+            plotParams(:gas_mass_density).var_name,
+            0,
+            u"Msun * pc^-3";
+            latex=true,
+        )
+
+    elseif quantity == :molecular_mass
+
+        x_label = getLabel(
+            L"\rho_\mathrm{H_2}",
+            0,
+            u"Msun * pc^-3";
+            latex=true,
+        )
+
+    elseif quantity == :br_molecular_mass
+
+        x_label = getLabel(
+            L"\rho_\mathrm{H_2^{BR}}",
+            0,
+            u"Msun * pc^-3";
+            latex=true,
+        )
+
+    elseif quantity == :neutral_mass
+
+        x_label = getLabel(
+            L"\rho_\mathrm{H_I + H_2}",
+            0,
+            u"Msun * pc^-3";
+            latex=true,
+        )
+
+    end
+
+    # Set the y label
+    y_label = getLabel(
+        L"\rho_\mathrm{SFR}",
+        0,
+        u"Msun * yr^-1 * kpc^-3";
+        latex=true,
+    )
+
+    plotSnapshot(
+        [simulation_path],
+        request,
+        [scatter!];
+        pf_kwargs=[(; color=Makie.wong_colors()[1], markersize=6, marker=:circle)],
+        output_path,
+        base_filename="vsf_law",
+        output_format=".png",
+        warnings=false,
+        slice,
+        filter_function,
+        da_functions=[daVSFLaw],
+        da_args=[(grid, quantity)],
+        da_kwargs=[
+            (;
+                type,
+                stellar_ff=dd->filterStellarAge(dd),
+                gas_ff=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero),
+            ),
+        ],
+        post_processing=fit ? ppFitLine! : getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
+        transform_box=true,
+        translation,
+        rotation,
+        x_trim=x_range,
+        xaxis_label=L"$\log_{10}$ %$(x_label)",
+        yaxis_label=L"$\log_{10}$ %$(y_label)",
+        xaxis_var_name="",
+        yaxis_var_name="",
+        theme,
+        sim_labels=[sim_label],
     )
 
     return nothing

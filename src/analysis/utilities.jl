@@ -1,5 +1,5 @@
 ####################################################################################################
-# General utilities to interact with the simulation data.
+# General utilities to interact with the simulation data
 ####################################################################################################
 
 @doc raw"""

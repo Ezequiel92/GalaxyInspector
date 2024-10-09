@@ -1,5 +1,5 @@
 ####################################################################################################
-# Filters.
+# Filters
 ####################################################################################################
 
 """
@@ -453,9 +453,9 @@ end
 
 ####################################################################################################
 #
-# A filter function must take a data dictionary, and return a filter dictionary.
+# A filter function must take a data dictionary, and return a filter dictionary
 #
-# These functions are for the second argument of `filterData` in `./src/analysis/filters.jl`.
+# These functions are for the second argument of `filterData` in `./src/analysis/filters.jl`
 #
 # Expected signature:
 #
@@ -884,7 +884,7 @@ Filter out stars that are older than `age`.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterStellarAge(data_dict::Dict, age::Unitful.Time=AGE_RESOLUTION)::Dict{Symbol,IndexType}
+function filterStellarAge(data_dict::Dict; age::Unitful.Time=AGE_RESOLUTION)::Dict{Symbol,IndexType}
 
     ages = computeStellarAge(data_dict)
 

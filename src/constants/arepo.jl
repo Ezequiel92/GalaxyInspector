@@ -1,10 +1,10 @@
 ####################################################################################################
-# Constants and data structures.
+# Constants and data structures
 ####################################################################################################
 
-##################
-# Code constants.
-##################
+#################
+# Code constants
+#################
 
 """
 Base name of the snapshot files, set in the code variable `SnapshotFileBase`.
@@ -22,7 +22,7 @@ Mass fraction of hydrogen.
 const HYDROGEN_MASSFRAC = 0.76
 
 """
-Mass of the tracers in internal units. Its value comes from `All.TargetGasMass = All.TargetGasMassFactor * All.ReferenceGasPartMass` in the Arepo code.
+Mass of the tracers in internal code units. Its value comes from `All.TargetGasMass = All.TargetGasMassFactor * All.ReferenceGasPartMass` in the code.
 """
 const TRACER_MASS = 3.65456e-06
 
@@ -35,9 +35,9 @@ M. Asplund et al. (2006). *The new solar abundances - Part I: the observations*.
 """
 const SOLAR_METALLICITY = 0.0127
 
-#######################
-# Cell/particle types.
-#######################
+######################
+# Cell/particle types
+######################
 
 """
 Current cell/particle index in use.
@@ -49,9 +49,9 @@ Current human readable name of each cell/particle type in use.
 """
 const PARTICLE_NAMES = LONG_PARTICLE_NAMES
 
-####################
-# Tracked elements.
-####################
+###################
+# Tracked elements
+###################
 
 """
 Code index for each tracked element.
@@ -69,9 +69,14 @@ const ELEMENT_INDEX = Dict(
     :Other => 10, # All other
 )
 
-################################
-# Quantities in the simulation.
-################################
+"""
+List of element indices above helium.
+"""
+const METAL_LIST = [3, 4, 5, 6, 7, 8, 9, 10]
+
+#############################################################
+# Quantities that can be in a sanpshot or group catalog file
+#############################################################
 
 """
 Dictionary of dimensional properties for the quantities in the code.

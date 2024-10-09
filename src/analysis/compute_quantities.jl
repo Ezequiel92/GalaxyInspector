@@ -1,5 +1,5 @@
 ####################################################################################################
-# Computation of derived quantities.
+# Computation of derived quantities
 ####################################################################################################
 
 """
@@ -1892,9 +1892,9 @@ function computeStellarAge(data_dict::Dict)::Vector{<:Unitful.Time}
 end
 
 """
-    computeIonizedMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
+    computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
-Compute the ionized hydrogen mass of every gas cell/particle.
+Compute the mass of ionized hydrogen in every gas cell/particle.
 
 # Arguments
 
@@ -1911,13 +1911,12 @@ Compute the ionized hydrogen mass of every gas cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our SF routine, and for cells/particles that have entered it at least once.
 
 # Returns
 
-  - The mass of ionized hydrogen in every gas cell.
+  - The mass of ionized hydrogen in every gas cell/particle.
 """
-function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
+function computeIonizedMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
@@ -1935,11 +1934,7 @@ function computeIonizedMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
             @inbounds if !isnan(dg["FRAC"][1, i]) && Δt < dg["TAUS"][i]
 
                 # Fraction of ionized hydrogen according to our SF model
-                @inbounds if normalize
-                    fi[i] = dg["FRAC"][1, i] / (1.0 - dg["FRAC"][4, i])
-                else
-                    fi[i] = dg["FRAC"][1, i]
-                end
+                fi[i] = dg["FRAC"][1, i]
 
             else
 
@@ -1964,7 +1959,7 @@ end
 """
     computeNeutralMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
-Compute the neutral hydrogen mass of every gas cell/particle.
+Compute the mass of neutral hydrogen in every gas cell/particle.
 
 # Arguments
 
@@ -1985,7 +1980,7 @@ Compute the neutral hydrogen mass of every gas cell/particle.
 
 # Returns
 
-  - The mass of neutral hydrogen in every gas cell.
+  - The mass of neutral hydrogen in every gas cell/particle.
 """
 function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
 
@@ -2005,12 +2000,13 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 
             @inbounds if !isnan(dg["FRAC"][2, i]) && Δt < dg["TAUS"][i]
 
-                # Fraction of atomic and molecular hydrogen according to our model
+                # Fraction of atomic hydrogen according to our model
+                fa[i] = dg["FRAC"][2, i]
+
+                # Fraction of molecular hydrogen according to our model
                 @inbounds if normalize
-                    fa[i] = dg["FRAC"][2, i] / (1.0 - dg["FRAC"][4, i])
-                    fm[i] = dg["FRAC"][3, i] / (1.0 - dg["FRAC"][4, i])
+                    fm[i] = dg["FRAC"][3, i] + dg["FRAC"][4, i]
                 else
-                    fa[i] = dg["FRAC"][2, i]
                     fm[i] = dg["FRAC"][3, i]
                 end
 
@@ -2038,9 +2034,9 @@ function computeNeutralMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Uni
 end
 
 """
-    computeAtomicMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
+    computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
-Compute the atomic hydrogen mass of every gas cell/particle.
+Compute the mass of atomic hydrogen in every gas cell/particle.
 
 # Arguments
 
@@ -2057,13 +2053,12 @@ Compute the atomic hydrogen mass of every gas cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `normalize::Bool=true`: If the output will be normalize to eliminate the stellar fraction of the gas cells. Only relevant for simulation with our SF routine, and for cells that have entered it at least once.
 
 # Returns
 
-  - The mass of atomic hydrogen in every gas cell.
+  - The mass of atomic hydrogen in every gas cell/particle.
 """
-function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
+function computeAtomicMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
@@ -2081,11 +2076,7 @@ function computeAtomicMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unit
             @inbounds if !isnan(dg["FRAC"][2, i]) && Δt < dg["TAUS"][i]
 
                 # Fraction of atomic hydrogen according to our model
-                @inbounds if normalize
-                    fa[i] = dg["FRAC"][2, i] / (1.0 - dg["FRAC"][4, i])
-                else
-                    fa[i] = dg["FRAC"][2, i]
-                end
+                fa[i] = dg["FRAC"][2, i]
 
             else
 
@@ -2109,7 +2100,7 @@ end
 """
     computeMolecularMass(data_dict::Dict; <keyword arguments>)::Vector{<:Unitful.Mass}
 
-Compute the molecular hydrogen mass of every gas cell/particle.
+Compute the mass of molecular hydrogen in every gas cell/particle.
 
 # Arguments
 
@@ -2130,7 +2121,7 @@ Compute the molecular hydrogen mass of every gas cell/particle.
 
 # Returns
 
-  - The mass of molecular hydrogen in every gas cell.
+  - The mass of molecular hydrogen in every gas cell/particle.
 """
 function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
 
@@ -2149,7 +2140,7 @@ function computeMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:U
 
                 # Fraction of molecular hydrogen according to our model
                 @inbounds if normalize
-                    fm[i] = dg["FRAC"][3, i] / (1.0 - dg["FRAC"][4, i])
+                    fm[i] = dg["FRAC"][3, i] + dg["FRAC"][4, i]
                 else
                     fm[i] = dg["FRAC"][3, i]
                 end
@@ -2176,7 +2167,7 @@ end
 """
     computePressureMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
-Compute the molecular hydrogen mass of every gas cell/particle using the pressure relation in Blitz et al. (2006).
+Compute the mass molecular hydrogen in every gas cell/particle using the pressure relation from Blitz et al. (2006).
 
 # Arguments
 
@@ -2196,13 +2187,13 @@ Compute the molecular hydrogen mass of every gas cell/particle using the pressur
 
 # Returns
 
-  - The mass of molecular hydrogen in every gas cell.
+  - The mass of molecular hydrogen in every gas cell/particle.
 
 # References
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computePressureMolecularMass(data_dict::Dict; normalize::Bool=true)::Vector{<:Unitful.Mass}
+function computePressureMolecularMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
     dg = data_dict[:gas]
 
@@ -2226,7 +2217,11 @@ end
 """
     computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
-Compute the "stellar mass" of every gas cell. It can be a non 0 value only for simulations with our SF routine.
+Compute the "stellar mass" in every gas cell/particle.
+
+!!! note
+
+    It can be a non 0 value only for simulations with our SF routine.
 
 # Arguments
 
@@ -2246,7 +2241,7 @@ Compute the "stellar mass" of every gas cell. It can be a non 0 value only for s
 
 # Returns
 
-  - The "stellar mass" of every gas cell.
+  - The "stellar mass" in every gas cell/particle.
 """
 function computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
 
@@ -4032,5 +4027,208 @@ function locateStellarBirthPlace(data_dict::Dict; warnings::Bool=true)::NTuple{2
     end
 
     return birth_halo, birth_subhalo
+
+end
+
+"""
+    density3DProjection(
+        data_dict::Dict,
+        grid::CubicGrid,
+        quantity::Symbol,
+        type::Symbol;
+        <keyword arguments>
+    )::Array{Float64,3}
+
+Sample the 3D density field of a given quantity using a cubic grid
+
+If the source of the field are particles, a simple 3D histogram is used. If the source of the field are Voronoi cells, the density of the cell that intersect each voxel is used.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `grid::CubicGrid`: Cubic grid.
+  - `quantity::Symbol`: Which density will be calculated. The options are:
+
+      + `:stellar_mass`      -> Stellar density.
+      + `:gas_mass`          -> Gas density.
+      + `:hydrogen_mass`     -> Hydrogen density.
+      + `:dm_mass`           -> Dark matter density.
+      + `:bh_mass`           -> Black hole density.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) density.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
+      + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
+      + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
+  - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
+  - `l_unit::Unitful.Units=u"kpc"`: Length unit.
+  - `filter_function::Function=filterNothing`: A function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+
+# Returns
+
+  - A 3D array with the density at each point of the 3D grid.
+"""
+function density3DProjection(
+    data_dict::Dict,
+    grid::CubicGrid,
+    quantity::Symbol,
+    type::Symbol;
+    print_range::Bool=false,
+    m_unit::Unitful.Units=u"Msun",
+    l_unit::Unitful.Units=u"kpc",
+    filter_function::Function=filterNothing,
+)::Array{Float64,3}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    # Set the cell/particle type
+    if quantity ∈ [
+        :gas_mass,
+        :hydrogen_mass,
+        :molecular_mass,
+        :br_molecular_mass,
+        :atomic_mass,
+        :ionized_mass,
+        :neutral_mass,
+    ]
+        component = :gas
+    elseif quantity == :stellar_mass
+        component = :stars
+    elseif quantity == :dm_mass
+        component = :halo
+    elseif quantity == :bh_mass
+        component = :black_hole
+    else
+        throw(ArgumentError("density3DProjection: I don't recognize the quantity :$(quantity)"))
+    end
+
+    # For comological simulations with comoving units, correct
+    # the density so it is always in physical units
+    if !PHYSICAL_UNITS && data_dict[:sim_data].cosmological
+        # Correction factor for the volume
+        # V [physical units] = V [comoving units] * a0^3
+        physical_factor = data_dict[:snap_data].scale_factor^3
+    else
+        physical_factor = 1.0
+    end
+
+    # Load the cell/particle positions
+    positions = filtered_dd[component]["POS "]
+
+    # Compute the masses of the target quantity
+    masses = scatterQty(filtered_dd, quantity)
+
+    # If any of the necessary quantities are missing return an empty density field
+    if any(isempty, [masses, positions])
+        return fill(NaN, (grid.n_bins, grid.n_bins, grid.n_bins))
+    end
+
+    if type == :cells
+
+        # Compute the volume of each cell
+        cell_volumes = filtered_dd[component]["MASS"] ./ filtered_dd[component]["RHO "]
+
+        # Compute the densities of the target quantity
+        densities = ustrip.(m_unit * l_unit^-3, masses ./ cell_volumes)
+
+        # Allocate memory
+        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
+
+        # Compute the tree for a nearest neighbor search
+        kdtree = KDTree(ustrip.(l_unit, positions))
+
+        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
+        @inbounds for i in eachindex(grid.grid)
+            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
+            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
+            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
+        end
+
+        # Find the nearest cell to each voxel
+        idxs, _ = nn(kdtree, physical_grid)
+
+        # Allocate memory
+        density = similar(grid.grid, Float64)
+
+        # Compute the density in each voxel
+        @inbounds for i in eachindex(grid.grid)
+            density[i] = densities[idxs[i]]
+        end
+
+        # Set bins with a value of 0 to NaN
+        replace!(x -> iszero(x) ? NaN : x, density)
+
+    elseif type == :particles
+
+        # Compute the 3D histogram
+        density = ustrip.(
+            m_unit * l_unit^-3,
+            histogram3D(positions, masses, grid; empty_nan=true) ./ grid.bin_volume,
+        )
+
+    else
+
+        throw(ArgumentError("density3DProjection: The argument `type` must be :cells or \
+        :particles, but I got :$(type)"))
+
+    end
+
+    if print_range
+
+        log_density = log10.(density)
+
+        # Compute the mininimum and maximum of `log_density`
+        min_max = isempty(log_density) ? (NaN, NaN) : extrema(filter(!isnan, log_density))
+
+        # Print the density range
+        @info(
+            "\nDensity range \
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Quantity:   $(quantity) \
+            \n  Type:       $(type) \
+            \n  log₁₀(ρ [$(m_unit * l_unit^-3)]): $(min_max)\n\n"
+        )
+
+    end
+
+    return density
 
 end

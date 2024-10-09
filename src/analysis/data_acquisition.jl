@@ -1,5 +1,5 @@
 ####################################################################################################
-# Data acquisition functions.
+# Data acquisition functions
 ####################################################################################################
 
 """
@@ -1374,7 +1374,7 @@ function makeDataDict(
     snapshot_row = simulation_table[slice_n, :]
 
     ################################################################################################
-    # Compute the metadata for the current snapshot and simulation.
+    # Compute the metadata for the current snapshot and simulation
     ################################################################################################
 
     # Get the snapshot file path

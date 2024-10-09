@@ -9,7 +9,7 @@
 ####################################################################################################
 
 ####################################################################################################
-# A Julia module for the data analysis of galaxy simulations.
+# A Julia module for the analysis of galaxy simulations
 ####################################################################################################
 
 module GalaxyInspector
@@ -39,13 +39,13 @@ using CSV,
     UnitfulAstro
 
 ####################################################################################################
-# Optimization.
+# Optimization
 ####################################################################################################
 
 @eval Base.Experimental.@optlevel 3
 
 ####################################################################################################
-# Submodules.
+# Submodules
 ####################################################################################################
 
 include("constants/globals.jl")
@@ -65,7 +65,7 @@ include("plotting/pipelines.jl")
 include("plotting/convenience.jl")
 
 ####################################################################################################
-# Public functions.
+# Public functions
 ####################################################################################################
 
 # From `analysis/data_acquisition.jl`
@@ -107,6 +107,7 @@ export compareFeldmann2020
 export compareMolla2015
 export kennicuttSchmidtLaw
 export fitResolvedKSLaw
+export fitVSFLaw
 export massMetallicityRelation
 export atomicGasCubes
 
