@@ -4232,3 +4232,28 @@ function density3DProjection(
     return density
 
 end
+
+@doc raw"""
+    computeClumpingFactor(density::Vector{<:Unitful.Density})::Float64
+
+Compute the clumping factor,
+
+```math
+C_\rho = \frac{\rangle rho^2 \langle}{\rangle rho \langle^2} \, .
+```
+
+# Arguments
+
+  - `density::Unitful.Density`: The density of the cells/particles.
+
+# Returns
+
+  - The clumping factor.
+"""
+function computeClumpingFactor(density::Vector{<:Unitful.Density})::Float64
+
+    Cρ = mean(density.^2) / mean(density)^2
+
+    return uconvert(Unitful.NoUnits, Cρ)
+
+end

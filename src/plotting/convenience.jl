@@ -187,7 +187,7 @@ function snapshotReport(
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
                 Dict(
-                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "CTIM", "TAUS", "ID  "],
+                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "CTIM", "TAUS", "ID  ", "RHO "],
                     :stars => ["ACIT", "PARZ", "RHOC", "ID  "],
                 ),
             ),
@@ -853,7 +853,8 @@ function snapshotReport(
             end
 
             ########################################################################################
-            # Print the mass of each hydrogen phase between `DISK_R` y and the virial radius
+            # Print the mass and clumping factor of each hydrogen phase
+            # between `DISK_R` and the virial radius
             ########################################################################################
 
             if :gas in component_list
@@ -866,8 +867,10 @@ function snapshotReport(
                 disc_idxs = filterWithinSphere(data_dict, (0.0u"kpc", DISK_R), :zero)
                 halo_idxs = filterWithinSphere(data_dict, (DISK_R, g_r_crit_200), :zero)
 
-                stellar_masses     = data_dict[:stars]["MASS"]
-                gas_masses         = data_dict[:gas]["MASS"]
+                stellar_masses = data_dict[:stars]["MASS"]
+                gas_masses     = data_dict[:gas]["MASS"]
+                gas_densities  = data_dict[:gas]["RHO "]
+
                 ionized_masses     = computeIonizedMass(data_dict)
                 atomic_masses      = computeAtomicMass(data_dict)
                 molecular_masses   = computeMolecularMass(data_dict)
@@ -880,29 +883,49 @@ function snapshotReport(
                 gas_mass_inside  = gas_masses[disc_idxs[:gas]]
                 gas_mass_outside = gas_masses[halo_idxs[:gas]]
 
+                gas_density_inside  = gas_densities[disc_idxs[:gas]]
+                gas_density_outside = gas_densities[halo_idxs[:gas]]
+
+                Cρ_gas = computeClumpingFactor(gas_density_inside )
+
                 if !isempty(ionized_masses)
                     ionized_mass_inside  = ionized_masses[disc_idxs[:gas]]
                     ionized_mass_outside = ionized_masses[halo_idxs[:gas]]
+
+                    ionized_fractions = (ionized_mass_inside ./ gas_mass_inside)
+                    Cρ_ionized = computeClumpingFactor(ionized_fractions .* gas_density_inside)
                 end
 
                 if !isempty(atomic_masses)
                     atomic_mass_inside  = atomic_masses[disc_idxs[:gas]]
                     atomic_mass_outside = atomic_masses[halo_idxs[:gas]]
+
+                    atomic_fractions = (atomic_mass_inside ./ gas_mass_inside)
+                    Cρ_atomic = computeClumpingFactor(atomic_fractions .* gas_density_inside)
                 end
 
                 if !isempty(molecular_masses)
                     molecular_mass_inside  = molecular_masses[disc_idxs[:gas]]
                     molecular_mass_outside = molecular_masses[halo_idxs[:gas]]
+
+                    molecular_fractions = (molecular_mass_inside ./ gas_mass_inside)
+                    Cρ_molecular = computeClumpingFactor(molecular_fractions .* gas_density_inside)
                 end
 
                 if !isempty(molecular_P_masses)
                     molecular_P_mass_inside  = molecular_P_masses[disc_idxs[:gas]]
                     molecular_P_mass_outside = molecular_P_masses[halo_idxs[:gas]]
+
+                    molecular_P_fractions = (molecular_P_mass_inside ./ gas_mass_inside)
+                    Cρ_molecular_P = computeClumpingFactor(molecular_P_fractions .* gas_density_inside)
                 end
 
                 if !isempty(neutral_masses)
                     neutral_mass_inside  = neutral_masses[disc_idxs[:gas]]
                     neutral_mass_outside = neutral_masses[halo_idxs[:gas]]
+
+                    neutral_fractions = (neutral_mass_inside ./ gas_mass_inside)
+                    Cρ_neutral = computeClumpingFactor(neutral_fractions .* gas_density_inside)
                 end
 
                 println(file, "\nCharacteristic radii:\n")
@@ -1129,6 +1152,74 @@ function snapshotReport(
                         file,
                         "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
                     )
+
+                end
+
+                ####################################################################################
+                # Print the clumping factor
+                ####################################################################################
+
+                println(file, "Clumping factors (r < $(DISK_R)):\n")
+
+                ############
+                # Total gas
+                ############
+
+                println(file, "\tClumping factor for the gas:\n")
+                println(file, "\t\tCρ = $(round(Cρ_gas, sigdigits=4))\n")
+
+                ##############
+                # Ionized gas
+                ##############
+
+                if !isempty(ionized_masses)
+
+                    println(file, "\tClumping factor for the ionized gas:\n")
+                    println(file, "\t\tCρ = $(round(Cρ_ionized, sigdigits=4))\n")
+
+                end
+
+                #############
+                # Atomic gas
+                #############
+
+                if !isempty(atomic_masses)
+
+                    println(file, "\tClumping factor for the atomic gas:\n")
+                    println(file, "\t\tCρ = $(round(Cρ_atomic, sigdigits=4))\n")
+
+                end
+
+                ################
+                # Molecular gas
+                ################
+
+                if !isempty(molecular_masses)
+
+                    println(file, "\tClumping factor for the molecular gas:\n")
+                    println(file, "\t\tCρ = $(round(Cρ_molecular, sigdigits=4))\n")
+
+                end
+
+                #####################
+                # Molecular gas (BR)
+                #####################
+
+                if !isempty(molecular_P_masses)
+
+                    println(file, "\tClumping factor for the molecular gas (BR):\n")
+                    println(file, "\t\tCρ = $(round(Cρ_molecular_P, sigdigits=4))\n")
+
+                end
+
+                ##############
+                # Neutral gas
+                ##############
+
+                if !isempty(neutral_masses)
+
+                    println(file, "\tClumping factor for the neutral gas:\n")
+                    println(file, "\t\tCρ = $(round(Cρ_neutral, sigdigits=4))\n")
 
                 end
 
