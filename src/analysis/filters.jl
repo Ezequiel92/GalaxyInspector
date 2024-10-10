@@ -955,7 +955,7 @@ function filterInsituStars(
     # Sanity check
     n_stars = length(data_dict[:stars]["MASS"])
     (
-        length(birth_halo) == length(birth_subhalo) == n_stars ||
+        allequal([length(birth_halo), length(birth_subhalo), n_stars]) ||
         throw(ArgumentError("filterInsituStars: The vectors given by `locateStellarBirthPlace` \
         do not have as many elements as there are stars. That should not be possible!"))
 
@@ -1034,7 +1034,7 @@ function filterExsituStars(
     # Sanity check
     n_stars = length(data_dict[:stars]["MASS"])
     (
-        length(birth_halo) == length(birth_subhalo) == n_stars ||
+        allequal([length(birth_halo), length(birth_subhalo), n_stars]) ||
         throw(ArgumentError("filterExsituStars: The vectors given by `locateStellarBirthPlace` \
         do not have as many elements as there are stars. That should not be possible!"))
 

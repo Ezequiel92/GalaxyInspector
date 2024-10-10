@@ -2555,7 +2555,7 @@ function daScatterWeightedDensity(
     end
 
     (
-        length(x_values) == length(y_values) == length(z_values) ||
+        allequal([length(x_values), length(y_values), length(z_values)]) ||
         throw(ArgumentError("daScatterWeightedDensity: :$(x_quantity), :$(y_quantity), \
         and :$(z_quantity) have a diferent number of values. They should be the same"))
     )
