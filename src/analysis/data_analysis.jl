@@ -4493,3 +4493,151 @@ function daVSFLaw(
     return log10.(x_axis), log10.(y_axis) .- log10Δt
 
 end
+
+@doc raw"""
+    daClumpingFactor(
+        data_dict::Dict,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Tuple{Vector{Float64},Vector{<:Unitful.Volume}}
+
+Compute the clumping factor,
+
+```math
+C_\rho = \frac{\rangle n^2 \langle}{\rangle n \langle^2} \, ,
+```
+for the number density of `quantity`, at different volume scales.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `quantity::Symbol`: The number density of which quantity will be used. The options are:
+
+      + `:gas`          -> Gas number density.
+      + `:molecular`    -> Molecular hydrogen number density.
+      + `:br_molecular` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic`       -> Atomic hydrogen number density.
+      + `:ionized`      -> Ionized hydrogen number density.
+      + `:neutral`      -> Neutral hydrogen number density.
+  - `nn::Int64=32`: Number of neighbors.
+  - `filter_function::Function=filterNothing`: A function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the clumping factors.
+      + A vector with the volumes.
+"""
+function daClumpingFactor(
+    data_dict::Dict,
+    quantity::Symbol;
+    nn::Int64=32,
+    filter_function::Function=filterNothing,
+)::Tuple{Vector{Float64},Vector{<:Unitful.Volume}}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    if quantity == :gas
+
+        number_densities = scatterQty(filtered_dd, :gas_number_density)
+
+    elseif quantity == :molecular
+
+        number_densities = scatterQty(filtered_dd, :molecular_number_density)
+
+    elseif quantity == :br_molecular
+
+        number_densities = scatterQty(filtered_dd, :br_molecular_number_density)
+
+    elseif quantity == :atomic
+
+        number_densities = scatterQty(filtered_dd, :atomic_number_density)
+
+    elseif quantity == :ionized
+
+        number_densities = scatterQty(filtered_dd, :ionized_number_density)
+
+    elseif quantity == :neutral
+
+        number_densities = scatterQty(filtered_dd, :neutral_number_density)
+
+    else
+
+        throw(ArgumentError("daClumpingFactor: `quantity` can only be :gas, :molecular, \
+        :br_molecular, :atomic, :ionized or :neutral, but I got :$(quantity)"))
+
+    end
+
+    # Load the position of each cell/particle
+    positions = filtered_dd[component]["POS "]
+
+    # Compute the volume of each cell/particle
+    cell_volumes = filtered_dd[component]["MASS"] ./ filtered_dd[component]["RHO "]
+
+    if any(isempty, [positions, cell_volumes, number_densities])
+        return Float64[], Unitful.Volume[]
+    end
+
+    # Compute the tree for a nearest neighbor search
+    kdtree = KDTree(ustrip.(l_unit, positions))
+
+    # Find the `nn` nearest cells/particles to each cell/particle
+    idxs, _ = knn(kdtree, positions, nn, true)
+
+    # Allocate memory
+    Cρ = similar(number_densities, Float64)
+    V  = similar(cell_volumes)
+
+    (
+        allequal(length, [number_densities, cell_volumes, idxs]) ||
+        throw(DomainError("daClumpingFactor: The lists of numer densities, volumes, and \
+        nearest neighbor indices don't have the same lengths. This should not happen!"))
+    )
+
+    for (i, (n, v, idx)) in enumerate(zip(number_densities, cell_volumes, idxs))
+
+        V[i]  = sum(v[idx]; init=0.0u"kpc^3")
+        Cρ[i] = computeClumpingFactor(n[idx])
+
+    end
+
+    return Cρ, V
+
+end
