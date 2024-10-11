@@ -3457,6 +3457,8 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+  - `xlog::Bool=false`: If true, sets everything so the x axis is log10(`x_quantity`).
+  - `ylog::Bool=false`: If true, sets everything so the y axis is log10(`y_quantity`).
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -3486,6 +3488,32 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `da_ff::Function=filterNothing`: A function with the signature:
+
+    `da_ff(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `da_ff` filter function.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function scatterPlot(
@@ -3493,8 +3521,12 @@ function scatterPlot(
     slice::IndexType,
     x_quantity::Symbol,
     y_quantity::Symbol;
+    xlog::Bool=false,
+    ylog::Bool=false,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -3503,8 +3535,44 @@ function scatterPlot(
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        mergeRequests(x_plot_params.request, y_plot_params.request),
+        mergeRequests(x_plot_params.request, y_plot_params.request, ff_request),
     )
+
+    # Set arguments for a log x axis
+    if xlog
+        x_log        = x_plot_params.unit
+        x_unit       = Unitful.NoUnits
+        unit_label   = getUnitLabel(0, x_plot_params.unit; latex=true)
+        if isempty(unit_label)
+            xaxis_label  = L"$\log_{10} \, $auto_label"
+        else
+            xaxis_label  = L"$\log_{10} \, $auto_label [%$(unit_label)]"
+        end
+        x_exp_factor = 0
+    else
+        x_log        = nothing
+        x_unit       = x_plot_params.unit
+        xaxis_label  = x_plot_params.axis_label
+        x_exp_factor = x_plot_params.exp_factor
+    end
+
+    # Set arguments for a log y axis
+    if ylog
+        x_log        = y_plot_params.unit
+        y_unit       = Unitful.NoUnits
+        unit_label   = getUnitLabel(0, y_plot_params.unit; latex=true)
+        if isempty(unit_label)
+            yaxis_label  = L"$\log_{10} \, $auto_label"
+        else
+            yaxis_label  = L"$\log_{10} \, $auto_label [%$(unit_label)]"
+        end
+        y_exp_factor = 0
+    else
+        y_log        = nothing
+        y_unit       = y_plot_params.unit
+        yaxis_label  = y_plot_params.axis_label
+        y_exp_factor = y_plot_params.exp_factor
+    end
 
     @inbounds for simulation_path in simulation_paths
 
@@ -3527,7 +3595,7 @@ function scatterPlot(
             filter_function,
             da_functions=[daScatterGalaxy],
             da_args=[(x_quantity, y_quantity)],
-            da_kwargs=[(;)],
+            da_kwargs=[(; x_log, y_log, filter_function=da_ff)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -3535,10 +3603,10 @@ function scatterPlot(
             translation,
             rotation,
             smooth=0,
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
+            x_unit,
+            y_unit,
+            x_exp_factor,
+            y_exp_factor,
             x_trim=(-Inf, Inf),
             y_trim=(-Inf, Inf),
             x_edges=false,
@@ -3546,8 +3614,8 @@ function scatterPlot(
             x_func=identity,
             y_func=identity,
             # Axes options
-            xaxis_label=x_plot_params.axis_label,
-            yaxis_label=y_plot_params.axis_label,
+            xaxis_label,
+            yaxis_label,
             xaxis_var_name=x_plot_params.var_name,
             yaxis_var_name=y_plot_params.var_name,
             xaxis_scale_func=identity,

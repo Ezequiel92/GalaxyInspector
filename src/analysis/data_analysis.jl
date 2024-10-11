@@ -3057,6 +3057,8 @@ Compute two quantities for every cell/particle in the simulation.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `y_quantity`, if you want to use log10(`y_quantity`) for the y axis.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -3094,23 +3096,52 @@ function daScatterGalaxy(
     data_dict::Dict,
     x_quantity::Symbol,
     y_quantity::Symbol;
+    x_log::Union{Unitful.Units,Nothing}=nothing,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
     filter_function::Function=filterNothing,
 )::NTuple{2,Vector{<:Number}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    x_axis = scatterQty(filtered_dd, x_quantity)
-    y_axis = scatterQty(filtered_dd, y_quantity)
-
-    idx = sortperm(x_axis)
+    x_values = scatterQty(filtered_dd, x_quantity)
+    y_values = scatterQty(filtered_dd, y_quantity)
 
     (
-        length(x_axis) == length(y_axis) ||
+        length(x_values) == length(y_values) ||
         throw(ArgumentError("daScatterGalaxy: :$(x_quantity) and :$(y_quantity) have a diferent \
         number of values. They should be the same"))
     )
 
-    return x_axis[idx], y_axis[idx]
+    if isnothing(x_log)
+        x_idxs = Int64[]
+    else
+        x_idxs = map(iszero, x_values)
+    end
+
+    if isnothing(y_log)
+        y_idxs = Int64[]
+    else
+        y_idxs = map(iszero, y_values)
+    end
+
+    delete_idxs = x_idxs ∪ y_idxs
+
+    deleteat!(x_values, delete_idxs)
+    deleteat!(y_values, delete_idxs)
+
+    if isnothing(x_log)
+        x_axis = x_values
+    else
+        x_axis = log10.(ustrip.(x_log, x_values))
+    end
+
+    if isnothing(y_log)
+        y_axis = y_values
+    else
+        y_axis = log10.(ustrip.(y_log, y_values))
+    end
+
+    return x_axis, y_axis
 
 end
 
