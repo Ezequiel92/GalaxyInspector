@@ -865,7 +865,7 @@ function snapshotReport(
                 insitu_fraction = round(uconvert.(Unitful.NoUnits, (iMs / tMs) * 100); sigdigits=2)
 
                 println(file, "#"^100)
-                println(file, "\nFraction of insitu stars: $(insitu_fraction)%")
+                println(file, "\nFraction of insitu stars: $(insitu_fraction)%\n")
 
             end
 
@@ -924,7 +924,7 @@ function snapshotReport(
                     neutral_mass_outside = neutral_masses[halo_idxs[:gas]]
                 end
 
-                println(file, "\nCharacteristic radii:\n")
+                println(file, "Characteristic radii:\n")
 
                 ####################################################################################
                 # Print the radius containing 90% and 95% of the mass,
@@ -5897,7 +5897,7 @@ function stellarCircularity(
         slice,
         filter_function,
         da_functions=[daLineHistogram],
-        da_args=[(:stellar_circularity, grid,)],
+        da_args=[(:stellar_circularity, grid, :stars)],
         da_kwargs=[(;)],
         post_processing=getNothing,
         pp_args=(),
