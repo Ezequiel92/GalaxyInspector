@@ -935,7 +935,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "PRES"],
+                :gas => ["MASS", "POS ", "PRES", "RHO "],
             ),
             var_name = L"n_\mathrm{H_2}^{BR}",
             unit     = u"cm^-3",

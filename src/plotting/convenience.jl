@@ -187,7 +187,7 @@ function snapshotReport(
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
                 Dict(
-                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "CTIM", "TAUS", "ID  ", "RHO "],
+                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "CTIM", "TAUS", "ID  "],
                     :stars => ["ACIT", "PARZ", "RHOC", "ID  "],
                 ),
             ),
@@ -548,13 +548,18 @@ function snapshotReport(
         # Print the properties of the star forming gas
         ############################################################################################
 
-        if !isempty(data_dict[:stars]["ACIT"])
-
-            parz = data_dict[:stars]["PARZ"] ./ SOLAR_METALLICITY
-            rhoc = ustrip.(u"cm^-3", data_dict[:stars]["RHOC"])
-            acit = ustrip.(u"Myr", data_dict[:stars]["ACIT"])
+        if any(
+            !isempty,
+            [data_dict[:stars]["PARZ"], data_dict[:stars]["RHOC"], data_dict[:stars]["ACIT"]],
+        )
 
             println(file, "\tProperties of the star forming gas:\n")
+
+        end
+
+        if !isempty(data_dict[:stars]["PARZ"])
+
+            parz = data_dict[:stars]["PARZ"] ./ SOLAR_METALLICITY
 
             println(file, "\t\tMetallicity:\n")
             println(file, "\t\t\tMean:    $(round(mean(parz), sigdigits=4)) Z⊙")
@@ -572,6 +577,12 @@ function snapshotReport(
             println(file, "\t\t\t$(round(parz_90, sigdigits=4)) Z⊙ (90%)")
             println(file, "\t\t\t$(round(parz_95, sigdigits=4)) Z⊙ (95%)\n")
 
+        end
+
+        if !isempty(data_dict[:stars]["RHOC"])
+
+            rhoc = ustrip.(u"cm^-3", data_dict[:stars]["RHOC"])
+
             println(file, "\t\tCell density:\n")
             println(file, "\t\t\tMean:    $(round(mean(rhoc), sigdigits=4)) cm^-3")
             println(file, "\t\t\tMedian:  $(round(median(rhoc), sigdigits=4)) cm^-3")
@@ -587,6 +598,12 @@ function snapshotReport(
             println(file, "\t\t\t$(round(rhoc_50, sigdigits=4)) cm^-3 (50%)")
             println(file, "\t\t\t$(round(rhoc_90, sigdigits=4)) cm^-3 (90%)")
             println(file, "\t\t\t$(round(rhoc_95, sigdigits=4)) cm^-3 (95%)\n")
+
+        end
+
+        if !isempty(data_dict[:stars]["ACIT"])
+
+            acit = ustrip.(u"Myr", data_dict[:stars]["ACIT"])
 
             println(file, "\t\tTotal integration time:\n")
             println(file, "\t\t\tMean:    $(round(mean(acit), sigdigits=4)) Myr")
@@ -869,7 +886,6 @@ function snapshotReport(
 
                 stellar_masses = data_dict[:stars]["MASS"]
                 gas_masses     = data_dict[:gas]["MASS"]
-                gas_densities  = data_dict[:gas]["RHO "]
 
                 ionized_masses     = computeIonizedMass(data_dict)
                 atomic_masses      = computeAtomicMass(data_dict)
@@ -883,49 +899,29 @@ function snapshotReport(
                 gas_mass_inside  = gas_masses[disc_idxs[:gas]]
                 gas_mass_outside = gas_masses[halo_idxs[:gas]]
 
-                gas_density_inside  = gas_densities[disc_idxs[:gas]]
-                gas_density_outside = gas_densities[halo_idxs[:gas]]
-
-                Cρ_gas = computeClumpingFactor(gas_density_inside )
-
                 if !isempty(ionized_masses)
                     ionized_mass_inside  = ionized_masses[disc_idxs[:gas]]
                     ionized_mass_outside = ionized_masses[halo_idxs[:gas]]
-
-                    ionized_fractions = (ionized_mass_inside ./ gas_mass_inside)
-                    Cρ_ionized = computeClumpingFactor(ionized_fractions .* gas_density_inside)
                 end
 
                 if !isempty(atomic_masses)
                     atomic_mass_inside  = atomic_masses[disc_idxs[:gas]]
                     atomic_mass_outside = atomic_masses[halo_idxs[:gas]]
-
-                    atomic_fractions = (atomic_mass_inside ./ gas_mass_inside)
-                    Cρ_atomic = computeClumpingFactor(atomic_fractions .* gas_density_inside)
                 end
 
                 if !isempty(molecular_masses)
                     molecular_mass_inside  = molecular_masses[disc_idxs[:gas]]
                     molecular_mass_outside = molecular_masses[halo_idxs[:gas]]
-
-                    molecular_fractions = (molecular_mass_inside ./ gas_mass_inside)
-                    Cρ_molecular = computeClumpingFactor(molecular_fractions .* gas_density_inside)
                 end
 
                 if !isempty(molecular_P_masses)
                     molecular_P_mass_inside  = molecular_P_masses[disc_idxs[:gas]]
                     molecular_P_mass_outside = molecular_P_masses[halo_idxs[:gas]]
-
-                    molecular_P_fractions = (molecular_P_mass_inside ./ gas_mass_inside)
-                    Cρ_molecular_P = computeClumpingFactor(molecular_P_fractions .* gas_density_inside)
                 end
 
                 if !isempty(neutral_masses)
                     neutral_mass_inside  = neutral_masses[disc_idxs[:gas]]
                     neutral_mass_outside = neutral_masses[halo_idxs[:gas]]
-
-                    neutral_fractions = (neutral_mass_inside ./ gas_mass_inside)
-                    Cρ_neutral = computeClumpingFactor(neutral_fractions .* gas_density_inside)
                 end
 
                 println(file, "\nCharacteristic radii:\n")
@@ -1152,74 +1148,6 @@ function snapshotReport(
                         file,
                         "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
                     )
-
-                end
-
-                ####################################################################################
-                # Print the clumping factor
-                ####################################################################################
-
-                println(file, "Clumping factors (r < $(DISK_R)):\n")
-
-                ############
-                # Total gas
-                ############
-
-                println(file, "\tClumping factor for the gas:\n")
-                println(file, "\t\tCρ = $(round(Cρ_gas, sigdigits=4))\n")
-
-                ##############
-                # Ionized gas
-                ##############
-
-                if !isempty(ionized_masses)
-
-                    println(file, "\tClumping factor for the ionized gas:\n")
-                    println(file, "\t\tCρ = $(round(Cρ_ionized, sigdigits=4))\n")
-
-                end
-
-                #############
-                # Atomic gas
-                #############
-
-                if !isempty(atomic_masses)
-
-                    println(file, "\tClumping factor for the atomic gas:\n")
-                    println(file, "\t\tCρ = $(round(Cρ_atomic, sigdigits=4))\n")
-
-                end
-
-                ################
-                # Molecular gas
-                ################
-
-                if !isempty(molecular_masses)
-
-                    println(file, "\tClumping factor for the molecular gas:\n")
-                    println(file, "\t\tCρ = $(round(Cρ_molecular, sigdigits=4))\n")
-
-                end
-
-                #####################
-                # Molecular gas (BR)
-                #####################
-
-                if !isempty(molecular_P_masses)
-
-                    println(file, "\tClumping factor for the molecular gas (BR):\n")
-                    println(file, "\t\tCρ = $(round(Cρ_molecular_P, sigdigits=4))\n")
-
-                end
-
-                ##############
-                # Neutral gas
-                ##############
-
-                if !isempty(neutral_masses)
-
-                    println(file, "\tClumping factor for the neutral gas:\n")
-                    println(file, "\t\tCρ = $(round(Cρ_neutral, sigdigits=4))\n")
 
                 end
 
@@ -8215,6 +8143,259 @@ function atomicGasCubes(
     end
 
     close(hdf5_file)
+
+    return nothing
+
+end
+
+"""
+    clumpingFactor(
+        simulation_paths::Vector{String},
+        slice::IndexType,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Plot the clumping factor of `quantity` for different volume scales.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `quantity::Symbol`: The number density of which quantity will be used. The options are:
+
+      + `:gas`          -> Gas number density.
+      + `:molecular`    -> Molecular hydrogen number density.
+      + `:br_molecular` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic`       -> Atomic hydrogen number density.
+      + `:ionized`      -> Ionized hydrogen number density.
+      + `:neutral`      -> Neutral hydrogen number density.
+  - `nn::Int=32`: Number of neighbors.
+  - `smooth::Int=0`: The result will be average out using `smooth` bins for the volume. Set it to 0 if you want no smoothing.
+  - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.
+  - `output_path::String="./"`: Path to the output folder.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `da_ff::Function=filterNothing`: A function with the signature:
+
+    `da_ff(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `da_ff` filter function.
+  - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function clumpingFactor(
+    simulation_paths::Vector{String},
+    slice::IndexType,
+    quantity::Symbol;
+    nn::Int=32,
+    smooth::Int=100,
+    x_trim::NTuple{2,<:Real}=(-Inf, Inf),
+    output_path::String="./",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    (
+        quantity ∈ [:gas, :molecular, :br_molecular, :atomic, :ionized, :neutral] ||
+        throw(ArgumentError("clumpingFactor: `quantity` can only be :gas, :molecular, \
+        :br_molecular, :atomic, :ionized or :neutral, but I got :$(quantity)"))
+    )
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(plotParams(Symbol(quantity, "_number_density")).request, ff_request),
+    )
+
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [scatter!];
+        pf_kwargs=[(; markersize=10)],
+        # `plotSnapshot` configuration
+        output_path,
+        base_filename="$(quantity)_clumping_factor",
+        output_format=".png",
+        warnings=false,
+        show_progress=true,
+        # Data manipulation options
+        slice=slice,
+        filter_function,
+        da_functions=[daClumpingFactor],
+        da_args=[(quantity,)],
+        da_kwargs=[(; nn, filter_function=da_ff)],
+        post_processing=getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
+        transform_box=true,
+        translation,
+        rotation,
+        smooth,
+        x_unit=u"kpc^3",
+        y_unit=Unitful.NoUnits,
+        x_exp_factor=0,
+        y_exp_factor=0,
+        x_trim,
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label="auto_label",
+        yaxis_label="auto_label",
+        xaxis_var_name=L"\bar{V}",
+        yaxis_var_name=L"C_\rho",
+        xaxis_scale_func=identity,
+        yaxis_scale_func=identity,
+        # Plotting and animation options
+        save_figures=true,
+        backup_results=false,
+        theme,
+        sim_labels,
+        title="",
+        colorbar=false,
+        # Animation options
+        animation=false,
+        animation_filename="animation.mp4",
+        framerate=10,
+    )
+
+    return nothing
+
+end
+
+function clumpingFactorProfile(
+    simulation_paths::Vector{String},
+    slice::IndexType,
+    quantity::Symbol;
+    radius::Unitful.Length=DISK_R,
+    n_bins::Int=100,
+    output_path::String="./",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    (
+        quantity ∈ [:gas, :molecular, :br_molecular, :atomic, :ionized, :neutral] ||
+        throw(ArgumentError("clumpingFactorProfile: `quantity` can only be :gas, :molecular, \
+        :br_molecular, :atomic, :ionized or :neutral, but I got :$(quantity)"))
+    )
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(plotParams(Symbol(quantity, "_number_density")).request, ff_request),
+    )
+
+    grid = CircularGrid(radius, n_bins)
+
+    # Draw the figures with CairoMakie
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [lines!];
+        pf_kwargs=[(;)],
+        # `plotSnapshot` configuration
+        output_path,
+        base_filename="$(quantity)_clumping_factor-profile",
+        output_format=".png",
+        warnings=false,
+        show_progress=true,
+        # Data manipulation options
+        slice,
+        filter_function,
+        da_functions=[daClumpingFactorProfile],
+        da_args=[(quantity, grid)],
+        da_kwargs=[(; filter_function=da_ff)],
+        post_processing=getNothing,
+        pp_args=(),
+        pp_kwargs=(;),
+        transform_box=true,
+        translation,
+        rotation,
+        smooth=0,
+        x_unit=u"kpc",
+        y_unit=Unitful.NoUnits,
+        x_exp_factor=0,
+        y_exp_factor=0,
+        x_trim=(-Inf, Inf),
+        y_trim=(-Inf, Inf),
+        x_edges=false,
+        y_edges=false,
+        x_func=identity,
+        y_func=identity,
+        # Axes options
+        xaxis_label="auto_label",
+        yaxis_label="auto_label",
+        xaxis_var_name=L"r",
+        yaxis_var_name=L"C_\rho",
+        xaxis_scale_func=identity,
+        yaxis_scale_func=identity,
+        # Plotting and animation options
+        save_figures=true,
+        backup_results=false,
+        theme,
+        sim_labels,
+        title="",
+        colorbar=false,
+        # Animation options
+        animation=false,
+        animation_filename="animation.mp4",
+        framerate=10,
+    )
 
     return nothing
 

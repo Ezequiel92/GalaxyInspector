@@ -4005,12 +4005,10 @@ function locateStellarBirthPlace(data_dict::Dict; warnings::Bool=true)::NTuple{2
         # Get the birth index of the stars born in this snapshot
         past_idxs = parentIDToIndex(past_data_dict, ids)[:stars]
 
-        # Sanity check
         (
-            length(ids) == length(past_idxs) ||
-            throw(DimensionMismatch("locateStellarBirthPlace: There are IDs in `ids` that are not \
-            present in the birth snapshot or are from other cell/particle type. \
-            This should be impossible!"))
+            length(ids) == length(past_idxs) || throw(DimensionMismatch("locateStellarBirthPlace: \
+            There are IDs in `ids` that are not present in the birth snapshot or are from other \
+            cell/particle type. This should be impossible!"))
         )
 
         # Find the halo and subhalo where each star was born, for the stars born in this snapshot

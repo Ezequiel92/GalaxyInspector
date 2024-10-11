@@ -110,5 +110,7 @@ export fitResolvedKSLaw
 export fitVSFLaw
 export massMetallicityRelation
 export atomicGasCubes
+export clumpingFactor
+export clumpingFactorProfile
 
 end
