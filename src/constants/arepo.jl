@@ -140,7 +140,7 @@ const QUANTITIES = Dict(
     "ETAI" => Qty("ODE_ParameterEtaI", Unitful.NoDims, Unitful.NoUnits),
     "PARR" => Qty("ODE_ParameterR", Unitful.NoDims, Unitful.NoUnits),
     "FRAC" => Qty("ODE_Fractions", Unitful.NoDims, Unitful.NoUnits),
-    "COLM" => Qty("BR_ColdMass", Unitful.𝐌, u"Msun"),
+    "COLM" => Qty("ColdMass", Unitful.𝐌, u"Msun"),
     ##############################
     # Halo (FoF group) quantities
     ##############################
