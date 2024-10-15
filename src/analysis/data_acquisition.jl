@@ -1471,3 +1471,574 @@ function countSnapshot(simulation_path::String; warnings::Bool=true)::Int
     return length(path_list)
 
 end
+
+"""
+    mergeRequests(requests::Dict{Symbol,Vector{String}}...)::Dict{Symbol,Vector{String}}
+
+Merge several request dictionaries, ignoring duplicates.
+
+# Arguments
+
+  - `requests`: The request dictionaries for [`readSnapshot`](@ref).
+
+# Returns
+
+  - A new dictionary with all the requests.
+"""
+function mergeRequests(requests::Dict{Symbol,Vector{String}}...)::Dict{Symbol,Vector{String}}
+
+    return Dict(
+        type => union([get(request, type, String[]) for request in requests]...) for
+        type in union(keys.(requests)...)
+    )
+
+end
+
+"""
+    addRequest(
+        request::Dict{Symbol,Vector{String}},
+        addition::Dict{Symbol,Vector{String}},
+    )::Dict{Symbol,Vector{String}}
+
+Add the blocks in `addition` to `request`, only for the types already present in `request`.
+
+# Arguments
+
+  - `request::Dict{Symbol,Vector{String}}`: The request dictionary for [`readSnapshot`](@ref).
+  - `addition::Dict{Symbol,Vector{String}}`: Request dictionary with the blocks to be added, only for the types already present in `request`.
+
+# Returns
+
+  - A new dictionary with all the requests.
+"""
+function addRequest(
+    request::Dict{Symbol,Vector{String}},
+    addition::Dict{Symbol,Vector{String}},
+)::Dict{Symbol,Vector{String}}
+
+    return Dict(type => blocks ∪ get(addition, type, String[]) for (type, blocks) in request)
+
+end
+
+"""
+    isSubfindActive(path::String)::Bool
+
+Check if there is information about the halos and subhalos in the group catalog file.
+
+# Arguments
+
+  - `path::String`: Path to the group catalog file or folder.
+
+# Returns
+
+  - If there are halo and subhalo information in the group catalog file.
+"""
+function isSubfindActive(path::String)::Bool
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("isSubfindActive: The file $(path) is not in the HDF5 format, \
+            I don't know how to read it"))
+        )
+
+        file_path = path
+
+    elseif isdir(path)
+
+        sub_files = glob("$(GC_BASENAME)_*.*.hdf5", path)
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("isSubfindActive: The directory $(path) does not contain \
+            group catalog sub-files in the HDF5 format"))
+        )
+
+        file_path = minimum(sub_files)
+
+    else
+
+        throw(ArgumentError("isSubfindActive: $(path) does not exist as a file or folder"))
+
+    end
+
+    subfind_active = h5open(file_path, "r") do gc_file
+
+        (
+            all(in(keys(gc_file)), ["Group", "Subhalo"]) &&
+            all(!isempty, [gc_file["Group"], gc_file["Subhalo"]])
+        )
+
+    end
+
+    return subfind_active
+
+end
+
+"""
+    findRealStars(path::String)::Vector{Bool}
+
+Find which stellar particles are real stars and not wind particles.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - A boolean vector with true for stars and false for wind particles.
+"""
+function findRealStars(path::String)::Vector{Bool}
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("findRealStars: The file $(path) is not in the \
+            HDF5 format, I don't know how to read it"))
+        )
+
+        time_of_birth = h5open(path, "r") do snapshot
+            if PARTICLE_CODE_NAME[:stars] ∉ keys(snapshot)
+                Float64[]
+            else
+                read(snapshot[PARTICLE_CODE_NAME[:stars]], QUANTITIES["GAGE"].hdf5_name)
+            end
+        end
+
+        return isempty(time_of_birth) ? Bool[] : map(isPositive, time_of_birth)
+
+    elseif isdir(path)
+
+        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("findRealStars: The directory $(path) does not contain \
+            snapshot sub-files in the HDF5 format"))
+        )
+
+        return vcat([findRealStars(sub_file) for sub_file in sub_files]...)
+
+    else
+
+        throw(ArgumentError("findRealStars: $(path) does not exist as a file or folder"))
+
+    end
+
+end
+
+"""
+    countStars(path::String)::Int
+
+Count the number of stars in a snapshot, excluding wind particles.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - The number of stars.
+"""
+countStars(path::String)::Int = count(findRealStars(path))
+
+"""
+    findQtyExtrema(
+        simulation_path::String,
+        slice_n::Int,
+        component::Symbol,
+        block::String;
+        <keyword arguments>
+    )::NTuple{2,<:Number}
+
+Compute the minimum and maximum values of `block`.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1. If set to a negative number, the values in the whole simulation will be compared.
+  - `component::Symbol`: Cell/particle type. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
+  - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
+  - `f::Function=identity`: A function with the signature:
+
+    `f(data) -> values`
+
+    where
+
+      + `data::VecOrMat{<:Number}`: Data returned by [`getBlock`](@ref).
+      + `values::Vector{<:Number}`: A vector with the values to be compared.
+  - `warnings::Bool=true`: If a warning will be given when there is missing data.
+
+# Returns
+
+  - Tuple with the minimum and maximum values.
+"""
+function findQtyExtrema(
+    simulation_path::String,
+    slice_n::Int,
+    component::Symbol,
+    block::String;
+    f::Function=identity,
+    warnings::Bool=true,
+)::NTuple{2,<:Number}
+
+    (
+        isdir(simulation_path) ||
+        throw(ArgumentError("findQtyExtrema: $(simulation_path) does not exist as a directory"))
+    )
+
+    simulation_table = makeSimulationTable(simulation_path; warnings)
+
+    if slice_n > 0
+
+        # Get the number in the filename
+        snap_n = safeSelect(simulation_table[!, :numbers], slice_n; warnings)
+
+        # Check that after slicing there is one snapshot left
+        (
+            !isempty(snap_n) ||
+            throw(ArgumentError("findQtyExtrema: There are no snapshots with `slice_n` = \
+            $(slice_n), the contents of $(simulation_path) are: \n$(simulation_table)"))
+        )
+
+        # Find the target row and snapshot path
+        snapshot_row = filter(:numbers => ==(lpad(snap_n, 3, "0")), simulation_table)
+        snapshot_path = snapshot_row[1, :snapshot_paths]
+
+        (
+            !ismissing(snapshot_path) ||
+            throw(ArgumentError("findQtyExtrema: The snapshot number $(slice_n) seems \
+            to be missing"))
+
+        )
+
+        values = f(getBlock(snapshot_path, component, block))
+
+        return extrema(values)
+
+    end
+
+    snapshot_paths = filter!(!ismissing, snapshot_row[!, :snapshot_paths])
+
+    (
+        !isempty(snapshot_paths) ||
+        throw(ArgumentError("findQtyExtrema: I could not find any snapshots in $(simulation_path)"))
+    )
+
+    values = [f(getBlock(snapshot_path, component, block)) for snapshot_path in snapshot_paths]
+
+    return extrema(Iterators.flatten(values))
+
+end
+
+"""
+    isCosmological(path::String)::Bool
+
+Check if the snapshot in `path` comes from a cosmological simulation.
+
+!!! note
+
+    If each snapshot is made of multiple files, I'll read the first chunck to check if the simulation is cosmological.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - If the simulation is cosmological
+
+      + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0, `Redshift` = 0.0).
+      + `true`  -> Cosmological simulation (`ComovingIntegrationOn` = 1, `Redshift` != 0.0).
+"""
+function isCosmological(path::String)::Bool
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("isCosmological: The file $(path) is not in the HDF5 format, \
+            I don't know how to read it"))
+        )
+
+        file_path = path
+
+    elseif isdir(path)
+
+        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("isCosmological: The directory $(path) does not contain \
+            snapshot sub-files in the HDF5 format"))
+        )
+
+        file_path = minimum(sub_files)
+
+    else
+
+        throw(ArgumentError("isCosmological: $(path) does not exist as a file or folder"))
+
+    end
+
+    cosmological = h5open(file_path, "r") do snapshot
+        if "Parameters" ∈ keys(snapshot)
+            # If the param.txt is saved in the snapshot metadata, read `ComovingIntegrationOn`
+            read_attribute(snapshot["Parameters"], "ComovingIntegrationOn")
+        else
+            # Otherwise, use the readshift in the header
+            !iszero(read_attribute(snapshot["Header"], "Redshift"))
+        end
+    end
+
+    return cosmological
+
+end
+
+"""
+    internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,Unitful.Units}
+
+Get the factor to convert a plain number into a [Unitful](https://github.com/PainterQubits/Unitful.jl) quantity, using the correct internal code units.
+
+# Arguments
+
+  - `quantity::String`: Target quantity. The options are the keys of [`QUANTITIES`](@ref).
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - A [Unitful](https://github.com/PainterQubits/Unitful.jl) quantity or unit.
+"""
+function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,Unitful.Units}
+
+    (
+        quantity ∈ keys(QUANTITIES) ||
+        throw(ArgumentError("internalUnits: `quantity` should be one of the keys of \
+        `QUANTITIES` but I got $(quantity), see the options in `./src/constants/globals.jl`"))
+    )
+
+    header = readSnapHeader(path)
+    cosmological = isCosmological(path)
+
+    a0 = cosmological ? header.time : 1.0
+    h0 = cosmological ? header.h0 : 1.0
+
+    # Set up the struct for unit conversion
+    IU = InternalUnits(; l_unit=header.l_unit, m_unit=header.m_unit, v_unit=header.v_unit, a0, h0)
+
+    dimensions = QUANTITIES[quantity].dimensions
+    unit = QUANTITIES[quantity].unit
+
+    if unit == :internal
+        if dimensions == Unitful.𝐌
+
+            # From internal units to M⊙
+            return IU.m_cosmo
+
+        elseif dimensions == Unitful.𝐋
+
+            if !PHYSICAL_UNITS && !cosmological
+                @warn(
+                    "internalUnits: You have set the unit system to use comoving lengths \
+                    (PHYSICAL_UNITS = $(PHYSICAL_UNITS)), but the simulation is not \
+                    cosmological. I'll keep the lengths physical. Check `PHYSICAL_UNITS` \
+                    in `constants/globals.jl`",
+                    maxlog=1,
+                )
+            end
+
+            # From internal units to kpc
+            if !PHYSICAL_UNITS && cosmological
+                return IU.x_comoving
+            else
+                return IU.x_cosmo
+            end
+
+        elseif dimensions == Unitful.𝐓
+
+            # From internal units to Myr, for non-cosmological simulations,
+            # and to a dimensionless quantity for cosmological simulations
+            return cosmological ? Unitful.NoUnits : IU.t_cosmo
+
+        elseif dimensions == Unitful.𝐌 * Unitful.𝐋^-3
+
+            # From internal units to g * cm^-3
+            return IU.rho_cgs
+
+        elseif dimensions == Unitful.𝐋^2 * Unitful.𝐓^-2
+
+            # From internal units to erg * g^-1
+            return IU.U_cgs
+
+        elseif dimensions == Unitful.𝐋 * Unitful.𝐓^-1
+
+            # From internal units to km * s^-1
+            return IU.v_cosmo
+
+        elseif dimensions == Unitful.𝐌 * Unitful.𝐋^-1 * Unitful.𝐓^-2
+
+            # From internal units to Pa
+            return IU.P_Pa
+
+        else
+
+            error("internalUnits: I don't know the internal units of a quantity \
+            with dimensions $(dimensions)")
+
+        end
+
+    elseif unit == :gvel
+
+        # Special case for "G_Vel" (velocity of the group)
+        # See the TNG documentation https://www.tng-project.org/data/docs/specifications/
+        return IU.v_cosmo / a0^1.5
+
+    else
+
+        return unit
+
+    end
+
+end
+
+"""
+    snapshotTypes(data_dict::Dict)::Vector{Symbol}
+
+Find which cell/particle types are part of the keys of `data_dict`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary.
+
+# Returns
+
+  - A vector with the cell/particle types.
+"""
+snapshotTypes(data_dict::Dict)::Vector{Symbol} = collect(keys(PARTICLE_INDEX) ∩ keys(data_dict))
+
+"""
+    snapshotTypes(path::String)::Vector{Symbol}
+
+Find which cell/particle types are part of the snapshot in `path`.
+
+!!! note
+
+    If each snapshot is made of multiple files, I'll check the first chunck.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - A vector with the cell/particle types.
+"""
+function snapshotTypes(path::String)::Vector{Symbol}
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("snapshotTypes: The file $(path) is not in the HDF5 format, \
+            I don't know how to read it"))
+        )
+
+        file_path = path
+
+    elseif isdir(path)
+
+        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("snapshotTypes: The directory $(path) does not contain \
+            snapshot sub-files in the HDF5 format"))
+        )
+
+        file_path = minimum(sub_files)
+
+    else
+
+        throw(ArgumentError("snapshotTypes: $(path) does not exist as a file or folder"))
+
+    end
+
+    snapshot_types = h5open(file_path, "r") do snapshot
+        collect(keys(PARTICLE_TYPE) ∩ keys(snapshot))
+    end
+
+    return snapshot_types
+
+end
+
+"""
+    groupcatTypes(data_dict::Dict)::Vector{Symbol}
+
+Find which group catalog data types are part of the keys of `data_dict`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary.
+
+# Returns
+
+  - A vector with the group catalog data types.
+"""
+groupcatTypes(data_dict::Dict)::Vector{Symbol} = [:group, :subhalo] ∩ keys(data_dict)
+
+"""
+    groupcatTypes(path::String)::Vector{Symbol}
+
+Find which group catalog data types are part of the snapshot in `path`.
+
+!!! note
+
+    If each snapshot is made of multiple files, I'll check the first chunck.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - A vector with the group catalog data types.
+"""
+function groupcatTypes(path::String)::Vector{Symbol}
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("groupcatTypes: The file $(path) is not in the HDF5 format, \
+            I don't know how to read it"))
+        )
+
+        file_path = path
+
+    elseif isdir(path)
+
+        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("groupcatTypes: The directory $(path) does not contain \
+            snapshot sub-files in the HDF5 format"))
+        )
+
+        file_path = minimum(sub_files)
+
+    else
+
+        throw(ArgumentError("groupcatTypes: $(path) does not exist as a file or folder"))
+
+    end
+
+    groupcat_types = h5open(file_path, "r") do snapshot
+        [:group, :subhalo] ∩ keys(snapshot)
+    end
+
+    return groupcat_types
+
+end

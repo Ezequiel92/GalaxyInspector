@@ -2,7 +2,7 @@
 
 These functions are used internally and none are exported. 
 
-This auxiliary functions do not depend on the specifics of the simulation code.
+These functions may depend on the particulars of the simulation code (e.g. units).
 
 ---
 

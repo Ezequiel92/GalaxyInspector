@@ -4349,7 +4349,7 @@ function gasBarPlot(
             filter_function,
             da_functions=[daGasFractions],
             da_args=[(quantity, edges)],
-            da_kwargs=[(; include_stars, filter_function=filterGFM)],
+            da_kwargs=[(; include_stars, filter_function=filterELSFR)],
             post_processing=ppBarPlotLabels,
             pp_args=(include_stars,),
             pp_kwargs=(; colors),

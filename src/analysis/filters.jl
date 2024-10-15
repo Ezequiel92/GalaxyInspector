@@ -679,6 +679,128 @@ function filterHotGas(data_dict::Dict, max_temp::Unitful.Temperature)::Dict{Symb
 end
 
 """
+    filterGasDensity(
+        data_dict::Dict,
+        min_ρ::Unitful.Density,
+        max_ρ::Unitful.Density,
+    )::Dict{Symbol,IndexType}
+
+Filter out gas that is outside the density range [`min_ρ`, `max_ρ`].
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `min_ρ::Unitful.Temperature`: Minimum gas density.
+  - `max_ρ::Unitful.Temperature`: Maximum gas density.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterGasDensity(
+    data_dict::Dict,
+    min_ρ::Unitful.Density,
+    max_ρ::Unitful.Density,
+)::Dict{Symbol,IndexType}
+
+    density = data_dict[:gas]["RHO "]
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :gas
+            indices[component] = map(x -> min_ρ < x <= max_ρ, density)
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterGasACIT(
+        data_dict::Dict,
+        min_acit::Unitful.Time,
+        max_acit::Unitful.Time,
+    )::Dict{Symbol,IndexType}
+
+Filter out gas that is outside the accumulated integration time range [`min_acit`, `max_acit`].
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `min_acit::Unitful.Temperature`: Minimum accumulated integration time.
+  - `max_acit::Unitful.Temperature`: Maximum accumulated integration time.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterGasACIT(
+    data_dict::Dict,
+    min_acit::Unitful.Time,
+    max_acit::Unitful.Time,
+)::Dict{Symbol,IndexType}
+
+    acit = data_dict[:gas]["ACIT"]
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :gas
+            indices[component] = map(x -> min_acit < x <= max_acit, acit)
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
     filterEqGas(
         data_dict::Dict;
         <keyword arguments>
@@ -1206,9 +1328,9 @@ function filterCircularity(data_dict::Dict, l_ϵ::Float64, h_ϵ::Float64)::Dict{
 end
 
 """
-    filterGFM(data_dict::Dict)::Dict{Symbol,IndexType}
+    filterELSFR(data_dict::Dict)::Dict{Symbol,IndexType}
 
-Filter out gas cells that have not entered out routine.
+Filter out gas cells that have not entered our star formation routine.
 
 # Arguments
 
@@ -1235,7 +1357,7 @@ Filter out gas cells that have not entered out routine.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterGFM(data_dict::Dict)::Dict{Symbol,IndexType}
+function filterELSFR(data_dict::Dict)::Dict{Symbol,IndexType}
 
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
@@ -1517,128 +1639,6 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
 
             end
 
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterGasDensity(
-        data_dict::Dict,
-        min_ρ::Unitful.Density,
-        max_ρ::Unitful.Density,
-    )::Dict{Symbol,IndexType}
-
-Filter out gas that is outside the density range [`min_ρ`, `max_ρ`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_ρ::Unitful.Temperature`: Minimum gas density.
-  - `max_ρ::Unitful.Temperature`: Maximum gas density.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterGasDensity(
-    data_dict::Dict,
-    min_ρ::Unitful.Density,
-    max_ρ::Unitful.Density,
-)::Dict{Symbol,IndexType}
-
-    density = data_dict[:gas]["RHO "]
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :gas
-            indices[component] = map(x -> min_ρ < x <= max_ρ, density)
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterGasACIT(
-        data_dict::Dict,
-        min_acit::Unitful.Time,
-        max_acit::Unitful.Time,
-    )::Dict{Symbol,IndexType}
-
-Filter out gas that is outside the accumulated integration time range [`min_acit`, `max_acit`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_acit::Unitful.Temperature`: Minimum accumulated integration time.
-  - `max_acit::Unitful.Temperature`: Maximum accumulated integration time.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterGasACIT(
-    data_dict::Dict,
-    min_acit::Unitful.Time,
-    max_acit::Unitful.Time,
-)::Dict{Symbol,IndexType}
-
-    acit = data_dict[:gas]["ACIT"]
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :gas
-            indices[component] = map(x -> min_acit < x <= max_acit, acit)
-        else
-            indices[component] = (:)
         end
 
     end

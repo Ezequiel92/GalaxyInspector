@@ -302,3 +302,207 @@ function rotateData!(data_dict::Dict, rotation::Int)::Nothing
     return nothing
 
 end
+
+"""
+    computeInertiaTensor(
+        positions::Matrix{<:Unitful.Length},
+        masses::Vector{<:Unitful.Mass},
+    )::Matrix{Float64}
+
+Compute the inertia tensor of a group of cells/particles.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Masses of the cells/particles.
+
+# Returns
+
+  - The inertia tensor.
+"""
+function computeInertiaTensor(
+    positions::Matrix{<:Unitful.Length},
+    masses::Vector{<:Unitful.Mass},
+)::Matrix{Float64}
+
+    # Check for missing data
+    (
+        !any(isempty, [positions, masses])  ||
+        throw(ArgumentError("computeInertiaTensor: The inertia tensor is not defined for an \
+        empty system"))
+    )
+
+    # Allocate memory
+    J = zeros(Float64, (3, 3))
+
+    # Compute the inertia tensor
+    for (r, m) in zip(eachcol(positions), masses)
+
+        x, y, z = r
+
+        J[1, 1] += m * (y * y + z * z)
+        J[2, 2] += m * (x * x + z * z)
+        J[3, 3] += m * (x * x + y * y)
+
+        J[1, 2] -= m * x * y
+        J[1, 3] -= m * x * z
+        J[2, 3] -= m * y * z
+
+    end
+
+    J[2, 1] = J[1, 2]
+    J[3, 1] = J[1, 3]
+    J[3, 2] = J[2, 3]
+
+    return J
+
+end
+
+"""
+    computeAMRotationMatrix(
+        positions::Matrix{<:Unitful.Length},
+        velocities::Matrix{<:Unitful.Velocity},
+        masses::Vector{<:Unitful.Mass},
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix that will turn the total angular momentum into the z axis; when view as an active (alibi) trasformation.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computeAMRotationMatrix(
+    positions::Matrix{<:Unitful.Length},
+    velocities::Matrix{<:Unitful.Velocity},
+    masses::Vector{<:Unitful.Mass},
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    # Check for missing data
+    !any(isempty, [positions, velocities, masses]) || return I
+
+    # Compute the total angular momentum
+    L = computeTotalAngularMomentum(positions, velocities, masses)
+
+    # Rotation vector
+    n = [L[2], -L[1], 0.0]
+
+    # Angle of rotation
+    θ = acos(L[3])
+
+    return Matrix{Float64}(AngleAxis(θ, n...))
+
+end
+
+"""
+    computePARotationMatrix(
+        positions::Matrix{<:Unitful.Length},
+        velocities::Matrix{<:Unitful.Velocity},
+        masses::Vector{<:Unitful.Mass},
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix that will turn the pricipal axis into the new coordinate system; when view as an passive (alias) trasformation.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computePARotationMatrix(
+    positions::Matrix{<:Unitful.Length},
+    velocities::Matrix{<:Unitful.Velocity},
+    masses::Vector{<:Unitful.Mass},
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    # Check for missing data
+    !isempty(positions) || return I
+
+    # Principal axis operator
+    R = ustrip.(positions * positions')
+
+    # Reverse the order of the eigenvectors, making the last column the eigenvector
+    # with the largest eigenvalue, which should correspond to the new z axis
+    pa = eigvecs(R)[:, end:-1:1]
+
+    # Compute the total angular momentum
+    L = computeTotalAngularMomentum(positions, velocities, masses; normal=true)
+
+    # 3rd principal axis ≡ new z axis
+    pa_z = pa[:, 3]
+
+    # Rotate the principal axis as to align the thid component with the angular momentum
+    θ = acos(L ⋅ pa_z)
+    n = cross(pa_z, L)
+    aligned_pa = AngleAxis(θ, n...) * pa
+
+    # The rotation matrix is made from the principal axis as rows
+    rotation_matrix = aligned_pa'
+
+    if det(rotation_matrix) < 0.0
+        # If the determinant is < 0, that means that the chosen principal axis for the x and y
+        # directions form a left-handed cartesian reference system (x × y = -z). When applying
+        # this as a rotation, the z axis will be flipped. So, in this case we swap the x and y
+        # axis to get a right-handed cartesian reference system (x × y = z) and generate the
+        # correct rotation
+        rotation_matrix[1, :], rotation_matrix[2, :] = rotation_matrix[2, :], rotation_matrix[1, :]
+    end
+
+    return Matrix{Float64}(rotation_matrix)
+
+end
+
+"""
+    computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix that will turn the total angular momentum of the whole system, into the z axis; when view as an active (alibi) trasformation.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    components = snapshotTypes(data_dict)
+
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), components)
+
+    # Concatenate the positions, velocities, and masses of all the cells and particles in the system
+    positions  = hcat([data_dict[component]["POS "] for component in components]...)
+    velocities = hcat([data_dict[component]["VEL "] for component in components]...)
+    masses     = vcat([data_dict[component]["MASS"] for component in components]...)
+
+    # Check for missing data
+    !any(isempty, [positions, velocities, masses]) || return I
+
+    @debug("computeGlobalAMRotationMatrix: The rotation matrix will be computed \
+    using $(components)")
+
+    return computeAMRotationMatrix(positions, velocities, masses)
+
+end
