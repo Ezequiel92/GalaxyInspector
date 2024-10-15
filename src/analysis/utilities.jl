@@ -745,7 +745,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
             ),
             var_name   = L"M_\mathrm{HI}",
             exp_factor = 10,
@@ -756,7 +756,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
             ),
             var_name   = L"M_\mathrm{HII}",
             exp_factor = 10,
@@ -767,7 +767,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
             ),
             var_name   = L"M_\mathrm{HI + H_2}",
             exp_factor = 10,
@@ -779,7 +779,9 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request    = Dict(
                 :stars   => ["MASS", "POS "],
-                :gas     => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "CTIM", "TAUS"],
+                :gas     => [
+                    "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "CTIM", "TAUS", "COLM",
+                ],
                 :dm_mass => ["MASS", "POS "],
                 :bh_mass => ["MASS", "POS "],
             ),
@@ -838,7 +840,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS", "COLM"],
             ),
             var_name = L"f_\mathrm{HI}",
         )
@@ -847,7 +849,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS", "COLM"],
             ),
             var_name = L"f_\mathrm{HII}",
         )
@@ -856,7 +858,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS", "COLM"],
             ),
             var_name = L"f_\mathrm{H_I + H_2}",
         )
@@ -865,7 +867,9 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "CTIM", "TAUS"],
+                :gas => [
+                    "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "CTIM", "TAUS", "COLM",
+                ],
             ),
             var_name = L"f_\mathrm{H_2}^\star",
         )
@@ -892,7 +896,9 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "CTIM", "TAUS"],
+                :gas => [
+                    "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "CTIM", "TAUS", "COLM",
+                ],
             ),
             var_name = L"f",
         )
@@ -945,7 +951,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
             ),
             var_name = L"n_\mathrm{HI}",
             unit     = u"cm^-3",
@@ -955,7 +961,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
             ),
             var_name = L"n_\mathrm{HII}",
             unit     = u"cm^-3",
@@ -965,7 +971,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
             ),
             var_name = L"n_\mathrm{HI + H_2}",
             unit     = u"cm^-3",
@@ -1011,7 +1017,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
             ),
             var_name = L"\Sigma_\mathrm{HI}",
             unit     = u"Msun*pc^-2",
@@ -1021,7 +1027,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
             ),
             var_name = L"\Sigma_\mathrm{HII}",
             unit     = u"Msun*pc^-2",
@@ -1031,7 +1037,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
             ),
             var_name = L"\Sigma_\mathrm{HI + H_2}",
             unit     = u"Msun*pc^-2",
@@ -1050,7 +1056,9 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(
                 :stars => ["MASS", "POS ", "GAGE"],
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "CTIM", "TAUS"],
+                :gas => [
+                    "MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "CTIM", "TAUS", "COLM",
+                ],
             ),
             var_name = L"\Sigma",
             unit     = u"Msun*pc^-2",
@@ -1636,5 +1644,901 @@ function invKennicutt1998(Σsfr::Vector{<:MassFlowDensity}; log_output::Bool=tru
     else
         return @. exp10(log10Σgas) * u"Msun * pc^-2"
     end
+
+end
+
+"""
+    findRealStars(path::String)::Vector{Bool}
+
+Find which stellar particles are real stars and not wind particles.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - A boolean vector with true for stars and false for wind particles.
+"""
+function findRealStars(path::String)::Vector{Bool}
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("findRealStars: The file $(path) is not in the \
+            HDF5 format, I don't know how to read it"))
+        )
+
+        time_of_birth = h5open(path, "r") do snapshot
+            if PARTICLE_CODE_NAME[:stars] ∉ keys(snapshot)
+                Float64[]
+            else
+                read(snapshot[PARTICLE_CODE_NAME[:stars]], QUANTITIES["GAGE"].hdf5_name)
+            end
+        end
+
+        return isempty(time_of_birth) ? Bool[] : map(isPositive, time_of_birth)
+
+    elseif isdir(path)
+
+        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("findRealStars: The directory $(path) does not contain \
+            snapshot sub-files in the HDF5 format"))
+        )
+
+        return vcat([findRealStars(sub_file) for sub_file in sub_files]...)
+
+    else
+
+        throw(ArgumentError("findRealStars: $(path) does not exist as a file or folder"))
+
+    end
+
+end
+
+"""
+    countStars(path::String)::Int
+
+Count the number of stars in a snapshot, excluding wind particles.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - The number of stars.
+"""
+countStars(path::String)::Int = count(findRealStars(path))
+
+"""
+    findQtyExtrema(
+        simulation_path::String,
+        slice_n::Int,
+        component::Symbol,
+        block::String;
+        <keyword arguments>
+    )::NTuple{2,<:Number}
+
+Compute the minimum and maximum values of `block`.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1. If set to a negative number, the values in the whole simulation will be compared.
+  - `component::Symbol`: Cell/particle type. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
+  - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
+  - `f::Function=identity`: A function with the signature:
+
+    `f(data) -> values`
+
+    where
+
+      + `data::VecOrMat{<:Number}`: Data returned by [`getBlock`](@ref).
+      + `values::Vector{<:Number}`: A vector with the values to be compared.
+  - `warnings::Bool=true`: If a warning will be given when there is missing data.
+
+# Returns
+
+  - Tuple with the minimum and maximum values.
+"""
+function findQtyExtrema(
+    simulation_path::String,
+    slice_n::Int,
+    component::Symbol,
+    block::String;
+    f::Function=identity,
+    warnings::Bool=true,
+)::NTuple{2,<:Number}
+
+    (
+        isdir(simulation_path) ||
+        throw(ArgumentError("findQtyExtrema: $(simulation_path) does not exist as a directory"))
+    )
+
+    simulation_table = makeSimulationTable(simulation_path; warnings)
+
+    if slice_n > 0
+
+        # Get the number in the filename
+        snap_n = safeSelect(simulation_table[!, :numbers], slice_n; warnings)
+
+        # Check that after slicing there is one snapshot left
+        (
+            !isempty(snap_n) ||
+            throw(ArgumentError("findQtyExtrema: There are no snapshots with `slice_n` = \
+            $(slice_n), the contents of $(simulation_path) are: \n$(simulation_table)"))
+        )
+
+        # Find the target row and snapshot path
+        snapshot_row = filter(:numbers => ==(lpad(snap_n, 3, "0")), simulation_table)
+        snapshot_path = snapshot_row[1, :snapshot_paths]
+
+        (
+            !ismissing(snapshot_path) ||
+            throw(ArgumentError("findQtyExtrema: The snapshot number $(slice_n) seems \
+            to be missing"))
+
+        )
+
+        values = f(getBlock(snapshot_path, component, block))
+
+        return extrema(values)
+
+    end
+
+    snapshot_paths = filter!(!ismissing, snapshot_row[!, :snapshot_paths])
+
+    (
+        !isempty(snapshot_paths) ||
+        throw(ArgumentError("findQtyExtrema: I could not find any snapshots in $(simulation_path)"))
+    )
+
+    values = [f(getBlock(snapshot_path, component, block)) for snapshot_path in snapshot_paths]
+
+    return extrema(Iterators.flatten(values))
+
+end
+
+"""
+    findHaloSubhalo(
+        data_dict::Dict,
+        star_idxs::Vector{Int},
+        real_stars_idxs::Vector{Bool},
+    )::NTuple{2,Vector{Int}}
+
+Find in which halo and subhalo of `data_dict` each star in `star_idxs` was born.
+
+For stars with no halo or subhalo, an index of -1 is given. The subhalo index is relative to the corresponding halo.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `star_idxs::Vector{Int}`: Indices of the target stars in `data_dict`.
+  - `real_stars_idxs::Vector{Bool}`: Boolean list of stellar particles. True for a real star and false for a wind particle.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the birth halo (index starting at 1) of each star (in the order of `star_idxs`).
+      + A vector with the birth subhalo (index starting at 1) of each star (in the order of `star_idxs`).
+"""
+function findHaloSubhalo(
+    data_dict::Dict,
+    star_idxs::Vector{Int},
+    real_stars_idxs::Vector{Bool},
+)::NTuple{2,Vector{Int}}
+
+    ################################################################################################
+    # Read the subfind metadata
+    ################################################################################################
+
+    # Read the total number of halos
+    n_halos = data_dict[:gc_data].header.n_groups_total
+
+    # Read the number of subhalos in each halo
+    n_subhalos_in_halo = data_dict[:group]["G_Nsubs"]
+
+    # Read the number of stars in each halo
+    n_stars_in_halo = data_dict[:group]["G_LenType"][PARTICLE_INDEX[:stars] + 1, :]
+
+    # Read the number of stars in each subhalo
+    n_stars_in_subhalo = data_dict[:subhalo]["S_LenType"][PARTICLE_INDEX[:stars] + 1, :]
+
+    ################################################################################################
+    # Allocate memory
+    ################################################################################################
+
+    # If each halo was the birth place of a star form `star_idxs`
+    # So as to compute the relevant indices of each halo only once
+    born_in_this_halo = fill(false, n_halos)
+
+    # Index of the last real star particle belonging to each subhalo
+    # Each element of this vector corresponds to a halo
+    last_idxs_in_subhalo_list = Vector{Vector{Int}}(undef, n_halos)
+
+    for i in 1:n_halos
+
+        # Number of subhalos in halo `i`
+        n_subfinds = n_subhalos_in_halo[i]
+
+        # Index of the last real star particle belonging to each subhalo
+        # Each element of this vector corresponds to a subhalo of halo `i`
+        last_idxs_in_subhalo_list[i] = Vector{Int}(undef, n_subfinds)
+
+    end
+
+    # Output vectors
+    halo_idxs = fill(-1, length(star_idxs))
+    subhalo_idxs = fill(-1, length(star_idxs))
+
+    ################################################################################################
+    # Compute the index of the last real star particle belonging to each halo
+    ################################################################################################
+
+    # Compute the index of the last star/wind particle in each of the halos
+    last_idxs_in_halo = cumsum(n_stars_in_halo)
+
+    for (i, idx) in enumerate(last_idxs_in_halo)
+
+        # Compute the number of wind particles up to the particle with index `idx`
+        n_wind = count(x -> !(x), real_stars_idxs[1:idx])
+
+        # Shift `last_idxs_in_halo` to ignore wind particles
+        last_idxs_in_halo[i] = idx - n_wind
+
+    end
+
+    ############################################################################################
+    # Compute in which halo and subhalo each star was born
+    ############################################################################################
+    @inbounds for (i, star_idx) in enumerate(star_idxs)
+
+        ############################################################################################
+        # Compute in which halo each star was born
+        ############################################################################################
+
+        # Find the halo where the target star was born
+        halo_idx = searchsortedfirst(last_idxs_in_halo, star_idx)
+
+        # If the star does not belong to any halo, leave the index as -1
+        halo_idx <= length(last_idxs_in_halo) || continue
+
+        halo_idxs[i] = halo_idx
+
+        ############################################################################################
+        # Compute in which subhalo each star was born
+        ############################################################################################
+
+        # Index of the last real star particle belonging to each subhalo
+        # Each element of this vector corresponds to a subhalo of halo `halo_idx`
+        last_idxs_in_subhalo = last_idxs_in_subhalo_list[halo_idx]
+
+        # If it is the first time checking a star born in the halo `halo_idx`,
+        # compute the index of the last real star particle in each subhalo of halo `halo_idx`
+        if !born_in_this_halo[halo_idx]
+
+            @inbounds if isone(halo_idx)
+                # Absolute index of the first subhalo
+                first_subhalo_abs_idx = 1
+
+                # Absolute index of the last subhalo
+                last_subhalo_abs_idx = n_subhalos_in_halo[1]
+
+                # Number of stars up to, but not including, the halo `halo_idx`
+                n_star_floor = 0
+            else
+                # Absolute index of the first subhalo
+                first_subhalo_abs_idx = sum(n_subhalos_in_halo[1:(halo_idx - 1)]) + 1
+
+                # Absolute index of the last subhalo
+                last_subhalo_abs_idx = sum(n_subhalos_in_halo[1:halo_idx])
+
+                # Number of stars up to, but not including, the halo `halo_idx`
+                n_star_floor = sum(n_stars_in_halo[1:(halo_idx - 1)])
+            end
+
+            # Compute the index of the last star/wind particle in each of the subhalos of the halo `halo_idx`
+            cumsum!(last_idxs_in_subhalo, n_stars_in_subhalo[first_subhalo_abs_idx:last_subhalo_abs_idx])
+            map!(x -> x + n_star_floor, last_idxs_in_subhalo, last_idxs_in_subhalo)
+
+            # Compute the index of the last real star particle in each of the subhalos of the halo `halo_idx`
+            @inbounds for (i, idx) in enumerate(last_idxs_in_subhalo)
+
+                # Compute the number of wind particles up to the particle with index `idx`
+                n_wind = count(x -> !(x), real_stars_idxs[(n_star_floor + 1):idx])
+
+                # Shift `last_idxs_in_subhalo` to ignore wind particles
+                last_idxs_in_subhalo[i] = idx - n_wind
+
+            end
+
+            # Set to true to compute the relevant indices of this halo only once
+            born_in_this_halo[halo_idx] = true
+
+        end
+
+        # Find the (relative index of the) subhalo where the target star was born
+        subhalo_idx = searchsortedfirst(last_idxs_in_subhalo, star_idx)
+
+        # If the star does not belong to any subhalo, leave the index as -1
+        subhalo_idx <= length(last_idxs_in_subhalo) || continue
+
+        subhalo_idxs[i] = subhalo_idx
+
+    end
+
+    return halo_idxs, subhalo_idxs
+
+end
+
+"""
+    locateStellarBirthPlace(data_dict::Dict; <keyword arguments>)::NTuple{2,Vector{Int}}
+
+Find in which halo and subhalo each star in `data_dict` was born.
+
+For stars with no halo or subhalo, an index of -1 is given. The subhalo index is relative to the corresponding halo.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `warnings::Bool=true`: If a warning will be given when there is missing data.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the birth halo (index starting at 1) of each star (in the order of `data_dict`).
+      + A vector with the birth subhalo (index starting at 1) of each star (in the order of `data_dict`).
+"""
+function locateStellarBirthPlace(data_dict::Dict; warnings::Bool=true)::NTuple{2,Vector{Int}}
+
+    ################################################################################################
+    # Read the data in `data_dict`
+    ################################################################################################
+
+    # Read the birth time of each star
+    birth_ticks = data_dict[:stars]["GAGE"]
+
+    if data_dict[:sim_data].cosmological
+        # Go from scale factor to physical time
+        birth_times = computeTime(birth_ticks, data_dict[:snap_data].header)
+    else
+        birth_times = birth_ticks
+    end
+
+    # Read the time stamp of each snapshot
+    times = data_dict[:sim_data].table[!, :physical_times]
+
+    (
+        length(times) >= 2 ||
+        throw(ArgumentError("locateStellarBirthPlace: I found less that two snapshots in \
+        $(data_dict[:sim_data].path). But I need more to locate the birth place of the stars."))
+    )
+
+    # Read the ID of each star
+    ids = data_dict[:stars]["ID  "]
+
+    # Compute the number of snapshots
+    n_snaps = length(times)
+
+    ################################################################################################
+    # Compute the indices and IDs of the stars born between each of the snapshots
+    ################################################################################################
+
+    # Allocate memory
+    present_star_idxs = [Int[] for _ in 1:n_snaps]
+
+    @inbounds for (star_idx, birth_time) in enumerate(birth_times)
+
+        snap_idx = searchsortedfirst(times, birth_time)
+
+        @inbounds if snap_idx > n_snaps
+            push!(present_star_idxs[n_snaps], star_idx)
+        else
+            push!(present_star_idxs[snap_idx], star_idx)
+        end
+
+    end
+
+    # Read the IDs of the stars born between each of the snapshots
+    star_ids = [ids[idxs] for idxs in present_star_idxs]
+
+    ################################################################################################
+    # Read each snapshot and find the original halo and subhalos of the stars born there
+    ################################################################################################
+
+    # Make a dataframe with the following columns:
+    #   - 1. DataFrame index
+    #   - 2. Number in the file name
+    #   - 3. Scale factor
+    #   - 4. Redshift
+    #   - 5. Physical time
+    #   - 6. Lookback time
+    #   - 7. Snapshot path
+    #   - 8. Group catalog path
+    simulation_table = makeSimulationTable(data_dict[:sim_data].path; warnings)
+
+    # Allocate memory
+    birth_halo    = fill(-1, length(birth_times))
+    birth_subhalo = fill(-1, length(birth_times))
+
+    request = Dict(
+        :stars => ["ID  "],
+        :group => ["G_Nsubs", "G_LenType"],
+        :subhalo => ["S_LenType"],
+    )
+
+    @inbounds for (global_idx, snapshot_row) in pairs(eachrow(simulation_table))
+
+        # Select the IDs of the stars born in this snapshot
+        ids = star_ids[global_idx]
+
+        # Select the present index of the stars born in this snapshot
+        present_idxs = present_star_idxs[global_idx]
+
+        # Skip snapshots with no stars born in them
+        !isempty(ids) || continue
+
+        # Get the snapshot file path
+        snapshot_path = snapshot_row[:snapshot_paths]
+
+        # Get the group catalog file path
+        groupcat_path = snapshot_row[:groupcat_paths]
+
+        # Skip missing snapshots
+        !ismissing(snapshot_path) || continue
+
+        # Store the metadata of the current snapshot and simulation
+        metadata = Dict(
+            :sim_data => data_dict[:sim_data],
+            :snap_data => Snapshot(
+                snapshot_path,
+                global_idx,
+                global_idx,
+                snapshot_row[:physical_times],
+                snapshot_row[:lookback_times],
+                snapshot_row[:scale_factors],
+                snapshot_row[:redshifts],
+                readSnapHeader(snapshot_path),
+            ),
+            :gc_data => GroupCatalog(
+                groupcat_path,
+                readGroupCatHeader(groupcat_path; warnings),
+            ),
+        )
+
+        # Read the data in the snapshot
+        past_data_dict = merge(
+            metadata,
+            readSnapshot(snapshot_path, request; warnings),
+            readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+        )
+
+        # Get the birth index of the stars born in this snapshot
+        past_idxs = parentIDToIndex(past_data_dict, ids)[:stars]
+
+        (
+            length(ids) == length(past_idxs) || throw(DimensionMismatch("locateStellarBirthPlace: \
+            There are IDs in `ids` that are not present in the birth snapshot or are from other \
+            cell/particle type. This should be impossible!"))
+        )
+
+        # Find the halo and subhalo where each star was born, for the stars born in this snapshot
+        halo_idxs, subhalo_idxs = findHaloSubhalo(
+            past_data_dict,
+            past_idxs,
+            findRealStars(past_data_dict[:snap_data].path),
+        )
+
+        # Store the halo and subhalos indices in the current position of each star
+        birth_halo[present_idxs] .= halo_idxs
+        birth_subhalo[present_idxs] .= subhalo_idxs
+
+    end
+
+    return birth_halo, birth_subhalo
+
+end
+
+"""
+    density3DProjection(
+        data_dict::Dict,
+        grid::CubicGrid,
+        quantity::Symbol,
+        type::Symbol;
+        <keyword arguments>
+    )::Array{Float64,3}
+
+Sample the 3D density field of a given quantity using a cubic grid
+
+If the source of the field are particles, a simple 3D histogram is used. If the source of the field are Voronoi cells, the density of the cell that intersect each voxel is used.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `grid::CubicGrid`: Cubic grid.
+  - `quantity::Symbol`: Which density will be calculated. The options are:
+
+      + `:stellar_mass`      -> Stellar density.
+      + `:gas_mass`          -> Gas density.
+      + `:hydrogen_mass`     -> Hydrogen density.
+      + `:dm_mass`           -> Dark matter density.
+      + `:bh_mass`           -> Black hole density.
+      + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) density.
+      + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
+      + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
+      + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
+  - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
+  - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
+  - `l_unit::Unitful.Units=u"kpc"`: Length unit.
+  - `filter_function::Function=filterNothing`: A function with the signature:
+
+    `filter_function(data_dict) -> indices`
+
+    where
+
+      + `data_dict::Dict`: A dictionary with the following shape:
+
+        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+        * ...
+      + `indices::Dict`: A dictionary with the following shape:
+
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * `cell/particle type` -> idxs::IndexType
+        * ...
+
+# Returns
+
+  - A 3D array with the density at each point of the 3D grid.
+"""
+function density3DProjection(
+    data_dict::Dict,
+    grid::CubicGrid,
+    quantity::Symbol,
+    type::Symbol;
+    print_range::Bool=false,
+    m_unit::Unitful.Units=u"Msun",
+    l_unit::Unitful.Units=u"kpc",
+    filter_function::Function=filterNothing,
+)::Array{Float64,3}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    # Set the cell/particle type
+    if quantity ∈ [
+        :gas_mass,
+        :hydrogen_mass,
+        :molecular_mass,
+        :br_molecular_mass,
+        :atomic_mass,
+        :ionized_mass,
+        :neutral_mass,
+    ]
+        component = :gas
+    elseif quantity == :stellar_mass
+        component = :stars
+    elseif quantity == :dm_mass
+        component = :halo
+    elseif quantity == :bh_mass
+        component = :black_hole
+    else
+        throw(ArgumentError("density3DProjection: I don't recognize the quantity :$(quantity)"))
+    end
+
+    # For comological simulations with comoving units, correct
+    # the density so it is always in physical units
+    if !PHYSICAL_UNITS && data_dict[:sim_data].cosmological
+        # Correction factor for the volume
+        # V [physical units] = V [comoving units] * a0^3
+        physical_factor = data_dict[:snap_data].scale_factor^3
+    else
+        physical_factor = 1.0
+    end
+
+    # Load the cell/particle positions
+    positions = filtered_dd[component]["POS "]
+
+    # Compute the masses of the target quantity
+    masses = scatterQty(filtered_dd, quantity)
+
+    # If any of the necessary quantities are missing return an empty density field
+    if any(isempty, [masses, positions])
+        return fill(NaN, (grid.n_bins, grid.n_bins, grid.n_bins))
+    end
+
+    if type == :cells
+
+        # Compute the volume of each cell
+        cell_volumes = filtered_dd[component]["MASS"] ./ filtered_dd[component]["RHO "]
+
+        # Compute the densities of the target quantity
+        densities = ustrip.(m_unit * l_unit^-3, masses ./ cell_volumes)
+
+        # Allocate memory
+        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
+
+        # Compute the tree for a nearest neighbor search
+        kdtree = KDTree(ustrip.(l_unit, positions))
+
+        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
+        @inbounds for i in eachindex(grid.grid)
+            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
+            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
+            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
+        end
+
+        # Find the nearest cell to each voxel
+        idxs, _ = nn(kdtree, physical_grid)
+
+        # Allocate memory
+        density = similar(grid.grid, Float64)
+
+        # Compute the density in each voxel
+        @inbounds for i in eachindex(grid.grid)
+            density[i] = densities[idxs[i]]
+        end
+
+        # Set bins with a value of 0 to NaN
+        replace!(x -> iszero(x) ? NaN : x, density)
+
+    elseif type == :particles
+
+        # Compute the 3D histogram
+        density = ustrip.(
+            m_unit * l_unit^-3,
+            histogram3D(positions, masses, grid; empty_nan=true) ./ grid.bin_volume,
+        )
+
+    else
+
+        throw(ArgumentError("density3DProjection: The argument `type` must be :cells or \
+        :particles, but I got :$(type)"))
+
+    end
+
+    if print_range
+
+        log_density = log10.(density)
+
+        # Compute the mininimum and maximum of `log_density`
+        min_max = isempty(log_density) ? (NaN, NaN) : extrema(filter(!isnan, log_density))
+
+        # Print the density range
+        @info(
+            "\nDensity range \
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Quantity:   $(quantity) \
+            \n  Type:       $(type) \
+            \n  log₁₀(ρ [$(m_unit * l_unit^-3)]): $(min_max)\n\n"
+        )
+
+    end
+
+    return density
+
+end
+
+"""
+    computeParticleProfile(
+        positions::Matrix{<:Unitful.Length},
+        quantity::Vector{<:Number},
+        grid::CircularGrid;
+        <keyword arguments>
+    )::Vector{<:Number}
+
+Compute a profile, using an 1D histogram.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `quantity::Vector{<:Number}`: The profile will be of this quantity.
+  - `grid::CircularGrid`: Circular grid.
+  - `norm_values::Vector{<:Number}=Number[]`: Values to normalize `quantity`.
+  - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
+  - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
+  - `cumulative::Bool=false`: If the profile will be accumulated or not.
+  - `density::Bool=false`: If the profile will be of the density of `quantity`.
+  - `empty_nan::Bool=true`: If empty bins will be set to NaN, 0 is used otherwise. Be carefull if `empty_nan` = true and `cumulative` = true, because every bin after the first NaN will be set to NaN.
+
+# Returns
+
+  - Vector with the values of the profile.
+"""
+function computeParticleProfile(
+    positions::Matrix{<:Unitful.Length},
+    quantity::Vector{<:Number},
+    grid::CircularGrid;
+    norm_values::Vector{<:Number}=Number[],
+    flat::Bool=true,
+    total::Bool=true,
+    cumulative::Bool=false,
+    density::Bool=false,
+    empty_nan::Bool=true,
+)::Vector{<:Number}
+
+    # Return a null profile if `quantity` is empty
+    !isempty(quantity) || return fill(NaN, length(grid.grid))
+
+    # Compute the distances of the cells/particles to the center of the grid
+    if flat
+        distances = computeDistance(positions[1:2, :]; center=grid.center[1:2])
+    else
+        distances = computeDistance(positions; center=grid.center)
+    end
+
+    # Compute the histogram of `quantity`
+    if isempty(norm_values)
+
+        profile = histogram1D(distances, quantity, grid; total, empty_nan)
+
+    else
+
+        quantity_histogram = histogram1D(distances, quantity, grid; total, empty_nan)
+        norm_values_histogram = histogram1D(distances, norm_values, grid; total, empty_nan=false)
+
+        replace!(x -> iszero(x) ? oneunit(x) : x, norm_values_histogram)
+
+        profile = quantity_histogram ./ norm_values_histogram
+
+    end
+
+    region = flat ? grid.bin_areas : grid.bin_volumes
+
+    if cumulative
+        return density ? cumsum(profile) ./ cumsum(region) : cumsum(profile)
+    end
+
+    return density ? profile ./ region : profile
+
+end
+
+"""
+    computeParticleBandProfile(
+        positions::Matrix{<:Unitful.Length},
+        quantity::Vector{<:Number},
+        grid::CircularGrid;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute a profile of the mean and standard deviation of `quantity`, using an 1D histogram
+
+Empty bins have NaN as mean and standard deviation.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `quantity::Vector{<:Number}`: The profile will be of this quantity.
+  - `grid::CircularGrid`: Circular grid.
+  - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the mean value for each bin.
+      + A vector with the standard deviation for each bin.
+"""
+function computeParticleBandProfile(
+    positions::Matrix{<:Unitful.Length},
+    quantity::Vector{<:Number},
+    grid::CircularGrid;
+    flat::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    # Return a null profile if `quantity` is empty
+    !isempty(quantity) || return fill(NaN, length(grid.grid))
+
+    # Compute the distances of the cells/particles to the center of the grid
+    if flat
+        distances = computeDistance(positions[1:2, :]; center=grid.center[1:2])
+    else
+        distances = computeDistance(positions; center=grid.center)
+    end
+
+    # Compute the histogram of `quantity`
+    histogram = listHistogram1D(distances, quantity, grid)
+
+    return mean.(histogram), std.(histogram)
+
+end
+
+@doc raw"""
+    energyIntegrand(a::Real, header::SnapshotHeader)::Float64
+
+The integrand of the integral that converts the scale factor into physical time:
+
+```math
+\frac{1}{H\,\sqrt{\mathcal{E}}} \, ,
+```
+
+where
+
+```math
+\mathcal{E} = \Omega_\Lambda + (1 - \Omega_\Lambda - \Omega_m) \, a^{-2} + \Omega_m \, a^{-3} \, ,
+```
+```math
+H = H_0 \, a \, .
+```
+
+# Arguments
+
+  - `a::Real`: Scale factor.
+  - `header::SnapshotHeader`: Header of the relevant snapshot file.
+
+# Returns
+
+  - The integrand evaluated at `a`, in $\mathrm{Gyr}$.
+"""
+function energyIntegrand(a::Real, header::SnapshotHeader)::Float64
+
+    # Return 0 if `a` = 0, as the integrand goes to 0 in the limit a -> 0.
+    !iszero(a) || return 0.0
+
+    # Compute Ω_K (curvature)
+    omega_K = 1.0 - header.omega_0 - header.omega_l
+
+    # Compute the energy function
+    E = header.omega_0 / (a * a * a) + omega_K / (a * a) + header.omega_l
+
+    # Compute the hubble constant in Gyr^-1
+    H = header.h0 * HUBBLE_CONSTANT * a
+
+    # Return the integrand, in Gyr
+    return 1.0 / (H * sqrt(E))
 
 end

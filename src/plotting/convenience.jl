@@ -621,6 +621,24 @@ function snapshotReport(
             println(file, "\t\t\t$(round(acit_90, sigdigits=4)) Myr (90%)")
             println(file, "\t\t\t$(round(acit_95, sigdigits=4)) Myr (95%)\n")
 
+            acit_percent_low = computeMassFraction(
+                acit,
+                data_dict[:stars]["MASS"],
+                (0.0, 1.0) .* u"Gyr",
+            )
+
+            println(file, "\t\tFraction of stellar mass with a total integration time < 1 Gyr:\n")
+            println(file, "\t\t\t$(round(acit_percent_low, sigdigits=4))%\n")
+
+            acit_percent_high = computeMassFraction(
+                acit,
+                data_dict[:stars]["MASS"],
+                (100.0, Inf) .* u"Myr",
+            )
+
+            println(file, "\t\tFraction of stellar mass with a total integration time > 100 Myr:\n")
+            println(file, "\t\t\t$(round(acit_percent_high, sigdigits=4))%\n")
+
         end
 
         ############################################################################################
