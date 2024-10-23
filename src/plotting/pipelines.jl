@@ -594,7 +594,7 @@ function plotSnapshot(
                 sim_name = "simulation_$(lpad(string(simulation_index), 3, "0"))"
 
                 jldopen(joinpath(output_path, base_filename * ".jld2"), "a+") do f
-                    address = "$(base_filename)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                    address = "$(base_filename)_$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                     f[address] = axis_data
                 end
 
@@ -744,7 +744,7 @@ function plotSnapshot(
             save(
                 joinpath(
                     output_path,
-                    "$(base_filename)-$(SNAP_BASENAME)_$(snapshot_number)$(output_format)",
+                    "$(base_filename)_$(SNAP_BASENAME)_$(snapshot_number)$(output_format)",
                 ),
                 figure,
             )

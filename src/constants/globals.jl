@@ -7,11 +7,6 @@
 ################
 
 """
-Choose a codebase.
-"""
-const CODEBASE = :arepo
-
-"""
 If physical units (lengths) will be used, instead of comoving units (lengths).
 """
 PHYSICAL_UNITS = false
@@ -483,6 +478,9 @@ const ReducedIndexType = Union{
 
 # Dimensions of angular momentum
 @derived_dimension AngularMomentum Unitful.𝐌 * Unitful.𝐋^2 * Unitful.𝐓^-1 true
+
+# Dimensions of number density
+@derived_dimension NumberDensity Unitful.𝐋^-3 true
 
 #########################
 # Makie.jl default theme
@@ -1297,13 +1295,7 @@ end
 # Code specific constants
 ##########################
 
-if CODEBASE == :arepo
-    include("./arepo.jl")
-elseif CODEBASE == :opengadget3
-    include("./opengadget3.jl")
-else
-    throw(ArgumentError("GalaxyInspector: I don't recognize the codebase :$(CODEBASE)"))
-end
+include("./arepo.jl")
 
 ######################
 # Cell/particle types

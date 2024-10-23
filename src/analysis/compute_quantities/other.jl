@@ -2,6 +2,74 @@
 # Computation of derived quantities
 ####################################################################################################
 
+function computeEqQuotient(data_dict::Dict, type::Symbol)::Vector{Float64}
+
+    dg = data_dict[:gas]
+
+    !any(isempty, [dg["FRAC"], dg["RHOC"]]) || return Float64[]
+
+    # Allocate memory
+    eq_quotients = fill(NaN, length(dg["RHOC"]))
+
+    if type == :molecular
+
+        !any(isempty, [dg["ETAD"], dg["PARZ"]]) || return Float64[]
+
+        iterator = zip(
+            dg["ETAD"],
+            dg["FRAC"][2, :],
+            dg["FRAC"][3, :],
+            dg["FRAC"][4, :],
+            τ_star.(dg["RHOC"] .* u"mp"),
+            τ_cond.(dg["RHOC"] .* u"mp", dg["PARZ"]),
+        )
+
+        for (i, (ηd, fa, fm, fs, τS, τC)) in enumerate(iterator)
+
+            !(isnan(fa) || iszero(fa) || isone(fs) || iszero(fm)) || continue
+
+            mol_ls = (fa / fm) * (1 - fs)
+            mol_rs = uconvert(Unitful.NoUnits, ((ηd + 1) * τC) / τS)
+
+            eq_quotients[i] = log10(mol_ls / mol_rs)
+
+        end
+
+    elseif type == :ionized
+
+        !any(isempty, [dg["ETAI"], dg["PARR"]]) || return Float64[]
+
+        iterator = zip(
+            dg["ETAI"],
+            dg["PARR"],
+            dg["FRAC"][1, :],
+            dg["FRAC"][3, :],
+            GalaxyInspector.τ_star.(dg["RHOC"] .* u"mp"),
+            GalaxyInspector.τ_rec.(dg["RHOC"] .* u"mp"),
+        )
+
+        for (i, (ηi, R, fi, fm, τS, τR)) in enumerate(iterator)
+
+            !(isnan(fi) || iszero(fi) || iszero(fm)) || continue
+
+            ion_ls = (fi * fi) / fm
+            ion_rs = uconvert(Unitful.NoUnits, ((ηi + R) * τR) / τS)
+
+            eq_quotients[i] = log10(ion_ls / ion_rs)
+
+        end
+
+    else
+
+        throw(ArgumentError("computeEqQuotient: `type` can only be :molecular or :ionized, \
+        but I got :$(type)"))
+
+    end
+
+    return eq_quotients
+
+end
+
 @doc raw"""
     computeTime(
         scale_factors::Vector{<:Real},
@@ -367,48 +435,52 @@ Compute an integrated quantity for the whole system in `data_dict`.
 # Returns
 
   - The velue of `quantity` for the whole system in `data_dict`.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     if quantity == :stellar_mass
 
-        integrated_qty = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :stars); init=0.0u"Msun")
 
     elseif quantity == :gas_mass
 
-        integrated_qty = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
     elseif quantity == :hydrogen_mass
 
-        integrated_qty = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") * HYDROGEN_MASSFRAC
+        integrated_qty = sum(computeMass(data_dict, :hydrogen); init=0.0u"Msun")
 
     elseif quantity == :dm_mass
 
-        integrated_qty = sum(data_dict[:halo]["MASS"]; init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :dark_matter); init=0.0u"Msun")
 
     elseif quantity == :bh_mass
 
-        integrated_qty = sum(data_dict[:black_hole]["MASS"]; init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :black_holes); init=0.0u"Msun")
 
     elseif quantity == :molecular_mass
 
-        integrated_qty = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :molecular); init=0.0u"Msun")
 
     elseif quantity == :br_molecular_mass
 
-        integrated_qty = sum(computePressureMolecularMass(data_dict); init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :br_molecular); init=0.0u"Msun")
 
     elseif quantity == :atomic_mass
 
-        integrated_qty = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :atomic); init=0.0u"Msun")
 
     elseif quantity == :ionized_mass
 
-        integrated_qty = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :ionized); init=0.0u"Msun")
 
     elseif quantity == :neutral_mass
 
-        integrated_qty = sum(computeNeutralMass(data_dict); init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :neutral); init=0.0u"Msun")
 
     elseif quantity == :stellar_number
 
@@ -428,8 +500,8 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :molecular_fraction
 
-        molecular_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        molecular_mass = sum(computeMass(data_dict, :molecular); init=0.0u"Msun")
+        gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -439,8 +511,8 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :br_molecular_fraction
 
-        molecular_mass = sum(computePressureMolecularMass(data_dict); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        molecular_mass = sum(computeMass(data_dict, :br_molecular); init=0.0u"Msun")
+        gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -450,8 +522,8 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :atomic_fraction
 
-        atomic_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        atomic_mass = sum(computeMass(data_dict, :atomic); init=0.0u"Msun")
+        gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -461,8 +533,8 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :ionized_fraction
 
-        ionized_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        ionized_mass = sum(computeMass(data_dict, :ionized); init=0.0u"Msun")
+        gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -472,8 +544,8 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :neutral_fraction
 
-        neutral_mass = sum(computeNeutralMass(data_dict); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        neutral_mass = sum(computeMass(data_dict, :neutral); init=0.0u"Msun")
+        gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -483,31 +555,31 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :stellar_area_density
 
-        integrated_qty = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun") / area(DISK_R)
+        integrated_qty = sum(computeMass(data_dict, :stars); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :gas_area_density
 
-        integrated_qty = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun") / area(DISK_R)
+        integrated_qty = sum(computeMass(data_dict, :gas); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :molecular_area_density
 
-        integrated_qty = sum(computeMolecularMass(data_dict); init=0.0u"Msun") / area(DISK_R)
+        integrated_qty = sum(computeMass(data_dict, :molecular); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :br_molecular_area_density
 
-        integrated_qty = sum(computePressureMolecularMass(data_dict); init=0.0u"Msun") / area(DISK_R)
+        integrated_qty = sum(computeMass(data_dict, :br_molecular); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :atomic_area_density
 
-        integrated_qty = sum(computeAtomicMass(data_dict); init=0.0u"Msun") / area(DISK_R)
+        integrated_qty = sum(computeMass(data_dict, :atomic); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :ionized_area_density
 
-        integrated_qty = sum(computeIonizedMass(data_dict); init=0.0u"Msun") / area(DISK_R)
+        integrated_qty = sum(computeMass(data_dict, :ionized); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :neutral_area_density
 
-        integrated_qty = sum(computeNeutralMass(data_dict); init=0.0u"Msun") / area(DISK_R)
+        integrated_qty = sum(computeMass(data_dict, :neutral); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :sfr_area_density
 
@@ -518,7 +590,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
     elseif quantity == :gas_metallicity
 
         metal_mass = sum(computeMetalMass(data_dict, :gas); init=0.0u"Msun")
-        gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+        gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
         if iszero(gas_mass)
             integrated_qty = NaN
@@ -568,7 +640,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
         positions = data_dict[:gas]["POS "]
         velocities = data_dict[:gas]["VEL "]
-        masses = data_dict[:gas]["MASS"]
+        masses = computeMass(data_dict, :gas)
 
         if any(isempty, [positions, velocities, masses])
             integrated_qty = NaN
@@ -753,242 +825,143 @@ Compute a quantity for each cell/particle in `data_dict`.
 # Returns
 
   - The values of `quantity` for every cell/particle.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     if quantity == :stellar_mass
 
-        scatter_qty = data_dict[:stars]["MASS"]
+        scatter_qty = computeMass(data_dict, :stars)
 
     elseif quantity == :gas_mass
 
-        scatter_qty = data_dict[:gas]["MASS"]
+        scatter_qty = computeMass(data_dict, :gas)
 
     elseif quantity == :hydrogen_mass
 
-        scatter_qty = data_dict[:gas]["MASS"] .* HYDROGEN_MASSFRAC
+        scatter_qty = computeMass(data_dict, :hydrogen)
 
     elseif quantity == :dm_mass
 
-        scatter_qty = data_dict[:halo]["MASS"]
+        scatter_qty = computeMass(data_dict, :dark_matter)
 
     elseif quantity == :bh_mass
 
-        scatter_qty = data_dict[:black_hole]["MASS"]
+        scatter_qty = computeMass(data_dict, :black_holes)
 
     elseif quantity == :molecular_mass
 
-        scatter_qty = computeMolecularMass(data_dict)
+        scatter_qty = computeMass(data_dict, :molecular)
 
     elseif quantity == :br_molecular_mass
 
-        scatter_qty = computePressureMolecularMass(data_dict)
+        scatter_qty = computeMass(data_dict, :br_molecular)
 
     elseif quantity == :atomic_mass
 
-        scatter_qty = computeAtomicMass(data_dict)
+        scatter_qty = computeMass(data_dict, :atomic)
 
     elseif quantity == :ionized_mass
 
-        scatter_qty = computeIonizedMass(data_dict)
+        scatter_qty = computeMass(data_dict, :ionized)
 
     elseif quantity == :neutral_mass
 
-        scatter_qty = computeNeutralMass(data_dict)
+        scatter_qty = computeMass(data_dict, :neutral)
 
     elseif quantity == :molecular_fraction
 
-        molecular_mass = computeMolecularMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
-
-        scatter_qty = molecular_mass ./ gas_mass
+        scatter_qty = computeFraction(data_dict, :molecular)
 
     elseif quantity == :br_molecular_fraction
 
-        molecular_mass = computePressureMolecularMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
-
-        scatter_qty = molecular_mass ./ gas_mass
+        scatter_qty = computeFraction(data_dict, :br_molecular)
 
     elseif quantity == :atomic_fraction
 
-        atomic_mass = computeAtomicMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
-
-        scatter_qty = atomic_mass ./ gas_mass
+        scatter_qty = computeFraction(data_dict, :atomic)
 
     elseif quantity == :ionized_fraction
 
-        ionized_mass = computeIonizedMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
-
-        scatter_qty = ionized_mass ./ gas_mass
+        scatter_qty = computeFraction(data_dict, :ionized)
 
     elseif quantity == :neutral_fraction
 
-        neutral_mass = computeNeutralMass(data_dict)
-        gas_mass = data_dict[:gas]["MASS"]
-
-        scatter_qty = neutral_mass ./ gas_mass
+        scatter_qty = computeFraction(data_dict, :neutral)
 
     elseif quantity == :molecular_neutral_fraction
 
-        molecular_mass = computeMolecularMass(data_dict)
-        atomic_mass    = computeAtomicMass(data_dict)
+        fm = computeFraction(data_dict, :molecular)
+        fa = computeFraction(data_dict, :atomic)
 
-        scatter_qty = molecular_mass ./ (atomic_mass .+ molecular_mass)
+        scatter_qty = fm ./ (fm .+ fa)
 
     elseif quantity == :mol_eq_quotient
 
-        dg = data_dict[:gas]
-
-        iterator = zip(
-            dg["ETAD"],
-            dg["FRAC"][2, :],
-            dg["FRAC"][3, :],
-            dg["FRAC"][4, :],
-            τ_star.(dg["RHOC"] .* u"mp"),
-            τ_cond.(dg["RHOC"] .* u"mp", dg["PARZ"]),
-        )
-
-        # Allocate memory
-        scatter_qty = fill(NaN, length(dg["RHOC"]))
-
-        for (i, (ηd, fa, fm, fs, τS, τC)) in enumerate(iterator)
-
-            !(isnan(fa) || iszero(fa) || isone(fs) || iszero(fm)) || continue
-
-            mol_ls = (fa / fm) * (1 - fs)
-            mol_rs = uconvert(Unitful.NoUnits, ((ηd + 1) * τC) / τS)
-
-            scatter_qty[i] = log10(mol_ls / mol_rs)
-
-        end
+        scatter_qty = computeEqQuotient(data_dict, :molecular)
 
     elseif quantity == :ion_eq_quotient
 
-        dg = data_dict[:gas]
-
-        iterator = zip(
-            dg["ETAI"],
-            dg["PARR"],
-            dg["FRAC"][1, :],
-            dg["FRAC"][3, :],
-            GalaxyInspector.τ_star.(dg["RHOC"] .* u"mp"),
-            GalaxyInspector.τ_rec.(dg["RHOC"] .* u"mp"),
-        )
-
-        # Allocate memory
-        scatter_qty = fill(NaN, length(dg["RHOC"]))
-
-        for (i, (ηi, R, fi, fm, τS, τR)) in enumerate(iterator)
-
-            !(isnan(fi) || iszero(fi) || iszero(fm)) || continue
-
-            ion_ls = (fi * fi) / fm
-            ion_rs = uconvert(Unitful.NoUnits, ((ηi + R) * τR) / τS)
-
-            scatter_qty[i] = log10(ion_ls / ion_rs)
-
-        end
+        scatter_qty = computeEqQuotient(data_dict, :ionized)
 
     elseif quantity == :gas_mass_density
 
-        scatter_qty = data_dict[:gas]["RHO "]
+        scatter_qty = computeVolumeDensity(data_dict, :gas)
 
     elseif quantity == :hydrogen_mass_density
 
-        scatter_qty = data_dict[:gas]["RHO "] .* HYDROGEN_MASSFRAC
+        scatter_qty = computeVolumeDensity(data_dict, :hydrogen)
 
     elseif quantity == :gas_number_density
 
-        scatter_qty = data_dict[:gas]["RHO "] ./ Unitful.mp
+        scatter_qty = computeNumberDensity(data_dict, :gas)
 
     elseif quantity == :molecular_number_density
 
-        molecular_mass = computeMolecularMass(data_dict)
-        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
-
-        scatter_qty = (molecular_mass ./ volumes) ./ (2 * Unitful.mp)
+        scatter_qty = computeNumberDensity(data_dict, :molecular)
 
     elseif quantity == :br_molecular_number_density
 
-        molecular_mass = computePressureMolecularMass(data_dict)
-        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
-
-        scatter_qty = (molecular_mass ./ volumes) ./ (2 * Unitful.mp)
+        scatter_qty = computeNumberDensity(data_dict, :br_molecular)
 
     elseif quantity == :atomic_number_density
 
-        atomic_mass = computeAtomicMass(data_dict)
-        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
-
-        scatter_qty = (atomic_mass ./ volumes) ./ Unitful.mp
+        scatter_qty = computeNumberDensity(data_dict, :atomic)
 
     elseif quantity == :ionized_number_density
 
-        ionized_mass = computeIonizedMass(data_dict)
-        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
-
-        scatter_qty = (ionized_mass ./ volumes) ./ Unitful.mp
+        scatter_qty = computeNumberDensity(data_dict, :ionized)
 
     elseif quantity == :neutral_number_density
 
-        neutral_mass = computeNeutralMass(data_dict)
-        volumes = data_dict[:gas]["MASS"] ./ data_dict[:gas]["RHO "]
-
-        scatter_qty = (neutral_mass ./ volumes) ./ Unitful.mp
+        scatter_qty = computeNumberDensity(data_dict, :neutral)
 
     elseif quantity == :gas_metallicity
 
-        if CODEBASE == :arepo
-
-            scatter_qty = setPositive(data_dict[:gas]["GZ  "]) ./ SOLAR_METALLICITY
-
-        elseif CODEBASE == :opengadget3
-
-            metals = sum(setPositive(data_dict[:gas]["GMET"][METAL_LIST, :]); dims=1)
-            scatter_qty = (metals ./ data_dict[:gas]["MASS"]) ./ SOLAR_METALLICITY
-
-        else
-
-            throw(ArgumentError("scatterQty: I don't recognize the codebase :$(CODEBASE)"))
-
-        end
+        scatter_qty = setPositive(data_dict[:gas]["GZ  "]) ./ SOLAR_METALLICITY
 
     elseif quantity == :stellar_metallicity
 
-        if CODEBASE == :arepo
-
-            scatter_qty = setPositive(data_dict[:stars]["GZ2 "]) ./ SOLAR_METALLICITY
-
-        elseif CODEBASE == :opengadget3
-
-            metals = sum(setPositive(data_dict[:stars]["GME2"][METAL_LIST, :]); dims=1)
-            scatter_qty = (metals ./ data_dict[:stars]["MASS"]) ./ SOLAR_METALLICITY
-
-        else
-
-            throw(ArgumentError("scatterQty: I don't recognize the codebase :$(CODEBASE)"))
-
-        end
+        scatter_qty = setPositive(data_dict[:stars]["GZ2 "]) ./ SOLAR_METALLICITY
 
     elseif quantity ∈ GAS_ABUNDANCE
 
         element_symbol = Symbol(first(split(string(quantity), "_")))
 
-        element_mass = computeElementMass(data_dict, :gas, element_symbol)
-        hydrogen_mass = computeElementMass(data_dict, :gas, :H)
+        abundances = computeAbundance(
+            data_dict,
+            :gas,
+            element_symbol;
+            solar=false,
+        )
 
-        if isempty(hydrogen_mass)
+        if isempty(abundances)
             scatter_qty = Float64[]
         else
-            n_X = element_mass ./ ATOMIC_WEIGHTS[element_symbol]
-            n_H = hydrogen_mass ./ ATOMIC_WEIGHTS[:H]
-
-            abundance = ustrip.(Unitful.NoUnits, n_X ./ n_H)
-
-            scatter_qty = 12 .+ log10.(abundance)
+            scatter_qty = 12 .+ log10.(abundances)
             replace!(x -> isinf(x) ? NaN : x, scatter_qty)
         end
 
@@ -996,18 +969,17 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         element_symbol = Symbol(first(split(string(quantity), "_")))
 
-        element_mass = computeElementMass(data_dict, :stars, element_symbol)
-        hydrogen_mass = computeElementMass(data_dict, :stars, :H)
+        abundances = computeAbundance(
+            data_dict,
+            :stars,
+            element_symbol;
+            solar=false,
+        )
 
-        if isempty(hydrogen_mass)
+        if isempty(abundances)
             scatter_qty = Float64[]
         else
-            n_X = element_mass ./ ATOMIC_WEIGHTS[element_symbol]
-            n_H = hydrogen_mass ./ ATOMIC_WEIGHTS[:H]
-
-            abundance = ustrip.(Unitful.NoUnits, n_X ./ n_H)
-
-            scatter_qty = 12 .+ log10.(abundance)
+            scatter_qty = 12 .+ log10.(abundances)
             replace!(x -> isinf(x) ? NaN : x, scatter_qty)
         end
 

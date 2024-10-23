@@ -2067,6 +2067,10 @@ If the source of the field are particles, a simple 3D histogram is used. If the 
 # Returns
 
   - A 3D array with the density at each point of the 3D grid.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function density3DProjection(
     data_dict::Dict,
@@ -3078,6 +3082,10 @@ Select the plotting parameters for a given `quantity`.
       + `exp_factor::Int`                      -> Numerical exponent to scale down the axis.
       + `unit::Unitful.Units`                  -> Target unit for the axis.
       + `axis_label::AbstractString`           -> Label for the axis.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function plotParams(quantity::Symbol)::PlotParams
 
@@ -3129,7 +3137,18 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "RHO ", "CTIM", "TAUS"],
+                :gas => [
+                    "MASS",
+                    "POS ",
+                    "FRAC",
+                    "RHO ",
+                    "CTIM",
+                    "TAUS",
+                    "PRES",
+                    "COLM",
+                    "NH  ",
+                    "NHP ",
+                ],
             ),
             var_name   = L"M_\mathrm{H_2}",
             exp_factor = 10,
@@ -3140,7 +3159,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "PRES", "RHO "],
+                :gas => ["MASS", "PRES", "RHO ", "COLM", "NH  ", "NHP "],
             ),
             var_name   = L"M_\mathrm{H_2^{BR}}",
             exp_factor = 10,
@@ -3151,7 +3170,18 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
+                :gas => [
+                    "MASS",
+                    "POS ",
+                    "FRAC",
+                    "NH  ",
+                    "NHP ",
+                    "RHO ",
+                    "CTIM",
+                    "TAUS",
+                    "COLM",
+                    "PRES",
+                ],
             ),
             var_name   = L"M_\mathrm{HI}",
             exp_factor = 10,
@@ -3228,7 +3258,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "CTIM", "TAUS"],
+                :gas => ["MASS", "POS ", "FRAC", "CTIM", "TAUS", "PRES", "COLM", "NH  ", "NHP "],
             ),
             var_name = L"f_\mathrm{H_2}",
         )
@@ -3237,7 +3267,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "PRES"],
+                :gas => ["MASS", "POS ", "PRES", "COLM", "NH  ", "NHP "],
             ),
             var_name = L"f_\mathrm{H_2}^\mathrm{BR}",
         )
@@ -3246,7 +3276,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS", "COLM"],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "CTIM", "TAUS", "COLM", "PRES"],
             ),
             var_name = L"f_\mathrm{HI}",
         )
@@ -3337,7 +3367,18 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "RHO ", "CTIM", "TAUS"],
+                :gas => [
+                    "MASS",
+                    "POS ",
+                    "FRAC",
+                    "RHO ",
+                    "CTIM",
+                    "TAUS",
+                    "PRES",
+                    "COLM",
+                    "NH  ",
+                    "NHP ",
+                ],
             ),
             var_name = L"n_\mathrm{H_2}",
             unit     = u"cm^-3",
@@ -3347,7 +3388,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "PRES", "RHO "],
+                :gas => ["MASS", "POS ", "PRES", "RHO ", "COLM", "NH  ", "NHP "],
             ),
             var_name = L"n_\mathrm{H_2}^{BR}",
             unit     = u"cm^-3",
@@ -3357,7 +3398,18 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
+                :gas => [
+                    "MASS",
+                    "POS ",
+                    "FRAC",
+                    "NH  ",
+                    "NHP ",
+                    "RHO ",
+                    "CTIM",
+                    "TAUS",
+                    "COLM",
+                    "PRES",
+                ],
             ),
             var_name = L"n_\mathrm{HI}",
             unit     = u"cm^-3",
@@ -3403,7 +3455,18 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "RHO ", "CTIM", "TAUS"],
+                :gas => [
+                    "MASS",
+                    "POS ",
+                    "FRAC",
+                    "RHO ",
+                    "CTIM",
+                    "TAUS",
+                    "PRES",
+                    "COLM",
+                    "NH  ",
+                    "NHP ",
+                ],
             ),
             var_name = L"\Sigma_\mathrm{H_2}",
             unit     = u"Msun*pc^-2",
@@ -3413,7 +3476,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "PRES", "RHO "],
+                :gas => ["MASS", "POS ", "PRES", "RHO ", "COLM", "NH  ", "NHP "],
             ),
             var_name = L"\Sigma_\mathrm{H_2}^\mathrm{BR}",
             unit     = u"Msun*pc^-2",
@@ -3423,7 +3486,18 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "CTIM", "TAUS", "COLM"],
+                :gas => [
+                    "MASS",
+                    "POS ",
+                    "FRAC",
+                    "NH  ",
+                    "NHP ",
+                    "RHO ",
+                    "CTIM",
+                    "TAUS",
+                    "COLM",
+                    "PRES",
+                ],
             ),
             var_name = L"\Sigma_\mathrm{HI}",
             unit     = u"Msun*pc^-2",

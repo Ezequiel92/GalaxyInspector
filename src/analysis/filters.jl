@@ -1221,22 +1221,15 @@ function filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Sy
 
     @inbounds for component in snapshotTypes(data_dict)
 
-        @inbounds if component == :gas
+        if component == :gas
 
-            if CODEBASE == :arepo
+            if !isempty(data_dict[component]["GZ  "])
 
                 metallicity = data_dict[component]["GZ  "]
 
-            elseif CODEBASE == :opengadget3
-
-                metals = sum(data_dict[component]["GMET"][METAL_LIST, :]; dims=1)
-                metallicity = metals ./ data_dict[component]["MASS"]
-
             else
 
-                throw(
-                    ArgumentError("filterMetallicity: I don't recognize the codebase :$(CODEBASE)"),
-                )
+                throw(ArgumentError("filterMetallicity: I could not compute the metallicity"))
 
             end
 
@@ -1244,20 +1237,13 @@ function filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Sy
 
         elseif component == :stars
 
-            if CODEBASE == :arepo
+            if !isempty(data_dict[component]["GZ2 "])
 
                 metallicity = data_dict[component]["GZ2 "]
 
-            elseif CODEBASE == :opengadget3
-
-                metals = sum(data_dict[component]["GME2"][METAL_LIST, :]; dims=1)
-                metallicity = metals ./ data_dict[component]["MASS"]
-
             else
 
-                throw(
-                    ArgumentError("filterMetallicity: I don't recognize the codebase :$(CODEBASE)"),
-                )
+                throw(ArgumentError("filterMetallicity: I could not compute the metallicity"))
 
             end
 

@@ -209,6 +209,8 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
 
 # References
 
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
+
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
@@ -352,6 +354,8 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
 
 # References
 
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
+
 M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
 function daMolla2015(
@@ -388,7 +392,7 @@ function daMolla2015(
     elseif quantity == :molecular_area_density
 
         positions   = filtered_dd[:gas]["POS "]
-        masses      = computeMolecularMass(filtered_dd)
+        masses      = computeMass(filtered_dd, :molecular)
         norm_values = Number[]
         f           = identity
         density     = true
@@ -396,7 +400,7 @@ function daMolla2015(
     elseif quantity == :br_molecular_area_density
 
         positions   = filtered_dd[:gas]["POS "]
-        masses      = computePresureMolecularMass(filtered_dd)
+        masses      = computeMass(filtered_dd, :br_molecular)
         norm_values = Number[]
         f           = identity
         density     = true
@@ -404,7 +408,7 @@ function daMolla2015(
     elseif quantity == :atomic_area_density
 
         positions   = filtered_dd[:gas]["POS "]
-        masses      = computeAtomicMass(filtered_dd)
+        masses      = computeMass(filtered_dd, :atomic)
         norm_values = Number[]
         f           = identity
         density     = true
@@ -564,6 +568,10 @@ Compute a profile.
       + A vector with the value `quantity` in each each ring or spherical shells.
 
     It returns `nothing` if any of the necessary quantities are missing.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daProfile(
     data_dict::Dict,
@@ -752,6 +760,10 @@ Compute the profile of a mean quantity with error bars or bands.
       + A vector with the value `quantity` in each each ring or spherical shells.
 
     It returns `nothing` if any of the necessary quantities are missing.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daBandProfile(
     data_dict::Dict,
@@ -1043,6 +1055,10 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
 
       + A vector with the value corresponding to each bin.
       + A vector with the counts, normalized to the maximum value.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daLineHistogram(
     data_dict::Dict,
@@ -1155,6 +1171,10 @@ If the source of the field are Voronoi cells, the density of the cells that cros
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
       + A matrix with the ``\\log_{10}`` of the density at each point of the 2D grid.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daDensity2DProjection(
     data_dict::Dict,
@@ -2224,6 +2244,10 @@ Turn a scatter plot into a 2D histogram.
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
       + A matrix with the counts.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daScatterDensity(
     data_dict::Dict,
@@ -2525,6 +2549,10 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
       + A matrix with the counts.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daScatterWeightedDensity(
     data_dict::Dict,
@@ -2916,6 +2944,10 @@ Compute two global quantities of the simulation.
 
       + A single element vector with the value of `x_quantity`.
       + A single element vector with the value of `y_quantity`.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daIntegrateGalaxy(
     data_dict::Dict,
@@ -3091,6 +3123,10 @@ Compute two quantities for every cell/particle in the simulation.
 
       + A vector with the values of `x_quantity`.
       + A vector with the values of `y_quantity`.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daScatterGalaxy(
     data_dict::Dict,
@@ -3203,7 +3239,6 @@ Compute the values for a bar plot of the gas fractions, where the bins are a giv
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `edges::Vector{<:Number}`: A sorted list of bin edges for `quantity`.
-  - `include_stars::Bool=false`: If the stars will be included as one of the gas phases. It will only work for simulations with our SF routine.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -3236,12 +3271,15 @@ Compute the values for a bar plot of the gas fractions, where the bins are a giv
 
       + A vector with the positions of each bar.
       + A vector with the height of each bar.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daGasFractions(
     data_dict::Dict,
     quantity::Symbol,
     edges::Vector{<:Number};
-    include_stars::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Number}},Nothing}
 
@@ -3251,7 +3289,7 @@ function daGasFractions(
     n_bins = length(edges) - 1
 
     # Compute the number of bars per bin
-    n_bars = include_stars ? 4 : 3
+    n_bars = 3
 
     # Compute the gas quantities
     gas_qty  = scatterQty(filtered_dd, quantity)
@@ -3260,14 +3298,9 @@ function daGasFractions(
     !isempty(gas_qty) || return nothing
 
     # Compute the mass of each gas phase
-    ionized_mass = computeIonizedMass(filtered_dd)
-    atomic_mass  = computeAtomicMass(filtered_dd)
-    if include_stars
-        molecular_mass = computeMolecularMass(filtered_dd; normalize=false)
-        stellar_mass   = computeStellarGasMass(filtered_dd)
-    else
-        molecular_mass = computeMolecularMass(filtered_dd)
-    end
+    ionized_mass   = computeMass(filtered_dd, :ionized)
+    atomic_mass    = computeMass(filtered_dd, :atomic)
+    molecular_mass = computeMass(filtered_dd, :molecular)
 
     # If any of the necessary quantities are missing return nothing
     !any(isempty, [ionized_mass, atomic_mass, molecular_mass]) || return nothing
@@ -3287,20 +3320,11 @@ function daGasFractions(
 
         else
 
-            if include_stars
-                total_masses = [
-                    sum(molecular_mass[qty_idx]),
-                    sum(atomic_mass[qty_idx]),
-                    sum(ionized_mass[qty_idx]),
-                    sum(stellar_mass[qty_idx]),
-                ]
-            else
-                total_masses = [
-                    sum(molecular_mass[qty_idx]),
-                    sum(atomic_mass[qty_idx]),
-                    sum(ionized_mass[qty_idx]),
-                ]
-            end
+            total_masses = [
+                sum(molecular_mass[qty_idx]),
+                sum(atomic_mass[qty_idx]),
+                sum(ionized_mass[qty_idx]),
+            ]
 
             # Compute the mass fraction of each phase inside the current bin
             fractions = uconvert.(Unitful.NoUnits, (total_masses ./ sum(total_masses)) .* 100)
@@ -3558,6 +3582,10 @@ Compute the time series of two quantities.
 
       + A Vector with the time series of `x_quantity`.
       + A Vector with the time series of `y_quantity`.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daEvolution(
     sim_data::Simulation,
@@ -4464,6 +4492,10 @@ Compute the gas mass density and the SFR density, used in the volumetric star fo
       + A vector with log10(ρsfr / M⊙ * yr^-1 * kpc^-2).
 
     It returns `nothing` if any of the necessary quantities are missing.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daVSFLaw(
     data_dict::Dict,
@@ -4594,6 +4626,10 @@ C_\rho = \frac{\rangle n^2 \langle}{\rangle n \langle^2} \, ,
 
       + A vector with the volumes.
       + A vector with the clumping factors.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daClumpingFactor(
     data_dict::Dict,
@@ -4742,6 +4778,10 @@ C_\rho = \frac{\rangle n^2 \langle}{\rangle n \langle^2} \, ,
 
       + A vector with the central position of each bin.
       + A vector with the clumping factors.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function daClumpingFactorProfile(
     data_dict::Dict,

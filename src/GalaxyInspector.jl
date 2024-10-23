@@ -53,8 +53,10 @@ include("constants/globals.jl")
 include("auxiliary_functions.jl")
 
 include("analysis/data_acquisition.jl")
-include("analysis/utilities.jl")
-include("analysis/compute_quantities.jl")
+include("analysis/compute_quantities/positions.jl")
+include("analysis/compute_quantities/velocities.jl")
+include("analysis/compute_quantities/masses.jl")
+include("analysis/compute_quantities/other.jl")
 include("analysis/filters.jl")
 include("analysis/tracers.jl")
 include("analysis/transformations.jl")
@@ -111,6 +113,5 @@ export fitVSFLaw
 export massMetallicityRelation
 export atomicGasCubes
 export clumpingFactor
-export clumpingFactorProfile
 
 end

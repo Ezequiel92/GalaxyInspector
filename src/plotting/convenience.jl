@@ -126,8 +126,8 @@ function snapshotReport(
         ############################################################################################
 
         # Create the output file
-        filename = "$(SNAP_BASENAME)_$(lpad(snap_n, 3, "0"))-of-$(basename(simulation_path))"
-        file = open(joinpath(mkpath(output_path), "report-for-$(filename).txt"), "w")
+        filename = "$(SNAP_BASENAME)_$(lpad(snap_n, 3, "0"))_of_$(basename(simulation_path))"
+        file = open(joinpath(mkpath(output_path), "report_for_$(filename).txt"), "w")
 
         println(file, "#"^100)
         println(file, "\nSimulation name:  $(basename(simulation_path))")
@@ -187,7 +187,7 @@ function snapshotReport(
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
                 Dict(
-                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "CTIM", "TAUS", "ID  "],
+                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "CTIM", "TAUS", "ID  ", "COLM"],
                     :stars => ["ACIT", "PARZ", "RHOC", "ID  "],
                 ),
             ),
@@ -283,21 +283,21 @@ function snapshotReport(
 
             println(file, "\tHydrogen masses:\n")
 
-            gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+            gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
-            hii_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
+            hii_mass = sum(computeMass(data_dict, :ionized); init=0.0u"Msun")
             hii_percent = round((hii_mass / gas_mass) * 100, sigdigits=3)
 
-            hi_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
+            hi_mass = sum(computeMass(data_dict, :atomic); init=0.0u"Msun")
             hi_percent = round((hi_mass / gas_mass) * 100, sigdigits=3)
 
-            h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
+            h2_mass = sum(computeMass(data_dict, :molecular); init=0.0u"Msun")
             h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
 
-            h2p_mass = sum(computePressureMolecularMass(data_dict); init=0.0u"Msun")
+            h2p_mass = sum(computeMass(data_dict, :br_molecular); init=0.0u"Msun")
             h2p_percent = round((h2p_mass / gas_mass) * 100, sigdigits=3)
 
-            hn_mass = sum(computeNeutralMass(data_dict); init=0.0u"Msun")
+            hn_mass = sum(computeMass(data_dict, :neutral); init=0.0u"Msun")
             hn_percent = round((hn_mass / gas_mass) * 100, sigdigits=3)
 
             if !iszero(hii_mass)
@@ -432,21 +432,21 @@ function snapshotReport(
 
             println(file, "\tHydrogen masses:\n")
 
-            gas_mass = sum(data_dict[:gas]["MASS"]; init=0.0u"Msun")
+            gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
-            hii_mass = sum(computeIonizedMass(data_dict); init=0.0u"Msun")
+            hii_mass = sum(computeMass(data_dict, :ionized); init=0.0u"Msun")
             hii_percent = round((hii_mass / gas_mass) * 100, sigdigits=3)
 
-            hi_mass = sum(computeAtomicMass(data_dict); init=0.0u"Msun")
+            hi_mass = sum(computeMass(data_dict, :atomic); init=0.0u"Msun")
             hi_percent = round((hi_mass / gas_mass) * 100, sigdigits=3)
 
-            h2_mass = sum(computeMolecularMass(data_dict); init=0.0u"Msun")
+            h2_mass = sum(computeMass(data_dict, :molecular); init=0.0u"Msun")
             h2_percent = round((h2_mass / gas_mass) * 100, sigdigits=3)
 
-            h2p_mass = sum(computePressureMolecularMass(data_dict); init=0.0u"Msun")
+            h2p_mass = sum(computeMass(data_dict, :br_molecular); init=0.0u"Msun")
             h2p_percent = round((h2p_mass / gas_mass) * 100, sigdigits=3)
 
-            hn_mass = sum(computeNeutralMass(data_dict); init=0.0u"Msun")
+            hn_mass = sum(computeMass(data_dict, :neutral); init=0.0u"Msun")
             hn_percent = round((hn_mass / gas_mass) * 100, sigdigits=3)
 
             if !iszero(hii_mass)
@@ -530,13 +530,15 @@ function snapshotReport(
 
         if !isempty(data_dict[:gas]["FRAC"])
 
-            total_number = length(data_dict[:gas]["MASS"])
+            gas_masses = computeMass(data_dict, :gas)
+
+            total_number = length(gas_masses)
             stellar_gas_number = count(!isnan, data_dict[:gas]["FRAC"][1, :])
             fraction = (stellar_gas_number / total_number) * 100
 
             idxs = findall(!isnan, data_dict[:gas]["FRAC"][1, :])
-            stellar_gas_mass = sum(data_dict[:gas]["MASS"][idxs])
-            mass_fraction = (stellar_gas_mass / sum(data_dict[:gas]["MASS"])) * 100
+            stellar_gas_mass = sum(gas_masses[idxs])
+            mass_fraction = (stellar_gas_mass / sum(gas_masses)) * 100
 
             println(file, "\tFraction of gas cells that have enter our SF routine:\n")
             println(file, "\t\t$(round(fraction, sigdigits=3))% of the cells")
@@ -624,8 +626,8 @@ function snapshotReport(
             acit_percent_low = computeMassFraction(
                 acit,
                 data_dict[:stars]["MASS"],
-                (0.0, 1.0) .* u"Gyr",
-            )
+                (0.0, 1000.0), # Myr
+            ) * 100
 
             println(file, "\t\tFraction of stellar mass with a total integration time < 1 Gyr:\n")
             println(file, "\t\t\t$(round(acit_percent_low, sigdigits=4))%\n")
@@ -633,8 +635,8 @@ function snapshotReport(
             acit_percent_high = computeMassFraction(
                 acit,
                 data_dict[:stars]["MASS"],
-                (100.0, Inf) .* u"Myr",
-            )
+                (100.0, Inf), # Myr
+            ) * 100
 
             println(file, "\t\tFraction of stellar mass with a total integration time > 100 Myr:\n")
             println(file, "\t\t\t$(round(acit_percent_high, sigdigits=4))%\n")
@@ -902,14 +904,13 @@ function snapshotReport(
                 disc_idxs = filterWithinSphere(data_dict, (0.0u"kpc", DISK_R), :zero)
                 halo_idxs = filterWithinSphere(data_dict, (DISK_R, g_r_crit_200), :zero)
 
-                stellar_masses = data_dict[:stars]["MASS"]
-                gas_masses     = data_dict[:gas]["MASS"]
-
-                ionized_masses     = computeIonizedMass(data_dict)
-                atomic_masses      = computeAtomicMass(data_dict)
-                molecular_masses   = computeMolecularMass(data_dict)
-                molecular_P_masses = computePressureMolecularMass(data_dict)
-                neutral_masses     = computeNeutralMass(data_dict)
+                stellar_masses     = computeMass(data_dict, :stars)
+                gas_masses         = computeMass(data_dict, :gas)
+                ionized_masses     = computeMass(data_dict, :ionized)
+                atomic_masses      = computeMass(data_dict, :atomic)
+                molecular_masses   = computeMass(data_dict, :molecular)
+                molecular_p_masses = computeMass(data_dict, :br_molecular)
+                neutral_masses     = computeMass(data_dict, :neutral)
 
                 stellar_mass_inside  = stellar_masses[disc_idxs[:stars]]
                 stellar_mass_outside = stellar_masses[halo_idxs[:stars]]
@@ -932,9 +933,9 @@ function snapshotReport(
                     molecular_mass_outside = molecular_masses[halo_idxs[:gas]]
                 end
 
-                if !isempty(molecular_P_masses)
-                    molecular_P_mass_inside  = molecular_P_masses[disc_idxs[:gas]]
-                    molecular_P_mass_outside = molecular_P_masses[halo_idxs[:gas]]
+                if !isempty(molecular_p_masses)
+                    molecular_p_mass_inside  = molecular_p_masses[disc_idxs[:gas]]
+                    molecular_p_mass_outside = molecular_p_masses[halo_idxs[:gas]]
                 end
 
                 if !isempty(neutral_masses)
@@ -1107,17 +1108,17 @@ function snapshotReport(
                 # Molecular gas (BR)
                 #####################
 
-                if !isempty(molecular_P_masses)
+                if !isempty(molecular_p_masses)
 
                     mass_radius_90 = computeMassRadius(
                         data_dict[:gas]["POS "][:, disc_idxs[:gas]],
-                        molecular_P_mass_inside;
+                        molecular_p_mass_inside;
                         percent=90.0,
                     )
 
                     mass_radius_95 = computeMassRadius(
                         data_dict[:gas]["POS "][:, disc_idxs[:gas]],
-                        molecular_P_mass_inside;
+                        molecular_p_mass_inside;
                         percent=95.0,
                     )
 
@@ -1339,13 +1340,13 @@ function snapshotReport(
                 # Molecular gas (BR)
                 #####################
 
-                if !isempty(molecular_P_masses)
+                if !isempty(molecular_p_masses)
 
-                    total_mol_P_mass_inside  = sum(molecular_P_mass_inside; init=0.0u"Msun")
-                    total_mol_P_mass_outside = sum(molecular_P_mass_outside; init=0.0u"Msun")
+                    total_mol_p_mass_inside  = sum(molecular_p_mass_inside; init=0.0u"Msun")
+                    total_mol_p_mass_outside = sum(molecular_p_mass_outside; init=0.0u"Msun")
 
-                    m_P_inside_percent  = (total_mol_P_mass_inside  / total_gas_mass) * 100.0
-                    m_P_outside_percent = (total_mol_P_mass_outside / total_gas_mass) * 100.0
+                    m_p_inside_percent  = (total_mol_p_mass_inside  / total_gas_mass) * 100.0
+                    m_p_outside_percent = (total_mol_p_mass_outside / total_gas_mass) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tMolecular gas (BR recipe):")
@@ -1354,15 +1355,15 @@ function snapshotReport(
                     println(file, "\tMolecular mass (BR recipe) inside the disc (r < $(DISK_R)):\n")
                     println(
                         file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_P_mass_inside, sigdigits=3)) \
-                        ($(round(m_P_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_p_mass_inside, sigdigits=3)) \
+                        ($(round(m_p_inside_percent, sigdigits=3))% of the total gas mass)\n",
                     )
 
                     println(file, "\tMolecular mass (BR recipe) outside the disc ($(DISK_R) < r < R200):\n")
                     println(
                         file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_P_mass_outside, sigdigits=3)) \
-                        ($(round(m_P_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_p_mass_outside, sigdigits=3)) \
+                        ($(round(m_p_outside_percent, sigdigits=3))% of the total gas mass)\n",
                     )
 
                 end
@@ -1645,7 +1646,7 @@ function simulationReport(
 
         # Create the output file
         file = open(
-            joinpath(mkpath(output_path), "report-for-$(basename(simulation_path)).txt"),
+            joinpath(mkpath(output_path), "report_for_$(basename(simulation_path)).txt"),
             "w",
         )
 
@@ -2003,7 +2004,7 @@ function sfrTXT(
         pf_kwargs=[(;)],
         # `plotTimeSeries` configuration
         output_path,
-        filename="$(y_quantity)-vs-$(x_quantity)",
+        filename="$(y_quantity)_vs_$(x_quantity)",
         output_format=".png",
         warnings=false,
         show_progress=true,
@@ -2108,7 +2109,7 @@ function cpuTXT(
         pf_kwargs=[(;)],
         # `plotTimeSeries` configuration
         output_path,
-        filename="$(y_quantity)-vs-$(x_quantity)-for-$(safe_str_target)",
+        filename="$(y_quantity)_vs_$(x_quantity)_for_$(safe_str_target)",
         output_format=".png",
         warnings=false,
         show_progress=true,
@@ -2332,6 +2333,10 @@ Plot a 2D histogram of the density.
         * `cell/particle type` -> idxs::IndexType
         * ...
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `da_ff` filter function.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function densityMap(
     simulation_paths::Vector{String},
@@ -2380,7 +2385,7 @@ function densityMap(
             @inbounds for projection_plane in projection_planes
 
                 # Construct the file name
-                base_filename = "$(sim_name)-$(quantity)-$(projection_plane)-density_map"
+                base_filename = "$(sim_name)_$(quantity)_$(projection_plane)_density_map"
 
                 plotSnapshot(
                     [simulation_path],
@@ -2591,7 +2596,7 @@ function gasSFRMap(
         @inbounds for projection_plane in projection_planes
 
             # Construct the file name
-            base_filename = "$(sim_name)-$(projection_plane)-gas_sfr_map"
+            base_filename = "$(sim_name)_$(projection_plane)_gas_sfr_map"
 
             plotSnapshot(
                 [simulation_path],
@@ -2737,6 +2742,10 @@ Plot a 2D histogram of the density, with the velocity field.
   - `annotation::AbstractString=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the values to be plotted.
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function densityMapVelField(
     simulation_paths::Vector{String},
@@ -2806,7 +2815,7 @@ function densityMapVelField(
             @inbounds for projection_plane in projection_planes
 
                 # Construct the file name
-                base_filename = "$(sim_name)-$(quantity)-$(projection_plane)-density_map"
+                base_filename = "$(sim_name)_$(quantity)_$(projection_plane)_density_map"
 
                 plotSnapshot(
                     [simulation_path, simulation_path],
@@ -3036,7 +3045,7 @@ function metallicityMap(
             @inbounds for projection_plane in projection_planes
 
                 # Construct the file name
-                base_filename = "$(sim_name)-$(component)-$(projection_plane)-metallicity_map"
+                base_filename = "$(sim_name)_$(component)_$(projection_plane)_metallicity_map"
 
                 plotSnapshot(
                     [simulation_path],
@@ -3215,7 +3224,7 @@ function temperatureMap(
         @inbounds for projection_plane in projection_planes
 
             # Construct the file name
-            base_filename = "$(sim_name)-$(projection_plane)-temperature_map"
+            base_filename = "$(sim_name)_$(projection_plane)_temperature_map"
 
             plotSnapshot(
                 [simulation_path],
@@ -3461,6 +3470,10 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
         * ...
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `da_ff` filter function.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function scatterPlot(
     simulation_paths::Vector{String},
@@ -3532,7 +3545,7 @@ function scatterPlot(
             pf_kwargs=[(; markersize=2)],
             # `plotSnapshot` configuration
             output_path,
-            base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)",
+            base_filename="$(sim_name)_$(y_quantity)_vs_$(x_quantity)",
             output_format=".png",
             warnings=false,
             show_progress=true,
@@ -3826,6 +3839,10 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `print_range::Bool=false`: Print an info block detailing the color range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function scatterDensityMap(
     simulation_paths::Vector{String},
@@ -3908,9 +3925,9 @@ function scatterDensityMap(
         sim_name = basename(simulation_path)
 
         if isone(n_sims)
-            base_filename="$(y_quantity)-vs-$(x_quantity)"
+            base_filename="$(y_quantity)_vs_$(x_quantity)"
         else
-            base_filename="$(sim_name)-$(y_quantity)-vs-$(x_quantity)"
+            base_filename="$(sim_name)_$(y_quantity)_vs_$(x_quantity)"
         end
 
         plotSnapshot(
@@ -4039,7 +4056,7 @@ function atomicMolecularTransition(
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
-        filename = "$(sim_name)-$(y_quantity)-vs-$(x_quantity)"
+        filename = "$(sim_name)_$(y_quantity)_vs_$(x_quantity)"
 
         if plot_type == :heatmap
 
@@ -4052,7 +4069,7 @@ function atomicMolecularTransition(
                     pf_kwargs=[(;)],
                     # `plotSnapshot` configuration
                     output_path,
-                    base_filename="$(filename)-$(range[1])-Z-$(range[2])",
+                    base_filename="$(filename)_$(range[1])_Z_$(range[2])",
                     output_format=".png",
                     warnings=false,
                     show_progress=true,
@@ -4232,7 +4249,6 @@ Only for gas cells that have entered out routine.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `edges::Vector{<:Number}`: A sorted list of bin edges for `quantity`.
-  - `include_stars::Bool=false`: If the stars will be included as one of the gas phases.
   - `axis_label::Union{AbstractString,Nothing}=nothing`: Label for the axis. It can contain the string `auto_label`, which will be replaced by the default label: `var_name` / 10^`exp_factor` `unit`. If set to `nothing` a label will be assigned automaticaly.
   - `exp_ticks::Bool=false`: If the axis ticks will be the ``\\log_{10}`` of `edges`.
   - `output_path::String="./"`: Path to the output folder.
@@ -4265,13 +4281,16 @@ Only for gas cells that have entered out routine.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function gasBarPlot(
     simulation_paths::Vector{String},
     slice::IndexType,
     quantity::Symbol,
     edges::Vector{<:Number};
-    include_stars::Bool=false,
     axis_label::Union{AbstractString,Nothing}=nothing,
     exp_ticks::Bool=false,
     output_path::String="./",
@@ -4295,7 +4314,7 @@ function gasBarPlot(
     n_bins = length(edges) - 1
 
     # Number of bars per bin
-    n_bars = include_stars ? 4 : 3
+    n_bars = 3
 
     # Compute the dodge argument for `barplot!`
     dodge = repeat(1:n_bars, outer=n_bins)
@@ -4320,17 +4339,9 @@ function gasBarPlot(
         sim_name = basename(simulation_path)
 
         if isone(n_sims)
-            if include_stars
-                base_filename = "fractions-vs-$(quantity)-barplot"
-            else
-                base_filename = "fractions-vs-$(quantity)-barplot-no_stars"
-            end
+            base_filename = "fractions_vs_$(quantity)_barplot"
         else
-            if include_stars
-                base_filename = "$(sim_name)-fractions-vs-$(quantity)-barplot"
-            else
-                base_filename = "$(sim_name)-fractions-vs-$(quantity)-barplot-no_stars"
-            end
+            base_filename = "$(sim_name)_fractions_vs_$(quantity)_barplot"
         end
 
         plotSnapshot(
@@ -4349,7 +4360,7 @@ function gasBarPlot(
             filter_function,
             da_functions=[daGasFractions],
             da_args=[(quantity, edges)],
-            da_kwargs=[(; include_stars, filter_function=filterELSFR)],
+            da_kwargs=[(; filter_function=filterELSFR)],
             post_processing=ppBarPlotLabels,
             pp_args=(include_stars,),
             pp_kwargs=(; colors),
@@ -4543,9 +4554,14 @@ Plot a time series.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
   - `sim_labels::Union{Vector{String},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function timeSeries(
     simulation_paths::Vector{String},
@@ -4557,6 +4573,7 @@ function timeSeries(
     slice::IndexType=(:),
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    extra_filter::Function=filterNothing,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
     backup_results::Bool=false,
     theme::Attributes=Theme(),
@@ -4573,9 +4590,9 @@ function timeSeries(
 
     if fraction
         y_var_name = "Fractional $(y_var_name)"
-        filename = "$(y_quantity)-vs-$(x_quantity)_fractional"
+        filename = "$(y_quantity)_vs_$(x_quantity)_fractional"
     else
-        filename = "$(y_quantity)-vs-$(x_quantity)"
+        filename = "$(y_quantity)_vs_$(x_quantity)"
     end
 
     if fraction || !y_log
@@ -4598,7 +4615,17 @@ function timeSeries(
         slice,
         da_functions=[daEvolution],
         da_args=[(x_quantity, y_quantity)],
-        da_kwargs=[(; filter_mode, smooth=0, cumulative, fraction, scaling=identity, warnings=false)],
+        da_kwargs=[
+            (;
+                filter_mode,
+                extra_filter,
+                smooth=0,
+                cumulative,
+                fraction,
+                scaling=identity,
+                warnings=false,
+            )
+        ],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -4710,9 +4737,9 @@ function gasEvolution(
 
         if isnothing(filename)
             if fractions
-                filename = "gas_fractions-vs-physical_time-$(basename(simulation_path))"
+                filename = "gas_fractions_vs_physical_time_$(basename(simulation_path))"
             else
-                filename = "gas_masses-vs-physical_time-$(basename(simulation_path))"
+                filename = "gas_masses_vs_physical_time_$(basename(simulation_path))"
             end
         end
 
@@ -4890,7 +4917,7 @@ function discAccretionEvolution(
         pf_kwargs=[(;)],
         # `plotTimeSeries` configuration
         output_path,
-        filename="disc-mass-accretion_with_tracers",
+        filename="disc_mass_accretion_with_tracers",
         output_format=".png",
         warnings=false,
         show_progress=true,
@@ -5122,6 +5149,10 @@ Plot a density profile.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function densityProfile(
     simulation_paths::Vector{String},
@@ -5204,8 +5235,8 @@ function densityProfile(
         pf_kwargs=[(;)],
         # `plotSnapshot` configuration
         output_path,
-        base_filename="$(quantity)-density_profile",
-        output_format=".png",
+        base_filename="$(quantity)_density_profile",
+        output_format=".pdf",
         warnings=false,
         show_progress=true,
         # Data manipulation options
@@ -5324,6 +5355,10 @@ Plot a density profile.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=string.(quantities)`: Labels for the plot legend, one per quantity. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function densityProfile(
     simulation_paths::Vector{String},
@@ -5357,7 +5392,7 @@ function densityProfile(
             pf_kwargs=[(;)],
             # `plotSnapshot` configuration
             output_path,
-            base_filename="$(sim_name)-density_profiles",
+            base_filename="$(sim_name)_density_profiles",
             output_format=".png",
             warnings=false,
             show_progress=true,
@@ -5475,6 +5510,10 @@ Plot a mass profile.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{String},Nothing}=string.(quantities)`: Labels for the plot legend, one per quantity. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function massProfile(
     simulation_paths::Vector{String},
@@ -5504,15 +5543,15 @@ function massProfile(
 
         if isone(n_sims)
             if cumulative
-                base_filename = "mass_profiles-cumulative"
+                base_filename = "mass_profiles_cumulative"
             else
                 base_filename = "mass_profiles"
             end
         else
             if cumulative
-                base_filename = "$(sim_name)-mass_profiles-cumulative"
+                base_filename = "$(sim_name)_mass_profiles_cumulative"
             else
-                base_filename = "$(sim_name)-mass_profiles"
+                base_filename = "$(sim_name)_mass_profiles"
             end
         end
 
@@ -5652,7 +5691,7 @@ function velocityProfile(
         pf_kwargs=[(;)],
         # `plotSnapshot` configuration
         output_path,
-        base_filename="$(component)-profile",
+        base_filename="$(component)_profile",
         output_format=".png",
         warnings=false,
         show_progress=true,
@@ -6024,6 +6063,8 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
 
 # References
 
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
+
 R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*. Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
 """
 function compareFeldmann2020(
@@ -6059,7 +6100,7 @@ function compareFeldmann2020(
         pf_kwargs=[(;)],
         # `plotTimeSeries` configuration
         output_path,
-        filename="$(y_quantity)-vs-$(x_quantity)-with-Feldmann2020",
+        filename="$(y_quantity)_vs_$(x_quantity)_with_Feldmann2020",
         output_format=".png",
         warnings=false,
         show_progress=true,
@@ -6158,6 +6199,8 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
 
 # References
 
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
+
 M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
 function compareMolla2015(
@@ -6209,7 +6252,7 @@ function compareMolla2015(
         pf_kwargs=[(;)],
         # `plotSnapshot` configuration
         output_path,
-        base_filename="$(quantity)-profile-with-Molla2015",
+        base_filename="$(quantity)_profile_with_Molla2015",
         output_format=".png",
         warnings=false,
         show_progress=true,
@@ -6770,12 +6813,12 @@ function kennicuttSchmidtLaw(
                 # Read the JLD2 files and sanitize the data
                 ####################################################################################
 
-                x_address = "$(quantity)-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                x_address = "$(quantity)_$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                 x_file    = jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r")
                 x_data    = vec(x_file[x_address][3])
                 x_idxs    = map(x -> isnan(x) || iszero(x), x_data)
 
-                y_address = "stellar_mass-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                y_address = "stellar_mass_$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                 y_file    = jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r")
                 y_data    = vec(y_file[y_address][3])
                 y_idxs    = map(x -> isnan(x) || iszero(x), y_data)
@@ -6784,7 +6827,7 @@ function kennicuttSchmidtLaw(
 
                 if !isnothing(gas_weights)
 
-                    z_address = "gas_weights-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                    z_address = "gas_weights_$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                     z_file    = jldopen(joinpath(temp_folder, "gas_weights.jld2"), "r")
                     z_data    = vec(z_file[z_address][3])
                     z_idxs    = map(x -> isnan(x) || iszero(x), z_data)
@@ -7176,6 +7219,8 @@ Plot the resolved Kennicutt-Schmidt relation with an optional linear fit.
 
 # References
 
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
+
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
@@ -7384,6 +7429,10 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_label::Union{String,Nothing}=basename(simulation_path)`: Label for the scatter plot. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function fitVSFLaw(
     simulation_path::String,
@@ -7740,8 +7789,8 @@ function massMetallicityRelation(
                     aspect=AxisAspect(1),
                 )
 
-                x_address = "stellar_mass-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
-                y_address = "gas_metallicity-$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                x_address = "stellar_mass_$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                y_address = "gas_metallicity_$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
 
                 jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r") do x_file
 
@@ -8248,6 +8297,10 @@ Plot the clumping factor of `quantity` for different volume scales.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `da_ff` filter function.
   - `sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
 function clumpingFactor(
     simulation_paths::Vector{String},
@@ -8313,92 +8366,6 @@ function clumpingFactor(
         xaxis_label="auto_label",
         yaxis_label="auto_label",
         xaxis_var_name=L"\bar{V}",
-        yaxis_var_name=L"C_\rho",
-        xaxis_scale_func=identity,
-        yaxis_scale_func=identity,
-        # Plotting and animation options
-        save_figures=true,
-        backup_results=false,
-        theme,
-        sim_labels,
-        title="",
-        colorbar=false,
-        # Animation options
-        animation=false,
-        animation_filename="animation.mp4",
-        framerate=10,
-    )
-
-    return nothing
-
-end
-
-function clumpingFactorProfile(
-    simulation_paths::Vector{String},
-    slice::IndexType,
-    quantity::Symbol;
-    radius::Unitful.Length=DISK_R,
-    n_bins::Int=100,
-    output_path::String="./",
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    da_ff::Function=filterNothing,
-    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
-    theme::Attributes=Theme(),
-)::Nothing
-
-    (
-        quantity ∈ [:gas, :molecular, :br_molecular, :atomic, :ionized, :neutral] ||
-        throw(ArgumentError("clumpingFactorProfile: `quantity` can only be :gas, :molecular, \
-        :br_molecular, :atomic, :ionized or :neutral, but I got :$(quantity)"))
-    )
-
-    filter_function, translation, rotation, request = selectFilter(
-        filter_mode,
-        mergeRequests(plotParams(Symbol(quantity, "_number_density")).request, ff_request),
-    )
-
-    grid = CircularGrid(radius, n_bins)
-
-    # Draw the figures with CairoMakie
-    plotSnapshot(
-        simulation_paths,
-        request,
-        [lines!];
-        pf_kwargs=[(;)],
-        # `plotSnapshot` configuration
-        output_path,
-        base_filename="$(quantity)_clumping_factor-profile",
-        output_format=".png",
-        warnings=false,
-        show_progress=true,
-        # Data manipulation options
-        slice,
-        filter_function,
-        da_functions=[daClumpingFactorProfile],
-        da_args=[(quantity, grid)],
-        da_kwargs=[(; filter_function=da_ff)],
-        post_processing=getNothing,
-        pp_args=(),
-        pp_kwargs=(;),
-        transform_box=true,
-        translation,
-        rotation,
-        smooth=0,
-        x_unit=u"kpc",
-        y_unit=Unitful.NoUnits,
-        x_exp_factor=0,
-        y_exp_factor=0,
-        x_trim=(-Inf, Inf),
-        y_trim=(-Inf, Inf),
-        x_edges=false,
-        y_edges=false,
-        x_func=identity,
-        y_func=identity,
-        # Axes options
-        xaxis_label="auto_label",
-        yaxis_label="auto_label",
-        xaxis_var_name=L"r",
         yaxis_var_name=L"C_\rho",
         xaxis_scale_func=identity,
         yaxis_scale_func=identity,

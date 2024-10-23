@@ -302,7 +302,7 @@ function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
     # Check for missing data
     !any(isempty, [positions, masses]) || return zeros(typeof(1.0u"kpc"), 3)
 
-    @debug("computeGlobalCenterOfMass: The center of mass will be computed using $(components)")
+    @debug("computeGlobalCenterOfMass: The center of mass will be computed using $(components).")
 
     return computeCenterOfMass(positions, masses)
 
