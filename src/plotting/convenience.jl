@@ -8173,7 +8173,7 @@ function gasVelocityCubes(
                 l_unit,
                 grid.physical_size,
             )
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"]    = grid.n_bins
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"] = grid.n_bins
 
             # Write the column metadata
             attrs(hdf5_group["snap_$(snapshot_number)"])["Columns"] = [
@@ -8454,7 +8454,7 @@ function stellarVelocityCubes(
                 l_unit,
                 grid.physical_size,
             )
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"]    = grid.n_bins
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"] = grid.n_bins
 
             # Write the column metadata
             attrs(hdf5_group["snap_$(snapshot_number)"])["Columns"] = [
