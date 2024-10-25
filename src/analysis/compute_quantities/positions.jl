@@ -302,7 +302,10 @@ function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
     # Check for missing data
     !any(isempty, [positions, masses]) || return zeros(typeof(1.0u"kpc"), 3)
 
-    @debug("computeGlobalCenterOfMass: The center of mass will be computed using $(components).")
+    (
+        !verbosity[] || @info("computeGlobalCenterOfMass: The center of mass will be computed \
+        using $(components).")
+    )
 
     return computeCenterOfMass(positions, masses)
 
@@ -494,7 +497,7 @@ function findHaloSubhalo(
 end
 
 """
-    locateStellarBirthPlace(data_dict::Dict; <keyword arguments>)::NTuple{2,Vector{Int}}
+    locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
 
 Find in which halo and subhalo each star in `data_dict` was born.
 
@@ -515,7 +518,6 @@ For stars with no halo or subhalo, an index of -1 is given. The subhalo index is
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
 # Returns
 
@@ -524,7 +526,7 @@ For stars with no halo or subhalo, an index of -1 is given. The subhalo index is
       + A vector with the birth halo (index starting at 1) of each star (in the order of `data_dict`).
       + A vector with the birth subhalo (index starting at 1) of each star (in the order of `data_dict`).
 """
-function locateStellarBirthPlace(data_dict::Dict; warnings::Bool=true)::NTuple{2,Vector{Int}}
+function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
 
     ################################################################################################
     # Read the data in `data_dict`
@@ -590,7 +592,7 @@ function locateStellarBirthPlace(data_dict::Dict; warnings::Bool=true)::NTuple{2
     #   - 6. Lookback time
     #   - 7. Snapshot path
     #   - 8. Group catalog path
-    simulation_table = makeSimulationTable(data_dict[:sim_data].path; warnings)
+    simulation_table = makeSimulationTable(data_dict[:sim_data].path)
 
     # Allocate memory
     birth_halo    = fill(-1, length(birth_times))
@@ -637,15 +639,15 @@ function locateStellarBirthPlace(data_dict::Dict; warnings::Bool=true)::NTuple{2
             ),
             :gc_data => GroupCatalog(
                 groupcat_path,
-                readGroupCatHeader(groupcat_path; warnings),
+                readGroupCatHeader(groupcat_path),
             ),
         )
 
         # Read the data in the snapshot
         past_data_dict = merge(
             metadata,
-            readSnapshot(snapshot_path, request; warnings),
-            readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+            readSnapshot(snapshot_path, request),
+            readGroupCatalog(groupcat_path, snapshot_path, request),
         )
 
         # Get the birth index of the stars born in this snapshot

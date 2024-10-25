@@ -500,8 +500,10 @@ function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},U
     # Check for missing data
     !any(isempty, [positions, velocities, masses]) || return I
 
-    @debug("computeGlobalAMRotationMatrix: The rotation matrix will be computed \
-    using $(components).")
+    (
+        !verbosity[] || @info("computeGlobalAMRotationMatrix: The rotation matrix will be \
+        computed using $(components).")
+    )
 
     return computeAMRotationMatrix(positions, velocities, masses)
 

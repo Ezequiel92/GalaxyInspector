@@ -3,7 +3,7 @@
 ####################################################################################################
 
 """
-    readGroupCatHeader(path::Union{String,Missing}; <keyword arguments>)::GroupCatHeader
+    readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
 Read the header of a group catalog in the HDF5 format.
 
@@ -14,17 +14,16 @@ Read the header of a group catalog in the HDF5 format.
 # Arguments
 
   - `path::Union{String,Missing}`: Path to the group catalog file or folder.
-  - `warnings::Bool=true`: If a warning will be given when `path` is missing.
 
 # Returns
 
   - A [`GroupCatHeader`](@ref).
 """
-function readGroupCatHeader(path::Union{String,Missing}; warnings::Bool=true)::GroupCatHeader
+function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     if ismissing(path)
 
-        !warnings || @warn("readGroupCatHeader: The group catalog file or folder is missing")
+        !verbosity[] || @warn("readGroupCatHeader: The group catalog file or folder is missing")
 
         return GroupCatHeader()
 
@@ -444,8 +443,7 @@ end
     readGoupCatBlocks(
         file_path::String,
         snapshot_path::String,
-        request::Dict{Symbol,Vector{String}};
-        <keyword arguments>
+        request::Dict{Symbol,Vector{String}},
     )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
 Read the specified blocks from a group catalog file.
@@ -455,7 +453,6 @@ Read the specified blocks from a group catalog file.
   - `file_path::String`: Path to the group catalog file.
   - `snapshot_path::String`: Path to the corresponding snapshot file or folder. This is needed for unit conversion.
   - `request::Dict{Symbol,Vector{String}}`: The blocks to be read. It must have the shape `group type` -> [`block`, `block`, `block`].
-  - `warnings::Bool=true`: If a warning will be given when there are missing blocks.
 
 # Returns
 
@@ -464,8 +461,7 @@ Read the specified blocks from a group catalog file.
 function readGoupCatBlocks(
     file_path::String,
     snapshot_path::String,
-    request::Dict{Symbol,Vector{String}};
-    warnings::Bool=true,
+    request::Dict{Symbol,Vector{String}},
 )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
     if isfile(file_path)
@@ -505,7 +501,7 @@ function readGoupCatBlocks(
                 if isempty(hdf5_group)
 
                     (
-                        !warnings ||
+                        !verbosity[] ||
                         @warn("readGoupCatBlocks: The group catalog type :$(component) \
                         in $(file_path) is empty")
                     )
@@ -529,7 +525,7 @@ function readGoupCatBlocks(
                         else
 
                             (
-                                !warnings ||
+                                !verbosity[] ||
                                 @warn("readGoupCatBlocks: The block $(block) for the group \
                                 catalog type :$(component) in $(file_path) is missing")
                             )
@@ -545,7 +541,7 @@ function readGoupCatBlocks(
             else
 
                 (
-                    !warnings ||
+                    !verbosity[] ||
                     @warn("readGoupCatBlocks: The group catalog type \
                     :$(component) in $(file_path) is missing")
                 )
@@ -571,8 +567,7 @@ end
 """
     readSnapBlocks(
         file_path::String,
-        request::Dict{Symbol,Vector{String}};
-        <keyword arguments>
+        request::Dict{Symbol,Vector{String}},
     )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
 Read the specified blocks from a snapshot file.
@@ -581,7 +576,6 @@ Read the specified blocks from a snapshot file.
 
   - `file_path::String`: Path to the snapshot file.
   - `request::Dict{Symbol,Vector{String}}`: The blocks to be read. It must have the shape `cell/particle type` -> [`block`, `block`, `block`].
-  - `warnings::Bool=true`: If a warning will be given when there are missing blocks.
 
 # Returns
 
@@ -589,8 +583,7 @@ Read the specified blocks from a snapshot file.
 """
 function readSnapBlocks(
     file_path::String,
-    request::Dict{Symbol,Vector{String}};
-    warnings::Bool=true,
+    request::Dict{Symbol,Vector{String}},
 )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
     if isfile(file_path)
@@ -633,7 +626,7 @@ function readSnapBlocks(
                 if isempty(hdf5_group)
 
                     (
-                        !warnings ||
+                        !verbosity[] ||
                         @warn("readSnapBlocks: The cell/particle type \
                         :$(component) in $(file_path) is empty")
                     )
@@ -694,7 +687,7 @@ function readSnapBlocks(
                         else
 
                             (
-                                !warnings ||
+                                !verbosity[] ||
                                 @warn("readSnapBlocks: The block $(block) for the \
                                 cell/particle type :$(component) in $(file_path) is missing")
                             )
@@ -710,7 +703,7 @@ function readSnapBlocks(
             else
 
                 (
-                    !warnings ||
+                    !verbosity[] ||
                     @warn("readSnapBlocks: The cell/particle type \
                     :$(component) in $(file_path) is missing")
                 )
@@ -736,8 +729,7 @@ end
     readGroupCatalog(
         path::Union{String,Missing},
         snapshot_path::String,
-        request::Dict{Symbol,Vector{String}};
-        <keyword arguments>
+        request::Dict{Symbol,Vector{String}},
     )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
 Read the specified blocks from a group catalog file or folder.
@@ -747,7 +739,6 @@ Read the specified blocks from a group catalog file or folder.
   - `path::Union{String,Missing}`: Path to the group catalog file or folder.
   - `snapshot_path::String`: Path to the corresponding snapshot file or folder. This is needed for unit conversion.
   - `request::Dict{Symbol,Vector{String}}`: Which blocks will be read. It must have the shape `group type` -> [`block`, `block`, `block`].
-  - `warnings::Bool=true`: If a warning will be given when there are missing blocks.
 
 # Returns
 
@@ -756,13 +747,12 @@ Read the specified blocks from a group catalog file or folder.
 function readGroupCatalog(
     path::Union{String,Missing},
     snapshot_path::String,
-    request::Dict{Symbol,Vector{String}};
-    warnings::Bool=true,
+    request::Dict{Symbol,Vector{String}},
 )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
     if ismissing(path)
 
-        !warnings || @warn("readGroupCatalog: The group catalog file or folder is missing")
+        !verbosity[] || @warn("readGroupCatalog: The group catalog file or folder is missing")
 
         return Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
@@ -774,7 +764,7 @@ function readGroupCatalog(
             I don't know how to read it"))
         )
 
-        return readGoupCatBlocks(path, snapshot_path, request; warnings)
+        return readGoupCatBlocks(path, snapshot_path, request)
 
     elseif isdir(path)
 
@@ -791,7 +781,7 @@ function readGroupCatalog(
 
         # Read the data in each sub file
         data_in_files = [
-            readGoupCatBlocks(file, snapshot_path, request; warnings) for file in sub_files
+            readGoupCatBlocks(file, snapshot_path, request) for file in sub_files
         ]
 
         # Allocate memory
@@ -829,8 +819,7 @@ end
 """
     readSnapshot(
         path::Union{String,Missing},
-        request::Dict{Symbol,Vector{String}};
-        <keyword arguments>
+        request::Dict{Symbol,Vector{String}},
     )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
 Read the specified blocks from a snapshot file or folder.
@@ -839,7 +828,6 @@ Read the specified blocks from a snapshot file or folder.
 
   - `path::Union{String,Missing}`: Path to the snapshot file or folder.
   - `request::Dict{Symbol,Vector{String}}`: Which blocks will be read. It must have the shape `cell/particle type` -> [`block`, `block`, `block`].
-  - `warnings::Bool=true`: If a warning will be given when some/all the data is missing.
 
 # Returns
 
@@ -847,8 +835,7 @@ Read the specified blocks from a snapshot file or folder.
 """
 function readSnapshot(
     path::Union{String,Missing},
-    request::Dict{Symbol,Vector{String}};
-    warnings::Bool=true,
+    request::Dict{Symbol,Vector{String}},
 )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
     if ismissing(path)
@@ -863,7 +850,7 @@ function readSnapshot(
             I don't know how to read it"))
         )
 
-        return readSnapBlocks(path, request; warnings)
+        return readSnapBlocks(path, request)
 
     elseif isdir(path)
 
@@ -879,7 +866,7 @@ function readSnapshot(
         sort!(sub_files)
 
         # Read the data in each sub file
-        data_in_files = [readSnapBlocks(file, request; warnings) for file in sub_files]
+        data_in_files = [readSnapBlocks(file, request) for file in sub_files]
 
         # Allocate memory
         output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
@@ -941,8 +928,7 @@ end
 """
     readSfrFile(
         file_path::String,
-        snap_path::String;
-        <keyword arguments>
+        snap_path::String,
     )::Dict{Int32,VecOrMat{<:Number}}
 
 Read the `sfr.txt` file.
@@ -951,7 +937,6 @@ Read the `sfr.txt` file.
 
   - `file_path::String`: Path to the `sfr.txt` file.
   - `snapshot_path::String`: Path to one snapshot file or folder of the simulation. This is needed for unit conversion.
-  - `warnings::Bool=true`: If a warning will be given when the `sfr.txt` file does not have the expected structure.
 
 # Returns
 
@@ -966,8 +951,7 @@ Read the `sfr.txt` file.
 """
 function readSfrFile(
     file_path::String,
-    snap_path::String;
-    warnings::Bool=true,
+    snap_path::String,
 )::Dict{Int32,VecOrMat{<:Number}}
 
     isfile(file_path) || throw(ArgumentError("readSfrFile: $(file_path) does not exist as a file"))
@@ -983,7 +967,7 @@ function readSfrFile(
         than 6 columns in `sfr.txt`"))
     )
     (
-        !(warnings && n_cols < 6) ||
+        !(verbosity[] && n_cols < 6) ||
         @warn("readSfrFile: I could only find $(n_cols) columns \
         in $(flie_path). I was expecting 6")
     )
@@ -1011,7 +995,6 @@ For each process in `targets` a matrix with all the CPU usage data is returned.
   - `file_path::String`: Path to the `cpu.txt` file.
   - `targets::Vector{String}`: Target processes.
   - `step::Int=1`: Step used to traverse the rows.
-  - `warnings::Bool=true`: If a warning will be given when there are missing targets.
 
 # Returns
 
@@ -1030,7 +1013,6 @@ function readCpuFile(
     file_path::String,
     targets::Vector{String};
     step::Int=1,
-    warnings::Bool=true,
 )::Dict{String,Matrix{Float64}}
 
     isfile(file_path) || throw(ArgumentError("readCpuFile: $(file_path) does not exist as a file"))
@@ -1081,7 +1063,7 @@ function readCpuFile(
     end
 
     (
-        !(warnings && any(isempty, values(data_aux))) ||
+        !(verbosity[] && any(isempty, values(data_aux))) ||
         @warn("readCpuFile: I could not find some of the target rows in $(file_path)")
     )
 
@@ -1101,7 +1083,7 @@ function readCpuFile(
         else
             data_out[target] = vcat(values...)
             (
-                !(warnings && step > l_e) ||
+                !(verbosity[] && step > l_e) ||
                 @warn("readCpuFile: `step` = $(step) is bigger than the number \
                 of time steps in $(file_path)")
             )
@@ -1114,7 +1096,7 @@ function readCpuFile(
 end
 
 """
-    getSnapshotPaths(simulation_path::String; <keyword arguments>)::Dict{Symbol,Vector{String}}
+    getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
 Find the path and number of every snapshot in `simulation_path`.
 
@@ -1125,7 +1107,6 @@ Find the path and number of every snapshot in `simulation_path`.
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `warnings::Bool=true`: If a warning will be raised when no snapshot files or folders are found.
 
 # Returns
 
@@ -1134,7 +1115,7 @@ Find the path and number of every snapshot in `simulation_path`.
       + `:numbers` -> The number that characterize each snapshot.
       + `:paths`   -> The full path to each snapshot.
 """
-function getSnapshotPaths(simulation_path::String; warnings::Bool=true)::Dict{Symbol,Vector{String}}
+function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
     (
         isdir(simulation_path) ||
@@ -1152,7 +1133,7 @@ function getSnapshotPaths(simulation_path::String; warnings::Bool=true)::Dict{Sy
     if isempty(path_list)
 
         (
-            !warnings ||
+            !verbosity[] ||
             @warn("getSnapshotPaths: I could not find any file named \
             $(SNAP_BASENAME)_*.hdf5 within $(simulation_path), or any of its subfolders")
         )
@@ -1178,7 +1159,7 @@ function getSnapshotPaths(simulation_path::String; warnings::Bool=true)::Dict{Sy
 end
 
 """
-    getGroupCatPaths(simulation_path::String; <keyword arguments>)::Dict{Symbol,Vector{String}}
+    getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
 Find the path and number of every group catalog in `simulation_path`.
 
@@ -1189,7 +1170,6 @@ Find the path and number of every group catalog in `simulation_path`.
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `warnings::Bool=true`: If a warning will be raised when no group catalog file or folders are found.
 
 # Returns
 
@@ -1198,7 +1178,7 @@ Find the path and number of every group catalog in `simulation_path`.
       + `:numbers` -> The number that characterize each group catalog.
       + `:paths`   -> The full path to each group catalog.
 """
-function getGroupCatPaths(simulation_path::String; warnings::Bool=true)::Dict{Symbol,Vector{String}}
+function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
     (
         isdir(simulation_path) ||
@@ -1216,7 +1196,7 @@ function getGroupCatPaths(simulation_path::String; warnings::Bool=true)::Dict{Sy
     if isempty(path_list)
 
         (
-            !warnings ||
+            !verbosity[] ||
             @warn("getGroupCatPaths: I could not find any file named \
             $(GC_BASENAME)_*.hdf5 within $(simulation_path), or any of its subfolders")
         )
@@ -1229,7 +1209,7 @@ function getGroupCatPaths(simulation_path::String; warnings::Bool=true)::Dict{Sy
     reg = Regex("(?<=$(GC_BASENAME)_).*?(?=(?:\\.)|\$)")
     number_list = map(x -> match(reg, x).match, path_list)
 
-    if readGroupCatHeader(first(path_list); warnings).num_files > 1
+    if readGroupCatHeader(first(path_list)).num_files > 1
         # If there are multiple files per group catalog, get the path to the group catalog directory
         map!(dirname, path_list, path_list)
         # Delete duplicates
@@ -1242,14 +1222,13 @@ function getGroupCatPaths(simulation_path::String; warnings::Bool=true)::Dict{Sy
 end
 
 """
-    makeSimulationTable(simulation_path::String; <keyword arguments>)::DataFrame
+    makeSimulationTable(simulation_path::String)::DataFrame
 
 Construct a dataframe with the path, time stamps and number of each snapshot and group catalog file in `simulation_path`.
 
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `warnings::Bool=true`: If a warning will be raised when there are missing files.
 
 # Returns
 
@@ -1264,14 +1243,14 @@ Construct a dataframe with the path, time stamps and number of each snapshot and
       + `:snapshot_paths` -> Full path to the snapshots.
       + `:groupcat_paths` -> Full path to the group catalog files.
 """
-function makeSimulationTable(simulation_path::String; warnings::Bool=true)::DataFrame
+function makeSimulationTable(simulation_path::String)::DataFrame
 
     # Get the path and number of each snapshot
-    snap_source = getSnapshotPaths(simulation_path; warnings)
+    snap_source = getSnapshotPaths(simulation_path)
     snapshot_paths = isempty(snap_source[:paths]) ? [missing] : snap_source[:paths]
 
     # Get the path and number of each group catalog file
-    groupcat_source = getGroupCatPaths(simulation_path; warnings)
+    groupcat_source = getGroupCatPaths(simulation_path)
     groupcat_paths  = isempty(groupcat_source[:paths]) ? [missing] : groupcat_source[:paths]
 
     (
@@ -1314,8 +1293,7 @@ end
     makeDataDict(
         simulation_path::String,
         slice_n::Int,
-        request::Dict{Symbol,Vector{String}};
-        <keyword arguments>
+        request::Dict{Symbol,Vector{String}},
     )::Dict
 
 Construct a data dictionary for a single snapshot.
@@ -1325,7 +1303,6 @@ Construct a data dictionary for a single snapshot.
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
   - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
   - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref).
-  - `warnings::Bool=true`: If a warning will be raised when there is messing data.
 
 # Returns
 
@@ -1346,8 +1323,7 @@ Construct a data dictionary for a single snapshot.
 function makeDataDict(
     simulation_path::String,
     slice_n::Int,
-    request::Dict{Symbol,Vector{String}};
-    warnings::Bool=true,
+    request::Dict{Symbol,Vector{String}},
 )::Dict
 
     # Make a dataframe for every simulation, with the following columns:
@@ -1359,7 +1335,7 @@ function makeDataDict(
     #   - 6. Lookback time
     #   - 7. Snapshot path
     #   - 8. Group catalog path
-    simulation_table = makeSimulationTable(simulation_path; warnings)
+    simulation_table = makeSimulationTable(simulation_path)
 
     snapshot_numbers = simulation_table[!, :numbers]
 
@@ -1404,20 +1380,20 @@ function makeDataDict(
 
         :gc_data => GroupCatalog(
             groupcat_path,
-            readGroupCatHeader(groupcat_path; warnings),
+            readGroupCatHeader(groupcat_path),
         ),
     )
 
     return merge(
         metadata,
-        readSnapshot(snapshot_path, request; warnings),
-        readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+        readSnapshot(snapshot_path, request),
+        readGroupCatalog(groupcat_path, snapshot_path, request),
     )
 
 end
 
 """
-    countSnapshot(simulation_path::String; warnings::Bool=true)::Int
+    countSnapshot(simulation_path::String)::Int
 
 Count the number of snapshots in `simulation_path`.
 
@@ -1428,13 +1404,12 @@ Count the number of snapshots in `simulation_path`.
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `warnings::Bool=true`: If a warning will be raised when no snapshot files or folders are found.
 
 # Returns
 
   - The number of snapshots.
 """
-function countSnapshot(simulation_path::String; warnings::Bool=true)::Int
+function countSnapshot(simulation_path::String)::Int
 
     (
         isdir(simulation_path) ||
@@ -1452,7 +1427,7 @@ function countSnapshot(simulation_path::String; warnings::Bool=true)::Int
     if isempty(path_list)
 
         (
-            !warnings ||
+            !verbosity[] ||
             @warn("countSnapshot: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )
@@ -1669,7 +1644,6 @@ Compute the minimum and maximum values of `block`.
 
       + `data::VecOrMat{<:Number}`: Data returned by [`getBlock`](@ref).
       + `values::Vector{<:Number}`: A vector with the values to be compared.
-  - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
 # Returns
 
@@ -1681,7 +1655,6 @@ function findQtyExtrema(
     component::Symbol,
     block::String;
     f::Function=identity,
-    warnings::Bool=true,
 )::NTuple{2,<:Number}
 
     (
@@ -1689,12 +1662,12 @@ function findQtyExtrema(
         throw(ArgumentError("findQtyExtrema: $(simulation_path) does not exist as a directory"))
     )
 
-    simulation_table = makeSimulationTable(simulation_path; warnings)
+    simulation_table = makeSimulationTable(simulation_path)
 
     if slice_n > 0
 
         # Get the number in the filename
-        snap_n = safeSelect(simulation_table[!, :numbers], slice_n; warnings)
+        snap_n = safeSelect(simulation_table[!, :numbers], slice_n)
 
         # Check that after slicing there is one snapshot left
         (

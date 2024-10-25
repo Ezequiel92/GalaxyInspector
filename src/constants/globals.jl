@@ -21,6 +21,11 @@ Relative path, within the simulation directory, of the `cpu.txt` file.
 """
 const CPU_REL_PATH = "output/cpu.txt"
 
+"""
+Default verbosity for logging.
+"""
+const verbosity = Ref(false)
+
 ########################
 # Characteristic scales
 ########################

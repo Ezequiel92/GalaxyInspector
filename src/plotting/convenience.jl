@@ -46,7 +46,6 @@ Write a text file with information about a given snapshot.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1.
-  - `warnings::Bool=true`: If a warning will be given when there is missing files.
 """
 function snapshotReport(
     simulation_paths::Vector{String},
@@ -55,7 +54,6 @@ function snapshotReport(
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
-    warnings::Bool=true,
 )::Nothing
 
     @inbounds for simulation_path in simulation_paths
@@ -76,7 +74,7 @@ function snapshotReport(
         simulation_table = makeSimulationTable(simulation_path)
 
         # Get the number in the filename
-        snap_n = safeSelect(simulation_table[!, :numbers], slice_n; warnings)
+        snap_n = safeSelect(simulation_table[!, :numbers], slice_n)
 
         # Check that after slicing there is one snapshot left
         (
@@ -200,12 +198,7 @@ function snapshotReport(
             if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
 
                 # Create the data dictionary
-                data_dict = makeDataDict(
-                    simulation_path,
-                    slice_n,
-                    request;
-                    warnings,
-                )
+                data_dict = makeDataDict(simulation_path, slice_n, request)
 
             else
 
@@ -695,7 +688,6 @@ function snapshotReport(
                     :gas,
                     quantity;
                     f=x -> filter(!isnan, x),
-                    warnings,
                 )
 
                 println(file, "\t\tMaximum $name: $(round(ustrip(unit, max), sigdigits=5)) $unit")
@@ -795,7 +787,7 @@ function snapshotReport(
         if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
 
             # Check that the requested halo index is within bounds
-            n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
+            n_groups_total = readGroupCatHeader(groupcat_path).n_groups_total
             (
                 0 < halo_idx <= n_groups_total ||
                 throw(ArgumentError("snapshotReport: There is only $(n_groups_total) FoF \
@@ -827,7 +819,7 @@ function snapshotReport(
             )
 
             # Read the necessary data
-            gc_data = readGroupCatalog(groupcat_path, snapshot_path, request; warnings)
+            gc_data = readGroupCatalog(groupcat_path, snapshot_path, request)
 
             # Check that the requested subhalo index is within bounds
             g_n_subs = gc_data[:group]["G_Nsubs"]
@@ -873,12 +865,7 @@ function snapshotReport(
 
             if snapshot_length >= 2
 
-                insitu_idx = filterInsituStars(
-                    data_dict;
-                    halo_idx,
-                    subhalo_rel_idx,
-                    warnings,
-                )[:stars]
+                insitu_idx = filterInsituStars(data_dict; halo_idx, subhalo_rel_idx)[:stars]
 
                 iMs = sum(data_dict[:stars]["MASS"][insitu_idx]; init=0.0u"Msun")
                 tMs = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
@@ -1604,12 +1591,10 @@ Write a text file with information about a given simulation
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be printed for each simulation.
   - `output_path::String="./"`: Path to the output folder.
-  - `warnings::Bool=true`: If a warning will be given when there is missing files.
 """
 function simulationReport(
     simulation_paths::Vector{String};
     output_path::String="./",
-    warnings::Bool=true,
 )::Nothing
 
     @inbounds for simulation_path in simulation_paths
@@ -1748,16 +1733,16 @@ function simulationReport(
             if subfind_active
 
                 # Read the group catalog header
-                groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+                groupcat_header = readGroupCatHeader(groupcat_path)
 
                 # Read the number of halos
-                n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
+                n_groups_total = readGroupCatHeader(groupcat_path).n_groups_total
 
                 # Make the subfind request
                 request = Dict(:subhalo => ["S_LenType", "S_CM", "S_Pos"])
 
                 # Read the necessary data
-                gc_data = readGroupCatalog(groupcat_path, snapshot_path, request; warnings)
+                gc_data = readGroupCatalog(groupcat_path, snapshot_path, request)
 
                 # Load the necessary data
                 s_cm       = gc_data[:subhalo]["S_CM"][:, 1]
@@ -1785,8 +1770,8 @@ function simulationReport(
                 # Create the data dictionary
                 data_dict = merge(
                     metadata,
-                    readSnapshot(snapshot_path, request; warnings),
-                    readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+                    readSnapshot(snapshot_path, request),
+                    readGroupCatalog(groupcat_path, snapshot_path, request),
                 )
 
                 filterData!(data_dict; filter_function)
@@ -1861,7 +1846,7 @@ function simulationReport(
             if subfind_active && !first_subhalo_flag
 
                 # Read the number of halos
-                n_groups_total = readGroupCatHeader(groupcat_path; warnings).n_groups_total
+                n_groups_total = readGroupCatHeader(groupcat_path).n_groups_total
 
                 println(file, "#"^100)
                 println(file, "\nFirst snapshot with subfind information:")
@@ -2006,13 +1991,12 @@ function sfrTXT(
         output_path,
         filename="$(y_quantity)_vs_$(x_quantity)",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice=(:),
         da_functions=[daSFRtxt],
         da_args=[(x_quantity, y_quantity)],
-        da_kwargs=[(; smooth, warnings=false)],
+        da_kwargs=[(; smooth)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -2111,13 +2095,12 @@ function cpuTXT(
         output_path,
         filename="$(y_quantity)_vs_$(x_quantity)_for_$(safe_str_target)",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice=(:),
         da_functions=[daCPUtxt],
         da_args=[(target, x_quantity, y_quantity)],
-        da_kwargs=[(; smooth, warnings=false)],
+        da_kwargs=[(; smooth)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -2207,15 +2190,14 @@ function stellarBirthHalos(
     data_dict = makeDataDict(
         simulation_path,
         slice_n,
-        request;
-        warnings=false,
+        request,
     )
 
     # Filter the data
     filterData!(data_dict; filter_function)
 
     # Find the birth place of every star
-    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict; warnings=false)
+    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
 
     # Write the results to CSV files
     CSV.write(
@@ -2296,7 +2278,6 @@ Plot a 2D histogram of the density.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
   - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -2349,7 +2330,6 @@ function densityMap(
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
     reduce::Int=1,
-    print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
@@ -2396,21 +2376,13 @@ function densityMap(
                     output_path,
                     base_filename,
                     output_format=".png",
-                    warnings=false,
                     show_progress=true,
                     # Data manipulation options
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
                     da_functions=[daDensity2DProjection],
                     da_args=[(grid, quantity, ring(types, i))],
-                    da_kwargs=[
-                        (;
-                            reduce,
-                            projection_plane,
-                            print_range,
-                            filter_function=da_ff,
-                        ),
-                    ],
+                    da_kwargs=[(; reduce, projection_plane, filter_function=da_ff)],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
                     pp_kwargs=(; color=:white),
@@ -2511,7 +2483,6 @@ Plot a 2D map of the gas SFR.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -2558,7 +2529,6 @@ function gasSFRMap(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
-    print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
@@ -2607,20 +2577,13 @@ function gasSFRMap(
                 output_path,
                 base_filename,
                 output_format=".png",
-                warnings=false,
                 show_progress=true,
                 # Data manipulation options
                 slice=iszero(slice) ? (:) : slice,
                 filter_function,
                 da_functions=[daGasSFR2DProjection],
                 da_args=[(grid, type)],
-                da_kwargs=[
-                    (;
-                        projection_plane,
-                        print_range,
-                        filter_function=da_ff,
-                    ),
-                ],
+                da_kwargs=[(; projection_plane, filter_function=da_ff)],
                 post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                 pp_args=(annotation,),
                 pp_kwargs=(; color=:white),
@@ -2731,7 +2694,6 @@ Plot a 2D histogram of the density, with the velocity field.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -2757,7 +2719,6 @@ function densityMapVelField(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
-    print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
@@ -2826,17 +2787,13 @@ function densityMapVelField(
                     output_path,
                     base_filename,
                     output_format=".png",
-                    warnings=false,
                     show_progress=true,
                     # Data manipulation options
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
                     da_functions=[daDensity2DProjection, daVelocityField],
                     da_args=[(grid_hm, quantity, ring(types, i)), (grid_vf, component)],
-                    da_kwargs=[
-                        (; projection_plane, print_range),
-                        (; projection_plane),
-                    ],
+                    da_kwargs=[(; projection_plane), (; projection_plane)],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
                     pp_kwargs=(; color=:white),
@@ -2941,7 +2898,6 @@ Plot a 2D histogram of the metallicity.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic metallicity range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -2989,7 +2945,6 @@ function metallicityMap(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
-    print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
@@ -3056,21 +3011,13 @@ function metallicityMap(
                     output_path,
                     base_filename,
                     output_format=".png",
-                    warnings=false,
                     show_progress=true,
                     # Data manipulation options
                     slice=iszero(slice) ? (:) : slice,
                     filter_function,
                     da_functions=[daMetallicity2DProjection],
                     da_args=[(grid, component, ring(types, i))],
-                    da_kwargs=[
-                        (;
-                            element=:all,
-                            projection_plane,
-                            print_range,
-                            filter_function=da_ff,
-                        ),
-                    ],
+                    da_kwargs=[(; element=:all, projection_plane, filter_function=da_ff)],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
                     pp_kwargs=(; color=:white),
@@ -3171,7 +3118,6 @@ Plot a 2D histogram of the temperature.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -3192,7 +3138,6 @@ function temperatureMap(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
-    print_range::Bool=false,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
@@ -3235,14 +3180,13 @@ function temperatureMap(
                 output_path,
                 base_filename,
                 output_format=".png",
-                warnings=false,
                 show_progress=true,
                 # Data manipulation options
                 slice=iszero(slice) ? (:) : slice,
                 filter_function,
                 da_functions=[daTemperature2DProjection],
                 da_args=[(grid, type)],
-                da_kwargs=[(; projection_plane, print_range)],
+                da_kwargs=[(; projection_plane)],
                 post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                 pp_args=(annotation,),
                 pp_kwargs=(; color=:white),
@@ -3547,7 +3491,6 @@ function scatterPlot(
             output_path,
             base_filename="$(sim_name)_$(y_quantity)_vs_$(x_quantity)",
             output_format=".png",
-            warnings=false,
             show_progress=true,
             # Data manipulation options
             slice=slice,
@@ -3837,7 +3780,6 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `colorbar::Bool=false`: If a colorbar will be added.
-  - `print_range::Bool=false`: Print an info block detailing the color range.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
@@ -3863,7 +3805,6 @@ function scatterDensityMap(
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     colorbar::Bool=false,
-    print_range::Bool=false,
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -3939,7 +3880,6 @@ function scatterDensityMap(
             output_path,
             base_filename,
             output_format=".png",
-            warnings=false,
             show_progress=true,
             # Data manipulation options
             slice,
@@ -3954,7 +3894,6 @@ function scatterDensityMap(
                     y_log,
                     total,
                     n_bins,
-                    print_range,
                     filter_function=da_ff,
                 ),
             ],
@@ -4071,7 +4010,6 @@ function atomicMolecularTransition(
                     output_path,
                     base_filename="$(filename)_$(range[1])_Z_$(range[2])",
                     output_format=".png",
-                    warnings=false,
                     show_progress=true,
                     # Data manipulation options
                     slice,
@@ -4135,7 +4073,6 @@ function atomicMolecularTransition(
                 output_path,
                 base_filename=filename,
                 output_format=".png",
-                warnings=false,
                 show_progress=true,
                 # Data manipulation options
                 slice,
@@ -4353,7 +4290,6 @@ function gasBarPlot(
             output_path,
             base_filename,
             output_format=".png",
-            warnings=false,
             show_progress=true,
             # Data manipulation options
             slice,
@@ -4609,7 +4545,6 @@ function timeSeries(
         output_path,
         filename,
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -4623,7 +4558,6 @@ function timeSeries(
                 cumulative,
                 fraction,
                 scaling=identity,
-                warnings=false,
             )
         ],
         post_processing=getNothing,
@@ -4751,13 +4685,12 @@ function gasEvolution(
             output_path,
             filename,
             output_format=".png",
-            warnings=false,
             show_progress=true,
             # Data manipulation options
             slice,
             da_functions=[daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
-            da_kwargs=[(; filter_mode, extra_filter, smooth=0, scaling=identity, warnings=false)],
+            da_kwargs=[(; filter_mode, extra_filter, smooth=0, scaling=identity)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -4839,16 +4772,15 @@ function virialAccretionEvolution(
         output_path,
         filename,
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
         da_functions=[daVirialAccretion],
         da_args=[()],
-        da_kwargs=[(; filter_mode=:halo, halo_idx, tracers, smooth, warnings=false)],
+        da_kwargs=[(; filter_mode=:halo, halo_idx, tracers, smooth)],
         post_processing=ppHorizontalFlags!,
         pp_args=([0.0],),
-        pp_kwargs=(; colors=[:gray65], line_styles=[nothing], warnings=false),
+        pp_kwargs=(; colors=[:gray65], line_styles=[nothing]),
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
@@ -4919,16 +4851,15 @@ function discAccretionEvolution(
         output_path,
         filename="disc_mass_accretion_with_tracers",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
         da_functions=[daDiscAccretion],
         da_args=[()],
-        da_kwargs=[(; filter_mode=:halo, max_r, max_z, smooth, warnings=false)],
+        da_kwargs=[(; filter_mode=:halo, max_r, max_z, smooth)],
         post_processing=ppHorizontalFlags!,
         pp_args=([0.0],),
-        pp_kwargs=(; colors=[:gray65], line_styles=[nothing], warnings=false),
+        pp_kwargs=(; colors=[:gray65], line_styles=[nothing]),
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
@@ -5031,7 +4962,6 @@ function rotationCurve(
         output_path,
         base_filename="rotation_curve",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -5237,7 +5167,6 @@ function densityProfile(
         output_path,
         base_filename="$(quantity)_density_profile",
         output_format=".pdf",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -5394,7 +5323,6 @@ function densityProfile(
             output_path,
             base_filename="$(sim_name)_density_profiles",
             output_format=".png",
-            warnings=false,
             show_progress=true,
             # Data manipulation options
             slice,
@@ -5565,7 +5493,6 @@ function massProfile(
             output_path,
             base_filename,
             output_format=".png",
-            warnings=false,
             show_progress=true,
             # Data manipulation options
             slice,
@@ -5693,7 +5620,6 @@ function velocityProfile(
         output_path,
         base_filename="$(component)_profile",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -5826,7 +5752,6 @@ function stellarHistory(
         output_path,
         base_filename="$(quantity)_history",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -5948,7 +5873,6 @@ function stellarCircularity(
         output_path,
         base_filename="circularity_histogram",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -6102,13 +6026,12 @@ function compareFeldmann2020(
         output_path,
         filename="$(y_quantity)_vs_$(x_quantity)_with_Feldmann2020",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
         da_functions=[daEvolution],
         da_args=[(x_quantity, y_quantity)],
-        da_kwargs=[(; filter_mode, smooth=0, scaling=identity, warnings=false)],
+        da_kwargs=[(; filter_mode, smooth=0, scaling=identity)],
         post_processing=ppFeldmann2020!,
         pp_args=(x_quantity, y_quantity),
         pp_kwargs=(; scatter),
@@ -6254,7 +6177,6 @@ function compareMolla2015(
         output_path,
         base_filename="$(quantity)_profile_with_Molla2015",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -6352,7 +6274,6 @@ Plot the Kennicutt-Schmidt law.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the y values will be used. Only relevant if `plot_type` = :heatmap.
   - `n_bins::Int=100`: Number of bins per side of the heatmap grid. Only relevant if `plot_type` = :heatmap.
   - `colorbar::Bool=false`: If a colorbar will be added.
-  - `print_range::Bool=false`: Print an info block detailing the color range.
   - `output_file::String="./kennicutt_schmidt_law.png"`: Path to the output file.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -6412,18 +6333,16 @@ function kennicuttSchmidtLaw(
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     n_bins::Int=100,
     colorbar::Bool=false,
-    print_range::Bool=false,
     output_file::String="./kennicutt_schmidt_law.png",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{String},Nothing}=basename.(simulation_paths),
-    warnings::Bool=true,
     theme::Attributes=Theme(),
 )::Nothing
 
     # Save the origial value of the global `PHYSICAL_UNITS`
     og_pu_value = PHYSICAL_UNITS
 
-    if !og_pu_value && warnings
+    if !og_pu_value && verbosity[]
         @warn("kennicuttSchmidtLaw: The global `PHYSICAL_UNITS` is set to false, \
         but Kennicutt-Schmidt law plots must be in physical units, so the global \
         setting will be ignored and default to true.")
@@ -6454,7 +6373,7 @@ function kennicuttSchmidtLaw(
 
         if plot_type == :heatmap
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `integrated` is set to true, \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: If `integrated` is set to true, \
             `plot_type` = :heatmap will be ignored and default to :scatter.")
 
             plot_type = :scatter
@@ -6462,7 +6381,7 @@ function kennicuttSchmidtLaw(
         end
 
         if reduce_resolution
-            !warnings || @warn("kennicuttSchmidtLaw: `integrated` and `reduce_resolution` are set \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: `integrated` and `reduce_resolution` are set \
             to true. Are you sure you want this?")
         end
 
@@ -6484,7 +6403,7 @@ function kennicuttSchmidtLaw(
 
         if !sfr_density
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `sfr_density` = false, \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: If `sfr_density` = false, \
             `measurements` = true will be ignored and default to false. The experimental \
             measurements are only for the SFR surface density.")
 
@@ -6494,7 +6413,7 @@ function kennicuttSchmidtLaw(
 
         if quantity == :gas_mass
 
-            !warnings || @warn("kennicuttSchmidtLaw: There are no measurements \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: There are no measurements \
             (fits or otherwise) for `quantity` = :gas_mass. `measurements` = true will be \
             ignored and default to false.")
 
@@ -6504,7 +6423,7 @@ function kennicuttSchmidtLaw(
 
         if isa(measurement_type, String) && integrated
 
-            !warnings || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
             `measurement_type` to plot the resolved measurement of galaxy $(measurement_type). \
             Are you sure you want this?")
 
@@ -6512,7 +6431,7 @@ function kennicuttSchmidtLaw(
 
         if measurement_type == :all && integrated
 
-            !warnings || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
             `measurement_type` to plot the resolved measurements of all galaxies in \
             Bigiel et al. (2010). Are you sure you want this?")
 
@@ -6524,7 +6443,7 @@ function kennicuttSchmidtLaw(
 
         if !isnothing(gas_weights)
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
             `gas_weights` = :$(gas_weights) will be ignored and default to nothing.")
 
             gas_weights = nothing
@@ -6533,7 +6452,7 @@ function kennicuttSchmidtLaw(
 
         if measurements
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
             `measurements` = true will be ignored and default to false.")
 
             measurements = false
@@ -6542,7 +6461,7 @@ function kennicuttSchmidtLaw(
 
         if ns > 1
 
-            !warnings || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, only one \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, only one \
             simulation at a time can be plotted, but I got length(simulation_paths) = $(ns) > 1. \
             `plot_type` = :heatmap will be ignored and default to :scatter.")
 
@@ -6555,7 +6474,7 @@ function kennicuttSchmidtLaw(
     if colorbar && ((plot_type == :scatter && isnothing(gas_weights)) || integrated)
 
         (
-            !warnings || @warn("kennicuttSchmidtLaw: `colorbar` is set to true, \
+            !verbosity[] || @warn("kennicuttSchmidtLaw: `colorbar` is set to true, \
             but there is no color range in the plot (either `plot_type` = :scatter and \
             `gas_weights` = nothing or `integrated` = true). `colorbar` = true will be \
             ignored and default to false")
@@ -6609,7 +6528,6 @@ function kennicuttSchmidtLaw(
         [heatmap!];
         output_path=temp_folder,
         base_filename=string(:stellar_mass),
-        warnings,
         slice,
         filter_function,
         da_functions=[daDensity2DProjection],
@@ -6636,7 +6554,6 @@ function kennicuttSchmidtLaw(
         [heatmap!];
         output_path=temp_folder,
         base_filename=string(quantity),
-        warnings,
         slice,
         filter_function,
         da_functions=[daDensity2DProjection],
@@ -6699,7 +6616,6 @@ function kennicuttSchmidtLaw(
             [heatmap!];
             output_path=temp_folder,
             base_filename="gas_weights",
-            warnings,
             slice,
             filter_function,
             da_functions=[da_function],
@@ -6708,7 +6624,6 @@ function kennicuttSchmidtLaw(
                 (;
                     reduce,
                     filter_function=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero),
-                    print_range,
                 ),
             ],
             transform_box=true,
@@ -6796,7 +6711,7 @@ function kennicuttSchmidtLaw(
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
-            simulation_table = DataFrame(makeSimulationTable(simulation; warnings)[slice, :])
+            simulation_table = DataFrame(makeSimulationTable(simulation)[slice, :])
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
             snapshot_numbers = simulation_table[!, :numbers]
 
@@ -7000,7 +6915,7 @@ function kennicuttSchmidtLaw(
 
                 heatmap!(ax, x_axis, y_axis, z_axis; colormap=:nipy_spectral)
 
-                if print_range
+                if verbosity[]
 
                     # Compute the mininimum and maximum of `z_axis`
                     min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
@@ -7053,7 +6968,6 @@ function kennicuttSchmidtLaw(
                         true;
                         x_unit=u"Msun * kpc^-2",
                         colors=[Makie.wong_colors()[1], Makie.wong_colors()[2]],
-                        warnings,
                     )
 
                 elseif quantity == :neutral_mass
@@ -7063,14 +6977,12 @@ function kennicuttSchmidtLaw(
                         false;
                         x_unit=u"Msun * kpc^-2",
                         colors=[Makie.wong_colors()[1], Makie.wong_colors()[2]],
-                        warnings,
                     )
 
                     legend_kennicut = ppKennicutt1998!(
                         f;
                         x_unit=u"Msun * kpc^-2",
                         colors=[Makie.wong_colors()[3], Makie.wong_colors()[4]],
-                        warnings,
                     )
 
                     pp_legend = (
@@ -7309,7 +7221,6 @@ function fitResolvedKSLaw(
         output_path,
         base_filename="ks_law",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -7510,7 +7421,6 @@ function fitVSFLaw(
         output_path,
         base_filename="vsf_law",
         output_format=".png",
-        warnings=false,
         slice,
         filter_function,
         da_functions=[daVSFLaw],
@@ -7634,7 +7544,6 @@ function massMetallicityRelation(
         output_path=temp_folder,
         base_filename=string(:stellar_mass),
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -7700,7 +7609,6 @@ function massMetallicityRelation(
         output_path=temp_folder,
         base_filename="gas_metallicity",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice,
@@ -7773,7 +7681,7 @@ function massMetallicityRelation(
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
-            simulation_table = DataFrame(makeSimulationTable(simulation; warnings=false)[slice, :])
+            simulation_table = DataFrame(makeSimulationTable(simulation)[slice, :])
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
             times            = ustrip.(u"Gyr", simulation_table[!, :physical_times])
             snapshot_numbers = simulation_table[!, :numbers]
@@ -8011,12 +7919,7 @@ function atomicGasCubes(
 
         @inbounds for snap_n in slice
 
-            data_dict = makeDataDict(
-                simulation_path,
-                snap_n,
-                request;
-                warnings=true,
-            )
+            data_dict = makeDataDict(simulation_path, snap_n, request)
 
             snapshot_number = lpad(string(data_dict[:snap_data].global_index), 3, "0")
 
@@ -8337,7 +8240,6 @@ function clumpingFactor(
         output_path,
         base_filename="$(quantity)_clumping_factor",
         output_format=".png",
-        warnings=false,
         show_progress=true,
         # Data manipulation options
         slice=slice,

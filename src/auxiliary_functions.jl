@@ -3,7 +3,59 @@
 ####################################################################################################
 
 """
-    ring(vec::Vector, index::Integer)
+    meta_formatter(level::LogLevel, _module, group, id, file, line)
+
+Formatter for loggers.
+
+See the documentation for [ConsoleLogger](https://docs.julialang.org/en/v1/stdlib/Logging/#Base.CoreLogging.ConsoleLogger)
+"""
+function meta_formatter(level::LogLevel, _module, group, id, file, line)
+
+    @nospecialize
+
+    color = Logging.default_logcolor(level)
+    prefix = string(level == Warn ? "Warning" : string(level), " |")
+    suffix::String = ""
+
+    if file !== nothing
+        suffix *= contractuser(file)::String
+        if line !== nothing
+            suffix *= ":$(isa(line, UnitRange) ? "$(first(line))-$(last(line))" : line)"
+        end
+    end
+
+    if !isempty(suffix)
+        suffix = "@ " * suffix * "\n"
+    else
+        suffix *= "\n"
+    end
+
+    return color, prefix, suffix
+
+end
+
+"""
+    setverbosity!(verb::Bool; <keyword arguments>)::Nothing
+
+Set if logs will be printed. By default no logs are printed.
+
+# Arguments
+
+  - `verb::Bool`: If logs will be printed using the default logger.
+  - `stream::IO=stdout`: Sets where to print the logs. It can be a file.
+"""
+function setverbosity!(verb::Bool; stream::IO=stdout)::Nothing
+
+    verbosity[] = verb
+
+    verb && global_logger(ConsoleLogger(stream; GalaxyInspector.meta_formatter))
+
+    return nothing
+
+end
+
+"""
+    ring(vec::Vector, index::Integer)::Vector
 
 Make the indexing operation `vec[index]` work using modular arithmetic for the indices.
 
@@ -55,7 +107,7 @@ function parserWS(data::AbstractString)::Union{Float64,Missing}
 end
 
 """
-    safeSelect(vec::Vector, index::IndexType; warnings::Bool=true)
+    safeSelect(vec::Vector, index::IndexType)
 
 Make the indexing operation `vec[index]` ignore indices that are out of bounds.
 
@@ -63,7 +115,6 @@ Make the indexing operation `vec[index]` ignore indices that are out of bounds.
 
   - `vec::Vector`: Vector.
   - `index::IndexType`: Indices. It can be an integer (a single element), a vector of integers (several elements), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (every element).
-  - `warnings::Bool=true`: If a warning will be given when `index` has out of bounds indices.
 
 # Returns
 
@@ -72,31 +123,31 @@ Make the indexing operation `vec[index]` ignore indices that are out of bounds.
 # Examples
 
 ```julia-repl
-julia> safeSelect([1, 2, 3], 11; warnings=false)
+julia> safeSelect([1, 2, 3], 11)
 Int[]
 
-julia> safeSelect([1, 2, 3], 1:5; warnings=false)
+julia> safeSelect([1, 2, 3], 1:5)
 3-element Vector{Int}:
  1
  2
  3
 
-julia> safeSelect([1, 2, 3], 1:3:10; warnings=false)
+julia> safeSelect([1, 2, 3], 1:3:10)
 1
 
-julia> safeSelect([1, 2, 3], [1, 2, 5, 9]; warnings=false)
+julia> safeSelect([1, 2, 3], [1, 2, 5, 9])
 2-element Vector{Int}:
  1
  2
 
-julia> safeSelect([1, 2, 3], (:); warnings=false)
+julia> safeSelect([1, 2, 3], (:))
 3-element Vector{Int}:
  1
  2
  3
 ```
 """
-function safeSelect(vec::Vector, index::IndexType; warnings::Bool=true)
+function safeSelect(vec::Vector, index::IndexType)
 
     index != (:) || return vec
 
@@ -106,7 +157,7 @@ function safeSelect(vec::Vector, index::IndexType; warnings::Bool=true)
 
     (
         length(index_list) == length([index...]) ||
-        !warnings || @warn("safeSelect: There are out of bounds indices")
+        !verbosity[] || @warn("safeSelect: There are out of bounds indices")
     )
 
     if length(index_list) == 1
@@ -394,7 +445,6 @@ By default, no transformation is done.
   - `keep_edges::Bool=true`: If the edges of `range` will be kept.
   - `min_left::Int=1`: Minimum number of values that need to be left after each transformation to procced with it.
   - `exp_factor::Int=0`: Every element in `raw_values` will be divided by 10^`exp_factor`.
-  - `warnings::Bool=true`: If a warning will be given when `raw_values` is a vector of Integers, which may cause wrong results when dividing by 10^`exp_factor`.
 
 # Returns
 
@@ -410,7 +460,6 @@ function sanitizeData!(
     keep_edges::Bool=true,
     min_left::Int=1,
     exp_factor::Int=0,
-    warnings::Bool=true,
 )::NTuple{2,Bool}
 
     !isempty(raw_values) || return false, false
@@ -446,7 +495,7 @@ function sanitizeData!(
     range_flag = rangeCut!(raw_values, range; keep_edges, min_left)
 
     (
-        !(isa(raw_values, Vector{<:Integer}) && !iszero(exp_factor) && warnings) ||
+        !(isa(raw_values, Vector{<:Integer}) && !iszero(exp_factor) && verbosity[]) ||
         @warn("sanitizeData!: Elements of `raw_values` are of type `Integer`, this may result \
         in errors or unwanted truncation when using `exp_factor` != 0")
     )
@@ -486,7 +535,6 @@ By default, no transformation is done.
   - `keep_edges::NTuple{2,Bool}=(true, true)`: If the edges of each corresponding `range` will be kept.
   - `min_left::Int=1`: Minimum number of values that need to be left in each dataset after any of the transformations to procced with them.
   - `exp_factor::NTuple{2,Int}=(0, 0)`: Every element in `x_data` will be divided by 10^`exp_factor[1]`, and every element in `y_data` will be divided by 10^`exp_factor[2]`.
-  - `warnings::Bool=true`: If a warning will be given when any of the datasets is a vector of Integers, which may cause wrong results when dividing by 10^`exp_factor`.
 
 # Returns
 
@@ -505,7 +553,6 @@ function sanitizeData!(
     keep_edges::NTuple{2,Bool}=(true, true),
     min_left::Int=1,
     exp_factor::NTuple{2,Int}=(0, 0),
-    warnings::Bool=true,
 )::NTuple{4,Bool}
 
     (
@@ -575,13 +622,13 @@ function sanitizeData!(
     y_range_flag = rangeCut!(y_data, x_data, range[2]; keep_edges=keep_edges[2], min_left)
 
     (
-        !(isa(x_data, Vector{<:Integer}) && !iszero(exp_factor[1]) && warnings) ||
+        !(isa(x_data, Vector{<:Integer}) && !iszero(exp_factor[1]) && verbosity[]) ||
         @warn("sanitizeData!: Elements of `x_data` are of type Integer, this may result \
         in errors or unwanted truncation when using `exp_factor[1]` != 0")
     )
 
     (
-        !(isa(y_data, Vector{<:Integer}) && !iszero(exp_factor[2]) && warnings) ||
+        !(isa(y_data, Vector{<:Integer}) && !iszero(exp_factor[2]) && verbosity[]) ||
         @warn("sanitizeData!: Elements of `y_data` are of type Integer, this may result \
         in errors or unwanted truncation when using `exp_factor[2]` != 0")
     )
@@ -2035,7 +2082,6 @@ If the source of the field are particles, a simple 3D histogram is used. If the 
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -2077,7 +2123,6 @@ function density3DProjection(
     grid::CubicGrid,
     quantity::Symbol,
     type::Symbol;
-    print_range::Bool=false,
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"kpc",
     filter_function::Function=filterNothing,
@@ -2177,7 +2222,7 @@ function density3DProjection(
 
     end
 
-    if print_range
+    if verbosity[]
 
         log_density = log10.(density)
 

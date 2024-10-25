@@ -32,14 +32,12 @@ Draw vertical lines.
   - `positions::Vector{<:Real}`: The x coordinates of the lines.
   - `colors::Vector{<:ColorType}=[:red]`: Colors of the lines.
   - `line_styles::Vector{<:LineStyleType}=[nothing]`: Styles of the lines. `nothing` will produce a solid line.
-  - `warnings::Bool=true`: If a warning will be raised when all the lines are outside the plot range.
 """
 function ppVerticalFlags!(
     figure::Makie.Figure,
     positions::Vector{<:Real};
     colors::Vector{<:ColorType}=[:red],
     line_styles::Vector{<:LineStyleType}=[nothing],
-    warnings::Bool=true,
 )::Nothing
 
     # Filter out values outside the range of the original plot
@@ -48,7 +46,7 @@ function ppVerticalFlags!(
     if isempty(positions)
 
         # Don't draw anything if all the flags are outside the original plot window
-        !warnings || @warn("ppVerticalFlags!: All vertical lines lie outside the plot range")
+        !verbosity[] || @warn("ppVerticalFlags!: All vertical lines lie outside the plot range")
 
     else
 
@@ -80,14 +78,12 @@ Draw horizontal lines.
   - `positions::Vector{<:Real}`: The y coordinates of the lines.
   - `colors::Vector{<:ColorType}=[:red]`: Colors of the lines.
   - `line_styles::Vector{<:LineStyleType}=[nothing]`: Styles of the lines. `nothing` will produce a solid line.
-  - `warnings::Bool=true`: If a warning will be raised when all the lines are outside the plot range.
 """
 function ppHorizontalFlags!(
     figure::Makie.Figure,
     positions::Vector{<:Real};
     colors::Vector{<:ColorType}=[:red],
     line_styles::Vector{<:LineStyleType}=[nothing],
-    warnings::Bool=true,
 )::Nothing
 
     # Filter out values outside the range of the original plot
@@ -96,7 +92,7 @@ function ppHorizontalFlags!(
     if isempty(positions)
 
         # Don't draw anything if all the flags are outside the original plot window
-        !warnings || @warn("ppHorizontalFlags!: All horizontal lines lie outside the plot range")
+        !verbosity[] || @warn("ppHorizontalFlags!: All horizontal lines lie outside the plot range")
 
     else
 
@@ -128,14 +124,12 @@ Draw two lines, one horizontal and one vertical.
   - `cross_point::Tuple{<:Real,<:Real}`: Crossing point of the lines.
   - `color::ColorType=Makie.wong_colors()[6]`: Color of the lines.
   - `linestyle::LineStyleType=nothing`: Style of the lines. `nothing` will produce a solid line.
-  - `warnings::Bool=true`: If a warning will be raised when at least one of the lines is outside the plot range.
 """
 function ppCross!(
     figure::Makie.Figure,
     cross_point::Tuple{<:Real,<:Real};
     color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
-    warnings::Bool=true,
 )::Nothing
 
     x_limits = xlimits!(figure)
@@ -145,14 +139,14 @@ function ppCross!(
         # Draw the vertical line
         vlines!(figure.current_axis.x, cross_point[1]; color, linestyle)
     else
-        !warnings || @warn("ppCross!: The vertical line lies outside the plot range")
+        !verbosity[] || @warn("ppCross!: The vertical line lies outside the plot range")
     end
 
     if y_limits[1] < cross_point[2] < y_limits[2]
         # Draw the horizontal line
         hlines!(figure.current_axis.x, cross_point[2]; color, linestyle)
     else
-        !warnings || @warn("ppCross!: The horizontal line lies outside the plot range")
+        !verbosity[] || @warn("ppCross!: The horizontal line lies outside the plot range")
     end
 
     return nothing
@@ -216,7 +210,6 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
   - `color::ColorType=Makie.wong_colors()[6],`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `linewidth::Int=3`: Lien width.
-  - `warnings::Bool=true`: If a warning will be raised when there are no points to fit.
 
 # Returns
 
@@ -232,14 +225,13 @@ function ppFitLine!(
     color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
     linewidth::Int=3,
-    warnings::Bool=true,
 )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
 
     if isempty(points)
-        !warnings || @warn("ppFitLine!: There are no points in the figure")
+        !verbosity[] || @warn("ppFitLine!: There are no points in the figure")
         return nothing
     end
 
@@ -381,7 +373,6 @@ Draw a line plot with the fit for the KS relation in Kennicutt (1998).
   - `colors::Vector{<:ColorType}=[Makie.wong_colors()[6], Makie.wong_colors()[7]]`: Colors for the line. The first color will indicate the range for which there are experimental data, and the second color will be for the extrapolation.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `linewidth::Int=3`: Line width.
-  - `warnings::Bool=true`: If a warning will be raised when there are no points in the figure.
 
 # Returns
 
@@ -404,14 +395,13 @@ function ppKennicutt1998!(
     colors::Vector{<:ColorType}=[Makie.wong_colors()[6], Makie.wong_colors()[7]],
     linestyle::LineStyleType=nothing,
     linewidth::Int=3,
-    warnings::Bool=true,
 )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
 
     if isempty(points)
-        !warnings || @warn("ppKennicutt1998!: There are no points in the figure")
+        !verbosity[] || @warn("ppKennicutt1998!: There are no points in the figure")
         return nothing
     end
 
@@ -528,7 +518,6 @@ Draw a line plot with the fit for the KS law, taken from Bigiel et al. (2008).
   - `colors::Vector{<:ColorType}=[Makie.wong_colors()[6], Makie.wong_colors()[7]]`: Colors for the line. The first color will indicate the range for which there are experimental data, and the second color will be for the extrapolation.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `linewidth::Int=3`: Line width.
-  - `warnings::Bool=true`: If a warning will be raised when there are no points in the figure.
 
 # Returns
 
@@ -552,14 +541,13 @@ function ppBigiel2008!(
     colors::Vector{<:ColorType}=[Makie.wong_colors()[6], Makie.wong_colors()[7]],
     linestyle::LineStyleType=nothing,
     linewidth::Int=3,
-    warnings::Bool=true,
 )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
 
     if isempty(points)
-        !warnings || @warn("ppBigiel2008!: There are no points in the figure")
+        !verbosity[] || @warn("ppBigiel2008!: There are no points in the figure")
         return nothing
     end
 

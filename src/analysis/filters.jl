@@ -1054,7 +1054,6 @@ Filter out stars that where born outside the given halo and subhalo (exsitu), le
       + ...
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are consider insitu.
-  - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
 # Returns
 
@@ -1069,10 +1068,9 @@ function filterInsituStars(
     data_dict::Dict;
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
-    warnings::Bool=true,
 )::Dict{Symbol,IndexType}
 
-    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict; warnings)
+    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
 
     (
         allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||
@@ -1130,7 +1128,6 @@ Filter out stars that where born inside the given halo and subhalo (insitu), lea
       + ...
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, only stars born outside halo `halo_idx` are consider exsitu.
-  - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
 # Returns
 
@@ -1145,10 +1142,9 @@ function filterExsituStars(
     data_dict::Dict;
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
-    warnings::Bool=true,
 )::Dict{Symbol,IndexType}
 
-    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict; warnings)
+    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
 
     (
         allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||

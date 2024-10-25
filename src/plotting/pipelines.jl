@@ -46,7 +46,6 @@ Some of the features are:
   - `output_path::String="./plots"`: Path to the output folder.
   - `base_filename::String="snapshot"`: Every file will be named `base_filename`-XXX`output_format` where XXX is the snapshot number.
   - `output_format::String=".png"`: File format for the figure. All formats supported by [Makie](https://docs.makie.org/stable/) can be used, namely `.pdf`, `.svg` and `.png`.
-  - `warnings::Bool=true`: If a warning will be raised when there is some problem, but the function can still run using sane defaults.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
 ### Data manipulation options
@@ -152,7 +151,6 @@ function plotSnapshot(
     output_path::String="./plots",
     base_filename::String="snapshot",
     output_format::String=".png",
-    warnings::Bool=true,
     show_progress::Bool=true,
     # Data manipulation options
     slice::IndexType=(:),
@@ -212,12 +210,12 @@ function plotSnapshot(
     #   - 6. Lookback time
     #   - 7. Snapshot path
     #   - 8. Group catalog path
-    simulation_tables = [makeSimulationTable(source; warnings) for source in simulation_paths]
+    simulation_tables = [makeSimulationTable(source) for source in simulation_paths]
 
     # Compute the different ways to index the snapshots
     snapshot_numbers = sort!(union([table[!, :numbers] for table in simulation_tables]...))
     global_indices = collect(eachindex(snapshot_numbers))
-    slice_indices = safeSelect(global_indices, slice; warnings)
+    slice_indices = safeSelect(global_indices, slice)
 
     # Compute the number of figures
     n_frames = length(slice_indices)
@@ -264,7 +262,7 @@ function plotSnapshot(
 
         (
             n_frames >= framerate ||
-            !warnings ||
+            !verbosity[] ||
             @warn("plotSnapshot: With `framerate` = $framerate and `slice` = $slice, \
             the animation is less than one second long")
         )
@@ -323,7 +321,7 @@ function plotSnapshot(
             # Skip if this snapshot does not exist for the current simulation
             if isempty(snapshot_row)
                 (
-                    !warnings ||
+                    !verbosity[] ||
                     @warn("plotSnapshot: The snapshot $(SNAP_BASENAME)_$(snapshot_number).hdf5 \
                     is missing in simulation $(simulation_paths[simulation_index])")
                 )
@@ -363,7 +361,7 @@ function plotSnapshot(
                 ),
                 :gc_data => GroupCatalog(
                     groupcat_path,
-                    readGroupCatHeader(groupcat_path; warnings),
+                    readGroupCatHeader(groupcat_path),
                 ),
             )
 
@@ -386,8 +384,8 @@ function plotSnapshot(
 
             data_dict = merge(
                 metadata,
-                readSnapshot(snapshot_path, request; warnings),
-                readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+                readSnapshot(snapshot_path, request),
+                readGroupCatalog(groupcat_path, snapshot_path, request),
             )
 
             # Filter the data
@@ -511,7 +509,6 @@ function plotSnapshot(
                     keep_edges=x_edges,
                     min_left=1,
                     exp_factor=x_exp_factor,
-                    warnings,
                 )
                 y_flag = true
 
@@ -542,7 +539,6 @@ function plotSnapshot(
                     keep_edges=(x_edges, y_edges),
                     min_left=1,
                     exp_factor=(x_exp_factor, y_exp_factor),
-                    warnings,
                 )
 
                 # For scatter, line, and scatter line plots apply smoothing if required
@@ -571,7 +567,6 @@ function plotSnapshot(
                     keep_edges=(x_edges, y_edges),
                     min_left=1,
                     exp_factor=(x_exp_factor, y_exp_factor),
-                    warnings,
                 )
 
                 axis_data[1] = x_func(axis_data[1])
@@ -638,7 +633,7 @@ function plotSnapshot(
             if isa(title, Symbol) && isempty(time_row)
 
                 (
-                    !warnings ||
+                    !verbosity[] ||
                     @warn("plotSnapshot: I cound not find the time data for the snapshot \
                     number $(snapshot_number) in the longest running simulation with \
                     simulation table: \n$(longest_sim_table). \nDefaulting to using no title.")
@@ -763,7 +758,7 @@ function plotSnapshot(
 
     end
 
-    if warnings && !plot_something
+    if verbosity[] && !plot_something
         @warn("plotSnapshot: Nothing could be plotted because there was a problem \
         for every snapshot")
     end
@@ -807,7 +802,6 @@ Some of the features are:
   - `output_path::String="./plots"`: Path to the output folder.
   - `filename::String="time_series"`: Filename for the figure, without the extension.
   - `output_format::String=".png"`: File format for the figure. All formats supported by [Makie](https://docs.makie.org/stable/) can be used, namely `.pdf`, `.svg` and `.png`.
-  - `warnings::Bool=true`: If a warning will be raised when there is some problem, but the function can still run using sane defaults.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
 ### Data manipulation options
@@ -859,7 +853,6 @@ function plotTimeSeries(
     output_path::String="./plots",
     filename::String="time_series",
     output_format::String=".png",
-    warnings::Bool=true,
     show_progress::Bool=true,
     # Data manipulation options
     slice::IndexType=(:),
@@ -979,10 +972,10 @@ function plotTimeSeries(
         #   - 6. Lookback time
         #   - 7. Snapshot path
         #   - 8. Group catalog path
-        simulation_table = makeSimulationTable(simulation_path; warnings)
+        simulation_table = makeSimulationTable(simulation_path)
 
         # Get the path to the first snapshot
-        snap_paths = getSnapshotPaths(simulation_path; warnings)
+        snap_paths = getSnapshotPaths(simulation_path)
         _, idx = findmin(snap_paths[:numbers])
         first_snapshot = snap_paths[:paths][idx]
 
@@ -1030,7 +1023,6 @@ function plotTimeSeries(
             keep_edges=(x_edges, y_edges),
             min_left=1,
             exp_factor=(x_exp_factor, y_exp_factor),
-            warnings,
         )
 
         axis_data[1] = x_func(axis_data[1])
@@ -1063,7 +1055,7 @@ function plotTimeSeries(
 
     end
 
-    if warnings && !plot_something
+    if verbosity[] && !plot_something
         @warn("plotTimeSeries: Nothing could be plotted because there was a problem \
         for every snapshot")
     end

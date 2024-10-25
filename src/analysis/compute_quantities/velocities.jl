@@ -352,7 +352,10 @@ function computeVcirc(
     # to make `vcirc` the circular velocity of each particle in the order of the snapshot
     invpermute!(M, sortperm(rs))
 
-    @debug("computeVcirc: The circular velocity will be computed using $(components).")
+    (
+        !verbosity[] || @info("computeVcirc: The circular velocity will be computed \
+        using $(components).")
+    )
 
     vcirc = [iszero(r) ? 0.0u"km*s^-1" : sqrt(Unitful.G * m / r) for (m, r) in zip(M, rs)]
 
@@ -573,8 +576,10 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
     # Check for missing data
     !any(isempty, [positions, velocities, masses]) || return [0.0, 0.0, 1.0]
 
-    @debug("computeGlobalAngularMomentum: The angular momentum will be computed \
-    using $(components).")
+    (
+        !verbosity[] || @info("computeGlobalAngularMomentum: The angular momentum will be computed \
+        using $(components).")
+    )
 
     return computeTotalAngularMomentum(positions, velocities, masses; normal)
 
@@ -707,7 +712,10 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R)::
     velocities = hcat([data_dict[component]["VEL "] for component in components]...)
     masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
-    @debug("computeGlobalSpinParameter: The spin parameter will be computed using $(components).")
+    (
+        !verbosity[] || @info("computeGlobalSpinParameter: The spin parameter will be computed \
+        using $(components).")
+    )
 
     # Compute the total spin parameter
     return computeSpinParameter(positions, velocities, masses; R)

@@ -242,7 +242,6 @@ function daKennicuttSchmidtLaw(
         :particles;
         reduce,
         projection_plane=:xy,
-        print_range=false,
         filter_function=stellar_ff,
     )
 
@@ -253,7 +252,6 @@ function daKennicuttSchmidtLaw(
         type;
         reduce,
         projection_plane=:xy,
-        print_range=false,
         filter_function=gas_ff,
     )
 
@@ -1137,7 +1135,6 @@ If the source of the field are Voronoi cells, the density of the cells that cros
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -1185,7 +1182,6 @@ function daDensity2DProjection(
     projection_plane::Symbol=:xy,
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"kpc",
-    print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
@@ -1323,7 +1319,7 @@ function daDensity2DProjection(
     # Apply log10 to enhance the contrast
     log_density = log10.(density)
 
-    if print_range
+    if verbosity[]
 
         # Compute the mininimum and maximum of `log_density`
         min_max = isempty(log_density) ? (NaN, NaN) : extrema(filter(!isnan, log_density))
@@ -1336,7 +1332,7 @@ function daDensity2DProjection(
             \n  Quantity:   $(quantity) \
             \n  Type:       $(type) \
             \n  Plane:      $(projection_plane) \
-            \n  log₁₀(ρ [$(m_unit * l_unit^-2)]): $(min_max)\n\n"
+            \n  log₁₀(ρ [$(m_unit * l_unit^-2)]): $(min_max)"
         )
 
     end
@@ -1392,7 +1388,6 @@ If the source of the field are Voronoi cells, the gas SFR densities of the cells
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
   - `t_unit::Unitful.Units=u"yr"`: Time unit.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic SFR range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -1436,7 +1431,6 @@ function daGasSFR2DProjection(
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"kpc",
     t_unit::Unitful.Units=u"yr",
-    print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
@@ -1542,7 +1536,7 @@ function daGasSFR2DProjection(
     # Apply log10 to enhance the contrast
     log_sfr = log10.(sfr)
 
-    if print_range
+    if verbosity[]
 
         # Compute the mininimum and maximum of `log_sfr`
         min_max = isempty(log_sfr) ? (NaN, NaN) : extrema(filter(!isnan, log_sfr))
@@ -1554,7 +1548,7 @@ function daGasSFR2DProjection(
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Type:       $(type) \
             \n  Plane:      $(projection_plane) \
-            \n  log₁₀(SFR [$(m_unit * t_unit^-1)]): $(min_max)\n\n"
+            \n  log₁₀(SFR [$(m_unit * t_unit^-1)]): $(min_max)"
         )
 
     end
@@ -1613,7 +1607,6 @@ The metallicity in each pixel is the total metal mass divided by the total gas m
   - `element::Symbol=:all`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref). Set it to :all if you want the total metallicity.
   - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic metallicity range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -1656,7 +1649,6 @@ function daMetallicity2DProjection(
     element::Symbol=:all,
     reduce::Int=1,
     projection_plane::Symbol=:xy,
-    print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
@@ -1818,7 +1810,7 @@ function daMetallicity2DProjection(
         log_metallicity = 12 .+ log10.(metallicity)
     end
 
-    if print_range
+    if verbosity[]
 
         # Compute the mininimum and maximum of `log_metallicity`
         min_max = isempty(log_metallicity) ? (NaN, NaN) : extrema(filter(!isnan, log_metallicity))
@@ -1836,7 +1828,7 @@ function daMetallicity2DProjection(
         if element == :all
             @info("\n  log₁₀(Z [Z⊙]):  $(min_max)\n\n")
         else
-            @info("\n  12 + log₁₀($(element) / H): $(min_max)\n\n")
+            @info("\n  12 + log₁₀($(element) / H): $(min_max)")
         end
 
     end
@@ -1892,7 +1884,6 @@ The temperature in each pixel is the mean temperature of the column given by tha
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic temperature range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -1933,7 +1924,6 @@ function daTemperature2DProjection(
     type::Symbol;
     reduce::Int=1,
     projection_plane::Symbol=:xy,
-    print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
 
@@ -2049,7 +2039,7 @@ function daTemperature2DProjection(
     # Apply log10 to enhance the contrast
     log_temperature = log10.(temperature)
 
-    if print_range
+    if verbosity[]
 
         # Print the temperature range
         @info(
@@ -2058,7 +2048,7 @@ function daTemperature2DProjection(
             \n  Snapshot:     $(filtered_dd[:snap_data].global_index) \
             \n  Type:         $(type) \
             \n  Plane:        $(projection_plane) \
-            \n  log₁₀(T [K]): $(extrema(log_temperature))\n\n"
+            \n  log₁₀(T [K]): $(extrema(log_temperature))"
         )
 
     end
@@ -2515,7 +2505,6 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `y_quantity`, if you want to use log10(`y_quantity`) for the y axis.
   - `total::Bool=true`: If the sum (default) or the mean of `z_quantity` will be used as the value of each pixel.
   - `n_bins::Int=100`: Number of bins per side of the grid.
-  - `print_range::Bool=false`: Print an info block detailing the color range.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -2566,7 +2555,6 @@ function daScatterWeightedDensity(
     y_log::Union{Unitful.Units,Nothing}=nothing,
     total::Bool=true,
     n_bins::Int=100,
-    print_range::Bool=false,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
@@ -2644,7 +2632,7 @@ function daScatterWeightedDensity(
         total,
     )))
 
-    if print_range
+    if verbosity[]
 
         # Compute the mininimum and maximum values
         min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
@@ -2655,7 +2643,7 @@ function daScatterWeightedDensity(
             \n  Simulation:  $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:    $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:    $(z_quantity) \
-            \n  Color range: $(min_max)\n\n"
+            \n  Color range: $(min_max)"
         )
 
     end
@@ -3574,7 +3562,6 @@ Compute the time series of two quantities.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `fraction::Bool=false`: If the `y_quantity` will be represented as a fraction of the last value. If `cumulative` = true, this will apply to the accumulated values.
   - `scaling::Function=identity`: Function to scale the x-axis (only relevant if `smooth` != 0). The bins will be computed accordingly. The options are the scaling functions accepted by Makie.jl: log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
 # Returns
 
@@ -3597,7 +3584,6 @@ function daEvolution(
     cumulative::Bool=false,
     fraction::Bool=false,
     scaling::Function=identity,
-    warnings::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
     filter_function, translation, rotation, request = selectFilter(
@@ -3629,7 +3615,7 @@ function daEvolution(
         snapshot_header = readSnapHeader(snapshot_path)
 
         # Get the group catalog header
-        groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+        groupcat_header = readGroupCatHeader(groupcat_path)
 
         # Construct the metadata dictionary
         metadata = Dict(
@@ -3650,8 +3636,8 @@ function daEvolution(
         # Read the data in the snapshot
         data_dict = merge(
             metadata,
-            readSnapshot(snapshot_path, request; warnings),
-            readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+            readSnapshot(snapshot_path, request),
+            readGroupCatalog(groupcat_path, snapshot_path, request),
         )
 
         # Filter the data
@@ -3731,7 +3717,6 @@ Compute the evolution of the accreted mass into the virial radius.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion. If false, `filter_mode` will be ignored.
   - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
 # Returns
 
@@ -3746,7 +3731,6 @@ function daVirialAccretion(
     halo_idx::Int=1,
     tracers::Bool=false,
     smooth::Int=0,
-    warnings::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
     filter_function, translation, _, request = selectFilter(
@@ -3790,7 +3774,7 @@ function daVirialAccretion(
     snapshot_header = readSnapHeader(snapshot_path)
 
     # Get the group catalog header
-    groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+    groupcat_header = readGroupCatHeader(groupcat_path)
 
     # Construct the metadata dictionary
     metadata = Dict(
@@ -3811,8 +3795,8 @@ function daVirialAccretion(
     # Read the data in the snapshot
     past_dd = merge(
         metadata,
-        readSnapshot(snapshot_path, request; warnings),
-        readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+        readSnapshot(snapshot_path, request),
+        readGroupCatalog(groupcat_path, snapshot_path, request),
     )
 
     if tracers
@@ -3843,7 +3827,7 @@ function daVirialAccretion(
         snapshot_header = readSnapHeader(snapshot_path)
 
         # Get the group catalog header
-        groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+        groupcat_header = readGroupCatHeader(groupcat_path)
 
         # Construct the metadata dictionary
         metadata = Dict(
@@ -3864,8 +3848,8 @@ function daVirialAccretion(
         # Read the data in the snapshot
         present_dd = merge(
             metadata,
-            readSnapshot(snapshot_path, request; warnings),
-            readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+            readSnapshot(snapshot_path, request),
+            readGroupCatalog(groupcat_path, snapshot_path, request),
         )
 
         if tracers
@@ -3957,7 +3941,6 @@ Compute the evolution of the accreted mass into the disc.
   - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
   - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `warnings::Bool=true`: If a warning will be given when there is missing data.
 
 # Returns
 
@@ -3972,7 +3955,6 @@ function daDiscAccretion(
     max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     smooth::Int=0,
-    warnings::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
     filter_function, translation, rotation, request = selectFilter(
@@ -4015,7 +3997,7 @@ function daDiscAccretion(
     snapshot_header = readSnapHeader(snapshot_path)
 
     # Get the group catalog header
-    groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+    groupcat_header = readGroupCatHeader(groupcat_path)
 
     # Construct the metadata dictionary
     metadata = Dict(
@@ -4036,8 +4018,8 @@ function daDiscAccretion(
     # Read the data in the snapshot
     past_dd = merge(
         metadata,
-        readSnapshot(snapshot_path, request; warnings),
-        readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+        readSnapshot(snapshot_path, request),
+        readGroupCatalog(groupcat_path, snapshot_path, request),
     )
 
     # Filter the data
@@ -4070,7 +4052,7 @@ function daDiscAccretion(
         snapshot_header = readSnapHeader(snapshot_path)
 
         # Get the group catalog header
-        groupcat_header = readGroupCatHeader(groupcat_path; warnings)
+        groupcat_header = readGroupCatHeader(groupcat_path)
 
         # Construct the metadata dictionary
         metadata = Dict(
@@ -4091,8 +4073,8 @@ function daDiscAccretion(
         # Read the data in the snapshot
         present_dd = merge(
             metadata,
-            readSnapshot(snapshot_path, request; warnings),
-            readGroupCatalog(groupcat_path, snapshot_path, request; warnings),
+            readSnapshot(snapshot_path, request),
+            readGroupCatalog(groupcat_path, snapshot_path, request),
         )
 
         # Filter the data
@@ -4148,7 +4130,6 @@ Compute the stellar mass or SFR evolution using the data in the `sfr.txt` file.
       + `:stellar_mass` -> Stellar mass.
       + `:sfr`          -> The star formation rate.
   - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `warnings::Bool=true`: If a warning will be given when trying to use the scale factor or the redshift in the x axis for a non-cosmological simulation.
 
 # Returns
 
@@ -4162,7 +4143,6 @@ function daSFRtxt(
     x_quantity::Symbol,
     y_quantity::Symbol;
     smooth::Int=0,
-    warnings::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
     snapshot_paths = filter(!ismissing, sim_data.table[!, 7])
@@ -4180,7 +4160,7 @@ function daSFRtxt(
     header = readSnapHeader(snapshot_path)
 
     # Read the data in the `sfr.txt` file
-    sfr_txt_data = readSfrFile(joinpath(sim_data.path, SFR_REL_PATH), snapshot_path; warnings)
+    sfr_txt_data = readSfrFile(joinpath(sim_data.path, SFR_REL_PATH), snapshot_path)
     time_ticks = sfr_txt_data[1]
 
     if x_quantity == :scale_factor
@@ -4284,7 +4264,6 @@ Compute the evolution of a measured quantity in the `cpu.txt` file, for a given 
       + `:tot_clock_time_s`       -> Total clock time in seconds.
       + `:tot_clock_time_percent` -> Total clock time as a percentage.
   - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `warnings::Bool=true`: If a warning will be given when the target process is missing.
 
 # Returns
 
@@ -4299,7 +4278,6 @@ function daCPUtxt(
     x_quantity::Symbol,
     y_quantity::Symbol;
     smooth::Int=0,
-    warnings::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
     snapshot_paths = filter(!ismissing, sim_data.table[!, 7])
@@ -4317,7 +4295,7 @@ function daCPUtxt(
     header = readSnapHeader(snapshot_path)
 
     # Read the data in the `sfr.txt` file
-    cpu_txt_data = readCpuFile(joinpath(sim_data.path, CPU_REL_PATH), [target]; warnings)[target]
+    cpu_txt_data = readCpuFile(joinpath(sim_data.path, CPU_REL_PATH), [target])[target]
 
     if x_quantity == :time_step
 
@@ -4432,7 +4410,6 @@ Compute the gas mass density and the SFR density, used in the volumetric star fo
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
-  - `print_range::Bool=false`: Print an info block detailing the logarithmic density range.
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. It has to be a function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -4502,7 +4479,6 @@ function daVSFLaw(
     grid::CubicGrid,
     quantity::Symbol;
     type::Symbol=:cells,
-    print_range::Bool=false,
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Float64}},Nothing}
@@ -4522,7 +4498,6 @@ function daVSFLaw(
         grid,
         :stellar_mass,
         :particles;
-        print_range,
         m_unit=u"Msun",
         l_unit=u"kpc",
         filter_function=stellar_ff,
@@ -4533,7 +4508,6 @@ function daVSFLaw(
         grid,
         quantity,
         type;
-        print_range,
         m_unit=u"Msun",
         l_unit=u"pc",
         filter_function=gas_ff,
