@@ -112,7 +112,7 @@ export kennicuttSchmidtLaw
 export fitResolvedKSLaw
 export fitVSFLaw
 export massMetallicityRelation
-export atomicGasCubes
+export gasVelocityCubes
 export clumpingFactor
 
 end

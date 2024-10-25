@@ -29,6 +29,7 @@ Write a text file with information about a given snapshot.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -2160,6 +2161,7 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -2259,6 +2261,7 @@ Plot a 2D histogram of the density.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -2465,6 +2468,7 @@ Plot a 2D map of the gas SFR.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -2676,6 +2680,7 @@ Plot a 2D histogram of the density, with the velocity field.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -2880,6 +2885,7 @@ Plot a 2D histogram of the metallicity.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -3100,6 +3106,7 @@ Plot a 2D histogram of the temperature.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -3372,6 +3379,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -3732,6 +3740,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -4202,6 +4211,7 @@ Only for gas cells that have entered out routine.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -4475,6 +4485,7 @@ Plot a time series.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -4619,6 +4630,7 @@ Plot a time series of the gas components. Either their masses or their fractions
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -4917,6 +4929,7 @@ Plot the galaxy rotation curve of a set of simulations.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -5062,6 +5075,7 @@ Plot a density profile.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -5267,6 +5281,7 @@ Plot a density profile.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -5421,6 +5436,7 @@ Plot a mass profile.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -5576,6 +5592,7 @@ Plot a velocity profile.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -5704,6 +5721,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -5829,6 +5847,7 @@ Plot a histogram of the stellar circularity.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -5967,6 +5986,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -6102,6 +6122,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -6288,6 +6309,7 @@ Plot the Kennicutt-Schmidt law.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -7111,6 +7133,7 @@ Plot the resolved Kennicutt-Schmidt relation with an optional linear fit.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -7323,6 +7346,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -7488,6 +7512,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -7778,38 +7803,40 @@ function massMetallicityRelation(
 end
 
 """
-    atomicGasCubes(
+    gasVelocityCubes(
         simulation_paths::Vector{String},
         slice::ReducedIndexType;
         <keyword arguments>
     )::Nothing
 
-Create a HDF5 file with the physical position, atomic gas mass, velocity, and velocity dispersion at each voxel of a rectangular 3D grid.
+Create a HDF5 file with the position, gas mass, velocity, and velocity dispersion of each voxel in a rectangular 3D grid.
 
 The metadata for each snapshot in the HDF5 file includes the physical time in Gyr, the scale factor, and the redshift of that snapshot.
 
 By default, the grid is centered at coordinates (0, 0, 0), has 300x300x300 voxels, and has a side length of [`BOX_L`](@ref). There are as many rows as there are voxels (27000000 by default).
 
-The stored quantities for each voxel are:
+The quantities in the HDF5 file for each voxel are:
 
 Column 01: x coordinate [kpc]
 Column 02: y coordinate [kpc]
 Column 03: z coordinate [kpc]
-Column 04: Atomic gas mass [Msun]
-Column 05: Velocity in the x direction [km * s^-1]
-Column 06: Velocity in the y direction [km * s^-1]
-Column 07: Velocity in the z direction [km * s^-1]
-Column 08: Velocity dispersion in the x direction [km * s^-1]
-Column 09: Velocity dispersion in the y direction [km * s^-1]
-Column 10: Velocity dispersion in the z direction [km * s^-1]
+Column 04: Molecular mass [Msun]
+Column 05: Atomic mass [Msun]
+Column 06: Ionized mass [Msun]
+Column 07: Velocity in the x direction [km * s^-1]
+Column 08: Velocity in the y direction [km * s^-1]
+Column 09: Velocity in the z direction [km * s^-1]
+Column 10: Velocity dispersion in the x direction [km * s^-1]
+Column 11: Velocity dispersion in the y direction [km * s^-1]
+Column 12: Velocity dispersion in the z direction [km * s^-1]
 
-For Voronoi cells:
+For gas represented by Voronoi cells (e.g. Arepo):
 
-The mass is the mass of atomic gas intersecting the voxel, so it only considers the cell that it is the closest to the voxel. The velocity is given by the weighted mean of the velocities of the `n_neighbors` nearest neighbors to the voxel. And the velocity dispersion, by the weighted standard deviation.
+The mass is the mass of molecular, atomic or ionized gas intersecting the voxel, so it only considers the cell that is closest to the voxel. The velocity is given by the weighted mean of the velocities of the `n_neighbors` nearest cells. And the velocity dispersion, by the weighted standard deviation.
 
-Notice that for Voronoi cells, the mass will be sample at a sub-cell resolution (as long as voxel size < cell size), while the velocities are sample at a lower resolution (as long as `n_neighbors` > 1). The weights are given by the distance (in kpc) to each neighbor, using a Gaussian kernel.
+Notice that for Voronoi cells, the mass will be sample at a sub-cell resolution (as long as voxel size < cell size), while the velocities are sample at a locally lower-than-cell resolution (as long as `n_neighbors` > 1). The weights are given by the distance (in kpc) to each neighbor, using a Gaussian kernel.
 
-For particles:
+For gas represented by particles (e.g. SPH codes):
 
 The mass is the accumulated mass of the particles within each voxel. The velocity is the mean of the velocities of those particles, and the velocity dispersion is the standard deviation.
 
@@ -7820,10 +7847,10 @@ If there are no particles, the mass is 0, and the velocity and velocity dispersi
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::ReducedIndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13) or an `StepRange` (e.g. 5:2:13). Starts at 1.
   - `type::Symbol=:cells`: If the gas density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
-  - `n_neighbors::Int=8`: Number of neighbors for the mean and standard deviation of the velocity. Setting this value to 1 maximizes the resolution for the velocity, and sets the standard deviation (columns 8, 9, and 10) to NaN.
+  - `n_neighbors::Int=8`: Number of neighbors for the mean and standard deviation of the velocity. Setting this value to 1 maximizes the resolution for the velocity, and sets the standard deviation (columns 8, 9, and 10) to NaN. This is only relevant for simulations where gas is represented by Voronoi cells (`type` = :cells).
   - `grid::CubicGrid=CubicGrid(BOX_L, 300)`: Cubic grid.
-  - `output_file::String="./HI_cubes.hdf5"`: Path to the output HDF5 file.
-  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+  - `output_file::String="./velocity_cube.hdf5"`: Path to the output HDF5 file. This file will be created, and the full path to it too, if it doesn't exist.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be consider, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
@@ -7836,6 +7863,7 @@ If there are no particles, the mass is 0, and the velocity and velocity dispersi
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
@@ -7853,13 +7881,13 @@ If there are no particles, the mass is 0, and the velocity and velocity dispersi
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 """
-function atomicGasCubes(
+function gasVelocityCubes(
     simulation_paths::Vector{String},
     slice::ReducedIndexType;
     type::Symbol=:cells,
     n_neighbors::Int=8,
     grid::CubicGrid=CubicGrid(BOX_L, 300),
-    output_file::String="./HI_cubes.hdf5",
+    output_file::String="./velocity_cube.hdf5",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     show_progress::Bool=true,
 )::Nothing
@@ -7945,7 +7973,7 @@ function atomicGasCubes(
             masses = scatterQty(data_dict, :atomic_mass)
 
             if any(isempty, [masses, velocities, positions])
-                throw(ArgumentError("atomicGasCubes: Some data is missing (there appears to be \
+                throw(ArgumentError("gasVelocityCubes: Some data is missing (there appears to be \
                 no gas in the snapshot), so I cannot construct the HI cubes"))
             end
 
@@ -8085,7 +8113,7 @@ function atomicGasCubes(
 
             else
 
-                throw(ArgumentError("atomicGasCubes: The argument `type` must be :cells or \
+                throw(ArgumentError("gasVelocityCubes: The argument `type` must be :cells or \
                 :particles, but I got :$(type)"))
 
             end
@@ -8157,6 +8185,7 @@ Plot the clumping factor of `quantity` for different volume scales.
           + `:filter_function` -> The filter function.
           + `:translation`     -> Translation for the simulation box. The posibilities are:
 
+              + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
               + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
