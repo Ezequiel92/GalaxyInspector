@@ -7817,18 +7817,18 @@ By default, the grid is centered at coordinates (0, 0, 0), has 300x300x300 voxel
 
 The quantities in the HDF5 file for each voxel are:
 
-Column 01: x coordinate [kpc]
-Column 02: y coordinate [kpc]
-Column 03: z coordinate [kpc]
-Column 04: Molecular mass [Msun]
-Column 05: Atomic mass [Msun]
-Column 06: Ionized mass [Msun]
-Column 07: Velocity in the x direction [km * s^-1]
-Column 08: Velocity in the y direction [km * s^-1]
-Column 09: Velocity in the z direction [km * s^-1]
-Column 10: Velocity dispersion in the x direction [km * s^-1]
-Column 11: Velocity dispersion in the y direction [km * s^-1]
-Column 12: Velocity dispersion in the z direction [km * s^-1]
+Column 01: x coordinate [`l_unit`]
+Column 02: y coordinate [`l_unit`]
+Column 03: z coordinate [`l_unit`]
+Column 04: Molecular mass [`m_unit`]
+Column 05: Atomic mass [`m_unit`]
+Column 06: Ionized mass [`m_unit`]
+Column 07: Velocity in the x direction [`v_unit`]
+Column 08: Velocity in the y direction [`v_unit`]
+Column 09: Velocity in the z direction [`v_unit`]
+Column 10: Velocity dispersion in the x direction [`v_unit`]
+Column 11: Velocity dispersion in the y direction [`v_unit`]
+Column 12: Velocity dispersion in the z direction [`v_unit`]
 
 For gas represented by Voronoi cells (e.g. Arepo):
 
@@ -7842,15 +7842,24 @@ The mass is the accumulated mass of the particles within each voxel. The velocit
 
 If there are no particles, the mass is 0, and the velocity and velocity dispersion are NaN. If there is only one particle, the mass and velocity are the ones from that particle, and the velocity dispersion is NaN.
 
+By default (`filter_mode` = :subhalo) we use the following reference system:
+
+  - The origin is in the position of the particle/cell at the potencial minimum of the main subhalo.
+  - The x, y, and z axis form a right-handed cartesian reference system (x × y = z), where the z axis has the orientation of the stellar angular momentum, and the x and y axis are roughly in the direction of the corresponding principal axis.
+
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::ReducedIndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13) or an `StepRange` (e.g. 5:2:13). Starts at 1.
   - `type::Symbol=:cells`: If the gas density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
-  - `n_neighbors::Int=8`: Number of neighbors for the mean and standard deviation of the velocity. Setting this value to 1 maximizes the resolution for the velocity, and sets the standard deviation (columns 8, 9, and 10) to NaN. This is only relevant for simulations where gas is represented by Voronoi cells (`type` = :cells).
+  - `n_neighbors::Int=32`: Number of neighbors for the mean and standard deviation of the velocity. Setting this value to 1 maximizes the resolution for the velocity, and sets the standard deviation (columns 8, 9, and 10) to NaN. This is only relevant for simulations where gas is represented by Voronoi cells (`type` = :cells).
   - `grid::CubicGrid=CubicGrid(BOX_L, 300)`: Cubic grid.
-  - `output_file::String="./velocity_cube.hdf5"`: Path to the output HDF5 file. This file will be created, and the full path to it too, if it doesn't exist.
-  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be consider, the options are:
+  - `row_major_order::Bool=true`: Store the results in row-major order (C and Python) instead of column-major order (Julia, Fortran, and MATLAB). See [Row- and column-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
+  - `m_unit::Unitful.Units=u"Msun"`: Mass unit
+  - `l_unit::Unitful.Units=u"kpc"`: Length unit.
+  - `v_unit::Unitful.Units=u"km * s^-1"`: Velocity unit.
+  - `output_file::String="./gas_velocity_cube.hdf5"`: Path to the output HDF5 file. This file will be created, and the full path to it too, if it doesn't exist.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:subhalo`: Which cells/particles will be consider, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
@@ -7885,27 +7894,27 @@ function gasVelocityCubes(
     simulation_paths::Vector{String},
     slice::ReducedIndexType;
     type::Symbol=:cells,
-    n_neighbors::Int=8,
+    n_neighbors::Int=32,
     grid::CubicGrid=CubicGrid(BOX_L, 300),
-    output_file::String="./velocity_cube.hdf5",
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    row_major_order::Bool=true,
+    m_unit::Unitful.Units=u"Msun",
+    l_unit::Unitful.Units=u"kpc",
+    v_unit::Unitful.Units=u"km * s^-1",
+    output_file::String="./gas_velocity_cube.hdf5",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:subhalo,
     show_progress::Bool=true,
 )::Nothing
 
     # Set the number of columns and rows
     n_rows = grid.n_bins^3
-    n_cols = 10
-
-    # Set the units
-    m_unit = u"Msun"
-    l_unit = u"kpc"
-    v_unit = u"km * s^-1"
-    t_unit = u"Gyr"
+    n_cols = 12
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
         mergeRequests(
+            plotParams(:molecular_mass).request,
             plotParams(:atomic_mass).request,
+            plotParams(:ionized_mass).request,
             Dict(:gas => ["POS ", "VEL ", "RHO ", "MASS"]),
         ),
     )
@@ -7936,7 +7945,7 @@ function gasVelocityCubes(
         prog_bar = Progress(
             length(slice),
             dt=0.5,
-            desc="Writing the HI cube for simulation $(simulation_name)... ",
+            desc="Writing the velocity cube for simulation $(simulation_name)... ",
             color=:blue,
             barglyphs=BarGlyphs("|#  |"),
             enabled=show_progress,
@@ -7969,24 +7978,29 @@ function gasVelocityCubes(
             # Load the cell/particle velocities
             velocities = ustrip.(v_unit, gd["VEL "])
 
-            # Compute the mass of atomic gas in each cell
-            masses = scatterQty(data_dict, :atomic_mass)
+            # Compute the mass of molecular, atomic, and ionized gas in each cell
+            mol_masses = scatterQty(data_dict, :molecular_mass)
+            ato_masses = scatterQty(data_dict, :atomic_mass)
+            ion_masses = scatterQty(data_dict, :ionized_mass)
 
-            if any(isempty, [masses, velocities, positions])
+            if any(isempty, [mol_masses, ato_masses, ion_masses, velocities, positions])
                 throw(ArgumentError("gasVelocityCubes: Some data is missing (there appears to be \
-                no gas in the snapshot), so I cannot construct the HI cubes"))
+                no gas in the snapshot), so I cannot construct the velocity cube"))
             end
 
-            # Column 01: x coordinate [kpc]
-            # Column 02: y coordinate [kpc]
-            # Column 03: z coordinate [kpc]
-            # Column 04: Atomic gas mass [Msun]
-            # Column 05: Velocity in the x direction [km * s^-1]
-            # Column 06: Velocity in the y direction [km * s^-1]
-            # Column 07: Velocity in the z direction [km * s^-1]
-            # Column 08: Velocity dispersion in the x direction [km * s^-1]
-            # Column 09: Velocity dispersion in the y direction [km * s^-1]
-            # Column 10: Velocity dispersion in the z direction [km * s^-1]
+            # Alocate memory for:
+            # Column 01: x coordinate [l_unit]
+            # Column 02: y coordinate [l_unit]
+            # Column 03: z coordinate [l_unit]
+            # Column 04: Molecular mass [m_unit]
+            # Column 05: Atomic mass [m_unit]
+            # Column 06: Ionized mass [m_unit]
+            # Column 07: Velocity in the x direction [v_unit]
+            # Column 08: Velocity in the y direction [v_unit]
+            # Column 09: Velocity in the z direction [v_unit]
+            # Column 10: Velocity dispersion in the x direction [v_unit]
+            # Column 11: Velocity dispersion in the y direction [v_unit]
+            # Column 12: Velocity dispersion in the z direction [v_unit]
             data_matrix = Matrix{Float64}(undef, n_rows, n_cols)
 
             if type == :cells
@@ -7994,8 +8008,10 @@ function gasVelocityCubes(
                 # Compute the volume of each cell
                 cell_volumes = gd["MASS"] ./ gd["RHO "]
 
-                # Compute the atomic gas densities
-                densities = ustrip.(m_unit * l_unit^-3, masses ./ cell_volumes)
+                # Compute the gas densities
+                mol_densities = ustrip.(m_unit * l_unit^-3, mol_masses ./ cell_volumes)
+                ato_densities = ustrip.(m_unit * l_unit^-3, ato_masses ./ cell_volumes)
+                ion_densities = ustrip.(m_unit * l_unit^-3, ion_masses ./ cell_volumes)
 
                 # Load the volume of the voxels
                 voxel_volume = ustrip(l_unit^3, grid.bin_volume)
@@ -8011,27 +8027,28 @@ function gasVelocityCubes(
                     # Physical coordinates of the voxel [l_unit]
                     data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
 
+                    # Molecular gas mass [m_unit]
+                    data_matrix[i, 4] = mol_densities[idxs[i][1]] * voxel_volume
+                    # Atomic gas mass [m_unit]
+                    data_matrix[i, 5] = ato_densities[idxs[i][1]] * voxel_volume
+                    # Ionized gas mass [m_unit]
+                    data_matrix[i, 6] = ion_densities[idxs[i][1]] * voxel_volume
+
                     if isone(n_neighbors)
 
-                        # Atomic gas mass [m_unit]
-                        data_matrix[i, 4] = densities[idxs[i]] * voxel_volume
-
                         # Neighbor velocity in the x direction [v_unit]
-                        data_matrix[i, 5] = velocities[1, idxs[i]]
+                        data_matrix[i, 7] = velocities[1, idxs[i]]
                         # Neighbor velocity in the y direction [v_unit]
-                        data_matrix[i, 6] = velocities[2, idxs[i]]
+                        data_matrix[i, 8] = velocities[2, idxs[i]]
                         # Neighbor velocity in the z direction [v_unit]
-                        data_matrix[i, 7] = velocities[3, idxs[i]]
+                        data_matrix[i, 9] = velocities[3, idxs[i]]
 
                         # For the case of only one neighbor, set the standard deviations to NaN
-                        data_matrix[i, 8]  = NaN
-                        data_matrix[i, 9]  = NaN
-                        data_matrix[i, 10] = NaN
+                        data_matrix[i, 10]  = NaN
+                        data_matrix[i, 11]  = NaN
+                        data_matrix[i, 12] = NaN
 
                     else
-
-                        # Atomic gas mass [m_unit]
-                        data_matrix[i, 4] = densities[idxs[i][1]] * voxel_volume
 
                         # Compute the analytic weights using a Gaussian kernel
                         neighbor_weights = aweights(evaluateNormal(dists[i]))
@@ -8044,11 +8061,11 @@ function gasVelocityCubes(
                         vzs = velocities[3, idxs[i]]
 
                         # Mean and standard deviation of the neighbor velocities in the x direction [v_unit]
-                        data_matrix[i, 5], data_matrix[i, 8] = mean_and_std(vxs, neighbor_weights)
+                        data_matrix[i, 7], data_matrix[i, 10] = mean_and_std(vxs, neighbor_weights)
                         # Mean and standard deviation of the neighbor velocities in the y direction [v_unit]
-                        data_matrix[i, 6], data_matrix[i, 9] = mean_and_std(vys, neighbor_weights)
+                        data_matrix[i, 8], data_matrix[i, 11] = mean_and_std(vys, neighbor_weights)
                         # Mean and standard deviation of the neighbor velocities in the z direction [v_unit]
-                        data_matrix[i, 7], data_matrix[i, 10] = mean_and_std(vzs, neighbor_weights)
+                        data_matrix[i, 9], data_matrix[i, 12] = mean_and_std(vzs, neighbor_weights)
 
                     end
 
@@ -8064,32 +8081,38 @@ function gasVelocityCubes(
                     # Physical coordinates of the voxel [l_unit]
                     data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
 
+                    # Molecular gas mass [m_unit]
+                    data_matrix[i, 4] = ustrip(m_unit, sum(mol_masses[idxs[i]]; init=0.0*m_unit))
                     # Atomic gas mass [m_unit]
-                    data_matrix[i, 4] = ustrip(m_unit, sum(masses[idxs[i]]; init=0.0 * m_unit))
+                    data_matrix[i, 5] = ustrip(m_unit, sum(ato_masses[idxs[i]]; init=0.0*m_unit))
+                    # Ionized gas mass [m_unit]
+                    data_matrix[i, 6] = ustrip(m_unit, sum(ion_masses[idxs[i]]; init=0.0*m_unit))
 
                     if isempty(idxs[i])
 
-                        # If the voxel has no particles, set the velocity and velocity dispersion to NaN
-                        data_matrix[i, 5]  = NaN
-                        data_matrix[i, 6]  = NaN
-                        data_matrix[i, 7]  = NaN
-                        data_matrix[i, 8]  = NaN
-                        data_matrix[i, 9]  = NaN
+                        # If the voxel has no particles set the velocity to NaN
+                        data_matrix[i, 7] = NaN
+                        data_matrix[i, 8] = NaN
+                        data_matrix[i, 9] = NaN
+
+                        # If the voxel has no particles set the velocity dispersion to NaN
                         data_matrix[i, 10] = NaN
+                        data_matrix[i, 11] = NaN
+                        data_matrix[i, 12] = NaN
 
                     elseif isone(length(idxs[i]))
 
                         # Velocity in the x direction [v_unit]
-                        data_matrix[i, 5] = velocities[1, idxs[i][1]]
+                        data_matrix[i, 7] = velocities[1, idxs[i][1]]
                         # Velocity in the y direction [v_unit]
-                        data_matrix[i, 6] = velocities[2, idxs[i][1]]
+                        data_matrix[i, 8] = velocities[2, idxs[i][1]]
                         # Velocity in the z direction [v_unit]
-                        data_matrix[i, 7] = velocities[3, idxs[i][1]]
+                        data_matrix[i, 9] = velocities[3, idxs[i][1]]
 
-                        # If the voxel has a single particle, set the velocity dispersion to NaN
-                        data_matrix[i, 8]  = NaN
-                        data_matrix[i, 9]  = NaN
+                        # If the voxel has a single particle set the velocity dispersion to NaN
                         data_matrix[i, 10] = NaN
+                        data_matrix[i, 11] = NaN
+                        data_matrix[i, 12] = NaN
 
                     else
 
@@ -8101,11 +8124,11 @@ function gasVelocityCubes(
                         vzs = velocities[3, idxs[i]]
 
                         # Mean and standard deviation of the velocities in the x direction [v_unit]
-                        data_matrix[i, 5], data_matrix[i, 8] = mean_and_std(vxs)
+                        data_matrix[i, 7], data_matrix[i, 10] = mean_and_std(vxs)
                         # Mean and standard deviation of the velocities in the y direction [v_unit]
-                        data_matrix[i, 6], data_matrix[i, 9] = mean_and_std(vys)
+                        data_matrix[i, 8], data_matrix[i, 11] = mean_and_std(vys)
                         # Mean and standard deviation of the velocities in the z direction [v_unit]
-                        data_matrix[i, 7], data_matrix[i, 10] = mean_and_std(vzs)
+                        data_matrix[i, 9], data_matrix[i, 12] = mean_and_std(vzs)
 
                     end
 
@@ -8118,21 +8141,334 @@ function gasVelocityCubes(
 
             end
 
-            # Go from column-major order (Julia) to row-major order (Python and C), for interoperability
-            hdf5_group["snap_$(snapshot_number)", shuffle=(), deflate=5] = permutedims(
-                data_matrix,
-                reverse(1:ndims(data_matrix)),
-            )
+            if row_major_order
+                # Go from column-major order (Julia, MATLAB, and Fortran) to
+                # row-major order (Python and C), for interoperability
+                hdf5_group["snap_$(snapshot_number)", shuffle=(), deflate=5] = permutedims(
+                    data_matrix,
+                    reverse(1:ndims(data_matrix)),
+                )
+            else
+                # Stay in column-major order (Julia, MATLAB, and Fortran)
+                hdf5_group["snap_$(snapshot_number)", shuffle=(), deflate=5] = data_matrix
+            end
 
             # Read the time, scale factor, and redshift
-            pt = ustrip.(t_unit, data_dict[:snap_data].physical_time)
+            pt = ustrip.(u"Gyr", data_dict[:snap_data].physical_time)
             sf = data_dict[:snap_data].scale_factor
             rs = data_dict[:snap_data].redshift
 
-            # Write the metadata
+            # Write the time metadata
             attrs(hdf5_group["snap_$(snapshot_number)"])["Time [Gyr]"]   = pt
             attrs(hdf5_group["snap_$(snapshot_number)"])["Scale factor"] = sf
             attrs(hdf5_group["snap_$(snapshot_number)"])["Redshift"]     = rs
+
+            # Write the unit metadata
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Mass unit"]     = string(m_unit)
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Length unit"]   = string(l_unit)
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Velocity unit"] = string(v_unit)
+
+            # Write the grid metadata
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [length unit]"] = ustrip.(
+                l_unit,
+                grid.physical_size,
+            )
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"]    = grid.n_bins
+
+            # Write the column metadata
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Columns"] = [
+                "x",    # Column 01: x coordinate [l_unit]
+                "y",    # Column 02: y coordinate [l_unit]
+                "z",    # Column 03: z coordinate [l_unit]
+                "MH2",  # Column 04: Molecular mass [m_unit]
+                "MHI",  # Column 05: Atomic mass [m_unit]
+                "MHII", # Column 06: Ionized mass [m_unit]
+                "Vx",   # Column 07: Velocity in the x direction [v_unit]
+                "Vy",   # Column 08: Velocity in the y direction [v_unit]
+                "Vz",   # Column 09: Velocity in the z direction [v_unit]
+                "Sx",   # Column 10: Velocity dispersion in the x direction [v_unit]
+                "Sy",   # Column 11: Velocity dispersion in the y direction [v_unit]
+                "Sz",   # Column 12: Velocity dispersion in the z direction [v_unit]
+            ]
+
+            next!(prog_bar)
+
+        end
+
+    end
+
+    close(hdf5_file)
+
+    return nothing
+
+end
+
+"""
+    stellarVelocityCubes(
+        simulation_paths::Vector{String},
+        slice::ReducedIndexType;
+        <keyword arguments>
+    )::Nothing
+
+Create a HDF5 file with the position, stellar mass, velocity, and velocity dispersion of each voxel in a rectangular 3D grid.
+
+The metadata for each snapshot in the HDF5 file includes the physical time in Gyr, the scale factor, and the redshift of that snapshot.
+
+By default, the grid is centered at coordinates (0, 0, 0), has 100x100x100 voxels, and has a side length of [`BOX_L`](@ref). There are as many rows as there are voxels (1000000 by default).
+
+The quantities in the HDF5 file for each voxel are:
+
+Column 01: x coordinate [`l_unit`]
+Column 02: y coordinate [`l_unit`]
+Column 03: z coordinate [`l_unit`]
+Column 04: Stellar mass [`m_unit`]
+Column 05: Velocity in the x direction [`v_unit`]
+Column 06: Velocity in the y direction [`v_unit`]
+Column 07: Velocity in the z direction [`v_unit`]
+Column 08: Velocity dispersion in the x direction [`v_unit`]
+Column 09: Velocity dispersion in the y direction [`v_unit`]
+Column 10: Velocity dispersion in the z direction [`v_unit`]
+
+The mass is the accumulated mass of the particles within each voxel. The velocity is the mean of the velocities of those particles, and the velocity dispersion is the standard deviation.
+
+If there are no particles, the mass is 0, and the velocity and velocity dispersion are NaN. If there is only one particle, the mass and velocity are the ones from that particle, and the velocity dispersion is NaN.
+
+By default (`filter_mode` = :subhalo) we use the following reference system:
+
+  - The origin is in the position of the particle/cell at the potencial minimum of the main subhalo.
+  - The x, y, and z axis form a right-handed cartesian reference system (x × y = z), where the z axis has the orientation of the stellar angular momentum, and the x and y axis are roughly in the direction of the corresponding principal axis.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
+  - `slice::ReducedIndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13) or an `StepRange` (e.g. 5:2:13). Starts at 1.
+  - `grid::CubicGrid=CubicGrid(BOX_L, 100)`: Cubic grid.
+  - `row_major_order::Bool=true`: Store the results in row-major order (C and Python) instead of column-major order (Julia, Fortran, and MATLAB). See [Row- and column-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
+  - `m_unit::Unitful.Units=u"Msun"`: Mass unit
+  - `l_unit::Unitful.Units=u"kpc"`: Length unit.
+  - `v_unit::Unitful.Units=u"km * s^-1"`: Velocity unit.
+  - `output_file::String="./stellar_velocity_cube.hdf5"`: Path to the output HDF5 file. This file will be created, and the full path to it too, if it doesn't exist.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:subhalo`: Which cells/particles will be consider, the options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No translation is applied.
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+
+              + `:zero`                       -> No rotation is appplied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+"""
+function stellarVelocityCubes(
+    simulation_paths::Vector{String},
+    slice::ReducedIndexType;
+    grid::CubicGrid=CubicGrid(BOX_L, 100),
+    row_major_order::Bool=true,
+    m_unit::Unitful.Units=u"Msun",
+    l_unit::Unitful.Units=u"kpc",
+    v_unit::Unitful.Units=u"km * s^-1",
+    output_file::String="./stellar_velocity_cube.hdf5",
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:subhalo,
+    show_progress::Bool=true,
+)::Nothing
+
+    # Set the number of columns and rows
+    n_rows = grid.n_bins^3
+    n_cols = 10
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(plotParams(:stellar_mass).request, Dict(:stars => ["POS ", "VEL "])),
+    )
+
+    # Create the output folder
+    mkpath(dirname(output_file))
+
+    # Create the output HDF5 file
+    hdf5_file = h5open(output_file, "w")
+
+    @inbounds for simulation_path in simulation_paths
+
+        simulation_name = basename(simulation_path)
+
+        prog_bar = Progress(
+            length(slice),
+            dt=0.5,
+            desc="Writing the velocity cube for simulation $(simulation_name)... ",
+            color=:blue,
+            barglyphs=BarGlyphs("|#  |"),
+            enabled=show_progress,
+        )
+
+        # Create an HDF5 group for each simulation
+        hdf5_group = create_group(hdf5_file, simulation_name)
+
+        @inbounds for snap_n in slice
+
+            data_dict = makeDataDict(simulation_path, snap_n, request)
+
+            snapshot_number = lpad(string(data_dict[:snap_data].global_index), 3, "0")
+
+            # Filter the data
+            filterData!(data_dict; filter_function)
+
+            # Translate the data
+            translateData!(data_dict, translation)
+
+            # Rotate the data
+            rotateData!(data_dict, rotation)
+
+            # Load the particle positions
+            positions = data_dict[:stars]["POS "]
+
+            # Load the stellar velocities
+            velocities = ustrip.(v_unit, data_dict[:stars]["VEL "])
+
+            # Compute the stellar mass in each cell
+            masses = scatterQty(data_dict, :stellar_mass)
+
+            if any(isempty, [masses, velocities, positions])
+                throw(ArgumentError("stellarVelocityCubes: Some data is missing (there appears to \
+                be no stars in the snapshot), so I cannot construct the velocity cube"))
+            end
+
+            # Alocate memory for:
+            # Column 01: x coordinate [l_unit]
+            # Column 02: y coordinate [l_unit]
+            # Column 03: z coordinate [l_unit]
+            # Column 04: Stellar mass [m_unit]
+            # Column 05: Velocity in the x direction [v_unit]
+            # Column 06: Velocity in the y direction [v_unit]
+            # Column 07: Velocity in the z direction [v_unit]
+            # Column 08: Velocity dispersion in the x direction [v_unit]
+            # Column 09: Velocity dispersion in the y direction [v_unit]
+            # Column 10: Velocity dispersion in the z direction [v_unit]
+            data_matrix = Matrix{Float64}(undef, n_rows, n_cols)
+
+            # Find which particles are within each voxel
+            idxs = listHistogram3D(positions, grid)
+
+            @inbounds for i in eachindex(grid.grid)
+
+                # Physical coordinates of the voxel [l_unit]
+                data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
+
+                # Stellar mass [m_unit]
+                data_matrix[i, 4] = ustrip(m_unit, sum(masses[idxs[i]]; init=0.0*m_unit))
+
+                if isempty(idxs[i])
+
+                    # If the voxel has no particles set the velocity to NaN
+                    data_matrix[i, 5] = NaN
+                    data_matrix[i, 6] = NaN
+                    data_matrix[i, 7] = NaN
+
+                    # If the voxel has no particles set the velocity dispersion to NaN
+                    data_matrix[i, 8]  = NaN
+                    data_matrix[i, 9]  = NaN
+                    data_matrix[i, 10] = NaN
+
+                elseif isone(length(idxs[i]))
+
+                    # Velocity in the x direction [v_unit]
+                    data_matrix[i, 5] = velocities[1, idxs[i][1]]
+                    # Velocity in the y direction [v_unit]
+                    data_matrix[i, 6] = velocities[2, idxs[i][1]]
+                    # Velocity in the z direction [v_unit]
+                    data_matrix[i, 7] = velocities[3, idxs[i][1]]
+
+                    # If the voxel has a single particle set the velocity dispersion to NaN
+                    data_matrix[i, 8]  = NaN
+                    data_matrix[i, 9]  = NaN
+                    data_matrix[i, 10] = NaN
+
+                else
+
+                    # Velocities in the x direction of the particles within the voxel [v_unit]
+                    vxs = velocities[1, idxs[i]]
+                    # Velocities in the y direction of the particles within the voxel [v_unit]
+                    vys = velocities[2, idxs[i]]
+                    # Velocities in the z direction of the particles within the voxel [v_unit]
+                    vzs = velocities[3, idxs[i]]
+
+                    # Mean and standard deviation of the velocities in the x direction [v_unit]
+                    data_matrix[i, 5], data_matrix[i, 8] = mean_and_std(vxs)
+                    # Mean and standard deviation of the velocities in the y direction [v_unit]
+                    data_matrix[i, 6], data_matrix[i, 9] = mean_and_std(vys)
+                    # Mean and standard deviation of the velocities in the z direction [v_unit]
+                    data_matrix[i, 7], data_matrix[i, 10] = mean_and_std(vzs)
+
+                end
+
+            end
+
+            if row_major_order
+                # Go from column-major order (Julia, MATLAB, and Fortran) to
+                # row-major order (Python and C), for interoperability
+                hdf5_group["snap_$(snapshot_number)", shuffle=(), deflate=5] = permutedims(
+                    data_matrix,
+                    reverse(1:ndims(data_matrix)),
+                )
+            else
+                # Stay in column-major order (Julia, MATLAB, and Fortran)
+                hdf5_group["snap_$(snapshot_number)", shuffle=(), deflate=5] = data_matrix
+            end
+
+            # Read the time, scale factor, and redshift
+            pt = ustrip.(u"Gyr", data_dict[:snap_data].physical_time)
+            sf = data_dict[:snap_data].scale_factor
+            rs = data_dict[:snap_data].redshift
+
+            # Write the time metadata
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Time [Gyr]"]   = pt
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Scale factor"] = sf
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Redshift"]     = rs
+
+            # Write the unit metadata
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Mass unit"]     = string(m_unit)
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Length unit"]   = string(l_unit)
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Velocity unit"] = string(v_unit)
+
+            # Write the grid metadata
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [length unit]"] = ustrip.(
+                l_unit,
+                grid.physical_size,
+            )
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"]    = grid.n_bins
+
+            # Write the column metadata
+            attrs(hdf5_group["snap_$(snapshot_number)"])["Columns"] = [
+                "x",  # Column 01: x coordinate [l_unit]
+                "y",  # Column 02: y coordinate [l_unit]
+                "z",  # Column 03: z coordinate [l_unit]
+                "M*", # Column 04: Stellar mass [m_unit]
+                "Vx", # Column 05: Velocity in the x direction [v_unit]
+                "Vy", # Column 06: Velocity in the y direction [v_unit]
+                "Vz", # Column 07: Velocity in the z direction [v_unit]
+                "Sx", # Column 08: Velocity dispersion in the x direction [v_unit]
+                "Sy", # Column 09: Velocity dispersion in the y direction [v_unit]
+                "Sz", # Column 10: Velocity dispersion in the z direction [v_unit]
+            ]
 
             next!(prog_bar)
 

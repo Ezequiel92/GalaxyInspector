@@ -113,6 +113,7 @@ export fitResolvedKSLaw
 export fitVSFLaw
 export massMetallicityRelation
 export gasVelocityCubes
+export stellarVelocityCubes
 export clumpingFactor
 
 end
