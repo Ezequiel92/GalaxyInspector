@@ -55,7 +55,7 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
 
     (
         0 < halo_idx <= n_halos ||
-        throw(ArgumentError("computeCenter: There is only $(n_halos) FoF goups in \
+        throw(ArgumentError("computeVcm: There is only $(n_halos) FoF goups in \
         $(data_dict[:gc_data].path), so halo_idx = $(halo_idx) is out of bounds"))
     )
 
@@ -64,9 +64,19 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
 
     # Check that the requested subhalo index is within bounds
     n_subfinds = n_subhalos_in_halo[halo_idx]
+
+    if iszero(n_subfinds)
+
+        @info("computeVcm: There are 0 subhalos in the FoF group $(halo_idx) from \
+        $(data_dict[:gc_data].path), so the velocity will the halo velocity")
+
+        return g_vel[:, halo_idx]
+
+    end
+
     (
         subhalo_rel_idx <= n_subfinds ||
-        throw(ArgumentError("computeCenter: There is only $(n_subfinds) subhalos for the FoF \
+        throw(ArgumentError("computeVcm: There is only $(n_subfinds) subhalos for the FoF \
         group $(halo_idx) in $(data_dict[:gc_data].path), so subhalo_rel_idx = \
         $(subhalo_rel_idx) is out of bounds"))
     )

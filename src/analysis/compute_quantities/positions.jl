@@ -64,6 +64,16 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
 
     # Check that the requested subhalo index is within bounds
     n_subfinds = n_subhalos_in_halo[halo_idx]
+
+    if iszero(n_subfinds)
+
+        @info("computeCenter: There are 0 subhalos in the FoF group $(halo_idx) from \
+        $(data_dict[:gc_data].path), so the center will be the halo potencial minimum")
+
+        return g_pos[:, halo_idx]
+
+    end
+
     (
         subhalo_rel_idx <= n_subfinds ||
         throw(ArgumentError("computeCenter: There is only $(n_subfinds) subhalos for the FoF \

@@ -1416,10 +1416,8 @@ function filterSubhalo(
 
     # If any of the data is misssing return an empty filter dictionary
     n_groups_total = data_dict[:gc_data].header.n_groups_total
-    (
-        !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_len_type, s_len_type]) ||
-        return Dict(component => Int[] for component in snapshotTypes(data_dict))
-    )
+
+    !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_len_type, s_len_type]) || return PASS_NONE
 
     # Check that the requested halo index is within bounds
     (
@@ -1439,10 +1437,20 @@ function filterSubhalo(
 
     # Check that the requested subhalo index is within bounds
     n_subfinds = g_n_subs[halo_idx]
+
+    if iszero(n_subfinds)
+
+        @info("filterSubhalo: There are 0 subhalos in the FoF group $(halo_idx) from \
+        $(data_dict[:gc_data].path), so every particle will be filtered out")
+
+        return PASS_NONE
+
+    end
+
     (
         subhalo_rel_idx <= n_subfinds ||
         throw(ArgumentError("filterSubhalo: There is only $(n_subfinds) subhalos for the \
-        FoF group $(halo_idx) in $(data_dict[:gc_data].path), so `subhalo_rel_idx` = \
+        FoF group $(halo_idx) from $(data_dict[:gc_data].path), so `subhalo_rel_idx` = \
         $(subhalo_rel_idx) is out of bounds"))
     )
 
@@ -1562,10 +1570,8 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
 
     # If any of the data is misssing return an empty filter dictionary
     n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
-    (
-        !iszero(n_subgroups_total) && !isempty(s_len_type) ||
-        return Dict(component => Int[] for component in snapshotTypes(data_dict))
-    )
+
+    !iszero(n_subgroups_total) && !isempty(s_len_type) || return PASS_NONE
 
     # Check that the requested subhalo index is within bounds
     (
