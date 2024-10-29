@@ -4561,7 +4561,7 @@ end
 Compute the clumping factor (``C_\rho``), for the number density of `quantity`, at different volume scales.
 
 ```math
-C_\rho = \frac{\rangle n^2 \langle}{\rangle n \langle^2} \, ,
+C_\rho = \frac{\langle n^2 \rangle}{\langle n \rangle^2} \, ,
 ```
 
 # Arguments
@@ -4713,7 +4713,7 @@ end
 Compute a clumping factor (``C_\rho``) profile, for the number density of `quantity`.
 
 ```math
-C_\rho = \frac{\rangle n^2 \langle}{\rangle n \langle^2} \, ,
+C_\rho = \frac{\langle n^2 \rangle}{\langle n \rangle^2} \, ,
 ```
 
 # Arguments

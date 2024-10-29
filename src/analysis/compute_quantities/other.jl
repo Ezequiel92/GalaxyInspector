@@ -48,9 +48,12 @@ From
 ```
 and using
 
-$\begin{align}
-    \tau_\mathrm{rec} &= \frac{C_\mathrm{rec}}{f_i \, \rho_\mathrm{cell}} \, , \\
-	\psi &= \frac{f_m}{\tau_\mathrm{star}} \, .
+```math
+    \tau_\mathrm{rec} = \frac{C_\mathrm{rec}}{f_i \, \rho_\mathrm{cell}} \, ,
+```
+and
+```math
+	\psi = \frac{f_m}{\tau_\mathrm{star}} \, .
 ```
 
 We get
@@ -420,7 +423,7 @@ end
 Compute the clumping factor,
 
 ```math
-C_\rho = \frac{\rangle rho^2 \langle}{\rangle rho \langle^2} \, .
+C_\rho = \frac{\langle rho^2 \rangle}{\langle rho \rangle^2} \, .
 ```
 
 # Arguments
