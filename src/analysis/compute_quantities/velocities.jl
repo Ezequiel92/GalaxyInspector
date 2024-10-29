@@ -56,7 +56,7 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
     (
         0 < halo_idx <= n_halos ||
         throw(ArgumentError("computeVcm: There is only $(n_halos) FoF goups in \
-        $(data_dict[:gc_data].path), so halo_idx = $(halo_idx) is out of bounds"))
+        $(data_dict[:gc_data].path), so `halo_idx` = $(halo_idx) is out of bounds"))
     )
 
     # Select the halo velocity if `subhalo_rel_idx` == 0
@@ -67,8 +67,11 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
 
     if iszero(n_subfinds)
 
-        @info("computeVcm: There are 0 subhalos in the FoF group $(halo_idx) from \
-        $(data_dict[:gc_data].path), so the velocity will the halo velocity")
+        (
+            !logging[] ||
+            @info("computeVcm: There are 0 subhalos in the FoF group $(halo_idx) from \
+            $(data_dict[:gc_data].path), so the velocity will the halo velocity")
+        )
 
         return g_vel[:, halo_idx]
 
@@ -77,7 +80,7 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
     (
         subhalo_rel_idx <= n_subfinds ||
         throw(ArgumentError("computeVcm: There is only $(n_subfinds) subhalos for the FoF \
-        group $(halo_idx) in $(data_dict[:gc_data].path), so subhalo_rel_idx = \
+        group $(halo_idx) in $(data_dict[:gc_data].path), so `subhalo_rel_idx` = \
         $(subhalo_rel_idx) is out of bounds"))
     )
 
@@ -139,7 +142,7 @@ function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Vel
     (
         0 < subhalo_abs_idx <= n_subgroups_total ||
         throw(ArgumentError("computeCenter: There is only $(n_subgroups_total) subhalos in \
-        $(data_dict[:gc_data].path), so subhalo_abs_idx = $(subhalo_abs_idx) is out of bounds"))
+        $(data_dict[:gc_data].path), so `subhalo_abs_idx` = $(subhalo_abs_idx) is out of bounds"))
     )
 
     # Select the subhalo velocity
@@ -363,8 +366,8 @@ function computeVcirc(
     invpermute!(M, sortperm(rs))
 
     (
-        !logging[] || @info("computeVcirc: The circular velocity will be computed \
-        using $(components).")
+        !logging[] ||
+        @info("computeVcirc: The circular velocity will be computed using $(components)")
     )
 
     vcirc = [iszero(r) ? 0.0u"km*s^-1" : sqrt(Unitful.G * m / r) for (m, r) in zip(M, rs)]
@@ -587,8 +590,9 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
     !any(isempty, [positions, velocities, masses]) || return [0.0, 0.0, 1.0]
 
     (
-        !logging[] || @info("computeGlobalAngularMomentum: The angular momentum will be computed \
-        using $(components).")
+        !logging[] ||
+        @info("computeGlobalAngularMomentum: The angular momentum will be computed using \
+        $(components)")
     )
 
     return computeTotalAngularMomentum(positions, velocities, masses; normal)
@@ -723,8 +727,8 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R)::
     masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
     (
-        !logging[] || @info("computeGlobalSpinParameter: The spin parameter will be computed \
-        using $(components).")
+        !logging[] ||
+        @info("computeGlobalSpinParameter: The spin parameter will be computed using $(components)")
     )
 
     # Compute the total spin parameter

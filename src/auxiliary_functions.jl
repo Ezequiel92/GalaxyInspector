@@ -37,18 +37,18 @@ end
 """
     setLogging!(verb::Bool; <keyword arguments>)::Nothing
 
-Set if logs will be printed. By default no logs are printed.
+Set if logging messages will printed out. By default no logs are printed.
 
 # Arguments
 
-  - `verb::Bool`: If logs will be printed using the default logger.
+  - `verb::Bool`: If logs will be printed out using the default logger.
   - `stream::IO=stdout`: Sets where to print the logs. It can be a file.
 """
 function setLogging!(verb::Bool; stream::IO=stdout)::Nothing
 
     logging[] = verb
 
-    verb && global_logger(ConsoleLogger(stream; GalaxyInspector.meta_formatter))
+    verb && global_logger(ConsoleLogger(stream; meta_formatter))
 
     return nothing
 
@@ -109,7 +109,7 @@ end
 """
     safeSelect(vec::Vector, index::IndexType)
 
-Make the indexing operation `vec[index]` ignore indices that are out of bounds.
+Make the indexing operation `vec[index]` ignoring indices that are out of bounds.
 
 # Arguments
 
@@ -156,8 +156,8 @@ function safeSelect(vec::Vector, index::IndexType)
     filter!(x -> x <= length(vec), index_list)
 
     (
-        length(index_list) == length([index...]) ||
-        !logging[] || @warn("safeSelect: There are out of bounds indices")
+        length(index_list) == length([index...]) || !logging[] ||
+        @info("safeSelect: There are out of bounds indices")
     )
 
     if length(index_list) == 1
@@ -239,7 +239,7 @@ end
 
 Evaluate a normal distribution at the values in `data`.
 
-The mean and standard deviation of the distribution are the ones from the `data` itself.
+The mean and standard deviation of the distribution are the ones from `data` itself.
 
 # Arguments
 
@@ -276,9 +276,9 @@ getEmpty(x...; y...)::Vector = []
         <keyword arguments>
     )::Nothing
 
-Join several images vertically and horizontally
+Join several images vertically and horizontally.
 
-The elements will fill the rows and columns starting at the top left, going from left to right and from top to bottom.
+The elements will fill the rows and columns starting at the top left, going from left to right and from top to bottom (row-major order).
 
 # Arguments
 
@@ -390,7 +390,7 @@ function rangeCut!(
     (
         length(s_data) >= length(m_data) ||
         throw(ArgumentError("rangeCut!: `s_data` must have at least as many elements as `m_data`, \
-        but I got length(s_data) = $(length(s_data)) < length(m_data) = $(length(m_data))"))
+        but I got length(`s_data`) = $(length(s_data)) < length(`m_data`) = $(length(m_data))"))
     )
 
     if keep_edges
@@ -670,8 +670,8 @@ function scaledBins(
 
     (
         !(limits[1] > limits[2]) ||
-        throw(ArgumentError("scaledBins: `limits` must be (min, max), but I got limits[1] = \
-        $(limits[1]) > limits[2] = $(limits[2])"))
+        throw(ArgumentError("scaledBins: `limits` must be (min, max), but I got `limits`[1] = \
+        $(limits[1]) > `limits`[2] = $(limits[2])"))
     )
 
     # Compute the limits of the bins
@@ -723,9 +723,9 @@ function listHistogram1D(
 
     (
         length(values) == length(positions) ||
-        throw(ArgumentError("histogram1D: `values` must have as many elements as \
-        `positions`, but I got length(values) = $(length(values)) and \
-        length(positions) = $(length(positions))"))
+        throw(ArgumentError("listHistogram1D: `values` must have as many elements as \
+        `positions`, but I got length(`values`) = $(length(values)) and \
+        length(`positions`) = $(length(positions))"))
     )
 
     n_bins = length(grid.grid)
@@ -796,9 +796,9 @@ function listHistogram1D(
 
     (
         length(values) == length(positions) ||
-        throw(ArgumentError("histogram1D: `values` must have as many elements as \
-        `positions`, but I got length(values) = $(length(values)) and \
-        length(positions) = $(length(positions))"))
+        throw(ArgumentError("listHistogram1D: `values` must have as many elements as \
+        `positions`, but I got length(`values`) = $(length(values)) and \
+        length(`positions`) = $(length(positions))"))
     )
 
     issorted(edges) || sort!(edges)
@@ -939,8 +939,8 @@ function histogram1D(
     (
         length(values) == length(positions) ||
         throw(ArgumentError("histogram1D: `values` must have as many elements as \
-        `positions`, but I got length(values) = $(length(values)) and \
-        length(positions) = $(length(positions))"))
+        `positions`, but I got length(`values`) = $(length(values)) and \
+        length(`positions`) = $(length(positions))"))
     )
 
     n_bins = length(grid.grid)
@@ -1039,8 +1039,8 @@ function histogram1D(
     (
         length(values) == length(positions) ||
         throw(ArgumentError("histogram1D: `values` must have as many elements as \
-        `positions`, but I got length(values) = $(length(values)) and \
-        length(positions) = $(length(positions))"))
+        `positions`, but I got length(`values`) = $(length(values)) and \
+        length(`positions`) = $(length(positions))"))
     )
 
     issorted(edges) || sort!(edges)
@@ -1239,7 +1239,7 @@ function histogram2D(
     (
         length(values) == size(positions, 2) ||
         throw(ArgumentError("histogram2D: `values` must have as many elements as `positions` \
-        has columns, but I got length(values) = $(length(values)) and size(positions, 2) = \
+        has columns, but I got length(`values`) = $(length(values)) and size(`positions`, 2) = \
         $(size(positions, 2))"))
     )
 
@@ -1346,7 +1346,7 @@ function histogram2D(
     (
         length(values) == size(positions, 2) ||
         throw(ArgumentError("histogram2D: `values` must have as many elements as `positions` \
-        has columns, but I got length(values) = $(length(values)) and size(positions, 2) = \
+        has columns, but I got length(`values`) = $(length(values)) and size(`positions`, 2) = \
         $(size(positions, 2))"))
     )
 
@@ -1575,7 +1575,7 @@ function histogram3D(
     (
         length(values) == size(positions, 2) ||
         throw(ArgumentError("histogram3D: `values` must have as many elements as `positions` \
-        has columns, but I got length(values) = $(length(values)) and size(positions, 2) = \
+        has columns, but I got length(`values`) = $(length(values)) and size(`positions`, 2) = \
         $(size(positions, 2))"))
     )
 
@@ -1760,7 +1760,7 @@ function smoothWindow(
     (
         length(x_data) == length(y_data) ||
         throw(DimensionMismatch("smoothWindow: `x_data` and `y_data` must have the same length, \
-        but I got length(x_data) = $(length(x_data)) != length(y_data) = $(length(y_data))"))
+        but I got length(`x_data`) = $(length(x_data)) != length(`y_data`) = $(length(y_data))"))
     )
 
     positions = scaling.(ustrip(x_data))
@@ -1840,7 +1840,7 @@ function deltas(data::Vector{<:Number})::Vector{<:Number}
     # Check that `data` has a valid length
     (
         nd >= 2 ||
-        throw(ArgumentError("deltas: `data` must have at least 2 elements, but it has only $(nd)"))
+        throw(ArgumentError("deltas: `data` must have at least 2 elements, but it has $(nd)"))
     )
 
     # Set the first value to 0, by convention
@@ -1876,18 +1876,18 @@ function reduceResolution(hr_matrix::Matrix{<:Number}, factor::Int)::Matrix{<:Nu
     (
         r == c ||
         throw(ArgumentError("reduceResolution: `hr_matrix` has to be a square matrix, but it has \
-        $(c) columns and $(r) rows."))
+        $(c) columns and $(r) rows"))
     )
 
     (
         factor >= 1 || throw(ArgumentError("reduceResolution: `factor` must be >= 1, \
-        but I got `factor` = $(factor)."))
+        but I got `factor` = $(factor)"))
     )
 
     (
         r % factor == 0 ||
         throw(ArgumentError("reduceResolution: `factor` must divide the size of `hr_matrix` \
-        exactly, but I got number of rows / `factor` = $(r / factor)."))
+        exactly, but I got number of rows / `factor` = $(r / factor)"))
     )
 
     # Compute the size of the new matrix
@@ -1943,12 +1943,12 @@ function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
     (
         l % factor == 0 ||
         throw(ArgumentError("reduceTicks: `factor` must divide the size of `hr_ticks` \
-        exactly, but I got length(`hr_ticks`) / `factor` = $(l / factor)."))
+        exactly, but I got length(`hr_ticks`) / `factor` = $(l / factor)"))
     )
 
     (
-        factor >= 1 || throw(ArgumentError("reduceTicks: `factor` must be >= 1, \
-        but I got `factor` = $(factor)."))
+        factor >= 1 ||
+        throw(ArgumentError("reduceTicks: `factor` must be >= 1, but I got `factor` = $(factor)"))
     )
 
     # Compute the size of the new vector
@@ -2016,7 +2016,7 @@ function projectIntoCircularGrid(
     (
         r == c ||
         throw(ArgumentError("projectIntoCircularGrid: `image` has to be a square matrix, \
-        but it has $(c) columns and $(r) rows."))
+        but it has $(c) columns and $(r) rows"))
     )
 
     # Construct a square grid center in (0, 0)
@@ -2236,7 +2236,7 @@ function density3DProjection(
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
             \n  Type:       $(type) \
-            \n  log₁₀(ρ [$(m_unit * l_unit^-3)]): $(min_max)\n\n"
+            \n  log₁₀(ρ [$(m_unit * l_unit^-3)]): $(min_max)"
         )
 
     end
@@ -2284,7 +2284,17 @@ function computeParticleProfile(
 )::Vector{<:Number}
 
     # Return a null profile if `quantity` is empty
-    !isempty(quantity) || return fill(NaN, length(grid.grid))
+    if isempty(quantity)
+
+        (
+            !logging[] ||
+            @warn("computeParticleProfile: The vector `quantity` is empty. The profile will be \
+            filled with NaNs")
+        )
+
+        return fill(NaN, length(grid.grid))
+
+    end
 
     # Compute the distances of the cells/particles to the center of the grid
     if flat
@@ -2352,8 +2362,17 @@ function computeParticleBandProfile(
     flat::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
-    # Return a null profile if `quantity` is empty
-    !isempty(quantity) || return fill(NaN, length(grid.grid))
+    if isempty(quantity)
+
+        (
+            !logging[] ||
+            @warn("computeParticleBandProfile: The vector `quantity` is empty. The profile will be \
+            filled with NaNs")
+        )
+
+        return fill(NaN, length(grid.grid))
+
+    end
 
     # Compute the distances of the cells/particles to the center of the grid
     if flat
@@ -2999,7 +3018,7 @@ function formatError(q_mean::Number, q_error::Number)::NTuple{2,<:Number}
     (
         q_error >= zero(q_error) ||
         throw(ArgumentError("formatError: `q_error` must be positive, but I got \
-        q_error = $(q_error)"))
+        `q_error` = $(q_error)"))
     )
 
     # Use the values without units

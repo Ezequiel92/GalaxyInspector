@@ -2,6 +2,80 @@
 # Computation of derived quantities
 ####################################################################################################
 
+@doc raw"""
+    computeEqQuotient(data_dict::Dict, type::Symbol)::Vector{Float64}
+
+Compute the equilibrium quotient for the molecular or ionized equations of the SF model.
+
+Molecular equation
+
+From
+
+```math
+	0 = \frac{f_a}{\tau_\mathrm{cond}} - \eta_\mathrm{diss} \, \psi - \psi \, ,
+```
+and using
+
+```math
+    \tau_\mathrm{cond} = \frac{C_\mathrm{cond}}{(Z + Z_\mathrm{eff}) \, \rho_\mathrm{cell} \, (1 - f_s)} \, ,
+```
+and
+```math
+	\psi = \frac{f_m}{\tau_\mathrm{star}} \, .
+```
+
+We get
+
+```math
+	(\eta_\mathrm{diss} + 1) \, \frac{f_m^0}{\tau_\mathrm{star}} = \frac{f_a^0}{C_\mathrm{cond}} \, (Z + Z_\mathrm{eff}) \, \rho_\mathrm{cell} \, (1 - f_s^0) \, .
+```
+
+Which can be rewritten as
+
+```math
+	\frac{f_a^0}{f_m^0} \, (1 - f_s^0) = \frac{\eta_\mathrm{diss} + 1}{\tau_\mathrm{star}} \, \frac{C_\mathrm{cond}}{(Z + Z_\mathrm{eff}) \, \rho_\mathrm{cell}} \, ,
+```
+where we use the notation $f_X^0$ to idicate equilibrium fractions.
+
+This last expresion shows the value of $f_a^0$, $f_m^0$, and $f_s^0$ (as a function of the parameters of the model) that make the molecular equation have a $0$ derivative (equilibrium point for that particular equation).
+
+Ionized equation
+
+From
+
+```math
+	0 = - \frac{f_i}{\tau_\mathrm{rec}} + \eta_\mathrm{ion} \, \psi + R \, \psi \, ,
+```
+and using
+
+$\begin{align}
+    \tau_\mathrm{rec} &= \frac{C_\mathrm{rec}}{f_i \, \rho_\mathrm{cell}} \, , \\
+	\psi &= \frac{f_m}{\tau_\mathrm{star}} \, .
+```
+
+We get
+
+```math
+	0 = - \frac{f_i^2 \, \rho_\mathrm{cell}}{C_\mathrm{rec}} + (\eta_\mathrm{ion} + R) \, \frac{f_m}{\tau_\mathrm{star}} \, .
+```
+
+Which can be rewritten as
+
+```math
+	\frac{(f_i^0)^2}{f_m^0} = \frac{\eta_\mathrm{ion} + R}{\tau_\mathrm{star}} \, \frac{C_\mathrm{rec}}{\rho_\mathrm{cell}} \, .
+```
+
+As before, this last expresion shows the value of $f_i^0$ and $f_m^0$ (as a function of the parameters of the model) that make the ionized equation have a $0$ derivative (equilibrium point for that particular equation).
+
+# Arguments
+
+  - `data_dict::Dict`: Scale factors.
+  - `type::Symbol`: If the :molecular or the :ionized equation will be used.
+
+# Returns
+
+  - A vector with the equilibrium quotient for the molecular or ionized equations.
+"""
 function computeEqQuotient(data_dict::Dict, type::Symbol)::Vector{Float64}
 
     dg = data_dict[:gas]
@@ -1026,9 +1100,9 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :stellar_circularity
 
         (
-            !logging[] || @info("scatterQty: The stellar circularity depends on the \
-            positions and velocities of all cell/particles. So, after filtering, the result \
-            for a given star will change.")
+            !logging[] ||
+            @info("scatterQty: The stellar circularity depends on the positions and velocities of \
+            all cell/particles. So, after filtering, the result for a given star will change")
         )
 
         scatter_qty = computeCircularity(data_dict)
@@ -1036,9 +1110,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :stellar_vcirc
 
        (
-            !logging[] || @info("scatterQty: The stellar circular velocity depends on the \
-            positions and velocities of all cell/particles. So, after filtering, the result \
-            for a given star will change.")
+            !logging[] ||
+            @info("scatterQty: The stellar circular velocity depends on the positions and \
+            velocities of all cell/particles. So, after filtering, the result for a given star \
+            will change")
        )
 
         _, scatter_qty = computeVcirc(data_dict)

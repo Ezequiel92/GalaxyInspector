@@ -67,8 +67,13 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
 
     if iszero(n_subfinds)
 
-        @info("computeCenter: There are 0 subhalos in the FoF group $(halo_idx) from \
-        $(data_dict[:gc_data].path), so the center will be the halo potencial minimum")
+        (
+            !logging[] ||
+            @info("computeCenter: There are 0 subhalos in the FoF group $(halo_idx) from \
+            $(data_dict[:gc_data].path), so the center will be the halo potencial minimum")
+
+        )
+
 
         return g_pos[:, halo_idx]
 
@@ -77,7 +82,7 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
     (
         subhalo_rel_idx <= n_subfinds ||
         throw(ArgumentError("computeCenter: There is only $(n_subfinds) subhalos for the FoF \
-        group $(halo_idx) in $(data_dict[:gc_data].path), so subhalo_rel_idx = \
+        group $(halo_idx) in $(data_dict[:gc_data].path), so `subhalo_rel_idx` = \
         $(subhalo_rel_idx) is out of bounds"))
     )
 
@@ -139,7 +144,7 @@ function computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.
     (
         0 < subhalo_abs_idx <= n_subgroups_total ||
         throw(ArgumentError("computeCenter: There is only $(n_subgroups_total) subhalos in \
-        $(data_dict[:gc_data].path), so subhalo_abs_idx = $(subhalo_abs_idx) is out of bounds"))
+        $(data_dict[:gc_data].path), so `subhalo_abs_idx` = $(subhalo_abs_idx) is out of bounds"))
     )
 
     # Select the subhalo potencial minimum
@@ -231,7 +236,7 @@ function computeDistance(
     (
         length(center) == size(positions, 1) ||
         throw(ArgumentError("computeDistance: `center` must have as many elements as `positions` \
-        has rows, but I got length(center) = $(length(center)) and size(positions, 1) = \
+        has rows, but I got length(`center`) = $(length(center)) and size(`positions`, 1) = \
         $(size(positions, 1))"))
     )
 
@@ -313,8 +318,8 @@ function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
     !any(isempty, [positions, masses]) || return zeros(typeof(1.0u"kpc"), 3)
 
     (
-        !logging[] || @info("computeGlobalCenterOfMass: The center of mass will be computed \
-        using $(components).")
+        !logging[] ||
+        @info("computeGlobalCenterOfMass: The center of mass will be computed using $(components)")
     )
 
     return computeCenterOfMass(positions, masses)
@@ -558,7 +563,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     (
         length(times) >= 2 ||
         throw(ArgumentError("locateStellarBirthPlace: I found less that two snapshots in \
-        $(data_dict[:sim_data].path). But I need more to locate the birth place of the stars."))
+        $(data_dict[:sim_data].path). But I need more to locate the birth place of the stars"))
     )
 
     # Read the ID of each star
@@ -664,9 +669,10 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
         past_idxs = parentIDToIndex(past_data_dict, ids)[:stars]
 
         (
-            length(ids) == length(past_idxs) || throw(DimensionMismatch("locateStellarBirthPlace: \
-            There are IDs in `ids` that are not present in the birth snapshot or are from other \
-            cell/particle type. This should be impossible!"))
+            length(ids) == length(past_idxs) ||
+            throw(DimensionMismatch("locateStellarBirthPlace:  There are IDs in `ids` that are not \
+            present in the birth snapshot or are from other cell/particle type. \
+            This should be impossible!"))
         )
 
         # Find the halo and subhalo where each star was born, for the stars born in this snapshot

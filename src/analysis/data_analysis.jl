@@ -597,9 +597,10 @@ function daProfile(
 
     # Check consistency in the number of positions and values
     (
-        n_pos == n_val || throw(ArgumentError("daProfile: `positions` and `values` should have \
-        the same number of elements, but `length(positions)` = $(n_pos) != `length(values)` = \
-        $(n_val). Check that the same cell/particle type was selected when using `plotParams` \
+        n_pos == n_val ||
+        throw(ArgumentError("daProfile: `positions` and `values` should have the same number of \
+        elements, but length(`positions`) = $(n_pos) != length(`values`) = $(n_val). \
+        Check that the same cell/particle type was selected when using `plotParams` \
         and `scatterQty`."))
     )
 
@@ -610,7 +611,7 @@ function daProfile(
 
         (
             quantity ∈ [:molecular_mass, :br_molecular_mass, :atomic_mass, :ionized_mass] ||
-            throw(ArgumentError("daProfile: If `fractions``= true, quantity must be \
+            throw(ArgumentError("daProfile: If `fractions`= true, quantity must be \
             :neutral_mass, :molecular_mass, :br_molecular_mass, :atomic_mass or :ionized_mass, but \
             I got `quantity` = :$(quantity)"))
         )
@@ -790,10 +791,11 @@ function daBandProfile(
 
     # Check consistency in the number of positions and values
     (
-        n_pos == n_val || throw(ArgumentError("daBandProfile: `positions` and `values` should have \
-        the same number of elements, but `length(positions)` = $(n_pos) != `length(values)` = \
-        $(n_val). Check that the same cell/particle type was selected when using `plotParams` \
-        and `scatterQty`."))
+        n_pos == n_val ||
+        throw(ArgumentError("daBandProfile: `positions` and `values` should have the same number \
+        of elements, but length(`positions`) = $(n_pos) != length(`values`) = $(n_val). \
+        Check that the same cell/particle type was selected when using `plotParams` \
+        and `scatterQty`"))
     )
 
     # Return `nothing` if any of the necessary quantities are missing
@@ -1741,8 +1743,8 @@ function daMetallicity2DProjection(
             # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
             dims = 2
         else
-            throw(ArgumentError("daMetallicity2DProjection: The argument `projection_plane` must be \
-            :xy, :xz or :yz, but I got :$(projection_plane)"))
+            throw(ArgumentError("daMetallicity2DProjection: The argument `projection_plane` must \
+            be :xy, :xz or :yz, but I got :$(projection_plane)"))
         end
 
         metal_mass = dropdims(sum(metal_mass_grid; dims); dims)
@@ -1816,19 +1818,26 @@ function daMetallicity2DProjection(
         min_max = isempty(log_metallicity) ? (NaN, NaN) : extrema(filter(!isnan, log_metallicity))
 
         # Print the metallicity range
-        @info(
-            "\nMetallicity range \
-            \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
-            \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
-            \n  Component:       $(component) \
-            \n  Type:            $(type) \
-            \n  Plane:           $(projection_plane)"
-        )
-
         if element == :all
-            @info("\n  log₁₀(Z [Z⊙]):  $(min_max)\n\n")
+            @info(
+                "\nMetallicity range \
+                \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
+                \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
+                \n  Component:       $(component) \
+                \n  Type:            $(type) \
+                \n  Plane:           $(projection_plane) \
+                \n  log₁₀(Z [Z⊙]):  $(min_max)"
+            )
         else
-            @info("\n  12 + log₁₀($(element) / H): $(min_max)")
+            @info(
+                "\nMetallicity range \
+                \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
+                \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
+                \n  Component:       $(component) \
+                \n  Type:            $(type) \
+                \n  Plane:           $(projection_plane)\
+                \n  12 + log₁₀($(element) / H): $(min_max)"
+            )
         end
 
     end
@@ -1991,8 +2000,8 @@ function daTemperature2DProjection(
             # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
             dims = 2
         else
-            throw(ArgumentError("daTemperature2DProjection: The argument `projection_plane` must be \
-            :xy, :xz or :yz, but I got :$(projection_plane)"))
+            throw(ArgumentError("daTemperature2DProjection: The argument `projection_plane` must \
+            be :xy, :xz or :yz, but I got :$(projection_plane)"))
         end
 
         normalization = dropdims(sum(mass_grid; dims); dims)
@@ -3758,7 +3767,7 @@ function daVirialAccretion(
     # Check that there are at least 2 snapshots left
     (
         length(iterator) >= 2 ||
-        throw(ArgumentError("daVirialAccretion: The given slice: $(sim_data.slice), selected for \
+        throw(ArgumentError("daVirialAccretion: The given slice, $(sim_data.slice), selected for \
         less than two snapshots. I need at least two snapshots to compute the a time series of \
         gas accretion. The full simulation table is:\n$(sim_data.table)"))
     )
@@ -3982,7 +3991,7 @@ function daDiscAccretion(
     # Check that there are at least 2 snapshots left
     (
         length(iterator) >= 2 ||
-        throw(ArgumentError("daDiscAccretion: The given slice: $(sim_data.slice), selected for \
+        throw(ArgumentError("daDiscAccretion: The given slice, $(sim_data.slice), selected for \
         less than two snapshots. I need at least two snapshots to compute the a time series of \
         gas accretion. The full simulation table is:\n$(sim_data.table)"))
     )
@@ -4169,7 +4178,7 @@ function daSFRtxt(
     if x_quantity == :scale_factor
 
         (
-            sim_data.cosmological ||
+            sim_data.cosmological || !logging[] ||
             @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
             :physical_time")
         )
@@ -4179,11 +4188,19 @@ function daSFRtxt(
     elseif x_quantity == :redshift
 
         if sim_data.cosmological
+
             x_axis = (1.0 ./ time_ticks) .- 1.0
+
         else
-            @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
-            :physical_time")
+
+            (
+                !logging[] ||
+                @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
+                :physical_time")
+            )
+
             x_axis = time_ticks
+
         end
 
     elseif x_quantity == :physical_time
@@ -4669,9 +4686,9 @@ function daClumpingFactor(
     V  = similar(cell_volumes)
 
     (
-        allequal(length, [V, Cρ, idxs]) || throw(DomainError("daClumpingFactor: The lists of numer \
-        densities, volumes, and nearest neighbor indices don't have the same lengths. \
-        This should not happen!"))
+        allequal(length, [V, Cρ, idxs]) ||
+        throw(DomainError("daClumpingFactor: The lists of numer densities, volumes, and nearest \
+        neighbor indices don't have the same lengths. This should not happen!"))
     )
 
     @inbounds for (i, idx) in pairs(idxs)

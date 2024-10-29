@@ -6947,7 +6947,7 @@ function kennicuttSchmidtLaw(
                         "\nCount range \
                         \n  Simulation: $(basename(simulation)) \
                         \n  Quantity:   $(quantity) \
-                        \n  Counts:     $(min_max)\n\n"
+                        \n  Counts:     $(min_max)"
                     )
 
                 end

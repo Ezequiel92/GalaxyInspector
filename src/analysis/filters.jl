@@ -439,7 +439,7 @@ function intersectFilters(
     (
         keys(filter_a) == keys(filter_b) ||
         throw(ArgumentError("intersectFilters: The filters must have the sale list of components \
-        (their keys), but I got keys(filter_a) != keys(filter_b)"))
+        (their keys), but I got keys(`filter_a`) != keys(`filter_b`)"))
     )
 
     @inbounds for component in keys(filter_a)
@@ -1076,7 +1076,7 @@ function filterInsituStars(
     (
         allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||
         throw(ArgumentError("filterInsituStars: The vectors given by `locateStellarBirthPlace` \
-        do not have as many elements as there are stars. That should not be possible!"))
+        do not have as many elements as there are stars. This should not be possible!"))
     )
 
     stars_born_in_halo = map(isequal(halo_idx), birth_halo)
@@ -1150,7 +1150,7 @@ function filterExsituStars(
     (
         allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||
         throw(ArgumentError("filterExsituStars: The vectors given by `locateStellarBirthPlace` \
-        do not have as many elements as there are stars. That should not be possible!"))
+        do not have as many elements as there are stars. This should not be possible!"))
 
     )
 
@@ -1440,8 +1440,11 @@ function filterSubhalo(
 
     if iszero(n_subfinds)
 
-        @info("filterSubhalo: There are 0 subhalos in the FoF group $(halo_idx) from \
-        $(data_dict[:gc_data].path), so every particle will be filtered out")
+        (
+            !logging[] ||
+            @info("filterSubhalo: There are 0 subhalos in the FoF group $(halo_idx) from
+            $(data_dict[:gc_data].path), so every particle will be filtered out")
+        )
 
         return PASS_NONE
 

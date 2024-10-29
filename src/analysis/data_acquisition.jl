@@ -23,7 +23,10 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     if ismissing(path)
 
-        !logging[] || @warn("readGroupCatHeader: The group catalog file or folder is missing")
+        (
+            !logging[] ||
+            @warn("readGroupCatHeader: The group catalog file or folder is missing")
+        )
 
         return GroupCatHeader()
 
@@ -422,6 +425,7 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
 
         # Get the indices of the missing blocks
         idx_missing = map(x -> !isBlockPresent(x, group), blocks)
+
         (
             !any(idx_missing) ||
             throw(ArgumentError("readTemperature: The blocks $(blocks[idx_missing]) \
@@ -529,6 +533,7 @@ function readGoupCatBlocks(
                                 @warn("readGoupCatBlocks: The block $(block) for the group \
                                 catalog type :$(component) in $(file_path) is missing")
                             )
+
                             # Return an empty array for every missing block
                             qty_data[block] = typeof(1.0 * unit)[]
 
@@ -691,6 +696,7 @@ function readSnapBlocks(
                                 @warn("readSnapBlocks: The block $(block) for the \
                                 cell/particle type :$(component) in $(file_path) is missing")
                             )
+
                             # Return an empty array for every missing block
                             qty_data[block] = typeof(1.0 * unit)[]
 
@@ -752,7 +758,10 @@ function readGroupCatalog(
 
     if ismissing(path)
 
-        !logging[] || @warn("readGroupCatalog: The group catalog file or folder is missing")
+        (
+            !logging[] ||
+            @warn("readGroupCatalog: The group catalog file or folder is missing")
+        )
 
         return Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
@@ -954,7 +963,10 @@ function readSfrFile(
     snap_path::String,
 )::Dict{Int32,VecOrMat{<:Number}}
 
-    isfile(file_path) || throw(ArgumentError("readSfrFile: $(file_path) does not exist as a file"))
+    (
+        isfile(file_path) ||
+        throw(ArgumentError("readSfrFile: $(file_path) does not exist as a file"))
+    )
 
     # Load the data from the `sfr.txt` file
     file_data = readdlm(file_path, Float64)
@@ -1015,7 +1027,10 @@ function readCpuFile(
     step::Int=1,
 )::Dict{String,Matrix{Float64}}
 
-    isfile(file_path) || throw(ArgumentError("readCpuFile: $(file_path) does not exist as a file"))
+    (
+        isfile(file_path) ||
+        throw(ArgumentError("readCpuFile: $(file_path) does not exist as a file"))
+    )
 
     # Load the data from the `cpu.txt` file
     file_data = eachline(file_path)
@@ -1134,8 +1149,8 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
         (
             !logging[] ||
-            @warn("getSnapshotPaths: I could not find any file named \
-            $(SNAP_BASENAME)_*.hdf5 within $(simulation_path), or any of its subfolders")
+            @warn("getSnapshotPaths: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
+            within $(simulation_path), or any of its subfolders")
         )
 
         return Dict(:numbers => String[], :paths => String[])
@@ -1197,8 +1212,8 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
         (
             !logging[] ||
-            @warn("getGroupCatPaths: I could not find any file named \
-            $(GC_BASENAME)_*.hdf5 within $(simulation_path), or any of its subfolders")
+            @warn("getGroupCatPaths: I could not find any file named $(GC_BASENAME)_*.hdf5 \
+            within $(simulation_path), or any of its subfolders")
         )
 
         return Dict(:numbers => String[], :paths => String[])
@@ -1255,8 +1270,9 @@ function makeSimulationTable(simulation_path::String)::DataFrame
 
     (
         length(snapshot_paths) >= length(groupcat_paths) ||
-        throw(ArgumentError("makeSimulationTable: I found less snapshots than group catalogs \
-        in $(simulation_path), I cannot make the table when not every group catalog has a \
+        throw(ArgumentError("makeSimulationTable: I found less snapshots \
+        ($(length(snapshot_paths))) than group catalogs ($(length(groupcat_paths))) in \
+        $(simulation_path), I cannot make the table when not every group catalog has a \
         corresponding snapshot"))
     )
 
@@ -1757,6 +1773,7 @@ function isCosmological(path::String)::Bool
     end
 
     cosmological = h5open(file_path, "r") do snapshot
+
         if "Parameters" ∈ keys(snapshot)
             # If the param.txt is saved in the snapshot metadata, read `ComovingIntegrationOn`
             read_attribute(snapshot["Parameters"], "ComovingIntegrationOn")
@@ -1764,6 +1781,7 @@ function isCosmological(path::String)::Bool
             # Otherwise, use the readshift in the header
             !iszero(read_attribute(snapshot["Header"], "Redshift"))
         end
+
     end
 
     return cosmological
@@ -1815,7 +1833,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
             if !PHYSICAL_UNITS && !cosmological
                 @warn(
                     "internalUnits: You have set the unit system to use comoving lengths \
-                    (PHYSICAL_UNITS = $(PHYSICAL_UNITS)), but the simulation is not \
+                    (`PHYSICAL_UNITS` = $(PHYSICAL_UNITS)), but the simulation is not \
                     cosmological. I'll keep the lengths physical. Check `PHYSICAL_UNITS` \
                     in `constants/globals.jl`",
                     maxlog=1,
