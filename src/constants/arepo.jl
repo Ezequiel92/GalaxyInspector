@@ -112,12 +112,6 @@ const QUANTITIES = Dict(
     "POS " => Qty("Coordinates", Unitful.𝐋, :internal),
     "PRES" => Qty("Pressure", Unitful.𝐌 * Unitful.𝐋^-1 * Unitful.𝐓^-2, :internal),
     "RHO " => Qty("Density", Unitful.𝐌 * Unitful.𝐋^-3, :internal),
-    "SFC1" => Qty("", Unitful.𝐓, :internal),
-    "SFC2" => Qty("", Unitful.𝐌, :internal),
-    "SFC3" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
-    "SFC4" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
-    "SFC5" => Qty("", Unitful.𝐌, :internal),
-    "SFC6" => Qty("", Unitful.𝐌, :internal),
     "SFR " => Qty("StarFormationRate", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
     "SOFT" => Qty("Softenings", Unitful.𝐋, :internal),
     "TBH"  => Qty("TimebinHydro", Unitful.NoDims, Unitful.NoUnits),
@@ -129,9 +123,23 @@ const QUANTITIES = Dict(
     "VOL " => Qty("Volume", Unitful.𝐋^3, :internal),
     "Z   " => Qty("Metallicity", Unitful.NoDims, Unitful.NoUnits),
     "POS " => Qty("Coordinates", Unitful.𝐋, :internal),
+    #####################
+    # sfr.txt quantities
+    #####################
+    "SFC1" => Qty("", Unitful.𝐓, :internal),
+    "SFC2" => Qty("", Unitful.𝐌, :internal),
+    "SFC3" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    "SFC4" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    "SFC5" => Qty("", Unitful.𝐌, :internal),
+    "SFC6" => Qty("", Unitful.𝐌, :internal),
+    ####################
+    # EL_SFR quantities
+    ####################
     "ODIT" => Qty("ODE_IntegrationTime", Unitful.𝐓, u"Myr"),
     "ACIT" => Qty("ODE_AccumulatedIntegrationTime", Unitful.𝐓, u"Myr"),
+    #TODO
     "CTIM" => Qty("ODE_CurrentTime", Unitful.𝐓, u"Myr"),
+    #TODO
     "DTIM" => Qty("ODE_DeltaTime", Unitful.𝐓, u"Myr"),
     "TAUS" => Qty("ODE_TauS", Unitful.𝐓, u"Myr"),
     "RHOC" => Qty("ODE_ParameterCellDensity", Unitful.𝐌 * Unitful.𝐋^-3, u"cm^-3"),
@@ -139,7 +147,9 @@ const QUANTITIES = Dict(
     "ETAD" => Qty("ODE_ParameterEtaD", Unitful.NoDims, Unitful.NoUnits),
     "ETAI" => Qty("ODE_ParameterEtaI", Unitful.NoDims, Unitful.NoUnits),
     "PARR" => Qty("ODE_ParameterR", Unitful.NoDims, Unitful.NoUnits),
+    "PARA" => Qty("ODE_ParameterA", Unitful.NoDims, Unitful.NoUnits),
     "FRAC" => Qty("ODE_Fractions", Unitful.NoDims, Unitful.NoUnits),
+    "COLF" => Qty("ODE_ColdMassFrac", Unitful.NoDims, Unitful.NoUnits),
     #TODO
     "COLM" => Qty("BR_ColdMass", Unitful.𝐌, u"Msun"),
     ##############################

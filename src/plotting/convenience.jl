@@ -6364,7 +6364,7 @@ function kennicuttSchmidtLaw(
     # Save the origial value of the global `PHYSICAL_UNITS`
     og_pu_value = PHYSICAL_UNITS
 
-    if !og_pu_value && verbosity[]
+    if !og_pu_value && logging[]
         @warn("kennicuttSchmidtLaw: The global `PHYSICAL_UNITS` is set to false, \
         but Kennicutt-Schmidt law plots must be in physical units, so the global \
         setting will be ignored and default to true.")
@@ -6395,7 +6395,7 @@ function kennicuttSchmidtLaw(
 
         if plot_type == :heatmap
 
-            !verbosity[] || @warn("kennicuttSchmidtLaw: If `integrated` is set to true, \
+            !logging[] || @warn("kennicuttSchmidtLaw: If `integrated` is set to true, \
             `plot_type` = :heatmap will be ignored and default to :scatter.")
 
             plot_type = :scatter
@@ -6403,7 +6403,7 @@ function kennicuttSchmidtLaw(
         end
 
         if reduce_resolution
-            !verbosity[] || @warn("kennicuttSchmidtLaw: `integrated` and `reduce_resolution` are set \
+            !logging[] || @warn("kennicuttSchmidtLaw: `integrated` and `reduce_resolution` are set \
             to true. Are you sure you want this?")
         end
 
@@ -6425,7 +6425,7 @@ function kennicuttSchmidtLaw(
 
         if !sfr_density
 
-            !verbosity[] || @warn("kennicuttSchmidtLaw: If `sfr_density` = false, \
+            !logging[] || @warn("kennicuttSchmidtLaw: If `sfr_density` = false, \
             `measurements` = true will be ignored and default to false. The experimental \
             measurements are only for the SFR surface density.")
 
@@ -6435,7 +6435,7 @@ function kennicuttSchmidtLaw(
 
         if quantity == :gas_mass
 
-            !verbosity[] || @warn("kennicuttSchmidtLaw: There are no measurements \
+            !logging[] || @warn("kennicuttSchmidtLaw: There are no measurements \
             (fits or otherwise) for `quantity` = :gas_mass. `measurements` = true will be \
             ignored and default to false.")
 
@@ -6445,7 +6445,7 @@ function kennicuttSchmidtLaw(
 
         if isa(measurement_type, String) && integrated
 
-            !verbosity[] || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
+            !logging[] || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
             `measurement_type` to plot the resolved measurement of galaxy $(measurement_type). \
             Are you sure you want this?")
 
@@ -6453,7 +6453,7 @@ function kennicuttSchmidtLaw(
 
         if measurement_type == :all && integrated
 
-            !verbosity[] || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
+            !logging[] || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
             `measurement_type` to plot the resolved measurements of all galaxies in \
             Bigiel et al. (2010). Are you sure you want this?")
 
@@ -6465,7 +6465,7 @@ function kennicuttSchmidtLaw(
 
         if !isnothing(gas_weights)
 
-            !verbosity[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
+            !logging[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
             `gas_weights` = :$(gas_weights) will be ignored and default to nothing.")
 
             gas_weights = nothing
@@ -6474,7 +6474,7 @@ function kennicuttSchmidtLaw(
 
         if measurements
 
-            !verbosity[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
+            !logging[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
             `measurements` = true will be ignored and default to false.")
 
             measurements = false
@@ -6483,7 +6483,7 @@ function kennicuttSchmidtLaw(
 
         if ns > 1
 
-            !verbosity[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, only one \
+            !logging[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, only one \
             simulation at a time can be plotted, but I got length(simulation_paths) = $(ns) > 1. \
             `plot_type` = :heatmap will be ignored and default to :scatter.")
 
@@ -6496,7 +6496,7 @@ function kennicuttSchmidtLaw(
     if colorbar && ((plot_type == :scatter && isnothing(gas_weights)) || integrated)
 
         (
-            !verbosity[] || @warn("kennicuttSchmidtLaw: `colorbar` is set to true, \
+            !logging[] || @warn("kennicuttSchmidtLaw: `colorbar` is set to true, \
             but there is no color range in the plot (either `plot_type` = :scatter and \
             `gas_weights` = nothing or `integrated` = true). `colorbar` = true will be \
             ignored and default to false")
@@ -6937,7 +6937,7 @@ function kennicuttSchmidtLaw(
 
                 heatmap!(ax, x_axis, y_axis, z_axis; colormap=:nipy_spectral)
 
-                if verbosity[]
+                if logging[]
 
                     # Compute the mininimum and maximum of `z_axis`
                     min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))

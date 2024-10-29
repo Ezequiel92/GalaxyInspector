@@ -35,7 +35,7 @@ function meta_formatter(level::LogLevel, _module, group, id, file, line)
 end
 
 """
-    setverbosity!(verb::Bool; <keyword arguments>)::Nothing
+    setLogging!(verb::Bool; <keyword arguments>)::Nothing
 
 Set if logs will be printed. By default no logs are printed.
 
@@ -44,9 +44,9 @@ Set if logs will be printed. By default no logs are printed.
   - `verb::Bool`: If logs will be printed using the default logger.
   - `stream::IO=stdout`: Sets where to print the logs. It can be a file.
 """
-function setverbosity!(verb::Bool; stream::IO=stdout)::Nothing
+function setLogging!(verb::Bool; stream::IO=stdout)::Nothing
 
-    verbosity[] = verb
+    logging[] = verb
 
     verb && global_logger(ConsoleLogger(stream; GalaxyInspector.meta_formatter))
 
@@ -157,7 +157,7 @@ function safeSelect(vec::Vector, index::IndexType)
 
     (
         length(index_list) == length([index...]) ||
-        !verbosity[] || @warn("safeSelect: There are out of bounds indices")
+        !logging[] || @warn("safeSelect: There are out of bounds indices")
     )
 
     if length(index_list) == 1
@@ -495,7 +495,7 @@ function sanitizeData!(
     range_flag = rangeCut!(raw_values, range; keep_edges, min_left)
 
     (
-        !(isa(raw_values, Vector{<:Integer}) && !iszero(exp_factor) && verbosity[]) ||
+        !(isa(raw_values, Vector{<:Integer}) && !iszero(exp_factor) && logging[]) ||
         @warn("sanitizeData!: Elements of `raw_values` are of type `Integer`, this may result \
         in errors or unwanted truncation when using `exp_factor` != 0")
     )
@@ -622,13 +622,13 @@ function sanitizeData!(
     y_range_flag = rangeCut!(y_data, x_data, range[2]; keep_edges=keep_edges[2], min_left)
 
     (
-        !(isa(x_data, Vector{<:Integer}) && !iszero(exp_factor[1]) && verbosity[]) ||
+        !(isa(x_data, Vector{<:Integer}) && !iszero(exp_factor[1]) && logging[]) ||
         @warn("sanitizeData!: Elements of `x_data` are of type Integer, this may result \
         in errors or unwanted truncation when using `exp_factor[1]` != 0")
     )
 
     (
-        !(isa(y_data, Vector{<:Integer}) && !iszero(exp_factor[2]) && verbosity[]) ||
+        !(isa(y_data, Vector{<:Integer}) && !iszero(exp_factor[2]) && logging[]) ||
         @warn("sanitizeData!: Elements of `y_data` are of type Integer, this may result \
         in errors or unwanted truncation when using `exp_factor[2]` != 0")
     )
@@ -2222,7 +2222,7 @@ function density3DProjection(
 
     end
 
-    if verbosity[]
+    if logging[]
 
         log_density = log10.(density)
 

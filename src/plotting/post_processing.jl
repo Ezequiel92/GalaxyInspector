@@ -46,7 +46,7 @@ function ppVerticalFlags!(
     if isempty(positions)
 
         # Don't draw anything if all the flags are outside the original plot window
-        !verbosity[] || @warn("ppVerticalFlags!: All vertical lines lie outside the plot range")
+        !logging[] || @warn("ppVerticalFlags!: All vertical lines lie outside the plot range")
 
     else
 
@@ -92,7 +92,7 @@ function ppHorizontalFlags!(
     if isempty(positions)
 
         # Don't draw anything if all the flags are outside the original plot window
-        !verbosity[] || @warn("ppHorizontalFlags!: All horizontal lines lie outside the plot range")
+        !logging[] || @warn("ppHorizontalFlags!: All horizontal lines lie outside the plot range")
 
     else
 
@@ -139,14 +139,14 @@ function ppCross!(
         # Draw the vertical line
         vlines!(figure.current_axis.x, cross_point[1]; color, linestyle)
     else
-        !verbosity[] || @warn("ppCross!: The vertical line lies outside the plot range")
+        !logging[] || @warn("ppCross!: The vertical line lies outside the plot range")
     end
 
     if y_limits[1] < cross_point[2] < y_limits[2]
         # Draw the horizontal line
         hlines!(figure.current_axis.x, cross_point[2]; color, linestyle)
     else
-        !verbosity[] || @warn("ppCross!: The horizontal line lies outside the plot range")
+        !logging[] || @warn("ppCross!: The horizontal line lies outside the plot range")
     end
 
     return nothing
@@ -231,7 +231,7 @@ function ppFitLine!(
     points = pointData(figure)
 
     if isempty(points)
-        !verbosity[] || @warn("ppFitLine!: There are no points in the figure")
+        !logging[] || @warn("ppFitLine!: There are no points in the figure")
         return nothing
     end
 
@@ -401,7 +401,7 @@ function ppKennicutt1998!(
     points = pointData(figure)
 
     if isempty(points)
-        !verbosity[] || @warn("ppKennicutt1998!: There are no points in the figure")
+        !logging[] || @warn("ppKennicutt1998!: There are no points in the figure")
         return nothing
     end
 
@@ -547,7 +547,7 @@ function ppBigiel2008!(
     points = pointData(figure)
 
     if isempty(points)
-        !verbosity[] || @warn("ppBigiel2008!: There are no points in the figure")
+        !logging[] || @warn("ppBigiel2008!: There are no points in the figure")
         return nothing
     end
 

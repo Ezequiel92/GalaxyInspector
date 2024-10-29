@@ -23,7 +23,7 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     if ismissing(path)
 
-        !verbosity[] || @warn("readGroupCatHeader: The group catalog file or folder is missing")
+        !logging[] || @warn("readGroupCatHeader: The group catalog file or folder is missing")
 
         return GroupCatHeader()
 
@@ -501,7 +501,7 @@ function readGoupCatBlocks(
                 if isempty(hdf5_group)
 
                     (
-                        !verbosity[] ||
+                        !logging[] ||
                         @warn("readGoupCatBlocks: The group catalog type :$(component) \
                         in $(file_path) is empty")
                     )
@@ -525,7 +525,7 @@ function readGoupCatBlocks(
                         else
 
                             (
-                                !verbosity[] ||
+                                !logging[] ||
                                 @warn("readGoupCatBlocks: The block $(block) for the group \
                                 catalog type :$(component) in $(file_path) is missing")
                             )
@@ -541,7 +541,7 @@ function readGoupCatBlocks(
             else
 
                 (
-                    !verbosity[] ||
+                    !logging[] ||
                     @warn("readGoupCatBlocks: The group catalog type \
                     :$(component) in $(file_path) is missing")
                 )
@@ -626,7 +626,7 @@ function readSnapBlocks(
                 if isempty(hdf5_group)
 
                     (
-                        !verbosity[] ||
+                        !logging[] ||
                         @warn("readSnapBlocks: The cell/particle type \
                         :$(component) in $(file_path) is empty")
                     )
@@ -687,7 +687,7 @@ function readSnapBlocks(
                         else
 
                             (
-                                !verbosity[] ||
+                                !logging[] ||
                                 @warn("readSnapBlocks: The block $(block) for the \
                                 cell/particle type :$(component) in $(file_path) is missing")
                             )
@@ -703,7 +703,7 @@ function readSnapBlocks(
             else
 
                 (
-                    !verbosity[] ||
+                    !logging[] ||
                     @warn("readSnapBlocks: The cell/particle type \
                     :$(component) in $(file_path) is missing")
                 )
@@ -752,7 +752,7 @@ function readGroupCatalog(
 
     if ismissing(path)
 
-        !verbosity[] || @warn("readGroupCatalog: The group catalog file or folder is missing")
+        !logging[] || @warn("readGroupCatalog: The group catalog file or folder is missing")
 
         return Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
@@ -967,7 +967,7 @@ function readSfrFile(
         than 6 columns in `sfr.txt`"))
     )
     (
-        !(verbosity[] && n_cols < 6) ||
+        !(logging[] && n_cols < 6) ||
         @warn("readSfrFile: I could only find $(n_cols) columns \
         in $(flie_path). I was expecting 6")
     )
@@ -1063,7 +1063,7 @@ function readCpuFile(
     end
 
     (
-        !(verbosity[] && any(isempty, values(data_aux))) ||
+        !(logging[] && any(isempty, values(data_aux))) ||
         @warn("readCpuFile: I could not find some of the target rows in $(file_path)")
     )
 
@@ -1083,7 +1083,7 @@ function readCpuFile(
         else
             data_out[target] = vcat(values...)
             (
-                !(verbosity[] && step > l_e) ||
+                !(logging[] && step > l_e) ||
                 @warn("readCpuFile: `step` = $(step) is bigger than the number \
                 of time steps in $(file_path)")
             )
@@ -1133,7 +1133,7 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     if isempty(path_list)
 
         (
-            !verbosity[] ||
+            !logging[] ||
             @warn("getSnapshotPaths: I could not find any file named \
             $(SNAP_BASENAME)_*.hdf5 within $(simulation_path), or any of its subfolders")
         )
@@ -1196,7 +1196,7 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     if isempty(path_list)
 
         (
-            !verbosity[] ||
+            !logging[] ||
             @warn("getGroupCatPaths: I could not find any file named \
             $(GC_BASENAME)_*.hdf5 within $(simulation_path), or any of its subfolders")
         )
@@ -1427,7 +1427,7 @@ function countSnapshot(simulation_path::String)::Int
     if isempty(path_list)
 
         (
-            !verbosity[] ||
+            !logging[] ||
             @warn("countSnapshot: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )

@@ -501,7 +501,7 @@ function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},U
     !any(isempty, [positions, velocities, masses]) || return I
 
     (
-        !verbosity[] || @info("computeGlobalAMRotationMatrix: The rotation matrix will be \
+        !logging[] || @info("computeGlobalAMRotationMatrix: The rotation matrix will be \
         computed using $(components).")
     )
 

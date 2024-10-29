@@ -50,7 +50,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
 
             (
-                !verbosity[] || @info("computeFraction: The molecular fraction will be calculated \
+                !logging[] || @info("computeFraction: The molecular fraction will be calculated \
                 using the fraction from out SF model.")
             )
 
@@ -79,7 +79,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [dg["PRES"], dg["COLM"], dg["NH  "], dg["NHP "]])
 
             (
-                !verbosity[] || @info("computeFraction: The molecular fraction will be calculated \
+                !logging[] || @info("computeFraction: The molecular fraction will be calculated \
                 using the fraction of cold gas from Arepo, \"COLM\".")
             )
 
@@ -112,7 +112,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         else
 
-            !verbosity[] || @info("computeFraction: I could not compute the molecular fraction.")
+            !logging[] || @info("computeFraction: I could not compute the molecular fraction.")
 
             fractions = Float64[]
 
@@ -122,7 +122,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         if any(isempty, [dg["MASS"], dg["PRES"], dg["COLM"], dg["NH  "], dg["NHP "]])
 
-            !verbosity[] || @info("computeFraction: I could not compute the BR molecular fraction.")
+            !logging[] || @info("computeFraction: I could not compute the BR molecular fraction.")
 
             return Float64[]
 
@@ -160,7 +160,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if "FRAC" ∈ keys(dg) && !any(isempty, [dg["FRAC"], dg["NHP "], dg["NH  "]])
 
             (
-                !verbosity[] || @info("computeFraction: The atomic fraction will be calculated \
+                !logging[] || @info("computeFraction: The atomic fraction will be calculated \
                 using the fraction from out SF model.")
             )
 
@@ -190,7 +190,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [dg["PRES"], dg["COLM"], dg["NH  "], dg["NHP "]])
 
             (
-                !verbosity[] || @info("computeFraction: The atomic fraction will be calculated \
+                !logging[] || @info("computeFraction: The atomic fraction will be calculated \
                 using the fraction of cold gas from Arepo, \"COLM\".")
             )
 
@@ -224,7 +224,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [dg["NHP "], dg["NH  "]])
 
             (
-                !verbosity[] || @info("computeFraction: The atomic fraction will be calculated \
+                !logging[] || @info("computeFraction: The atomic fraction will be calculated \
                 using the fraction of neutral and ionized gas from Arepo, \"NH  \" and \"NHP \".")
             )
 
@@ -232,7 +232,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         else
 
-            !verbosity[] || @info("computeFraction: I could not compute the atomic fraction.")
+            !logging[] || @info("computeFraction: I could not compute the atomic fraction.")
 
             fractions = Float64[]
 
@@ -243,7 +243,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if "FRAC" ∈ keys(dg) && !any(isempty, [dg["FRAC"], dg["NHP "], dg["NH  "]])
 
             (
-                !verbosity[] || @info("computeFraction: The ionized fraction will be calculated \
+                !logging[] || @info("computeFraction: The ionized fraction will be calculated \
                 using the fraction from out SF model.")
             )
 
@@ -273,7 +273,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [dg["COLM"], dg["NH  "], dg["NHP "]])
 
             (
-                !verbosity[] || @info("computeFraction: The ionized fraction will be calculated \
+                !logging[] || @info("computeFraction: The ionized fraction will be calculated \
                 using the fraction of cold gas from Arepo, \"COLM\".")
             )
 
@@ -301,7 +301,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [dg["NHP "], dg["NH  "]])
 
             (
-                !verbosity[] || @info("computeFraction: The ionized fraction will be calculated \
+                !logging[] || @info("computeFraction: The ionized fraction will be calculated \
                 using the fraction of neutral and ionized gas from Arepo, \"NH  \" and \"NHP \".")
             )
 
@@ -309,7 +309,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         else
 
-            !verbosity[] || @info("computeFraction: I could not compute the ionized fraction.")
+            !logging[] || @info("computeFraction: I could not compute the ionized fraction.")
 
             fractions = Float64[]
 
@@ -320,7 +320,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if "FRAC" ∈ keys(dg) && !any(isempty, [dg["FRAC"], dg["NHP "], dg["NH  "]])
 
             (
-                !verbosity[] || @info("computeFraction: The neutral fraction will be calculated \
+                !logging[] || @info("computeFraction: The neutral fraction will be calculated \
                 using the fraction from out SF model.")
             )
 
@@ -357,7 +357,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [dg["COLM"], dg["NH  "], dg["NHP "]])
 
             (
-                !verbosity[] || @info("computeFraction: The neutral fraction will be calculated \
+                !logging[] || @info("computeFraction: The neutral fraction will be calculated \
                 using the fraction of cold gas from Arepo, \"COLM\".")
             )
 
@@ -383,7 +383,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [dg["NHP "], dg["NH  "]])
 
             (
-                !verbosity[] || @info("computeFraction: The neutral fraction will be calculated \
+                !logging[] || @info("computeFraction: The neutral fraction will be calculated \
                 using the fraction of neutral and ionized gas from Arepo, \"NH  \" and \"NHP \".")
             )
 
@@ -391,7 +391,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         else
 
-            !verbosity[] || @info("computeFraction: I could not compute the neutral fraction.")
+            !logging[] || @info("computeFraction: I could not compute the neutral fraction.")
 
             fractions = Float64[]
 
@@ -684,7 +684,7 @@ function computeMetalMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.
 
     else
 
-        !verbosity[] || @info("computeMetalMass: I could not compute the masses of metals")
+        !logging[] || @info("computeMetalMass: I could not compute the masses of metals")
 
         masses = Unitful.Mass[]
 
@@ -762,7 +762,7 @@ function computeElementMass(
 
     else
 
-        !verbosity[] || @info("computeElementMass: I could not compute the masses of :$(element)")
+        !logging[] || @info("computeElementMass: I could not compute the masses of :$(element)")
 
         masses = Unitful.Mass[]
 

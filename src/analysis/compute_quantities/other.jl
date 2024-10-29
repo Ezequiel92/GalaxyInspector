@@ -1026,7 +1026,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :stellar_circularity
 
         (
-            !verbosity[] || @info("scatterQty: The stellar circularity depends on the \
+            !logging[] || @info("scatterQty: The stellar circularity depends on the \
             positions and velocities of all cell/particles. So, after filtering, the result \
             for a given star will change.")
         )
@@ -1036,7 +1036,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :stellar_vcirc
 
        (
-            !verbosity[] || @info("scatterQty: The stellar circular velocity depends on the \
+            !logging[] || @info("scatterQty: The stellar circular velocity depends on the \
             positions and velocities of all cell/particles. So, after filtering, the result \
             for a given star will change.")
        )

@@ -363,7 +363,7 @@ function computeVcirc(
     invpermute!(M, sortperm(rs))
 
     (
-        !verbosity[] || @info("computeVcirc: The circular velocity will be computed \
+        !logging[] || @info("computeVcirc: The circular velocity will be computed \
         using $(components).")
     )
 
@@ -587,7 +587,7 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
     !any(isempty, [positions, velocities, masses]) || return [0.0, 0.0, 1.0]
 
     (
-        !verbosity[] || @info("computeGlobalAngularMomentum: The angular momentum will be computed \
+        !logging[] || @info("computeGlobalAngularMomentum: The angular momentum will be computed \
         using $(components).")
     )
 
@@ -723,7 +723,7 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R)::
     masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
     (
-        !verbosity[] || @info("computeGlobalSpinParameter: The spin parameter will be computed \
+        !logging[] || @info("computeGlobalSpinParameter: The spin parameter will be computed \
         using $(components).")
     )
 

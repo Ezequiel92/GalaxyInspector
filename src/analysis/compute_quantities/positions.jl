@@ -313,7 +313,7 @@ function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
     !any(isempty, [positions, masses]) || return zeros(typeof(1.0u"kpc"), 3)
 
     (
-        !verbosity[] || @info("computeGlobalCenterOfMass: The center of mass will be computed \
+        !logging[] || @info("computeGlobalCenterOfMass: The center of mass will be computed \
         using $(components).")
     )
 

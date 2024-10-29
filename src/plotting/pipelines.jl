@@ -262,7 +262,7 @@ function plotSnapshot(
 
         (
             n_frames >= framerate ||
-            !verbosity[] ||
+            !logging[] ||
             @warn("plotSnapshot: With `framerate` = $framerate and `slice` = $slice, \
             the animation is less than one second long")
         )
@@ -321,7 +321,7 @@ function plotSnapshot(
             # Skip if this snapshot does not exist for the current simulation
             if isempty(snapshot_row)
                 (
-                    !verbosity[] ||
+                    !logging[] ||
                     @warn("plotSnapshot: The snapshot $(SNAP_BASENAME)_$(snapshot_number).hdf5 \
                     is missing in simulation $(simulation_paths[simulation_index])")
                 )
@@ -633,7 +633,7 @@ function plotSnapshot(
             if isa(title, Symbol) && isempty(time_row)
 
                 (
-                    !verbosity[] ||
+                    !logging[] ||
                     @warn("plotSnapshot: I cound not find the time data for the snapshot \
                     number $(snapshot_number) in the longest running simulation with \
                     simulation table: \n$(longest_sim_table). \nDefaulting to using no title.")
@@ -758,7 +758,7 @@ function plotSnapshot(
 
     end
 
-    if verbosity[] && !plot_something
+    if logging[] && !plot_something
         @warn("plotSnapshot: Nothing could be plotted because there was a problem \
         for every snapshot")
     end
@@ -1055,7 +1055,7 @@ function plotTimeSeries(
 
     end
 
-    if verbosity[] && !plot_something
+    if logging[] && !plot_something
         @warn("plotTimeSeries: Nothing could be plotted because there was a problem \
         for every snapshot")
     end

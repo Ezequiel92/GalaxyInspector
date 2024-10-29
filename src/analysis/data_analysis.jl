@@ -1319,7 +1319,7 @@ function daDensity2DProjection(
     # Apply log10 to enhance the contrast
     log_density = log10.(density)
 
-    if verbosity[]
+    if logging[]
 
         # Compute the mininimum and maximum of `log_density`
         min_max = isempty(log_density) ? (NaN, NaN) : extrema(filter(!isnan, log_density))
@@ -1536,7 +1536,7 @@ function daGasSFR2DProjection(
     # Apply log10 to enhance the contrast
     log_sfr = log10.(sfr)
 
-    if verbosity[]
+    if logging[]
 
         # Compute the mininimum and maximum of `log_sfr`
         min_max = isempty(log_sfr) ? (NaN, NaN) : extrema(filter(!isnan, log_sfr))
@@ -1810,7 +1810,7 @@ function daMetallicity2DProjection(
         log_metallicity = 12 .+ log10.(metallicity)
     end
 
-    if verbosity[]
+    if logging[]
 
         # Compute the mininimum and maximum of `log_metallicity`
         min_max = isempty(log_metallicity) ? (NaN, NaN) : extrema(filter(!isnan, log_metallicity))
@@ -2039,7 +2039,7 @@ function daTemperature2DProjection(
     # Apply log10 to enhance the contrast
     log_temperature = log10.(temperature)
 
-    if verbosity[]
+    if logging[]
 
         # Print the temperature range
         @info(
@@ -2632,7 +2632,7 @@ function daScatterWeightedDensity(
         total,
     )))
 
-    if verbosity[]
+    if logging[]
 
         # Compute the mininimum and maximum values
         min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))

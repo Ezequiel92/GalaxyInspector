@@ -22,9 +22,9 @@ Relative path, within the simulation directory, of the `cpu.txt` file.
 const CPU_REL_PATH = "output/cpu.txt"
 
 """
-Default verbosity for logging.
+If logging messages will printed out.
 """
-const verbosity = Ref(false)
+const logging = Ref(false)
 
 ########################
 # Characteristic scales
@@ -803,6 +803,8 @@ struct InternalUnits
 
     Constructor for `InternalUnits`.
 
+    For cosmological simulations, and when appropriate, the conversion factors turn comoving units into physical ones.
+
     # Arguments
 
       - `l_unit::Unitful.Length=ILLUSTRIS_L_UNIT`: Code parameter `UnitLength_in_cm`.
@@ -823,13 +825,16 @@ struct InternalUnits
         # Base units
         #############
 
+        # Length conversion factors
         x_cgs = l_unit * a0 / h0
         x_cosmo = x_cgs |> u"kpc"
         x_comoving = l_unit / h0 |> u"kpc"
 
+        # Velocity conversion factors
         v_cgs = v_unit * sqrt(a0)
         v_cosmo = v_cgs |> u"km*s^-1"
 
+        # Mass conversion factors
         m_cgs = m_unit / h0
         m_cosmo = m_cgs |> u"Msun"
 
@@ -837,15 +842,18 @@ struct InternalUnits
         # Derived units
         ################
 
-        # Only used in non-cosmological simulations
+        # Temperature conversion factors
         t_cgs = x_cgs / v_cgs
         t_cosmo = t_cgs |> u"Myr"
 
+        # Specific energy conversion factor
         U_cgs = v_unit^2 |> u"erg*g^-1"
 
+        # Density conversion factor
         rho_cgs = m_cgs * x_cgs^-3
 
-        # Thermal pressure (it uses v_unit^2 instead of v_cgs^2, which would add an extra factor of a0)
+        # Thermal pressure conversion factor (it uses v_unit^2 instead of v_cgs^2,
+        # which would add an extra factor of a0)
         P_Pa = v_unit^2 * m_cgs * x_cgs^-3 |> u"Pa"
 
         new(
@@ -910,15 +918,15 @@ struct LinearGrid
         (
             stop > start ||
             throw(ArgumentError("LinearGrid: `stop` must be larger than `start`, \
-            but I got stop = $(stop) <= start = $(start)"))
+            but I got `stop` = $(stop) <= `start` = $(start)"))
         )
 
         if log
 
             (
                 isPositive(start) ||
-                throw(ArgumentError("LinearGrid: For a logarithmic grid you need a \
-                positive `start`, but I got start = $(start)"))
+                throw(ArgumentError("LinearGrid: For a logarithmic grid you need a strictly \
+                positive `start`, but I got `start` = $(start)"))
             )
 
             # Unit of length
@@ -1239,8 +1247,8 @@ struct CircularGrid
 
         (
             isPositive(radius) ||
-            throw(ArgumentError("CircularGrid: `radius` must be positive, \
-            but I got radius = $(radius)"))
+            throw(ArgumentError("CircularGrid: `radius` must be strictly positive, \
+            but I got `radius` = $(radius)"))
         )
 
         if log
@@ -1248,7 +1256,7 @@ struct CircularGrid
             (
                 isPositive(shift) ||
                 throw(ArgumentError("CircularGrid: For a logarithmic grid you need a \
-                positive `shift`, but I got shift = $(shift)"))
+                strictly positive `shift`, but I got `shift` = $(shift)"))
             )
 
             # Length unit
