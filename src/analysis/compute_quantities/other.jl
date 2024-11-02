@@ -423,7 +423,7 @@ end
 Compute the clumping factor,
 
 ```math
-C_\rho = \frac{\langle rho^2 \rangle}{\langle rho \rangle^2} \, .
+C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
 ```
 
 # Arguments
