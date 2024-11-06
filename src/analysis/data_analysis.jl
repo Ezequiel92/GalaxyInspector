@@ -3339,7 +3339,7 @@ end
 """
     daStellarMetallictyHistogram(data_dict::Dict)::Union{Tuple{Vector{Float64}},Nothing}
 
-Compute the stellar metallicity, for an histogram.
+Compute the stellar metallicity (in [`SOLAR_METALLICITY`](@ref) units), for an histogram.
 
 # Arguments
 
