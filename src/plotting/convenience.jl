@@ -1218,14 +1218,14 @@ function snapshotReport(
                 println(
                     file,
                     "\t\t$(round(typeof(1.0u"Msun"), total_gas_mass_inside, sigdigits=3)) \
-                    ($(round(g_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                    ($(round(g_inside_percent, sigdigits=3))% of the gas mass)\n",
                 )
 
                 println(file, "\tGas mass outside the disc ($(DISK_R) < r < R200):\n")
                 println(
                     file,
                     "\t\t$(round(typeof(1.0u"Msun"), total_gas_mass_outside, sigdigits=3)) \
-                    ($(round(g_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                    ($(round(g_outside_percent, sigdigits=3))% of the gas mass)\n",
                 )
 
                 ##############
@@ -1237,8 +1237,8 @@ function snapshotReport(
                     total_ion_mass_inside  = sum(ionized_mass_inside; init=0.0u"Msun")
                     total_ion_mass_outside = sum(ionized_mass_outside; init=0.0u"Msun")
 
-                    i_inside_percent  = (total_ion_mass_inside  / total_gas_mass) * 100.0
-                    i_outside_percent = (total_ion_mass_outside / total_gas_mass) * 100.0
+                    i_inside_percent  = (total_ion_mass_inside  / total_gas_mass_inside) * 100.0
+                    i_outside_percent = (total_ion_mass_outside / total_gas_mass_outside) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tIonized gas:")
@@ -1248,110 +1248,14 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ion_mass_inside, sigdigits=3)) \
-                        ($(round(i_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(i_inside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                     println(file, "\tIonized mass outside the disc ($(DISK_R) < r < R200):\n")
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ion_mass_outside, sigdigits=3)) \
-                        ($(round(i_outside_percent, sigdigits=3))% of the total gas mass)\n",
-                    )
-
-                end
-
-                #############
-                # Atomic gas
-                #############
-
-                if !isempty(atomic_masses)
-
-                    total_ato_mass_inside  = sum(atomic_mass_inside; init=0.0u"Msun")
-                    total_ato_mass_outside = sum(atomic_mass_outside; init=0.0u"Msun")
-
-                    a_inside_percent  = (total_ato_mass_inside  / total_gas_mass) * 100.0
-                    a_outside_percent = (total_ato_mass_outside / total_gas_mass) * 100.0
-
-                    println(file, "\t", "#"^40)
-                    println(file, "\tAtomic gas:")
-                    println(file, "\t", "#"^40, "\n")
-
-                    println(file, "\tAtomic mass inside the disc (r < $(DISK_R)):\n")
-                    println(
-                        file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_inside, sigdigits=3)) \
-                        ($(round(a_inside_percent, sigdigits=3))% of the total gas mass)\n",
-                    )
-
-                    println(file, "\tAtomic mass outside the disc ($(DISK_R) < r < R200):\n")
-                    println(
-                        file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_outside, sigdigits=3)) \
-                        ($(round(a_outside_percent, sigdigits=3))% of the total gas mass)\n",
-                    )
-
-                end
-
-                ################
-                # Molecular gas
-                ################
-
-                if !isempty(molecular_masses)
-
-                    total_mol_mass_inside  = sum(molecular_mass_inside; init=0.0u"Msun")
-                    total_mol_mass_outside = sum(molecular_mass_outside; init=0.0u"Msun")
-
-                    m_inside_percent  = (total_mol_mass_inside  / total_gas_mass) * 100.0
-                    m_outside_percent = (total_mol_mass_outside / total_gas_mass) * 100.0
-
-                    println(file, "\t", "#"^40)
-                    println(file, "\tMolecular gas:")
-                    println(file, "\t", "#"^40, "\n")
-
-                    println(file, "\tMolecular mass inside the disc (r < $(DISK_R)):\n")
-                    println(
-                        file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_inside, sigdigits=3)) \
-                        ($(round(m_inside_percent, sigdigits=3))% of the total gas mass)\n",
-                    )
-
-                    println(file, "\tMolecular mass outside the disc ($(DISK_R) < r < R200):\n")
-                    println(
-                        file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_outside, sigdigits=3)) \
-                        ($(round(m_outside_percent, sigdigits=3))% of the total gas mass)\n",
-                    )
-
-                end
-
-                #####################
-                # Molecular gas (BR)
-                #####################
-
-                if !isempty(molecular_p_masses)
-
-                    total_mol_p_mass_inside  = sum(molecular_p_mass_inside; init=0.0u"Msun")
-                    total_mol_p_mass_outside = sum(molecular_p_mass_outside; init=0.0u"Msun")
-
-                    m_p_inside_percent  = (total_mol_p_mass_inside  / total_gas_mass) * 100.0
-                    m_p_outside_percent = (total_mol_p_mass_outside / total_gas_mass) * 100.0
-
-                    println(file, "\t", "#"^40)
-                    println(file, "\tMolecular gas (BR recipe):")
-                    println(file, "\t", "#"^40, "\n")
-
-                    println(file, "\tMolecular mass (BR recipe) inside the disc (r < $(DISK_R)):\n")
-                    println(
-                        file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_p_mass_inside, sigdigits=3)) \
-                        ($(round(m_p_inside_percent, sigdigits=3))% of the total gas mass)\n",
-                    )
-
-                    println(file, "\tMolecular mass (BR recipe) outside the disc ($(DISK_R) < r < R200):\n")
-                    println(
-                        file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_p_mass_outside, sigdigits=3)) \
-                        ($(round(m_p_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(i_outside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                 end
@@ -1365,8 +1269,8 @@ function snapshotReport(
                     total_neu_mass_inside  = sum(neutral_mass_inside; init=0.0u"Msun")
                     total_neu_mass_outside = sum(neutral_mass_outside; init=0.0u"Msun")
 
-                    m_inside_percent  = (total_neu_mass_inside  / total_gas_mass) * 100.0
-                    m_outside_percent = (total_neu_mass_outside / total_gas_mass) * 100.0
+                    m_inside_percent  = (total_neu_mass_inside  / total_gas_mass_inside) * 100.0
+                    m_outside_percent = (total_neu_mass_outside / total_gas_mass_outside) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tNeutral gas:")
@@ -1376,14 +1280,110 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_neu_mass_inside, sigdigits=3)) \
-                        ($(round(m_inside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(m_inside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                     println(file, "\tNeutral mass outside the disc ($(DISK_R) < r < R200):\n")
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_neu_mass_outside, sigdigits=3)) \
-                        ($(round(m_outside_percent, sigdigits=3))% of the total gas mass)\n",
+                        ($(round(m_outside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                end
+
+                #############
+                # Atomic gas
+                #############
+
+                if !isempty(atomic_masses)
+
+                    total_ato_mass_inside  = sum(atomic_mass_inside; init=0.0u"Msun")
+                    total_ato_mass_outside = sum(atomic_mass_outside; init=0.0u"Msun")
+
+                    a_inside_percent  = (total_ato_mass_inside  / total_gas_mass_inside) * 100.0
+                    a_outside_percent = (total_ato_mass_outside / total_gas_mass_outside) * 100.0
+
+                    println(file, "\t", "#"^40)
+                    println(file, "\tAtomic gas:")
+                    println(file, "\t", "#"^40, "\n")
+
+                    println(file, "\tAtomic mass inside the disc (r < $(DISK_R)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_inside, sigdigits=3)) \
+                        ($(round(a_inside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                    println(file, "\tAtomic mass outside the disc ($(DISK_R) < r < R200):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_outside, sigdigits=3)) \
+                        ($(round(a_outside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                end
+
+                ################
+                # Molecular gas
+                ################
+
+                if !isempty(molecular_masses)
+
+                    total_mol_mass_inside  = sum(molecular_mass_inside; init=0.0u"Msun")
+                    total_mol_mass_outside = sum(molecular_mass_outside; init=0.0u"Msun")
+
+                    m_inside_percent  = (total_mol_mass_inside  / total_gas_mass_inside) * 100.0
+                    m_outside_percent = (total_mol_mass_outside / total_gas_mass_outside) * 100.0
+
+                    println(file, "\t", "#"^40)
+                    println(file, "\tMolecular gas:")
+                    println(file, "\t", "#"^40, "\n")
+
+                    println(file, "\tMolecular mass inside the disc (r < $(DISK_R)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_inside, sigdigits=3)) \
+                        ($(round(m_inside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                    println(file, "\tMolecular mass outside the disc ($(DISK_R) < r < R200):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_outside, sigdigits=3)) \
+                        ($(round(m_outside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                end
+
+                #####################
+                # Molecular gas (BR)
+                #####################
+
+                if !isempty(molecular_p_masses)
+
+                    total_mol_p_mass_inside  = sum(molecular_p_mass_inside; init=0.0u"Msun")
+                    total_mol_p_mass_outside = sum(molecular_p_mass_outside; init=0.0u"Msun")
+
+                    m_p_inside_percent  = (total_mol_p_mass_inside  / total_gas_mass_inside) * 100.0
+                    m_p_outside_percent = (total_mol_p_mass_outside / total_gas_mass_outside) * 100.0
+
+                    println(file, "\t", "#"^40)
+                    println(file, "\tMolecular gas (BR recipe):")
+                    println(file, "\t", "#"^40, "\n")
+
+                    println(file, "\tMolecular mass (BR recipe) inside the disc (r < $(DISK_R)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_p_mass_inside, sigdigits=3)) \
+                        ($(round(m_p_inside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                    println(file, "\tMolecular mass (BR recipe) outside the disc ($(DISK_R) < r < R200):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_mol_p_mass_outside, sigdigits=3)) \
+                        ($(round(m_p_outside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                 end
@@ -5738,6 +5738,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function stellarHistory(
@@ -5749,6 +5750,7 @@ function stellarHistory(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    backup_results::Bool=false,
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -5802,8 +5804,8 @@ function stellarHistory(
         xaxis_scale_func=identity,
         yaxis_scale_func=y_log ? log10 : identity,
         # Plotting and animation options
-        save_figures=true,
-        backup_results=false,
+        save_figures=!backup_results,
+        backup_results,
         theme,
         sim_labels,
         title="",
