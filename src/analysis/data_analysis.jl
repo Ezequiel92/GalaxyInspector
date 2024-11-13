@@ -146,7 +146,7 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
       + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_mass`      -> Neutral mass surface density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
-  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
+  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. It has to be a function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -215,12 +215,13 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
+#TODO
 function daKennicuttSchmidtLaw(
     data_dict::Dict,
     grid::CubicGrid,
     quantity::Symbol;
     type::Symbol=:cells,
-    reduce::Int=1,
+    reduce_factor::Int=1,
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Float64}},Nothing}
@@ -240,7 +241,7 @@ function daKennicuttSchmidtLaw(
         grid,
         :stellar_mass,
         :particles;
-        reduce,
+        reduce_factor,
         projection_plane=:xy,
         filter_function=stellar_ff,
     )
@@ -250,7 +251,7 @@ function daKennicuttSchmidtLaw(
         grid,
         quantity,
         type;
-        reduce,
+        reduce_factor,
         projection_plane=:xy,
         filter_function=gas_ff,
     )
@@ -503,6 +504,12 @@ Compute a profile.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -524,6 +531,12 @@ Compute a profile.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `grid::CircularGrid`: Circular grid.
@@ -699,6 +712,12 @@ Compute the profile of a mean quantity with error bars or bands.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -720,6 +739,12 @@ Compute the profile of a mean quantity with error bars or bands.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `grid::CircularGrid`: Circular grid.
@@ -997,6 +1022,12 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -1018,6 +1049,12 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `grid::LinearGrid`: Linear grid.
@@ -1078,10 +1115,39 @@ function daLineHistogram(
 
     values = scatter_qty[idxs]
 
-    !isempty(values) || return nothing
+    if isempty(values)
+
+        (
+            !logging[] ||
+            @warn("daLineHistogram: After filtering, there is no data left for the quantity \
+            :$(quantity)")
+
+        )
+
+        return nothing
+
+    end
 
     # Compute the quantity histogram
     counts = histogram1D(values, grid)
+
+    if logging[]
+
+        clean_values = filter(x -> !isnan(x) && !isinf(x), values)
+
+        @info(
+            "\nHistogram statistics \
+            \n  Simulation: $(basename(data_dict[:sim_data].path)) \
+            \n  Snapshot:   $(data_dict[:snap_data].global_index) \
+            \n  Quantity:   $(quantity) \
+            \n  Type:       $(type) \
+            \n  Max bin:    $(grid.grid[argmax(counts)]) \
+            \n  Mean:       $(mean(clean_values)) \
+            \n  Median:     $(median(clean_values)) \
+            \n  Extrema:    $(extrema(clean_values))"
+        )
+
+    end
 
     # Normalize the counts
     norm_counts = isPositive(norm) ? counts ./ norm : counts ./ maximum(counts)
@@ -1095,14 +1161,15 @@ end
         data_dict::Dict,
         grid::CubicGrid,
         quantity::Symbol,
-        type::Symbol;
+        field_type::Symbol;
         <keyword arguments>
-    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Union{Matrix{Float64},Vector{Float64}}}
 
 Project a 3D density field into a given plane.
 
-If the source of the field are particles, a simple 2D histogram is used.
-If the source of the field are Voronoi cells, the density of the cells that cross the line of sight of each pixel are added up.
+!!! note
+
+    If the source of the field are particles, a simple 2D histogram is used. If they are Voronoi cells instead, the density of the cells that cross the line of sight of each pixel are added up.
 
 # Arguments
 
@@ -1132,8 +1199,12 @@ If the source of the field are Voronoi cells, the density of the cells that cros
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
-  - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
-  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
+  - `field_type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `reduce_grid::Symbol=:square`: Type of grid to reduce the resolution of the result. The options are:
+
+      + `:square`    -> The density distribution will be reduced into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
+      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
@@ -1179,13 +1250,14 @@ function daDensity2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
     quantity::Symbol,
-    type::Symbol;
-    reduce::Int=1,
+    field_type::Symbol;
+    reduce_factor::Int=1,
+    reduce_grid::Symbol=:square,
     projection_plane::Symbol=:xy,
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"kpc",
     filter_function::Function=filterNothing,
-)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Union{Matrix{Float64},Vector{Float64}}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
@@ -1212,10 +1284,10 @@ function daDensity2DProjection(
 
     # For comological simulations with comoving units, correct
     # the density so it is always in physical units
-    if !PHYSICAL_UNITS && data_dict[:sim_data].cosmological
+    if !PHYSICAL_UNITS && filtered_dd[:sim_data].cosmological
         # Correction factor for the area
         # A [physical units] = A [comoving units] * a0^2
-        physical_factor = data_dict[:snap_data].scale_factor^2
+        physical_factor = filtered_dd[:snap_data].scale_factor^2
     else
         physical_factor = 1.0
     end
@@ -1231,7 +1303,7 @@ function daDensity2DProjection(
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
-    if type == :cells
+    if field_type == :cells
 
         # Compute the volume of each cell
         cell_volumes = filtered_dd[component]["MASS"] ./ filtered_dd[component]["RHO "]
@@ -1271,10 +1343,10 @@ function daDensity2DProjection(
         if projection_plane == :xy
             dims = 3
         elseif projection_plane == :xz
-            # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
+            # Project across dimension 1 to keep it consistent with :xz for `field_type` = :particles
             dims = 1
         elseif projection_plane == :yz
-            # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
+            # Project across dimension 2 to keep it consistent with :yz for `field_type` = :particles
             dims = 2
         else
             throw(ArgumentError("daDensity2DProjection: The argument `projection_plane` must be \
@@ -1283,7 +1355,7 @@ function daDensity2DProjection(
 
         density = dropdims(sum(mass_grid; dims) ./ voxel_area; dims)
 
-    elseif type == :particles
+    elseif field_type == :particles
 
         # Project the particles to the given plane
         if projection_plane == :xy
@@ -1305,26 +1377,54 @@ function daDensity2DProjection(
 
     else
 
-        throw(ArgumentError("daDensity2DProjection: The argument `type` must be :cells or \
-        :particles, but I got :$(type)"))
+        throw(ArgumentError("daDensity2DProjection: The argument `field_type` must be :cells or \
+        :particles, but I got :$(field_type)"))
 
     end
 
-    # Reduce the resolution of the result by the given factor `reduce`
-    density = reduceResolution(density ./ physical_factor, reduce)
-    x_axis  = reduceTicks(grid.x_ticks, reduce)
-    y_axis  = reduceTicks(grid.y_ticks, reduce)
+    if reduce_grid == :square
+
+        # Reduce the resolution of the result into a new square grid
+        # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
+        density = reduceResolution(density ./ physical_factor, reduce_factor)
+        x_axis  = reduceTicks(grid.x_ticks, reduce_factor)
+        y_axis  = reduceTicks(grid.y_ticks, reduce_factor)
+
+        # The transpose and reverse operation are to conform to
+        # the way `heatmap!` expect the matrix to be structured
+        # Depending on the `field_type` and `projection_plane`, different operations
+        # are applied to keep the axis consistent between cells and particles
+        if field_type == :particles || projection_plane == :xy
+            density = reverse!(transpose(density), dims=2)
+        elseif projection_plane == :yz
+            reverse!(density, dims=1)
+        end
+
+    elseif reduce_grid == :circular
+
+        # Reduce the resolution of the result into a circular grid
+        # `reduce_factor` here is the number of bins for the circular grid
+        density = projectIntoCircularGrid(density ./ physical_factor, reduce_factor)
+        x_axis  = [grid.physical_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        y_axis  = x_axis
+
+    else
+
+        throw(ArgumentError("daDensity2DProjection: `reduce_grid` can only be :square or :circular, \
+        but I got :$( reduce_grid)"))
+
+    end
 
     # Set bins with a value of 0 to NaN
     replace!(x -> iszero(x) ? NaN : x, density)
 
     # Apply log10 to enhance the contrast
-    log_density = log10.(density)
+    z_axis = log10.(density)
 
     if logging[]
 
-        # Compute the mininimum and maximum of `log_density`
-        min_max = isempty(log_density) ? (NaN, NaN) : extrema(filter(!isnan, log_density))
+        # Compute the mininimum and maximum of `z_axis`
+        min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
 
         # Print the density range
         @info(
@@ -1332,23 +1432,11 @@ function daDensity2DProjection(
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
-            \n  Type:       $(type) \
+            \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane) \
             \n  log₁₀(ρ [$(m_unit * l_unit^-2)]): $(min_max)"
         )
 
-    end
-
-    # The transpose and reverse operation are to conform to
-    # the way `heatmap!` expect the matrix to be structured
-    # Depending on the `type` and `projection_plane`, different operations
-    # are applied to keep the axis consistent between cells and particles
-    if type == :particles || projection_plane == :xy
-        z_axis = reverse!(transpose(log_density), dims=2)
-    elseif projection_plane == :yz
-        z_axis = reverse!(log_density, dims=1)
-    else
-        z_axis = log_density
     end
 
     return x_axis, y_axis, z_axis
@@ -1359,14 +1447,15 @@ end
     daGasSFR2DProjection(
         data_dict::Dict,
         grid::CubicGrid,
-        type::Symbol;
+        field_type::Symbol;
         <keyword arguments>
-    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Union{Matrix{Float64},Vector{Float64}}}
 
 Project the 3D gas SFR field into a given plane.
 
-If the source of the field are particles, a simple 2D histogram is used.
-If the source of the field are Voronoi cells, the gas SFR densities of the cells that cross the line of sight of each pixel are used.
+!!! note
+
+    If the source of the field are particles, a simple 2D histogram is used. If they are Voronoi cells instead, the SFR of the cells that cross the line of sight of each pixel are added up.
 
 # Arguments
 
@@ -1384,8 +1473,12 @@ If the source of the field are Voronoi cells, the gas SFR densities of the cells
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CubicGrid`: Cubic grid.
-  - `type::Symbol`: Gas component type. The options are: `:particles` or Voronoi `:cells`.
-  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
+  - `field_type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed adding up the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed adding up the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `reduce_grid::Symbol=:square`: Type of grid to reduce the resolution of the result. The options are:
+
+      + `:square`    -> The density distribution will be reduced into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
+      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
@@ -1427,14 +1520,15 @@ If the source of the field are Voronoi cells, the gas SFR densities of the cells
 function daGasSFR2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
-    type::Symbol;
-    reduce::Int=1,
+    field_type::Symbol;
+    reduce_factor::Int=1,
+    reduce_grid::Symbol=:square,
     projection_plane::Symbol=:xy,
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"kpc",
     t_unit::Unitful.Units=u"yr",
     filter_function::Function=filterNothing,
-)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Union{Matrix{Float64},Vector{Float64}}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
@@ -1449,7 +1543,7 @@ function daGasSFR2DProjection(
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
-    if type == :cells
+    if field_type == :cells
 
         # Compute the volume of each cell
         cell_volumes = filtered_dd[:gas]["MASS"] ./ filtered_dd[:gas]["RHO "]
@@ -1488,10 +1582,10 @@ function daGasSFR2DProjection(
         if projection_plane == :xy
             dims = 3
         elseif projection_plane == :xz
-            # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
+            # Project across dimension 1 to keep it consistent with :xz for `field_type` = :particles
             dims = 1
         elseif projection_plane == :yz
-            # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
+            # Project across dimension 2 to keep it consistent with :yz for `field_type` = :particles
             dims = 2
         else
             throw(ArgumentError("daGasSFR2DProjection: The argument `projection_plane` must be \
@@ -1500,7 +1594,7 @@ function daGasSFR2DProjection(
 
         sfr = dropdims(sum(sfr_grid; dims); dims)
 
-    elseif type == :particles
+    elseif field_type == :particles
 
         # Project the particles to the given plane
         if projection_plane == :xy
@@ -1522,49 +1616,65 @@ function daGasSFR2DProjection(
 
     else
 
-        throw(ArgumentError("daGasSFR2DProjection: The argument `type` must be :cells or \
-        :particles, but I got :$(type)"))
+        throw(ArgumentError("daGasSFR2DProjection: The argument `field_type` must be :cells or \
+        :particles, but I got :$(field_type)"))
 
     end
 
-    # Reduce the resolution of the result by the given factor `reduce`
-    sfr     = reduceResolution(sfr, reduce)
-    x_axis  = reduceTicks(grid.x_ticks, reduce)
-    y_axis  = reduceTicks(grid.y_ticks, reduce)
+    if reduce_grid == :square
+
+        # Reduce the resolution of the result into a new square grid
+        # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
+        sfr = reduceResolution(sfr, reduce_factor; total=true)
+        x_axis  = reduceTicks(grid.x_ticks, reduce_factor)
+        y_axis  = reduceTicks(grid.y_ticks, reduce_factor)
+
+        # The transpose and reverse operation are to conform to
+        # the way `heatmap!` expect the matrix to be structured
+        # Depending on the `field_type` and `projection_plane`, different operations
+        # are applied to keep the axis consistent between cells and particles
+        if field_type == :particles || projection_plane == :xy
+            sfr = reverse!(transpose(sfr), dims=2)
+        elseif projection_plane == :yz
+            reverse!(sfr, dims=1)
+        end
+
+    elseif reduce_grid == :circular
+
+        # Reduce the resolution of the result into a circular grid
+        # `reduce_factor` here is the number of bins for the circular grid
+        sfr = projectIntoCircularGrid(sfr, reduce_factor; total=true)
+        x_axis  = [grid.physical_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        y_axis  = x_axis
+
+    else
+
+        throw(ArgumentError("daGasSFR2DProjection: `reduce_grid` can only be :square or :circular, \
+        but I got :$( reduce_grid)"))
+
+    end
 
     # Set bins with a value of 0 to NaN
     replace!(x -> iszero(x) ? NaN : x, sfr)
 
     # Apply log10 to enhance the contrast
-    log_sfr = log10.(sfr)
+    z_axis = log10.(sfr)
 
     if logging[]
 
-        # Compute the mininimum and maximum of `log_sfr`
-        min_max = isempty(log_sfr) ? (NaN, NaN) : extrema(filter(!isnan, log_sfr))
+        # Compute the mininimum and maximum of `z_axis`
+        min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
 
         # Print the gas SFR range
         @info(
             "\nGas SFR range \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
-            \n  Type:       $(type) \
+            \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane) \
             \n  log₁₀(SFR [$(m_unit * t_unit^-1)]): $(min_max)"
         )
 
-    end
-
-    # The transpose and reverse operation are to conform to
-    # the way `heatmap!` expect the matrix to be structured
-    # Depending on the `type` and `projection_plane`, different operations
-    # are applied to keep the axis consistent between cells and particles
-    if type == :particles || projection_plane == :xy
-        z_axis = reverse!(transpose(log_sfr), dims=2)
-    elseif projection_plane == :yz
-        z_axis = reverse!(log_sfr, dims=1)
-    else
-        z_axis = log_sfr
     end
 
     return x_axis, y_axis, z_axis
@@ -1576,17 +1686,15 @@ end
         data_dict::Dict,
         grid::CubicGrid,
         component::Symbol,
-        type::Symbol;
+        field_type::Symbol;
         <keyword arguments>
-    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Union{Matrix{Float64},Vector{Float64}}}
 
 Project the 3D metallicity field to a given plane.
 
-The metallicity in each pixel is the total metal mass divided by the total gas mass, in the column given by that pixel.
-
 !!! note
 
-    By default, the total metallicity (`element` = :all) is given in solar units.
+    The metallicity in each pixel is the total metal mass divided by the total gas mass, in the column given by that pixel. By default, the total metallicity (`element` = :all) is given in solar units.
 
 # Arguments
 
@@ -1605,9 +1713,13 @@ The metallicity in each pixel is the total metal mass divided by the total gas m
       + ...
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can be either `:stars` or `:gas`.
-  - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `field_type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `element::Symbol=:all`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref). Set it to :all if you want the total metallicity.
-  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
+  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed adding the values of mass in each neighboring pixel. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed adding up the values of mass of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `reduce_grid::Symbol=:square`: Type of grid to reduce the resolution of the result. The options are:
+
+      + `:square`    -> The density distribution will be reduced into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
+      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1647,12 +1759,13 @@ function daMetallicity2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
     component::Symbol,
-    type::Symbol;
+    field_type::Symbol;
     element::Symbol=:all,
-    reduce::Int=1,
+    reduce_factor::Int=1,
+    reduce_grid::Symbol=:square,
     projection_plane::Symbol=:xy,
     filter_function::Function=filterNothing,
-)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Union{Matrix{Float64},Vector{Float64}}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
@@ -1677,7 +1790,7 @@ function daMetallicity2DProjection(
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
-    if type == :cells
+    if field_type == :cells
 
         # Load the cell densities
         cell_densities = filtered_dd[component]["RHO "]
@@ -1737,10 +1850,10 @@ function daMetallicity2DProjection(
         if projection_plane == :xy
             dims = 3
         elseif projection_plane == :xz
-            # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
+            # Project across dimension 1 to keep it consistent with :xz for `field_type` = :particles
             dims = 1
         elseif projection_plane == :yz
-            # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
+            # Project across dimension 2 to keep it consistent with :yz for `field_type` = :particles
             dims = 2
         else
             throw(ArgumentError("daMetallicity2DProjection: The argument `projection_plane` must \
@@ -1752,7 +1865,7 @@ function daMetallicity2DProjection(
 
         metallicity = metal_mass ./ norm_mass
 
-    elseif type == :particles
+    elseif field_type == :particles
 
         # Project the particles to the given plane
         if projection_plane == :xy
@@ -1791,31 +1904,69 @@ function daMetallicity2DProjection(
 
     else
 
-        throw(ArgumentError("daMetallicity2DProjection: The argument `type` must be :cells or \
-        :particles, but I got :$(type)"))
+        throw(ArgumentError("daMetallicity2DProjection: The argument `field_type` must be :cells \
+        or :particles, but I got :$(field_type)"))
 
     end
 
-    # Reduce the resolution of the result by the given factor `reduce`
-    metallicity = reduceResolution(metallicity, reduce)
-    x_axis      = reduceTicks(grid.x_ticks, reduce)
-    y_axis      = reduceTicks(grid.y_ticks, reduce)
+    if reduce_grid == :square
+
+        # Reduce the resolution of the result into a new square grid
+        # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
+        metal_mass = reduceResolution(metal_mass, reduce_factor; total=true)
+        norm_mass  = reduceResolution(norm_mass, reduce_factor; total=true)
+
+        x_axis = reduceTicks(grid.x_ticks, reduce_factor)
+        y_axis = reduceTicks(grid.y_ticks, reduce_factor)
+
+        # Compute the metallicity in each bin
+        metallicity = uconvert.(Unitful.NoUnits, metal_mass ./ norm_mass)
+
+        # The transpose and reverse operation are to conform to
+        # the way `heatmap!` expect the matrix to be structured
+        # Depending on the `field_type` and `projection_plane`, different operations
+        # are applied to keep the axis consistent between cells and particles
+        if field_type == :particles || projection_plane == :xy
+            metallicity = reverse!(transpose(metallicity), dims=2)
+        elseif projection_plane == :yz
+            reverse!(metallicity, dims=1)
+        end
+
+    elseif reduce_grid == :circular
+
+        # Reduce the resolution of the result into a circular grid
+        # `reduce_factor` here is the number of bins for the circular grid
+        metal_mass = projectIntoCircularGrid(metal_mass, reduce_factor; total=true)
+        norm_mass  = projectIntoCircularGrid(norm_mass, reduce_factor; total=true)
+
+        x_axis = [grid.physical_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        y_axis = x_axis
+
+        # Compute the metallicity in each bin
+        metallicity = uconvert.(Unitful.NoUnits, metal_mass ./ norm_mass)
+
+    else
+
+        throw(ArgumentError("daMetallicity2DProjection: `reduce_grid` can only be :square or \
+        :circular, but I got :$( reduce_grid)"))
+
+    end
 
     # Set bins with a value of 0 to NaN
     replace!(x -> iszero(x) ? NaN : x, metallicity)
 
     # Apply log10 to enhance the contrast
     if element == :all
-        log_metallicity = log10.(metallicity ./ SOLAR_METALLICITY)
+        z_axis = log10.(metallicity ./ SOLAR_METALLICITY)
     else
         # Add 12 so the result is by convention 12 + log10(X / H)
-        log_metallicity = 12 .+ log10.(metallicity)
+        z_axis = 12 .+ log10.(metallicity)
     end
 
     if logging[]
 
-        # Compute the mininimum and maximum of `log_metallicity`
-        min_max = isempty(log_metallicity) ? (NaN, NaN) : extrema(filter(!isnan, log_metallicity))
+        # Compute the mininimum and maximum of `z_axis`
+        min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
 
         # Print the metallicity range
         if element == :all
@@ -1824,7 +1975,7 @@ function daMetallicity2DProjection(
                 \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
                 \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
                 \n  Component:       $(component) \
-                \n  Type:            $(type) \
+                \n  Field type:      $(field_type) \
                 \n  Plane:           $(projection_plane) \
                 \n  log₁₀(Z [Z⊙]):  $(min_max)"
             )
@@ -1834,24 +1985,12 @@ function daMetallicity2DProjection(
                 \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
                 \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
                 \n  Component:       $(component) \
-                \n  Type:            $(type) \
+                \n  Field type:      $(field_type) \
                 \n  Plane:           $(projection_plane)\
                 \n  12 + log₁₀($(element) / H): $(min_max)"
             )
         end
 
-    end
-
-    # The transpose and reverse operation are to conform to
-    # the way `heatmap!` expect the matrix to be structured
-    # Depending on the `type` and `projection_plane`, different operations
-    # are applied to keep the axis consistent between cells and particles
-    if type == :particles || projection_plane == :xy
-        z_axis = reverse!(transpose(log_metallicity), dims=2)
-    elseif projection_plane == :yz
-        z_axis = reverse!(log_metallicity, dims=1)
-    else
-        z_axis = log_metallicity
     end
 
     return x_axis, y_axis, z_axis
@@ -1862,17 +2001,15 @@ end
     daTemperature2DProjection(
         data_dict::Dict,
         grid::CubicGrid,
-        type::Symbol;
+        field_type::Symbol;
         <keyword arguments>
-    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Union{Matrix{Float64},Vector{Float64}}}
 
 Project the 3D temperature field to a given plane.
 
-The temperature in each pixel is the mean temperature of the column given by that pixel.
-
 !!! note
 
-    By default, ``K`` is used as unit of temperature, so the output will be ``\\log_{10}(T \\, [\\mathrm{K}])``.
+    The temperature in each pixel is the mean temperature of the column given by that pixel. By default, ``K`` is used as unit of temperature, so the output will be ``\\log_{10}(T \\, [\\mathrm{K}])``.
 
 # Arguments
 
@@ -1890,8 +2027,12 @@ The temperature in each pixel is the mean temperature of the column given by tha
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CubicGrid`: Cubic grid.
-  - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
-  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
+  - `field_type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
+  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `reduce_grid::Symbol=:square`: Type of grid to reduce the resolution of the result. The options are:
+
+      + `:square`    -> The density distribution will be reduced into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
+      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1931,10 +2072,11 @@ function daTemperature2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
     type::Symbol;
-    reduce::Int=1,
+    reduce_factor::Int=1,
+    reduce_grid::Symbol=:square,
     projection_plane::Symbol=:xy,
     filter_function::Function=filterNothing,
-)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64}}
+)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Union{Matrix{Float64},Vector{Float64}}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
@@ -1953,7 +2095,7 @@ function daTemperature2DProjection(
     m_unit = u"Msun"
     l_unit = u"kpc"
 
-    if type == :cells
+    if field_type == :cells
 
         # Load the gas densities
         densities = ustrip.(m_unit * l_unit^-3, filtered_dd[:gas]["RHO "])
@@ -1994,10 +2136,10 @@ function daTemperature2DProjection(
         if projection_plane == :xy
             dims = 3
         elseif projection_plane == :xz
-            # Project across dimension 1 to keep it consistent with :xz for `type` = :particles
+            # Project across dimension 1 to keep it consistent with :xz for `field_type` = :particles
             dims = 1
         elseif projection_plane == :yz
-            # Project across dimension 2 to keep it consistent with :yz for `type` = :particles
+            # Project across dimension 2 to keep it consistent with :yz for `field_type` = :particles
             dims = 2
         else
             throw(ArgumentError("daTemperature2DProjection: The argument `projection_plane` must \
@@ -2007,7 +2149,7 @@ function daTemperature2DProjection(
         normalization = dropdims(sum(mass_grid; dims); dims)
         temperature = dropdims(sum(weighted_temperature; dims); dims) ./ normalization
 
-    elseif type == :particles
+    elseif field_type == :particles
 
         # Project the particles to the given plane
         if projection_plane == :xy
@@ -2032,21 +2174,49 @@ function daTemperature2DProjection(
 
     else
 
-        throw(ArgumentError("daTemperature2DProjection: The argument `type` must be :cells or \
-        :particles, but I got :$(type)"))
+        throw(ArgumentError("daTemperature2DProjection: The argument `field_type` must be :cells \
+        or :particles, but I got :$(field_type)"))
 
     end
 
-    # Reduce the resolution of the result by the given factor `reduce`
-    temperature = reduceResolution(temperature, reduce)
-    x_axis      = reduceTicks(grid.x_ticks, reduce)
-    y_axis      = reduceTicks(grid.y_ticks, reduce)
+    if reduce_grid == :square
+
+        # Reduce the resolution of the result into a new square grid
+        # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
+        temperature = reduceResolution(temperature, reduce_factor)
+        x_axis  = reduceTicks(grid.x_ticks, reduce_factor)
+        y_axis  = reduceTicks(grid.y_ticks, reduce_factor)
+
+        # The transpose and reverse operation are to conform to
+        # the way `heatmap!` expect the matrix to be structured
+        # Depending on the `field_type` and `projection_plane`, different operations
+        # are applied to keep the axis consistent between cells and particles
+        if field_type == :particles || projection_plane == :xy
+            temperature = reverse!(transpose(temperature), dims=2)
+        elseif projection_plane == :yz
+            reverse!(temperature, dims=1)
+        end
+
+    elseif reduce_grid == :circular
+
+        # Reduce the resolution of the result into a circular grid
+        # `reduce_factor` here is the number of bins for the circular grid
+        temperature = projectIntoCircularGrid(temperature, reduce_factor)
+        x_axis  = [grid.physical_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        y_axis  = x_axis
+
+    else
+
+        throw(ArgumentError("daTemperature2DProjection: `reduce_grid` can only be :square or \
+        :circular, but I got :$( reduce_grid)"))
+
+    end
 
     # Set bins with a value of 0 to NaN
     replace!(x -> iszero(x) ? NaN : x, temperature)
 
     # Apply log10 to enhance the contrast
-    log_temperature = log10.(temperature)
+    z_axis = log10.(temperature)
 
     if logging[]
 
@@ -2055,23 +2225,11 @@ function daTemperature2DProjection(
             "\nTemperature range \
             \n  Simulation:   $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:     $(filtered_dd[:snap_data].global_index) \
-            \n  Type:         $(type) \
+            \n  Field type:   $(field_type) \
             \n  Plane:        $(projection_plane) \
-            \n  log₁₀(T [K]): $(extrema(log_temperature))"
+            \n  log₁₀(T [K]): $(extrema(z_axis))"
         )
 
-    end
-
-    # The transpose and reverse operation are to conform to
-    # the way `heatmap!` expect the matrix to be structured
-    # Depending on the `type` and `projection_plane`, different operations
-    # are applied to keep the axis consistent between cells and particles
-    if type == :particles || projection_plane == :xy
-        z_axis = reverse!(transpose(log_temperature), dims=2)
-    elseif projection_plane == :yz
-        z_axis = reverse!(log_temperature, dims=1)
-    else
-        z_axis = log_temperature
     end
 
     return x_axis, y_axis, z_axis
@@ -2131,6 +2289,12 @@ Turn a scatter plot into a 2D histogram.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2152,6 +2316,12 @@ Turn a scatter plot into a 2D histogram.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
@@ -2182,6 +2352,12 @@ Turn a scatter plot into a 2D histogram.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2203,6 +2379,12 @@ Turn a scatter plot into a 2D histogram.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
@@ -2333,7 +2515,7 @@ end
         x_quantity::Symbol,
         y_quantity::Symbol,
         z_quantity::Symbol,
-        z_unit::Uniful.Units;
+        z_unit::Unitful.Units;
         <keyword arguments>
     )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
@@ -2382,6 +2564,12 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2403,6 +2591,12 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
@@ -2433,6 +2627,12 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2454,6 +2654,12 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `z_quantity::Symbol`: Quantity for the z axis (weights). The options are:
@@ -2484,6 +2690,12 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2505,6 +2717,12 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `z_unit::Unitful.Units`: Target unit for the z axis.
@@ -2576,7 +2794,7 @@ function daScatterWeightedDensity(
 
     # If any of the necessary quantities are missing return an empty histogram
     if any(isempty, [x_values, y_values, z_values])
-        return 1:n_bins, 1:n_bins, fill(NaN, (n_bins, n_bins))
+        return collect(1:n_bins), collect(1:n_bins), fill(NaN, (n_bins, n_bins))
     end
 
     (
@@ -2850,6 +3068,12 @@ Compute two global quantities of the simulation.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_td`                    -> The mean total gas depletion time.
+      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2861,6 +3085,12 @@ Compute two global quantities of the simulation.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
@@ -2894,6 +3124,12 @@ Compute two global quantities of the simulation.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_td`                    -> The mean total gas depletion time.
+      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -2905,6 +3141,12 @@ Compute two global quantities of the simulation.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
@@ -3012,6 +3254,12 @@ Compute two quantities for every cell/particle in the simulation.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3033,6 +3281,12 @@ Compute two quantities for every cell/particle in the simulation.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
@@ -3063,6 +3317,12 @@ Compute two quantities for every cell/particle in the simulation.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3084,6 +3344,12 @@ Compute two quantities for every cell/particle in the simulation.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
@@ -3479,17 +3745,29 @@ Compute the time series of two quantities.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_td`                    -> The mean total gas depletion time.
+      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:X_stellar_abundance`       -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:stellar_specific_am`       -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`           -> Norm of the gas specific angular momentum.
-      + `:dm_specific_am`           -> Norm of the dark matter specific angular momentum.
+      + `:dm_specific_am`            -> Norm of the dark matter specific angular momentum.
       + `:sfr`                       -> The star formation rate.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
@@ -3523,6 +3801,12 @@ Compute the time series of two quantities.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_td`                    -> The mean total gas depletion time.
+      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3534,6 +3818,12 @@ Compute the time series of two quantities.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.

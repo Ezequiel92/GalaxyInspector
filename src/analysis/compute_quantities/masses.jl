@@ -22,7 +22,7 @@ Compute the fraction in each cell/particle of a given `component`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `component::Symbol`: For which cell/particle type the mass will be calculated. The options are:
+  - `component::Symbol`: For which cell/particle type the fraction will be calculated. The options are:
 
       + `:molecular`    -> Molecular hydrogen (``\\mathrm{H_2}``) fraction.
       + `:br_molecular` -> Molecular hydrogen (``\\mathrm{H_2}``) fraction, computed using the pressure relation in Blitz et al. (2006).
@@ -61,9 +61,11 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
                 # Compute how much time has pass since the last time
                 # the cell/particle entered the SF routine
-                Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
+                # Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
 
-                @inbounds if !isnan(dg["FRAC"][3, i]) && Δt < dg["TAUS"][i]
+                # @inbounds if !isnan(dg["FRAC"][3, i]) && Δt < dg["TAUS"][i]
+
+                @inbounds if !isnan(dg["FRAC"][3, i])
 
                     # Fraction of molecular hydrogen according to our model
                     fractions[i] = dg["FRAC"][3, i] + dg["FRAC"][4, i]
@@ -77,12 +79,12 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             end
 
-        elseif !any(isempty, [dg["PRES"], dg["COLM"], dg["NH  "], dg["NHP "]])
+        elseif !any(isempty, [dg["PRES"], dg["NH  "], dg["NHP "]])
 
             (
                 !logging[] ||
                 @info("computeFraction: The molecular fraction will be calculated using the \
-                fraction of cold gas from Arepo, \"COLM\"")
+                fraction of cold gas from Arepo, \"NH\"")
             )
 
             relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
@@ -95,18 +97,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             @inbounds for i in eachindex(fc)
 
-                @inbounds if !isnan(dg["COLM"][i]) && dg["COLM"][i] <= dg["MASS"][i]
-
-                    # Fraction of cold gas from Arepo
-                    fc[i] = uconvert(Unitful.NoUnits, dg["COLM"][i] / dg["MASS"][i])
-
-                else
-
-                    # When there is no data from our model,
-                    # use the fraction of neutral hydrogen from "NH  "
-                    fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
-
-                end
+                # When there is no data from our model,
+                # use the fraction of neutral hydrogen from "NH  "
+                fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
             end
 
@@ -125,16 +118,16 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     elseif component == :br_molecular
 
-        if any(isempty, [dg["MASS"], dg["PRES"], dg["COLM"], dg["NH  "], dg["NHP "]])
+        # if any(isempty, [dg["MASS"], dg["PRES"], dg["COLM"], dg["NH  "], dg["NHP "]])
 
-            (
-                !logging[] ||
-                @warn("computeFraction: I could not compute the BR molecular fraction")
-            )
+        #     (
+        #         !logging[] ||
+        #         @warn("computeFraction: I could not compute the BR molecular fraction")
+        #     )
 
-            return Float64[]
+        #     return Float64[]
 
-        end
+        # end
 
         relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
 
@@ -142,26 +135,28 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         # to the pressure relation in Blitz et al. (2006)
         fm = 1.0 ./ (1.0 .+ relative_pressure)
 
-        fc = Vector{Float64}(undef, length(dg["MASS"]))
+        # fc = Vector{Float64}(undef, length(dg["MASS"]))
 
-        @inbounds for i in eachindex(fc)
+        # @inbounds for i in eachindex(fc)
 
-            @inbounds if !isnan(dg["COLM"][i]) && dg["COLM"][i] <= dg["MASS"][i]
+        #     @inbounds if !isnan(dg["COLM"][i]) && dg["COLM"][i] <= dg["MASS"][i]
 
-                # Fraction of cold gas from Arepo
-                fc[i] = uconvert(Unitful.NoUnits, dg["COLM"][i] / dg["MASS"][i])
+        #         # Fraction of cold gas from Arepo
+        #         fc[i] = uconvert(Unitful.NoUnits, dg["COLM"][i] / dg["MASS"][i])
 
-            else
+        #     else
 
-                # When there is no data from our model,
-                # use the fraction of neutral hydrogen from "NH  "
-                fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
+        #         # When there is no data from our model,
+        #         # use the fraction of neutral hydrogen from "NH  "
+        #         fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
-            end
+        #     end
 
-        end
+        # end
 
-        fractions = fm .* fc
+        # fractions = fm .* fc
+
+        fractions = fm
 
     elseif component == :atomic
 
@@ -179,9 +174,10 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
                 # Compute how much time has pass since the last time
                 # the cell/particle entered the SF routine
-                Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
+                # Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
 
-                @inbounds if !isnan(dg["FRAC"][2, i]) && Δt < dg["TAUS"][i]
+                # @inbounds if !isnan(dg["FRAC"][2, i]) && Δt < dg["TAUS"][i]
+                @inbounds if !isnan(dg["FRAC"][2, i])
 
                     # Fraction of atomic hydrogen according to our model
                     fractions[i] = dg["FRAC"][2, i]
@@ -196,12 +192,12 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             end
 
-        elseif !any(isempty, [dg["PRES"], dg["COLM"], dg["NH  "], dg["NHP "]])
+        elseif !any(isempty, [dg["PRES"], dg["NH  "], dg["NHP "]])
 
             (
                 !logging[] ||
                 @info("computeFraction: The atomic fraction will be calculated using the fraction \
-                of cold gas from Arepo, \"COLM\"")
+                of cold gas from Arepo, \"NH\"")
             )
 
             relative_pressure = uconvert.(Unitful.NoUnits, dg["PRES"] ./ P0).^ALPHA_BLITZ
@@ -214,18 +210,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             @inbounds for i in eachindex(fc)
 
-                @inbounds if !isnan(dg["COLM"][i]) && dg["COLM"][i] <= dg["MASS"][i]
-
-                    # Fraction of cold gas from Arepo
-                    fc[i] = uconvert(Unitful.NoUnits, dg["COLM"][i] / dg["MASS"][i])
-
-                else
-
-                    # When there is no data from our model,
-                    # use the fraction of neutral hydrogen from "NH  "
-                    fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
-
-                end
+                # When there is no data from our model,
+                # use the fraction of neutral hydrogen from "NH  "
+                fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
             end
 
@@ -268,7 +255,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
                 # Compute how much time has pass since the last time
                 # the cell/particle entered the SF routine
-                Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
+                # Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
 
                 @inbounds if !isnan(dg["FRAC"][1, i]) && Δt < dg["TAUS"][i]
 
@@ -285,30 +272,21 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             end
 
-        elseif !any(isempty, [dg["COLM"], dg["NH  "], dg["NHP "]])
+        elseif !any(isempty, [dg["NH  "], dg["NHP "]])
 
             (
                 !logging[] ||
                 @info("computeFraction: The ionized fraction will be calculated using the fraction \
-                of cold gas from Arepo, \"COLM\"")
+                of cold gas from Arepo, \"NH\"")
             )
 
             fc = Vector{Float64}(undef, length(dg["MASS"]))
 
             @inbounds for i in eachindex(fc)
 
-                @inbounds if !isnan(dg["COLM"][i]) && dg["COLM"][i] <= dg["MASS"][i]
-
-                    # Fraction of cold gas from Arepo
-                    fc[i] = uconvert(Unitful.NoUnits, dg["COLM"][i] / dg["MASS"][i])
-
-                else
-
-                    # When there is no data from our model,
-                    # use the fraction of neutral hydrogen from "NH  "
-                    fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
-
-                end
+                # When there is no data from our model,
+                # use the fraction of neutral hydrogen from "NH  "
+                fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
             end
 
@@ -352,9 +330,11 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
                 # Compute how much time has pass since the last time
                 # the cell/particle entered the SF routine
-                Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
+                # Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
 
-                @inbounds if !isnan(dg["FRAC"][2, i]) && Δt < dg["TAUS"][i]
+                # @inbounds if !isnan(dg["FRAC"][2, i]) && Δt < dg["TAUS"][i]
+
+                @inbounds if !isnan(dg["FRAC"][2, i])
 
                     # Fraction of atomic hydrogen according to our model
                     fa[i] = dg["FRAC"][2, i]
@@ -375,30 +355,21 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fractions = fa .+ fm
 
-        elseif !any(isempty, [dg["COLM"], dg["NH  "], dg["NHP "]])
+        elseif !any(isempty, [dg["NH  "], dg["NHP "]])
 
             (
                 !logging[] ||
                 @info("computeFraction: The neutral fraction will be calculated using the fraction \
-                of cold gas from Arepo, \"COLM\"")
+                of cold gas from Arepo, \"NH\"")
             )
 
             fractions = Vector{Float64}(undef, length(dg["MASS"]))
 
             @inbounds for i in eachindex(fractions)
 
-                @inbounds if !isnan(dg["COLM"][i])
-
-                    # Fraction of cold gas from Arepo
-                    fractions[i] = uconvert(Unitful.NoUnits, dg["COLM"][i] / dg["MASS"][i])
-
-                else
-
-                    # When there is no data from our model,
-                    # use the fraction of neutral hydrogen from "NH  "
-                    fractions[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
-
-                end
+                # When there is no data from our model,
+                # use the fraction of neutral hydrogen from "NH  "
+                fractions[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
             end
 

@@ -122,7 +122,6 @@ const QUANTITIES = Dict(
     "VEVE" => Qty("VertexVelocity", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
     "VOL " => Qty("Volume", Unitful.𝐋^3, :internal),
     "Z   " => Qty("Metallicity", Unitful.NoDims, Unitful.NoUnits),
-    "POS " => Qty("Coordinates", Unitful.𝐋, :internal),
     #####################
     # sfr.txt quantities
     #####################
@@ -137,10 +136,6 @@ const QUANTITIES = Dict(
     ####################
     "ODIT" => Qty("ODE_IntegrationTime", Unitful.𝐓, u"Myr"),
     "ACIT" => Qty("ODE_AccumulatedIntegrationTime", Unitful.𝐓, u"Myr"),
-    #TODO
-    "CTIM" => Qty("ODE_CurrentTime", Unitful.𝐓, u"Myr"),
-    #TODO
-    "DTIM" => Qty("ODE_DeltaTime", Unitful.𝐓, u"Myr"),
     "TAUS" => Qty("ODE_TauS", Unitful.𝐓, u"Myr"),
     "RHOC" => Qty("ODE_ParameterCellDensity", Unitful.𝐌 * Unitful.𝐋^-3, u"cm^-3"),
     "PARZ" => Qty("ODE_ParameterMetallicity", Unitful.NoDims, Unitful.NoUnits),
@@ -149,9 +144,13 @@ const QUANTITIES = Dict(
     "PARR" => Qty("ODE_ParameterR", Unitful.NoDims, Unitful.NoUnits),
     "PARA" => Qty("ODE_ParameterA", Unitful.NoDims, Unitful.NoUnits),
     "FRAC" => Qty("ODE_Fractions", Unitful.NoDims, Unitful.NoUnits),
+    "FSPR" => Qty("ODE_f_star_prev", Unitful.NoDims, Unitful.NoUnits),
     "COLF" => Qty("ODE_ColdMassFrac", Unitful.NoDims, Unitful.NoUnits),
-    #TODO
-    "COLM" => Qty("BR_ColdMass", Unitful.𝐌, u"Msun"),
+    "GMAS" => Qty("ODE_GasMass", Unitful.𝐌, :internal),
+    "GSFR" => Qty("ODE_GasSFR", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    "GPRE" => Qty("ODE_GasPressure", Unitful.𝐌 * Unitful.𝐋^-1 * Unitful.𝐓^-2, :internal),
+    "GPOS" => Qty("ODE_GasPosition", Unitful.𝐋, :internal),
+    "GVEL" => Qty("ODE_GasVelocity", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
     ##############################
     # Halo (FoF group) quantities
     ##############################

@@ -105,7 +105,7 @@ export densityProfile
 export massProfile
 export velocityProfile
 export stellarHistory
-export stellarCircularity
+export lineHistogram
 export compareFeldmann2020
 export compareMolla2015
 export kennicuttSchmidtLaw

@@ -624,9 +624,13 @@ function filterWithinCylinder(
 end
 
 """
-    filterHotGas(data_dict::Dict, max_temp::Unitful.Temperature)::Dict{Symbol,IndexType}
+    filterGasTemperature(
+        data_dict::Dict,
+        min_temp::Unitful.Temperature,
+        max_temp::Unitful.Temperature,
+    )::Dict{Symbol,IndexType}
 
-Filter out gas cells hotter than `max_temp`.
+Filter out gas cells with a temperature outside the range [`min_temp`, `max_temp`].
 
 # Arguments
 
@@ -643,6 +647,7 @@ Filter out gas cells hotter than `max_temp`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - `min_temp::Unitful.Temperature`: Minimum gas temperature.
   - `max_temp::Unitful.Temperature`: Maximum gas temperature.
 
 # Returns
@@ -654,7 +659,11 @@ Filter out gas cells hotter than `max_temp`.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterHotGas(data_dict::Dict, max_temp::Unitful.Temperature)::Dict{Symbol,IndexType}
+function filterGasTemperature(
+    data_dict::Dict,
+    min_temp::Unitful.Temperature,
+    max_temp::Unitful.Temperature,
+)::Dict{Symbol,IndexType}
 
     internal_energy   = data_dict[:gas]["U   "]
     electron_fraction = data_dict[:gas]["NE  "]
@@ -668,7 +677,79 @@ function filterHotGas(data_dict::Dict, max_temp::Unitful.Temperature)::Dict{Symb
     @inbounds for component in snapshotTypes(data_dict)
 
         @inbounds if component == :gas
-            indices[component] = map(x -> x <= max_temp, temperature)
+            indices[component] = map(x -> min_temp <= x <= max_temp, temperature)
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterByFraction(
+        data_dict::Dict,
+        min_f::Float64,
+        max_f::Float64,
+        component::Symbol,
+    )::Dict{Symbol,IndexType}
+
+Filter out gas that has a fraction of `component` outside the range [`min_f`, `max_f`].
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `min_f::Float64`: Minimum `component` fraction.
+  - `max_f::Float64`: Maximum `component` fraction.
+  - `component::Symbol`: For which cell/particle type the fraction will be calculated. The options are:
+
+      + `:molecular`    -> Molecular hydrogen (``\\mathrm{H_2}``) fraction.
+      + `:br_molecular` -> Molecular hydrogen (``\\mathrm{H_2}``) fraction, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) fraction.
+      + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) fraction.
+      + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) fraction.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterByFraction(
+    data_dict::Dict,
+    min_f::Float64,
+    max_f::Float64,
+    component::Symbol,
+)::Dict{Symbol,IndexType}
+
+    fraction = computeFraction(data_dict, component)
+
+    isempty(fraction) && return PASS_ALL
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :gas
+            indices[component] = map(x -> min_f < x <= max_f, fraction)
         else
             indices[component] = (:)
         end
@@ -703,8 +784,8 @@ Filter out gas that is outside the density range [`min_ρ`, `max_ρ`].
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `min_ρ::Unitful.Temperature`: Minimum gas density.
-  - `max_ρ::Unitful.Temperature`: Maximum gas density.
+  - `min_ρ::Unitful.Density`: Minimum gas density.
+  - `max_ρ::Unitful.Density`: Maximum gas density.
 
 # Returns
 
@@ -784,6 +865,8 @@ function filterGasACIT(
 
     acit = data_dict[:gas]["ACIT"]
 
+    isempty(acit) && return PASS_ALL
+
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
@@ -791,6 +874,93 @@ function filterGasACIT(
 
         @inbounds if component == :gas
             indices[component] = map(x -> min_acit < x <= max_acit, acit)
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterGasEff(
+        data_dict::Dict,
+        component::Symbol,
+        min_ϵff::Float64,
+        max_ϵff::Float64,
+    )::Dict{Symbol,IndexType}
+
+Filter out gas that has a star formation efficiency per free-fall time outside the range [`min_ϵff`, `max_ϵff`].
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `component::Symbol`: For which gas component the star formation efficiency per free-fall time will be calculated. The options are:
+
+      + `:gas_eff`          -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`    -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff` -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`       -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`      -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`      -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+  - `min_ϵff::Float64`: Minimum star formation efficiency per free-fall time.
+  - `max_ϵff::Float64`: Maximum star formation efficiency per free-fall time.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterGasEff(
+    data_dict::Dict,
+    component::Symbol,
+    min_ϵff::Float64,
+    max_ϵff::Float64,
+)::Dict{Symbol,IndexType}
+
+    if component ∉ [
+        :gas_eff,
+        :molecular_eff,
+        :br_molecular_eff,
+        :atomic_eff,
+        :ionized_eff,
+        :neutral_eff,
+    ]
+
+        throw(ArgumentError("filterGasEff: `component` must be :gas_eff, :molecular_eff, \
+        :br_molecular_eff, :atomic_eff, :ionized_eff or :neutral_eff, but I got $(component)"))
+
+    end
+
+    ϵff = scatterQty(data_dict, component)
+
+    isempty(ϵff) && return PASS_ALL
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :gas
+            indices[component] = map(x -> min_ϵff < x <= max_ϵff, ϵff)
         else
             indices[component] = (:)
         end
@@ -824,7 +994,7 @@ Filter out gas cells that have the molecular or ionized equation in or out of eq
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `limit_percent::Float64=1.0`: Allowed deviation from equilibrium, in percent.
+  - `limit::Float64=1.0e-2`: Allowed deviation from equilibrium, as the fraction |RS - LS| / LS.
   - `equation::Symbol=:molecular`: Which equilibrium equation will be used. The options are :molecular and :ionized.
   - `filtered_phase::Symbol=:non_eq`: Which phase will be filtered out, the equilibrium phase (:eq) or the non-equilibrium phase (:non_eq).
 
@@ -839,7 +1009,7 @@ Filter out gas cells that have the molecular or ionized equation in or out of eq
 """
 function filterEqGas(
     data_dict::Dict;
-    limit_percent::Float64=1.0,
+    limit::Float64=1.0e-2,
     equation::Symbol=:molecular,
     filtered_phase::Symbol=:non_eq,
 )::Dict{Symbol,IndexType}
@@ -860,22 +1030,20 @@ function filterEqGas(
     end
 
     (
-        (0.0 <= limit_percent <= 100.0) ||
-        throw(ArgumentError("filterEqGas: `limit_percent` must be a number between 0 and 100, \
-        but I got :$(limit_percent)"))
+        0.0 <= limit ||
+        throw(ArgumentError("filterEqGas: `limit` must be > 0, but I got :$(limit_percent)"))
     )
 
-    # Compute the limits of the quotient in log space
-    log_limit_l = -log10(1.0 + (limit_percent / 100.0)) # Lower imit
-    log_limit_h = -log10(1.0 - (limit_percent / 100.0)) # Upper limit
+    # Compute |RS - LS| / LS
+    eq_values = abs.(exp10.(-eq_quotient) .- 1.0)
 
     if filtered_phase == :non_eq
 
-        idxs = map(x -> log_limit_l < x < log_limit_h, eq_quotient)
+        idxs = map(x -> x < limit, eq_values)
 
     elseif filtered_phase == :eq
 
-        idxs = map(x -> log_limit_h < x || x < log_limit_l, eq_quotient)
+        idxs = map(x -> limit < x, eq_values)
 
     else
 
@@ -977,9 +1145,12 @@ function filterYoungStars(data_dict::Dict)::Dict{Symbol,IndexType}
 end
 
 """
-    filterStellarAge(data_dict::Dict; <keyword arguments>)::Dict{Symbol,IndexType}
+    filterStellarAge(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
 
-Filter out stars that are older than `age`.
+Filter out stars with an age outside the range [`min_age`, `max_age`].
 
 # Arguments
 
@@ -996,7 +1167,8 @@ Filter out stars that are older than `age`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `age::Unitful.Time=AGE_RESOLUTION`: Stars older than this value will be filtered out.
+  - `min_age::Unitful.Time=0.0u"Gyr"`: Minimum age.
+  - `max_age::Unitful.Time=AGE_RESOLUTION`: Maximum age.
 
 # Returns
 
@@ -1007,11 +1179,17 @@ Filter out stars that are older than `age`.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterStellarAge(data_dict::Dict; age::Unitful.Time=AGE_RESOLUTION)::Dict{Symbol,IndexType}
+function filterStellarAge(
+    data_dict::Dict;
+    min_age::Unitful.Time=0.0u"Gyr",
+    max_age::Unitful.Time=AGE_RESOLUTION,
+)::Dict{Symbol,IndexType}
 
     ages = computeStellarAge(data_dict)
 
-    new_stars_idxs = map(t -> t < age, ages)
+    isempty(ages) && PASS_ALL
+
+    new_stars_idxs = map(t -> min_age <= t <= max_age, ages)
 
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
@@ -1180,9 +1358,9 @@ function filterExsituStars(
 end
 
 """
-    filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Symbol,IndexType}
+    filterMetallicity(data_dict::Dict, min_Z::Float64, max_Z::Float64)::Dict{Symbol,IndexType}
 
-Filter out gas cells and stellar particles with metallicity outside the range [`l_Z`, `h_Z`].
+Filter out gas cells and stellar particles with metallicity (as the metal mass fraction) outside the range [`min_Z`, `max_Z`].
 
 # Arguments
 
@@ -1199,8 +1377,8 @@ Filter out gas cells and stellar particles with metallicity outside the range [`
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `l_Z::Float64`: Minimum metallicity.
-  - `h_Z::Float64`: Maximum metallicity.
+  - `min_Z::Float64`: Minimum metallicity.
+  - `max_Z::Float64`: Maximum metallicity.
 
 # Returns
 
@@ -1211,7 +1389,7 @@ Filter out gas cells and stellar particles with metallicity outside the range [`
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Symbol,IndexType}
+function filterMetallicity(data_dict::Dict, min_Z::Float64, max_Z::Float64)::Dict{Symbol,IndexType}
 
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
@@ -1230,7 +1408,7 @@ function filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Sy
 
             end
 
-            indices[component] = map(x -> l_Z <= x <= h_Z, metallicity)
+            indices[component] = map(x -> min_Z <= x <= max_Z, metallicity)
 
         elseif component == :stars
 
@@ -1244,7 +1422,7 @@ function filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Sy
 
             end
 
-            indices[component] = map(x -> l_Z <= x <= h_Z, metallicity)
+            indices[component] = map(x -> min_Z <= x <= max_Z, metallicity)
 
         else
 
@@ -1259,9 +1437,9 @@ function filterMetallicity(data_dict::Dict, l_Z::Float64, h_Z::Float64)::Dict{Sy
 end
 
 """
-    filterCircularity(data_dict::Dict, l_ϵ::Float64, h_ϵ::Float64)::Dict{Symbol,IndexType}
+    filterCircularity(data_dict::Dict, min_ϵ::Float64, max_ϵ::Float64)::Dict{Symbol,IndexType}
 
-Filter out stellar particles with circularity outside the range [`l_ϵ`, `h_ϵ`].
+Filter out stellar particles with circularity outside the range [`min_ϵ`, `max_ϵ`].
 
 # Arguments
 
@@ -1278,8 +1456,8 @@ Filter out stellar particles with circularity outside the range [`l_ϵ`, `h_ϵ`]
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `l_ϵ::Float64`: Minimum circularity.
-  - `h_ϵ::Float64`: Maximum circularity.
+  - `min_ϵ::Float64`: Minimum circularity.
+  - `max_ϵ::Float64`: Maximum circularity.
 
 # Returns
 
@@ -1290,7 +1468,7 @@ Filter out stellar particles with circularity outside the range [`l_ϵ`, `h_ϵ`]
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterCircularity(data_dict::Dict, l_ϵ::Float64, h_ϵ::Float64)::Dict{Symbol,IndexType}
+function filterCircularity(data_dict::Dict, min_ϵ::Float64, max_ϵ::Float64)::Dict{Symbol,IndexType}
 
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
@@ -1299,7 +1477,7 @@ function filterCircularity(data_dict::Dict, l_ϵ::Float64, h_ϵ::Float64)::Dict{
 
         @inbounds if component == :stars
             circularity = computeCircularity(data_dict)
-            indices[component] = map(x -> l_ϵ <= x <= h_ϵ, circularity)
+            indices[component] = map(x -> min_ϵ <= x <= max_ϵ, circularity)
         else
             indices[component] = (:)
         end

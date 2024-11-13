@@ -444,6 +444,114 @@ function computeClumpingFactor(density::Vector{<:Number})::Float64
 
 end
 
+@doc raw"""
+    computeDepletionTime(
+        mass::Vector{<:Unitful.Mass},
+        sfr::Vector{<:Unitful.MassFlow},
+    )::Vector{<:Unitful.Time}
+
+Compute the depletion time,
+
+```math
+t_\mathrm{ff} = \frac{M_\mathrm{gas}}{\dot{M}_\star} \, .
+```
+
+# Arguments
+
+  - `mass::Vector{<:Unitful.Mass}`: The gas mass of the cells/particles.
+  - `sfr::Vector{<:Unitful.MassFlow}`: The SFR associated to each cell/particle.
+
+# Returns
+
+  - The depletion time.
+"""
+function computeDepletionTime(
+    mass::Vector{<:Unitful.Mass},
+    sfr::Vector{<:Unitful.MassFlow},
+)::Vector{<:Unitful.Time}
+
+    if any(isempty, [mass, sfr])
+
+        (
+            !logging[] ||
+            @warn("computeDepletionTime: There is missing data for the gas, so the result will be \
+            an empty vector")
+        )
+
+        return Unitful.Time[]
+
+    end
+
+    return @. mass / sfr
+
+end
+
+@doc raw"""
+    computeEfficiencyFF(
+        density::Vector{<:Unitful.Density},
+        mass::Vector{<:Unitful.Mass},
+        sfr::Vector{<:Unitful.MassFlow},
+    )::Vector{Float64}
+
+Compute the star formation efficiency per free-fall time, according to the definition in equation 1 of Krumholz (2012),
+
+```math
+\epsilon_\mathrm{ff} = \frac{t_\mathrm{ff}}{t_\mathrm{dep}} \, .
+```
+where
+
+```math
+t_\mathrm{ff} = \sqrt{\frac{3 \, \pi}{32 \, G \, \rho}} \, ,
+```
+is the free-fall time, and
+
+```math
+t_\mathrm{ff} = \frac{M_\mathrm{H_2}}{\dot{M}_\star} \, ,
+```
+is the depletion time.
+
+# Arguments
+
+  - `density::Vector{<:Unitful.Density}`: The molecular hydrogen (``\\mathrm{H_2}``) density of the cells/particles.
+  - `mass::Vector{<:Unitful.Mass}`: The gas mass of the cells/particles.
+  - `sfr::Vector{<:Unitful.MassFlow}`: The SFR associated to each cell/particle.
+
+# Returns
+
+  - The star formation efficiency per free-fall time.
+
+# References
+
+M. R. Krumholz et al. (2011). *A UNIVERSAL, LOCAL STAR FORMATION LAW IN GALACTIC CLOUDS, NEARBY GALAXIES, HIGH-REDSHIFT DISKS, AND STARBURSTS*. The Astrophysical Journal, **745(1)**, 69. [doi:10.1088/0004-637X/745/1/69](https://doi.org/10.1088/0004-637X/745/1/69)
+"""
+function computeEfficiencyFF(
+    density::Vector{<:Unitful.Density},
+    mass::Vector{<:Unitful.Mass},
+    sfr::Vector{<:Unitful.MassFlow},
+)::Vector{Float64}
+
+    if any(isempty, [density, mass, sfr])
+
+        (
+            !logging[] ||
+            @warn("computeEfficiencyFF: There is missing data for the gas, so the result will be \
+            an empty vector")
+        )
+
+        return Float64[]
+
+    end
+
+    # Compute the free-fall time
+    tff = @. sqrt(3π / (32 * Unitful.G * density))
+
+    # Compute the depletion time
+    tdep = @. mass / sfr
+
+    return @. uconvert(Unitful.NoUnits, tff / tdep)
+
+end
+
 """
     integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
@@ -493,6 +601,12 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_td`                    -> The mean total gas depletion time.
+      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -504,6 +618,12 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
@@ -664,6 +784,72 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
         integrated_qty = sfr / area(DISK_R)
 
+    elseif quantity == :gas_td
+
+        mass = computeMass(data_dict, :gas)
+        td   = computeDepletionTime(mass, data_dict[:gas]["SFR "])
+
+        if isempty(td)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(td)
+        end
+
+    elseif quantity == :molecular_td
+
+        mass = computeMass(data_dict, :molecular)
+        td   = computeDepletionTime(mass, data_dict[:gas]["SFR "])
+
+        if isempty(td)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(td)
+        end
+
+    elseif quantity == :br_molecular_td
+
+        mass = computeMass(data_dict, :br_molecular)
+        td   = computeDepletionTime(mass, data_dict[:gas]["SFR "])
+
+        if isempty(td)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(td)
+        end
+
+    elseif quantity == :atomic_td
+
+        mass = computeMass(data_dict, :atomic)
+        td   = computeDepletionTime(mass, data_dict[:gas]["SFR "])
+
+        if isempty(td)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(td)
+        end
+
+    elseif quantity == :ionized_td
+
+        mass = computeMass(data_dict, :ionized)
+        td   = computeDepletionTime(mass, data_dict[:gas]["SFR "])
+
+        if isempty(td)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(td)
+        end
+
+    elseif quantity == :neutral_td
+
+        mass = computeMass(data_dict, :neutral)
+        td   = computeDepletionTime(mass, data_dict[:gas]["SFR "])
+
+        if isempty(td)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(td)
+        end
+
     elseif quantity == :gas_metallicity
 
         metal_mass = sum(computeMetalMass(data_dict, :gas); init=0.0u"Msun")
@@ -801,6 +987,78 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
             integrated_qty = sfr / stellar_mass
         end
 
+    elseif quantity == :gas_eff
+
+        mass = computeMass(data_dict, :gas)
+
+        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+        if isempty(ϵff)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ϵff)
+        end
+
+    elseif quantity == :molecular_eff
+
+        mass = computeMass(data_dict, :molecular)
+
+        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+        if isempty(ϵff)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ϵff)
+        end
+
+    elseif quantity == :br_molecular_eff
+
+        mass = computeMass(data_dict, :br_molecular)
+
+        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+        if isempty(ϵff)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ϵff)
+        end
+
+    elseif quantity == :atomic_eff
+
+        mass = computeMass(data_dict, :atomic)
+
+        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+        if isempty(ϵff)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ϵff)
+        end
+
+    elseif quantity == :ionized_eff
+
+        mass = computeMass(data_dict, :ionized)
+
+        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+        if isempty(ϵff)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ϵff)
+        end
+
+    elseif quantity == :neutral_eff
+
+        mass = computeMass(data_dict, :neutral)
+
+        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+        if isempty(ϵff)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ϵff)
+        end
+
     elseif quantity == :scale_factor
 
         integrated_qty = data_dict[:sim_data].table[data_dict[:snap_data].global_index, 3]
@@ -875,6 +1133,12 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -896,6 +1160,12 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
 
@@ -1015,6 +1285,45 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :neutral_number_density
 
         scatter_qty = computeNumberDensity(data_dict, :neutral)
+
+    elseif quantity == :gas_td
+
+        scatter_qty = computeDepletionTime(computeMass(data_dict, :gas), data_dict[:gas]["SFR "])
+
+    elseif quantity == :molecular_td
+
+        scatter_qty = computeDepletionTime(
+            computeMass(data_dict, :molecular),
+            data_dict[:gas]["SFR "],
+        )
+
+    elseif quantity == :br_molecular_td
+
+        scatter_qty = computeDepletionTime(
+            computeMass(data_dict, :br_molecular),
+            data_dict[:gas]["SFR "],
+        )
+
+    elseif quantity == :atomic_td
+
+        scatter_qty = computeDepletionTime(
+            computeMass(data_dict, :atomic),
+            data_dict[:gas]["SFR "],
+        )
+
+    elseif quantity == :ionized_td
+
+        scatter_qty = computeDepletionTime(
+            computeMass(data_dict, :ionized),
+            data_dict[:gas]["SFR "],
+        )
+
+    elseif quantity == :neutral_td
+
+        scatter_qty = computeDepletionTime(
+            computeMass(data_dict, :neutral),
+            data_dict[:gas]["SFR "],
+        )
 
     elseif quantity == :gas_metallicity
 
@@ -1190,6 +1499,42 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         stellar_masses = data_dict[:stars]["MASS"]
 
         scatter_qty = sfr ./ stellar_masses
+
+    elseif quantity == :gas_eff
+
+        mass = computeMass(data_dict, :gas)
+
+        scatter_qty = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+    elseif quantity == :molecular_eff
+
+        mass = computeMass(data_dict, :molecular)
+
+        scatter_qty = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+    elseif quantity == :br_molecular_eff
+
+        mass = computeMass(data_dict, :br_molecular)
+
+        scatter_qty = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+    elseif quantity == :atomic_eff
+
+        mass = computeMass(data_dict, :atomic)
+
+        scatter_qty = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+    elseif quantity == :ionized_eff
+
+        mass = computeMass(data_dict, :ionized)
+
+        scatter_qty = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+
+    elseif quantity == :neutral_eff
+
+        mass = computeMass(data_dict, :neutral)
+
+        scatter_qty = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
 
     elseif quantity == :temperature
 

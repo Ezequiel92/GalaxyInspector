@@ -186,7 +186,7 @@ function snapshotReport(
             mergeRequests(
                 Dict(component => ["POS ", "MASS", "VEL "] for component in component_list),
                 Dict(
-                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "CTIM", "TAUS", "ID  ", "COLM"],
+                    :gas => ["NHP ", "NH  ", "PRES", "FRAC", "TAUS", "ID  "],
                     :stars => ["ACIT", "PARZ", "RHOC", "ID  "],
                 ),
             ),
@@ -2280,7 +2280,7 @@ Plot a 2D histogram of the density.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
   - `pixel_length::Unitful.Length=0.1u"kpc"`: Pixel (bin of the 2D histogram) side length.
-  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
+  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -2332,7 +2332,7 @@ function densityMap(
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
     pixel_length::Unitful.Length=0.1u"kpc",
-    reduce::Int=1,
+    reduce_factor::Int=1,
     theme::Attributes=Theme(),
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
@@ -2385,7 +2385,7 @@ function densityMap(
                     filter_function,
                     da_functions=[daDensity2DProjection],
                     da_args=[(grid, quantity, ring(types, i))],
-                    da_kwargs=[(; reduce, projection_plane, filter_function=da_ff)],
+                    da_kwargs=[(; reduce_factor, projection_plane, filter_function=da_ff)],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
                     pp_kwargs=(; color=:white),
@@ -3289,6 +3289,12 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3310,6 +3316,12 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
@@ -3340,6 +3352,12 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3361,6 +3379,12 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `xlog::Bool=false`: If true, sets everything so the x axis is log10(`x_quantity`).
@@ -3556,7 +3580,7 @@ end
         x_quantity::Symbol,
         y_quantity::Symbol,
         z_quantity::Symbol,
-        z_unit::Uniful.Units;
+        z_unit::Unitful.Units;
         <keyword arguments>
     )::Nothing
 
@@ -3594,6 +3618,12 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3615,6 +3645,12 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
@@ -3645,6 +3681,12 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3666,6 +3708,12 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `z_quantity::Symbol`: Quantity for the z axis (weights). The options are:
@@ -3696,6 +3744,12 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -3717,6 +3771,12 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `z_unit::Unitful.Units`: Target unit for the z axis.
@@ -4154,7 +4214,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot a bar plot of the gas fractions, where the bins are a given gas `quantity`..
+Plot a bar plot of the gas fractions, where the bins are a given gas `quantity`.
 
 Only for gas cells that have entered out routine.
 
@@ -4187,11 +4247,23 @@ Only for gas cells that have entered out routine.
       + `:atomic_number_density`       -> Atomic hydrogen number density.
       + `:ionized_number_density`      -> Ionized hydrogen number density.
       + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
       + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
       + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
       + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
       + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
   - `edges::Vector{<:Number}`: A sorted list of bin edges for `quantity`.
@@ -4408,6 +4480,12 @@ Plot a time series.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_td`                    -> The mean total gas depletion time.
+      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -4419,6 +4497,12 @@ Plot a time series.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
@@ -4452,6 +4536,12 @@ Plot a time series.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
+      + `:gas_td`                    -> The mean total gas depletion time.
+      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -4463,6 +4553,12 @@ Plot a time series.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
@@ -5821,20 +5917,89 @@ function stellarHistory(
 end
 
 """
-    stellarCircularity(
+    lineHistogram(
         simulation_paths::Vector{String},
-        slice::IndexType;
+        slice::IndexType,
+        quantity::Symbol,
+        type::Symbol,
+        range::NTuple{2,<:Number};
         <keyword arguments>
     )::Nothing
 
-Plot a histogram of the stellar circularity.
+Plot a histogram of `quantity`.
 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `range::NTuple{2,<:Number}=(-2.0, 2.0)`: Circularity range.
-  - `n_bins::Int=60`: Number of bins.
+  - `quantity::Symbol`: The possibilities are:
+
+      + `:stellar_mass`                -> Stellar mass.
+      + `:gas_mass`                    -> Gas mass.
+      + `:hydrogen_mass`               -> Hydrogen mass.
+      + `:dm_mass`                     -> Dark matter mass.
+      + `:bh_mass`                     -> Black hole mass.
+      + `:molecular_mass`              -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
+      + `:br_molecular_mass`           -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
+      + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
+      + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
+      + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
+      + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
+      + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
+      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
+      + `:gas_mass_density`            -> Gas mass density.
+      + `:hydrogen_mass_density`       -> Hydrogen mass density.
+      + `:gas_number_density`          -> Gas number density.
+      + `:molecular_number_density`    -> Molecular hydrogen number density.
+      + `:br_molecular_number_density` -> Molecular hydrogen number density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_number_density`       -> Atomic hydrogen number density.
+      + `:ionized_number_density`      -> Ionized hydrogen number density.
+      + `:neutral_number_density`      -> Neutral hydrogen number density.
+      + `:gas_td`                      -> Total gas depletion time.
+      + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                   -> Atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                  -> Ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                  -> Neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
+      + `:gas_metallicity`             -> Mass fraction of all elements above He in the gas (solar units).
+      + `:stellar_metallicity`         -> Mass fraction of all elements above He in the stars (solar units).
+      + `:X_gas_abundance`             -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:X_stellar_abundance`         -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+      + `:stellar_radial_distance`     -> Distance of every stellar particle to the origin.
+      + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
+      + `:dm_radial_distance`          -> Distance of every dark matter particle to the origin.
+      + `:stellar_xy_distance`         -> Projected distance of every stellar particle to the origin.
+      + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
+      + `:dm_xy_distance`              -> Projected distance of every dark matter particle to the origin.
+      + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
+      + `:stellar_circularity`         -> Stellar circularity.
+      + `:stellar_vcirc`               -> Stellar circular velocity.
+      + `:stellar_vradial`             -> Stellar radial speed.
+      + `:stellar_vtangential`         -> Stellar tangential speed.
+      + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
+      + `:stellar_age`                 -> Stellar age.
+      + `:sfr`                         -> The star formation rate.
+      + `:ssfr`                        -> The specific star formation rate.
+      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
+      + `:pressure`                    -> Gas pressure.
+  - `type::Symbol`: Type of cell/particle.
+  - ` range::NTuple{2,<:Number}`: Range of values for the histogram.
+  - `n_bins::Int=100`: Number of bins.
+  - `log::Bool=false`: If the bins will be logarithmic.
+  - `norm::Int=0`: Number of count that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -5865,25 +6030,36 @@ Plot a histogram of the stellar circularity.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `extra_filter` filter function.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
-function stellarCircularity(
+function lineHistogram(
     simulation_paths::Vector{String},
-    slice::IndexType;
-    range::NTuple{2,<:Number}=(-2.0, 2.0),
-    n_bins::Int=60,
+    slice::IndexType,
+    quantity::Symbol,
+    type::Symbol,
+    range::NTuple{2,<:Number};
+    n_bins::Int=100,
+    log::Bool=false,
+    norm::Int=0,
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(:stellar_circularity)
+    plot_params = plotParams(quantity)
 
-    filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(plot_params.request, ff_request),
+    )
 
-    grid = LinearGrid(range..., n_bins)
+    grid = LinearGrid(range..., n_bins; log)
 
     plotSnapshot(
         simulation_paths,
@@ -5892,15 +6068,15 @@ function stellarCircularity(
         pf_kwargs=[(;)],
         # `plotSnapshot` configuration
         output_path,
-        base_filename="circularity_histogram",
+        base_filename="$(quantity)_line_histogram",
         output_format=".png",
         show_progress=true,
         # Data manipulation options
         slice,
         filter_function,
         da_functions=[daLineHistogram],
-        da_args=[(:stellar_circularity, grid, :stars)],
-        da_kwargs=[(;)],
+        da_args=[(quantity, grid, type)],
+        da_kwargs=[(; filter_function=extra_filter, norm)],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -5923,7 +6099,7 @@ function stellarCircularity(
         yaxis_label="auto_label",
         xaxis_var_name=plot_params.var_name,
         yaxis_var_name=L"\mathrm{Normalized \,\, counts}",
-        xaxis_scale_func=identity,
+        xaxis_scale_func=log ? log10 : identity,
         yaxis_scale_func=identity,
         # Plotting and animation options
         save_figures=true,
@@ -6259,46 +6435,55 @@ Plot the Kennicutt-Schmidt law.
 
 !!! note
 
-    Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `rmax_gas` are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
+    Only stars younger than [`AGE_RESOLUTION`](@ref) are consider. The star formation surface density is the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
 
 !!! note
 
-    This function uses physical units regardless of the global setting [`PHYSICAL_UNITS`](@ref).
+    This function uses physical units regardless of the [`PHYSICAL_UNITS`](@ref) global setting.
 
 # Arguments
 
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
+  - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. All the selected snapshots will be plotted together.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
       + `:gas_mass`          -> Total gas mass surface density.
       + `:molecular_mass`    -> Molecular mass surface density. This one can be plotted with the results of Bigiel et al. (2008) and Bigiel et al. (2010).
       + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one can be plotted with the results of Bigiel et al. (2008) and Bigiel et al. (2010).
       + `:neutral_mass`      -> Neutral mass surface density. This one can be plotted with the results of Bigiel et al. (2008), Bigiel et al. (2010), and Kennicutt (1998).
-  - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in :particles or in Voronoi :cells.
-  - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends, experimental measurements or several simulations at once.
-  - `integrated::Bool=false`: If the integrated (one point per galaxy) or resolved (several point per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = :scatter, the central value is the weighted median, and the error bars are the median absolute deviations.
-  - `sfr_density::Bool=true`: If the quantity for the y axis will be the SFR surface density, if set to false the quantity will be the stellar mass surface density.
-  - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a pixel of the 2D projected galaxy) can be weighted by a gas quantity. If `integrated` = true, the median will be computed with these weights in mind. If `integrated` = false, each point will have a color given by the weight. The posible weights are:
+  - `gas_type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in :particles or in Voronoi :cells.
+  - `reduce_grid::Symbol=:square`: Grid for the density projection. The options are:
 
-      + `:gas_mass_density` -> Gas mass surface density of each pixel. See the documentation for the function [`daDensity2DProjection`](@ref).
-      + `:gas_sfr`          -> The total gas SFR of the column associated with each pixel. See the documentation for the function [`daGasSFR2DProjection`](@ref).
-      + `:gas_metallicity`  -> The total metallicity of the column associated with each pixel. See the documentation for the function [`daMetallicity2DProjection`](@ref).
-      + `:temperature`      -> The mean gas temperature of the column associated with each pixel. See the documentation for the function [`daTemperature2DProjection`](@ref).
+      + `:square`    -> The gas and stellar distributions will be projected into a regular cubic grid first and then into a flat square one, to emulate the way the surface densities are measured in observations.
+      + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations.
+  - `grid_size::Unitful.Length=BOX_L`: Physical side length of the cubic and square grids, and diameter of the circular grid (if `reduce_grid` = :circular). As a reference, Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2). This limits which cells/particles will be consider.
+  - `bin_size::Unitful.Length=BIGIEL_PX_SIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`. For the cubic grids a default value of 200 pc is always used.
+    - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends, experimental measurements or several simulations at once.
+  - `integrated::Bool=false`: If the integrated (one point per galaxy) or resolved (several point per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = :scatter. The central value is the weighted median and the error bars are the median absolute deviations.
+  - `sfr_density::Bool=true`: If the quantity for the y axis will be the SFR surface density or, if set to false, the stellar mass surface density.
+
+
+
+  - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a bin in the 2D grid) can be weighted by a gas quantity. If `integrated` = true, the median will be computed with these weights in mind. If `integrated` = false, each point will have a color given by the weight. The posible weights are:
+
+      + `:gas_mass_density` -> Gas mass surface density of each bin. See the documentation for the function [`daDensity2DProjection`](@ref).
+      + `:gas_sfr`          -> The total gas SFR of the column associated with each bin. See the documentation for the function [`daGasSFR2DProjection`](@ref).
+      + `:gas_metallicity`  -> The total metallicity of the column associated with each bin. See the documentation for the function [`daMetallicity2DProjection`](@ref).
+      + `:temperature`      -> The mean gas temperature of the column associated with each bin. See the documentation for the function [`daTemperature2DProjection`](@ref).
+
+
   - `measurements::Bool=true`: If the experimental measurements from Kennicutt (1998), Bigiel et al. (2008) or Bigiel et al. (2010) will be plotted alongside the simulation results.
   - `measurement_type::Union{String,Symbol}=:fits`: Type of measurement to plot, only valid if `measurement` = true. The option are:
 
       + `:fits`: Fits from Bigiel et al. (2008) and/or Kennicutt (1998) depending on the quantity in the x axis. The fits will be plotted as lines with uncertanty bands.
       + `"NGC XXX"`: Plot the resolved data of the given NGC galaxy as a scatter plot. Uses the data from Bigiel et al. (2010). See the documentation of [`ppBigiel2010!`](@ref) for options.
       + `:all`: Plot the data of every galaxy in Bigiel et al. (2010), as a scatter plot.
-  - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
-  - `reduce_resolution::Bool=true`: If the resolution of the 2D grids will be reduce after the 2D projection to have pixels of a physical size ~ [`BIGIEL_PX_SIZE`](@ref).
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the heatmap grid. If set to `nothing`, the extrema of the x values will be used. Only relevant if `plot_type` = :heatmap.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the y values will be used. Only relevant if `plot_type` = :heatmap.
   - `n_bins::Int=100`: Number of bins per side of the heatmap grid. Only relevant if `plot_type` = :heatmap.
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `output_file::String="./kennicutt_schmidt_law.png"`: Path to the output file.
-  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Selects which cells/particles will be consider, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
       + `:halo`            -> Consider only the cells/particles that belong to the main halo.
@@ -6344,15 +6529,16 @@ function kennicuttSchmidtLaw(
     simulation_paths::Vector{String},
     slice::IndexType;
     quantity::Symbol=:molecular_mass,
-    type::Symbol=:cells,
+    gas_type::Symbol=:cells,
+    reduce_grid::Symbol=:square,
+    grid_size::Unitful.Length=BOX_L,
+    bin_size::Unitful.Length=BIGIEL_PX_SIZE,
     plot_type::Symbol=:scatter,
     integrated::Bool=false,
     sfr_density::Bool=true,
     gas_weights::Union{Symbol,Nothing}=nothing,
     measurements::Bool=true,
     measurement_type::Union{String,Symbol}=:fits,
-    rmax_gas::Unitful.Length=DISK_R,
-    reduce_resolution::Bool=true,
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     n_bins::Int=100,
@@ -6363,19 +6549,28 @@ function kennicuttSchmidtLaw(
     theme::Attributes=Theme(),
 )::Nothing
 
+    ns = length(simulation_paths)
+
+    # Default voxel side length
+    voxel_size = 200.0u"pc"
+
+    ################################################################################################
+    # Physical units
+    ################################################################################################
+
     # Save the origial value of the global `PHYSICAL_UNITS`
     og_pu_value = PHYSICAL_UNITS
 
     if !og_pu_value && logging[]
+
         @warn("kennicuttSchmidtLaw: The global `PHYSICAL_UNITS` is set to false, \
         but Kennicutt-Schmidt law plots must be in physical units, so the global \
-        setting will be ignored and default to true.")
+        setting will be ignored and default to true just for this function")
+
     end
 
     # Kennicutt-Schmidt law plots must be in physical units even for cosmological simulations
     global PHYSICAL_UNITS = true
-
-    ns = length(simulation_paths)
 
     ################################################################################################
     # Check arguments
@@ -6393,21 +6588,51 @@ function kennicuttSchmidtLaw(
         but I got :$(plot_type)"))
     )
 
+    (
+        reduce_grid ∈ [:square, :circular] ||
+        throw(ArgumentError("kennicuttSchmidtLaw: `reduce_grid` can only be :square or :circular, \
+        but I got :$(reduce_grid)"))
+    )
+
     if integrated
 
         if plot_type == :heatmap
 
-            !logging[] || @warn("kennicuttSchmidtLaw: If `integrated` is set to true, \
-            `plot_type` = :heatmap will be ignored and default to :scatter.")
+            (
+                !logging[] ||
+                @warn("kennicuttSchmidtLaw: If `integrated` is set to true, `plot_type` = :heatmap \
+                will be ignored and default to :scatter")
+            )
 
             plot_type = :scatter
 
         end
 
-        if reduce_resolution
-            !logging[] || @warn("kennicuttSchmidtLaw: `integrated` and `reduce_resolution` are set \
-            to true. Are you sure you want this?")
-        end
+    end
+
+    if reduce_grid == :square && !isnothing(bin_size) && bin_size < voxel_size
+
+        (
+            !logging[] ||
+            @warn("kennicuttSchmidtLaw: `reduce_grid` = :square and `bin_size` is set to a value \
+            lower than $(voxel_size). This is not allowed. `bin_size` will be ignored and \
+            default to $(voxel_size)")
+        )
+
+        bin_size = voxel_size
+
+    end
+
+    if bin_size > grid_size / 2.0
+
+        (
+            !logging[] ||
+            @warn("kennicuttSchmidtLaw: `bin_size` is set to a value larger than \
+            `grid_size` / 2 = $(grid_size / 2.0). This makes no sense. `bin_size` \
+            will be ignored and default to $(BIGIEL_PX_SIZE)")
+        )
+
+        bin_size = BIGIEL_PX_SIZE
 
     end
 
@@ -6416,8 +6641,9 @@ function kennicuttSchmidtLaw(
         nl = length(sim_labels)
 
         (
-            ns == nl || throw(ArgumentError("kennicuttSchmidtLaw: `sim_labels` must have as many
-            elements as `simulation_paths`, but I got length(simulation_paths) = $(ns) \
+            ns == nl ||
+            throw(ArgumentError("kennicuttSchmidtLaw: `sim_labels` must have as many elements as \
+            `simulation_paths`, but I got length(simulation_paths) = $(ns) \
             != length(sim_labels) = $(nl)"))
         )
 
@@ -6427,9 +6653,12 @@ function kennicuttSchmidtLaw(
 
         if !sfr_density
 
-            !logging[] || @warn("kennicuttSchmidtLaw: If `sfr_density` = false, \
-            `measurements` = true will be ignored and default to false. The experimental \
-            measurements are only for the SFR surface density.")
+            (
+                !logging[] ||
+                @warn("kennicuttSchmidtLaw: If `sfr_density` = false, `measurements` = true will \
+                be ignored and default to false. The experimental measurements are only for the \
+                SFR surface density")
+            )
 
             measurements = false
 
@@ -6437,25 +6666,27 @@ function kennicuttSchmidtLaw(
 
         if quantity == :gas_mass
 
-            !logging[] || @warn("kennicuttSchmidtLaw: There are no measurements \
-            (fits or otherwise) for `quantity` = :gas_mass. `measurements` = true will be \
-            ignored and default to false.")
+            (
+                !logging[] ||
+                @warn("kennicuttSchmidtLaw: There are no measurements (fits or otherwise) for \
+                `quantity` = :gas_mass. `measurements` = true will be ignored and default to false")
+            )
 
             measurements = false
 
         end
 
-        if isa(measurement_type, String) && integrated
+        if isa(measurement_type, String) && integrated && logging[]
 
-            !logging[] || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
-            `measurement_type` to plot the resolved measurement of galaxy $(measurement_type). \
+            @warn("kennicuttSchmidtLaw: `integrated` is set to true but you have set \
+            `measurement_type` to plot the resolved measurements of galaxy $(measurement_type). \
             Are you sure you want this?")
 
         end
 
-        if measurement_type == :all && integrated
+        if measurement_type == :all && integrated && logging[]
 
-            !logging[] || @warn("kennicuttSchmidtLaw: `integrated` = true but you have set \
+            @warn("kennicuttSchmidtLaw: `integrated` is set to true but you have set \
             `measurement_type` to plot the resolved measurements of all galaxies in \
             Bigiel et al. (2010). Are you sure you want this?")
 
@@ -6467,8 +6698,11 @@ function kennicuttSchmidtLaw(
 
         if !isnothing(gas_weights)
 
-            !logging[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
-            `gas_weights` = :$(gas_weights) will be ignored and default to nothing.")
+            (
+                !logging[] ||
+                @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, `gas_weights` = \
+                :$(gas_weights) will be ignored and default to nothing")
+            )
 
             gas_weights = nothing
 
@@ -6476,8 +6710,11 @@ function kennicuttSchmidtLaw(
 
         if measurements
 
-            !logging[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, \
-            `measurements` = true will be ignored and default to false.")
+            (
+                !logging[] ||
+                @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, `measurements` = true will \
+                be ignored and default to false")
+            )
 
             measurements = false
 
@@ -6485,11 +6722,20 @@ function kennicuttSchmidtLaw(
 
         if ns > 1
 
-            !logging[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, only one \
-            simulation at a time can be plotted, but I got length(simulation_paths) = $(ns) > 1. \
-            `plot_type` = :heatmap will be ignored and default to :scatter.")
+            (
+                !logging[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, only one \
+                simulation at a time can be plotted, but I got length(simulation_paths) = \
+                $(ns) > 1. `plot_type` = :heatmap will be ignored and default to :scatter")
+            )
 
             plot_type = :scatter
+
+        end
+
+        if reduce_grid == :circular && logging[]
+
+            @warn("kennicuttSchmidtLaw: `plot_type` = :heatmap and `reduce_grid` = :circular. \
+            Are you sure you want this?")
 
         end
 
@@ -6498,10 +6744,10 @@ function kennicuttSchmidtLaw(
     if colorbar && ((plot_type == :scatter && isnothing(gas_weights)) || integrated)
 
         (
-            !logging[] || @warn("kennicuttSchmidtLaw: `colorbar` is set to true, \
-            but there is no color range in the plot (either `plot_type` = :scatter and \
-            `gas_weights` = nothing or `integrated` = true). `colorbar` = true will be \
-            ignored and default to false")
+            !logging[] ||
+            @warn("kennicuttSchmidtLaw: `colorbar` is set to true, but there is no color range in \
+            the plot (either `plot_type` = :scatter and `gas_weights` = nothing or `integrated` = \
+            true). `colorbar` = true will be ignored and default to false")
         )
 
         colorbar = false
@@ -6512,24 +6758,28 @@ function kennicuttSchmidtLaw(
     # Compute grids
     ################################################################################################
 
-    if reduce_resolution
+    # Compute the number of bins for the high resolution grids
+    hr_n_bins = round(Int, uconvert(Unitful.NoUnits, grid_size / voxel_size))
 
-        # Compute the number of bins in the low resolution grid (pixel size of ~ BIGIEL_PX_SIZE)
-        lr_n_bins = round(Int, uconvert(Unitful.NoUnits, BOX_L / BIGIEL_PX_SIZE))
+    if reduce_grid == :square
 
-        # Compute the interger factor between the high resolution grid (~ 400px)
-        # and the low resolution grid (`lr_n_bins`px)
-        reduce = 400 ÷ lr_n_bins
+        # Compute the number of bins for the low resolution grids
+        lr_n_bins = round(Int, uconvert(Unitful.NoUnits, grid_size / bin_size))
 
-        stellar_grid = CubicGrid(BOX_L, reduce * lr_n_bins)
-        gas_grid     = CubicGrid(BOX_L, reduce * lr_n_bins)
+        # Compute the interger factor between the high resolution grids (`hr_n_bins`px)
+        # and the low resolution grids (`lr_n_bins`px)
+        reduce_factor = hr_n_bins ÷ lr_n_bins
+
+        stellar_grid = CubicGrid(grid_size, reduce_factor * lr_n_bins)
+        gas_grid     = CubicGrid(grid_size, reduce_factor * lr_n_bins)
 
     else
 
-        reduce = 1
+        stellar_grid = CubicGrid(grid_size, hr_n_bins)
+        gas_grid     = CubicGrid(grid_size, hr_n_bins)
 
-        stellar_grid = CubicGrid(BOX_L, 400)
-        gas_grid     = CubicGrid(BOX_L, 400)
+        # Compute the ring width for the circular grid
+        reduce_factor = round(Int, uconvert(Unitful.NoUnits, (grid_size / 2.0) / bin_size))
 
     end
 
@@ -6556,7 +6806,7 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(stellar_grid, :stellar_mass, :particles)],
-        da_kwargs=[(; reduce, filter_function=dd->filterStellarAge(dd; age=AGE_RESOLUTION))],
+        da_kwargs=[(; reduce_factor, reduce_grid, filter_function=dd->filterStellarAge(dd))],
         transform_box=true,
         translation,
         rotation,
@@ -6581,10 +6831,8 @@ function kennicuttSchmidtLaw(
         slice,
         filter_function,
         da_functions=[daDensity2DProjection],
-        da_args=[(gas_grid, quantity, type)],
-        da_kwargs=[
-            (; reduce, filter_function=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero)),
-        ],
+        da_args=[(gas_grid, quantity, gas_type)],
+        da_kwargs=[(; reduce_factor, reduce_grid)],
         transform_box=true,
         translation,
         rotation,
@@ -6600,25 +6848,25 @@ function kennicuttSchmidtLaw(
         if gas_weights == :gas_mass_density
 
             da_function = daDensity2DProjection
-            da_args     = [(gas_grid, :gas_mass, type)]
+            da_args     = [(gas_grid, :gas_mass, gas_type)]
             c_label     = L"\log_{10} \, \Sigma_\mathrm{gas} \,\, [\mathrm{M_\odot \, kpc^{-2}}]"
 
         elseif gas_weights == :gas_sfr
 
             da_function = daGasSFR2DProjection
-            da_args     = [(gas_grid, type)]
+            da_args     = [(gas_grid, gas_type)]
             c_label     = L"\log_{10} \, \mathrm{SFR_{gas} \,\, [M_\odot \, yr^{-1}]}"
 
         elseif gas_weights == :gas_metallicity
 
             da_function = daMetallicity2DProjection
-            da_args     = [(gas_grid, :gas, type)]
+            da_args     = [(gas_grid, :gas, gas_type)]
             c_label     = L"$\log_{10}$ %$(plotParams(:gas_metallicity).var_name)"
 
         elseif gas_weights == :temperature
 
             da_function = daTemperature2DProjection
-            da_args     = [(gas_grid, type)]
+            da_args     = [(gas_grid, gas_type)]
             c_label     = plotParams(:temperature).axis_label
 
         else
@@ -6644,12 +6892,7 @@ function kennicuttSchmidtLaw(
             filter_function,
             da_functions=[da_function],
             da_args,
-            da_kwargs=[
-                (;
-                    reduce,
-                    filter_function=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero),
-                ),
-            ],
+            da_kwargs=[(; reduce_factor, reduce_grid)],
             transform_box=true,
             translation,
             rotation,
@@ -6704,6 +6947,11 @@ function kennicuttSchmidtLaw(
     end
 
     # Set the plot theme
+    if integrated || reduce_grid == :circular
+        markersize = 15
+    else
+        markersize = 6
+    end
     current_theme = merge(
         theme,
         Theme(
@@ -6715,6 +6963,7 @@ function kennicuttSchmidtLaw(
                 valign=:top,
                 padding=(15, 0, 0, 0),
             ),
+            Scatter=(; markersize),
         ),
         DEFAULT_THEME,
         theme_latexfonts(),
@@ -6728,7 +6977,6 @@ function kennicuttSchmidtLaw(
             f[1, 1];
             xlabel=L"$\log_{10}$ %$(x_label)",
             ylabel=L"$\log_{10}$ %$(y_label)",
-            aspect=AxisAspect(1),
         )
 
         colors = [:grey25, current_theme[:palette][:color][][2:ns]...]
@@ -6752,24 +7000,54 @@ function kennicuttSchmidtLaw(
                 # Read the JLD2 files and sanitize the data
                 ####################################################################################
 
+                ##############
+                # Gas density
+                ##############
+
                 x_address = "$(quantity)_$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                 x_file    = jldopen(joinpath(temp_folder, "$(string(quantity)).jld2"), "r")
-                x_data    = vec(x_file[x_address][3])
-                x_idxs    = map(x -> isnan(x) || iszero(x), x_data)
+
+                if reduce_grid == :square
+                    x_data = vec(x_file[x_address][3])
+                else
+                    x_data = x_file[x_address][3]
+                end
+
+                x_idxs = map(x -> isnan(x) || iszero(x), x_data)
+
+                ##############
+                # SFR density
+                ##############
 
                 y_address = "stellar_mass_$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                 y_file    = jldopen(joinpath(temp_folder, "stellar_mass.jld2"), "r")
-                y_data    = vec(y_file[y_address][3])
-                y_idxs    = map(x -> isnan(x) || iszero(x), y_data)
+
+                if reduce_grid == :square
+                    y_data = vec(y_file[y_address][3])
+                else
+                    y_data = y_file[y_address][3]
+                end
+
+                y_idxs = map(x -> isnan(x) || iszero(x), y_data)
 
                 delete_idxs = x_idxs ∪ y_idxs
+
+                ##########
+                # Weights
+                ##########
 
                 if !isnothing(gas_weights)
 
                     z_address = "gas_weights_$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
                     z_file    = jldopen(joinpath(temp_folder, "gas_weights.jld2"), "r")
-                    z_data    = vec(z_file[z_address][3])
-                    z_idxs    = map(x -> isnan(x) || iszero(x), z_data)
+
+                    if reduce_grid == :square
+                        z_data = vec(z_file[z_address][3])
+                    else
+                        z_data = z_file[z_address][3]
+                    end
+
+                    z_idxs = map(x -> isnan(x) || iszero(x), z_data)
 
                     delete_idxs = delete_idxs ∪ z_idxs
 
@@ -6837,7 +7115,6 @@ function kennicuttSchmidtLaw(
                             Measurements.value.(x_data),
                             Measurements.value.(y_data);
                             color=colors[sim_idx],
-                            markersize=15,
                         )
 
                         errorbars!(
@@ -6867,8 +7144,6 @@ function kennicuttSchmidtLaw(
                                 x_data,
                                 y_data;
                                 color=(colors[sim_idx], 0.5),
-                                markersize=6,
-                                alpha=1.0,
                             )
 
                         else
@@ -6877,7 +7152,6 @@ function kennicuttSchmidtLaw(
                                 ax,
                                 x_data,
                                 y_data;
-                                markersize=6,
                                 color=z_data,
                                 colormap=:nipy_spectral,
                             )
@@ -7105,7 +7379,7 @@ Plot the resolved Kennicutt-Schmidt relation with an optional linear fit.
 
 !!! note
 
-    Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `rmax_gas` are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
+    Only stars younger than [`AGE_RESOLUTION`](@ref) are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
 
 # Arguments
 
@@ -7119,7 +7393,7 @@ Plot the resolved Kennicutt-Schmidt relation with an optional linear fit.
       + `:neutral_mass`      -> Neutral mass surface density.
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
   - `fit::Bool=true`: If a fit of the plotted values will be added on top of the scatter plot.
-  - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles. Bigiel et al. (2008) uses measurements upto the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
+  - `box_size::Unitful.Length=BOX_L`: Physical side length for the grids. Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -7168,7 +7442,7 @@ function fitResolvedKSLaw(
     quantity::Symbol=:molecular_mass,
     type::Symbol=:cells,
     fit::Bool=true,
-    rmax_gas::Unitful.Length=DISK_R,
+    box_size::Unitful.Length=BOX_L,
     x_range::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
@@ -7177,13 +7451,15 @@ function fitResolvedKSLaw(
 )::Nothing
 
     # Compute the number of bins in the low resolution grid (pixel size of ~ BIGIEL_PX_SIZE)
-    lr_n_bins = round(Int, uconvert(Unitful.NoUnits, BOX_L / BIGIEL_PX_SIZE))
+    lr_n_bins = round(Int, uconvert(Unitful.NoUnits, box_size / BIGIEL_PX_SIZE))
 
-    # Compute the interger factor between the high resolution grid (~ 400px)
+    hr_n_bins = 400
+
+    # Compute the interger factor between the high resolution grid (~ hr_n_bins px)
     # and the low resolution grid (`lr_n_bins`px)
-    factor = 400 ÷ lr_n_bins
+    factor = hr_n_bins ÷ lr_n_bins
 
-    grid = CubicGrid(BOX_L, factor * lr_n_bins)
+    grid = CubicGrid(box_size, factor * lr_n_bins)
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
@@ -7252,14 +7528,7 @@ function fitResolvedKSLaw(
         filter_function,
         da_functions=[daKennicuttSchmidtLaw],
         da_args=[(grid, quantity)],
-        da_kwargs=[
-            (;
-                type,
-                reduce_factor=factor,
-                stellar_ff=dd->filterStellarAge(dd),
-                gas_ff=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero),
-            ),
-        ],
+        da_kwargs=[(; type, reduce_factor=factor, stellar_ff=dd->filterStellarAge(dd))],
         post_processing=fit ? ppFitLine! : getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -7315,7 +7584,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
 
 !!! note
 
-    Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `rmax_gas` are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
+    Only stars younger than [`AGE_RESOLUTION`](@ref) are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
 
 # Arguments
 
@@ -7332,7 +7601,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
   - `fit::Bool=true`: If a fit of the plotted values will be added on top of the scatter plot.
-  - `rmax_gas::Unitful.Length=DISK_R`: Maximum radius for the gas cells/particles.
+  - `box_size::Unitful.Length=BOX_L`: Physical side length for the grids
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -7377,7 +7646,7 @@ function fitVSFLaw(
     quantity::Symbol=:molecular_mass,
     type::Symbol=:cells,
     fit::Bool=true,
-    rmax_gas::Unitful.Length=DISK_R,
+    box_size::Unitful.Length=BOX_L,
     x_range::NTuple{2,<:Real}=(-Inf, Inf),
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
@@ -7385,7 +7654,7 @@ function fitVSFLaw(
     theme::Attributes=Theme(),
 )::Nothing
 
-    grid = CubicGrid(BOX_L, 400)
+    grid = CubicGrid(box_size, 400)
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
@@ -7451,13 +7720,7 @@ function fitVSFLaw(
         filter_function,
         da_functions=[daVSFLaw],
         da_args=[(grid, quantity)],
-        da_kwargs=[
-            (;
-                type,
-                stellar_ff=dd->filterStellarAge(dd),
-                gas_ff=dd->filterWithinSphere(dd, (0.0u"kpc", rmax_gas), :zero),
-            ),
-        ],
+        da_kwargs=[(; type, stellar_ff=dd->filterStellarAge(dd))],
         post_processing=fit ? ppFitLine! : getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -7499,7 +7762,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
       + `:all` -> Metallicity considering all elements, as ``Z / Z_\\odot``.
       + `:X`   -> Element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
   - `mass::Bool=true`: If the x axis will be the stellar mass density or the SFR density.
-  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density proyection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
+  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `output_path::String="./resolvedKSLawZScatter"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
@@ -7538,7 +7801,7 @@ function massMetallicityRelation(
     slice::IndexType;
     element::Symbol=:all,
     mass::Bool=true,
-    reduce::Int=1,
+    reduce_factor::Int=1,
     output_path::String="./massMetallicityRelation",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
@@ -7577,7 +7840,7 @@ function massMetallicityRelation(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(grid, :stellar_mass, :particles)],
-        da_kwargs=[(; reduce, filter_function=dd->filterStellarAge(dd))],
+        da_kwargs=[(; reduce_factor, filter_function=dd->filterStellarAge(dd))],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
