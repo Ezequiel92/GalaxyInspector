@@ -35,9 +35,9 @@ Which can be rewritten as
 ```math
 	\frac{f_a^0}{f_m^0} \, (1 - f_s^0) = \frac{\eta_\mathrm{diss} + 1}{\tau_\mathrm{star}} \, \frac{C_\mathrm{cond}}{(Z + Z_\mathrm{eff}) \, \rho_\mathrm{cell}} \, ,
 ```
-where we use the notation $f_X^0$ to idicate equilibrium fractions.
+where we use the notation $f_X^0$ to indicate equilibrium fractions.
 
-This last expresion shows the value of $f_a^0$, $f_m^0$, and $f_s^0$ (as a function of the parameters of the model) that make the molecular equation have a $0$ derivative (equilibrium point for that particular equation).
+This last expression shows the value of $f_a^0$, $f_m^0$, and $f_s^0$ (as a function of the parameters of the model) that make the molecular equation have a $0$ derivative (equilibrium point for that particular equation).
 
 Ionized equation
 
@@ -68,7 +68,7 @@ Which can be rewritten as
 	\frac{(f_i^0)^2}{f_m^0} = \frac{\eta_\mathrm{ion} + R}{\tau_\mathrm{star}} \, \frac{C_\mathrm{rec}}{\rho_\mathrm{cell}} \, .
 ```
 
-As before, this last expresion shows the value of $f_i^0$ and $f_m^0$ (as a function of the parameters of the model) that make the ionized equation have a $0$ derivative (equilibrium point for that particular equation).
+As before, this last expression shows the value of $f_i^0$ and $f_m^0$ (as a function of the parameters of the model) that make the ionized equation have a $0$ derivative (equilibrium point for that particular equation).
 
 # Arguments
 
@@ -584,6 +584,7 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
       + `:dm_number`                 -> Number of dark matter particles.
@@ -593,6 +594,8 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
       + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
@@ -628,6 +631,25 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
       + `:lookback_time`             -> Physical time left to reach the last snapshot.
+      + `:ode_gas_it`                -> Integration time.
+      + `:ode_gas_accu_it`           -> Accumulated integration time.
+      + `:ode_gas_tau_s`             -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`             -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`             -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                 -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`           -> Cold gas mass fraction.
+      + `:ode_stellar_it`            -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`       -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`         -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`         -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`         -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`         -> Gas pressure, for the gas that form the stars.
 
 # Returns
 
@@ -678,6 +700,10 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
     elseif quantity == :neutral_mass
 
         integrated_qty = sum(computeMass(data_dict, :neutral); init=0.0u"Msun")
+
+    elseif quantity == :stellar_gas_mass
+
+        integrated_qty = sum(computeMass(data_dict, :stellar); init=0.0u"Msun")
 
     elseif quantity == :stellar_number
 
@@ -748,6 +774,28 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
             integrated_qty = NaN
         else
             integrated_qty = neutral_mass / gas_mass
+        end
+
+    elseif quantity == :molecular_neutral_fraction
+
+        molecular_mass = sum(computeMass(data_dict, :br_molecular); init=0.0u"Msun")
+        atomic_mass = sum(computeMass(data_dict, :atomic); init=0.0u"Msun")
+
+        if iszero(molecular_mass) && iszero(atomic_mass)
+            integrated_qty = NaN
+        else
+            integrated_qty = molecular_mass / (molecular_mass + atomic_mass)
+        end
+
+    elseif quantity == :stellar_gas_fraction
+
+        stellar_gas_mass = sum(computeMass(data_dict, :stellar); init=0.0u"Msun")
+        gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
+
+        if iszero(gas_mass)
+            integrated_qty = NaN
+        else
+            integrated_qty = neutral_mass / stellar_gas_mass
         end
 
     elseif quantity == :stellar_area_density
@@ -1075,6 +1123,227 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
         integrated_qty = data_dict[:sim_data].table[data_dict[:snap_data].global_index, 6]
 
+    elseif quantity == :ode_gas_it
+
+        odit = data_dict[:gas]["ODIT"]
+        filter!(!isnan, odit)
+
+        if isempty(odit)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(odit)
+        end
+
+    elseif quantity == :ode_gas_accu_it
+
+        acit = data_dict[:gas]["ACIT"]
+        filter!(!isnan, acit)
+
+        if isempty(acit)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(acit)
+        end
+
+    elseif quantity == :ode_gas_tau_s
+
+        τS = data_dict[:gas]["TAUS"]
+        filter!(!isnan, τS)
+
+        if isempty(τS)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(τS)
+        end
+
+    elseif quantity == :ode_gas_eta_d
+
+        ηd = data_dict[:gas]["ETAD"]
+        filter!(!isnan, ηd)
+
+        if isempty(ηd)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ηd)
+        end
+
+    elseif quantity == :ode_gas_eta_i
+
+        ηi = data_dict[:gas]["ETAI"]
+        filter!(!isnan, ηi)
+
+        if isempty(ηi)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ηi)
+        end
+
+    elseif quantity == :ode_gas_r
+
+        R = data_dict[:gas]["PARR"]
+        filter!(!isnan, R)
+
+        if isempty(R)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(R)
+        end
+
+    elseif quantity == :ode_gas_cold_mf
+
+        cold_fraction = data_dict[:gas]["COLF"]
+        gas_mass = data_dict[:gas]["MASS"]
+
+        filter!(!isnan, cold_fraction)
+        filter!(!isnan, gas_mass)
+
+        if isempty(cold_fraction) || isempty(gas_mass)
+            integrated_qty = NaN
+        else
+            cold_mass = cold_fraction .* gas_mass
+            integrated_qty = sum(cold_mass) ./ sum(gas_mass)
+        end
+
+    elseif quantity == :ode_stellar_it
+
+        odit = data_dict[:stars]["ODIT"]
+        filter!(!isnan, odit)
+
+        if isempty(odit)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(odit)
+        end
+
+    elseif quantity == :ode_stellar_accu_it
+
+        acit = data_dict[:stars]["ACIT"]
+        filter!(!isnan, acit)
+
+        if isempty(acit)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(acit)
+        end
+
+    elseif quantity == :ode_stellar_tau_s
+
+        τS = data_dict[:stars]["TAUS"]
+        filter!(!isnan, τS)
+
+        if isempty(τS)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(τS)
+        end
+
+    elseif quantity == :ode_stellar_eta_d
+
+        ηd = data_dict[:stars]["ETAD"]
+        filter!(!isnan, ηd)
+
+        if isempty(ηd)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ηd)
+        end
+
+    elseif quantity == :ode_stellar_eta_i
+
+        ηi = data_dict[:stars]["ETAI"]
+        filter!(!isnan, ηi)
+
+        if isempty(ηi)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ηi)
+        end
+
+    elseif quantity == :ode_stellar_r
+
+        R = data_dict[:stars]["PARR"]
+        filter!(!isnan, R)
+
+        if isempty(R)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(R)
+        end
+
+    elseif quantity == :ode_stellar_cold_mf
+
+        cold_fraction = data_dict[:stars]["COLF"]
+        gas_mass = data_dict[:stars]["GMAS"]
+
+        filter!(!isnan, cold_fraction)
+        filter!(!isnan, gas_mass)
+
+        if isempty(cold_fraction) || isempty(gas_mass)
+            integrated_qty = NaN
+        else
+            cold_mass = cold_fraction .* gas_mass
+            integrated_qty = sum(cold_mass) ./ sum(gas_mass)
+        end
+
+    elseif quantity == :ode_stellar_gas_rho
+
+        ρ = data_dict[:stars]["RHOC"]
+        filter!(!isnan, ρ)
+
+        if isempty(ρ)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ρ .* u"mp")
+        end
+
+    elseif quantity == :ode_stellar_gas_Z
+
+        Z = data_dict[:stars]["PARZ"]
+        gas_mass = data_dict[:stars]["GMAS"]
+
+        filter!(!isnan, Z)
+        filter!(!isnan, gas_mass)
+
+        if isempty(Z) || isempty(gas_mass)
+            integrated_qty = NaN
+        else
+            metal_mass = Z .* gas_mass
+            integrated_qty = sum(metal_mass) ./ sum(gas_mass)
+        end
+
+    elseif quantity == :ode_stellar_gas_mass
+
+        gm = data_dict[:stars]["GMAS"]
+        filter!(!isnan, gm)
+
+        if isempty(gm)
+            integrated_qty = NaN
+        else
+            integrated_qty = sum(gm)
+        end
+
+    elseif quantity == :ode_stellar_gas_sfr
+
+        gsfr = data_dict[:stars]["GSFR"]
+        filter!(!isnan, gsfr)
+
+        if isempty(gsfr)
+            integrated_qty = NaN
+        else
+            integrated_qty = sum(gsfr)
+        end
+
+    elseif quantity == :ode_stellar_gas_P
+
+        P = data_dict[:stars]["GPRE"]
+        filter!(!isnan, P)
+
+        if isempty(P)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(P)
+        end
+
     else
 
         throw(ArgumentError("integrateQty: I don't recognize the quantity :$(quantity)"))
@@ -1117,12 +1386,14 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -1168,6 +1439,25 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
 
 # Returns
 
@@ -1219,6 +1509,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         scatter_qty = computeMass(data_dict, :neutral)
 
+    elseif quantity == :stellar_gas_mass
+
+        scatter_qty = computeMass(data_dict, :stellar)
+
     elseif quantity == :molecular_fraction
 
         scatter_qty = computeFraction(data_dict, :molecular)
@@ -1245,6 +1539,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         fa = computeFraction(data_dict, :atomic)
 
         scatter_qty = fm ./ (fm .+ fa)
+
+    elseif quantity == :stellar_gas_fraction
+
+        scatter_qty = computeFraction(data_dict, :stellar)
 
     elseif quantity == :mol_eq_quotient
 
@@ -1544,6 +1842,82 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :pressure
 
         scatter_qty = data_dict[:gas]["PRES"]
+
+    elseif quantity == :ode_gas_it
+
+        scatter_qty = data_dict[:gas]["ODIT"]
+
+    elseif quantity == :ode_gas_accu_it
+
+        scatter_qty = data_dict[:gas]["ACIT"]
+
+    elseif quantity == :ode_gas_tau_s
+
+        scatter_qty = data_dict[:gas]["TAUS"]
+
+    elseif quantity == :ode_gas_eta_d
+
+        scatter_qty = data_dict[:gas]["ETAD"]
+
+    elseif quantity == :ode_gas_eta_i
+
+        scatter_qty = data_dict[:gas]["ETAI"]
+
+    elseif quantity == :ode_gas_r
+
+        scatter_qty = data_dict[:gas]["PARR"]
+
+    elseif quantity == :ode_gas_cold_mf
+
+        scatter_qty = data_dict[:gas]["COLF"]
+
+    elseif quantity == :ode_stellar_it
+
+        scatter_qty = data_dict[:stars]["ODIT"]
+
+    elseif quantity == :ode_stellar_accu_it
+
+        scatter_qty = data_dict[:stars]["ACIT"]
+
+    elseif quantity == :ode_stellar_tau_s
+
+        scatter_qty = data_dict[:stars]["TAUS"]
+
+    elseif quantity == :ode_stellar_eta_d
+
+        scatter_qty = data_dict[:stars]["ETAD"]
+
+    elseif quantity == :ode_stellar_eta_i
+
+        scatter_qty = data_dict[:stars]["ETAI"]
+
+    elseif quantity == :ode_stellar_r
+
+        scatter_qty = data_dict[:stars]["PARR"]
+
+    elseif quantity == :ode_stellar_cold_mf
+
+        scatter_qty = data_dict[:stars]["COLF"]
+
+    elseif quantity == :ode_stellar_gas_rho
+
+        scatter_qty = data_dict[:stars]["RHOC"] .* u"mp"
+
+    elseif quantity == :ode_stellar_gas_Z
+
+        scatter_qty = data_dict[:stars]["PARZ"]
+
+    elseif quantity == :ode_stellar_gas_mass
+
+        scatter_qty = data_dict[:stars]["GMAS"]
+
+    elseif quantity == :ode_stellar_gas_sfr
+
+        scatter_qty = data_dict[:stars]["GSFR"]
+
+    elseif quantity == :ode_stellar_gas_P
+
+        scatter_qty = data_dict[:stars]["GPRE"]
 
     else
 

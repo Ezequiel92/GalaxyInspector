@@ -182,7 +182,7 @@ isPositive(x::AbstractArray)::Bool = all(isPositive, x)
 isPositive(x...)::Bool = all(isPositive, x)
 
 """
-New method for `Base.iszero` to compare [`IndexType`](@ref) with 0 as an interger.
+New method for `Base.iszero` to compare [`IndexType`](@ref) with 0 as an integer.
 """
 Base.iszero(x::IndexType)::Bool = x == 0
 
@@ -443,7 +443,7 @@ By default, no transformation is done.
   - `func_domain::Function=identity`: `raw_values` will be trimmed to fit within the domain of the function `func_domain`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `range::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Every element in `raw_values` that falls outside of `range` will be deleted.
   - `keep_edges::Bool=true`: If the edges of `range` will be kept.
-  - `min_left::Int=1`: Minimum number of values that need to be left after each transformation to procced with it.
+  - `min_left::Int=1`: Minimum number of values that need to be left after each transformation to proceed with it.
   - `exp_factor::Int=0`: Every element in `raw_values` will be divided by 10^`exp_factor`.
 
 # Returns
@@ -533,7 +533,7 @@ By default, no transformation is done.
   - `func_domain::NTuple{2,Function}=(identity, identity)`: `x_data` will be trimmed to fit within the domain of the function `func_domain[1]`, and `y_data` will be trimmed to fit within the domain of the function `func_domain[2]`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `range::Tuple{Tuple{<:Number,<:Number},Tuple{<:Number,<:Number}}=((-Inf, Inf), (-Inf, Inf))`: Every element in `x_data` that falls outside of `range[1]` will be deleted, and every element in `y_data` that falls outside of `range[2]` will be deleted.
   - `keep_edges::NTuple{2,Bool}=(true, true)`: If the edges of each corresponding `range` will be kept.
-  - `min_left::Int=1`: Minimum number of values that need to be left in each dataset after any of the transformations to procced with them.
+  - `min_left::Int=1`: Minimum number of values that need to be left in each dataset after any of the transformations to proceed with them.
   - `exp_factor::NTuple{2,Int}=(0, 0)`: Every element in `x_data` will be divided by 10^`exp_factor[1]`, and every element in `y_data` will be divided by 10^`exp_factor[2]`.
 
 # Returns
@@ -1866,7 +1866,7 @@ Reduce the number of rows and columns of `hr_matrix` by `factor`, averaging or a
 # Arguments
 
   - `hr_matrix::Matrix{<:Number}`: Original "high resolution" matrix. It has to be a square matrix.
-  - `factor::Int`: Factor by wich the number of rows and columns will be reduced. It has to divede the size of `hr_matrix` exactly.
+  - `factor::Int`: Factor by which the number of rows and columns will be reduced. It has to divide the size of `hr_matrix` exactly.
   - `total::Bool=false`: If the sum (`total` = true) or the mean (`total` = false) of the values in each of the old pixels will be used for the new pixels.
 
 # Returns
@@ -1938,7 +1938,7 @@ Reduce the number of ticks in `hr_ticks` by `factor` keeping the total length of
 # Arguments
 
   - `hr_ticks::Vector{<:Number}`: Original "high resolution" list of ticks.
-  - `factor::Int`: Factor by wich the number of ticks will be reduced. It has to divede the size of `hr_ticks` exactly.
+  - `factor::Int`: Factor by which the number of ticks will be reduced. It has to divide the size of `hr_ticks` exactly.
 
 # Returns
 
@@ -2096,6 +2096,7 @@ Sample the 3D density field of a given quantity using a cubic grid
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
+      + `:stellar_gas_mass`  -> Stellar gas mass (according to out SF model).
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
@@ -3088,6 +3089,7 @@ Select the plotting parameters for a given `quantity`.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:generic_mass`                -> Parameters for plots with several diferent masses.
       + `:stellar_number`              -> Number of stellar particles.
       + `:gas_number`                  -> Number of gas cells.
@@ -3099,6 +3101,7 @@ Select the plotting parameters for a given `quantity`.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:generic_fraction`            -> Parameters for plots with several diferent fraction.
@@ -3162,6 +3165,25 @@ Select the plotting parameters for a given `quantity`.
       + `:redshift`                    -> Redshift.
       + `:physical_time`               -> Physical time since the Big Bang.
       + `:lookback_time`               -> Physical time left to reach the last snapshot.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
 
 # Returns
 
@@ -3296,6 +3318,15 @@ function plotParams(quantity::Symbol)::PlotParams
             unit       = u"Msun",
         )
 
+    elseif quantity == :stellar_gas_mass
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "FRAC"]),
+            var_name   = L"M_\star^\mathrm{gas}",
+            exp_factor = 10,
+            unit       = u"Msun",
+        )
+
     elseif quantity == :generic_mass
 
         plot_params = PlotParams(;
@@ -3390,6 +3421,13 @@ function plotParams(quantity::Symbol)::PlotParams
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
             ),
             var_name = L"f_\mathrm{H_2}^\star",
+        )
+
+    elseif quantity == :stellar_gas_fraction
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["FRAC"]),
+            var_name = L"f_\star",
         )
 
     elseif quantity == :mol_eq_quotient
@@ -4031,7 +4069,6 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request    = Dict(:gas => ["PRES"]),
             var_name   = L"P",
-            exp_factor = -13,
             unit       = u"Pa",
         )
 
@@ -4091,6 +4128,150 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             axis_label = L"\mathrm{Cumulative \,\, wallclock \,\, time \, [\%]}",
+        )
+
+    elseif quantity == :ode_gas_it
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["ODIT"]),
+            var_name = L"\mathrm{Integration\,\, time}",
+            unit     = u"Myr",
+        )
+
+    elseif quantity == :ode_gas_accu_it
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["ACIT"]),
+            var_name = L"\mathrm{Accumulated \,\, integration \,\, time}",
+            unit     = u"Gyr",
+        )
+
+    elseif quantity == :ode_gas_tau_s
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["TAUS"]),
+            var_name = L"\tau_\mathrm{S}",
+            unit     = u"Myr",
+        )
+
+    elseif quantity == :ode_gas_eta_d
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["ETAD"]),
+            var_name = L"\eta_\mathrm{diss}",
+        )
+
+    elseif quantity == :ode_gas_eta_i
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["ETAI"]),
+            var_name = L"\eta_\mathrm{ion}",
+        )
+
+    elseif quantity == :ode_gas_r
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["PARR"]),
+            var_name = L"R",
+        )
+
+    elseif quantity == :ode_gas_cold_mf
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["COLF"]),
+            var_name = L"c_f",
+        )
+
+    elseif quantity == :ode_stellar_it
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["ODIT"]),
+            var_name = L"\mathrm{it}^\star",
+            unit     = u"Myr",
+        )
+
+    elseif quantity == :ode_stellar_accu_it
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["ACIT"]),
+            var_name = L"\mathrm{ait}^\star",
+            unit     = u"Gyr",
+        )
+
+    elseif quantity == :ode_stellar_tau_s
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["TAUS"]),
+            var_name = L"\tau_\mathrm{S}^\star",
+            unit     = u"Myr",
+        )
+
+    elseif quantity == :ode_stellar_eta_d
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["ETAD"]),
+            var_name = L"\eta_\mathrm{diss}^\star",
+        )
+
+    elseif quantity == :ode_stellar_eta_i
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["ETAI"]),
+            var_name = L"\eta_\mathrm{ion}^\star",
+        )
+
+    elseif quantity == :ode_stellar_r
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["PARR"]),
+            var_name = L"R^\star",
+        )
+
+    elseif quantity == :ode_stellar_cold_mf
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["COLF"]),
+            var_name = L"c_f^\star",
+        )
+
+    elseif quantity == :ode_stellar_gas_rho
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["RHOC"]),
+            var_name = L"\rho^\star",
+            unit     = u"Msun*kpc^-3",
+        )
+
+    elseif quantity == :ode_stellar_gas_Z
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["PARZ"]),
+            var_name = L"Z^\star",
+        )
+
+    elseif quantity == :ode_stellar_gas_mass
+
+        plot_params = PlotParams(;
+            request    = Dict(:stars => ["GMAS"]),
+            var_name   = L"M_\mathrm{gas}^\star",
+            exp_factor = 10,
+            unit       = u"Msun",
+        )
+
+    elseif quantity == :ode_stellar_gas_sfr
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["GSFR"]),
+            var_name = L"\mathrm{SFR}_\mathrm{gas}^\star",
+            unit     = u"Msun*yr^-1",
+        )
+
+    elseif quantity == :ode_stellar_gas_P
+
+        plot_params = PlotParams(;
+            request    = Dict(:stars => ["GPRE"]),
+            var_name   = L"P^\star",
+            unit       = u"Pa",
         )
 
     else

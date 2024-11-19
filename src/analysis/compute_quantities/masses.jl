@@ -29,6 +29,7 @@ Compute the fraction in each cell/particle of a given `component`.
       + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) fraction.
       + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) fraction.
       + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) fraction.
+      + `:stellar`      -> Stellar gas fraction (according to out SF model).
 
 # Returns
 
@@ -257,7 +258,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
                 # the cell/particle entered the SF routine
                 # Δt = data_dict[:snap_data].physical_time - dg["CTIM"][i]
 
-                @inbounds if !isnan(dg["FRAC"][1, i]) && Δt < dg["TAUS"][i]
+                # @inbounds if !isnan(dg["FRAC"][1, i]) && Δt < dg["TAUS"][i]
+
+                @inbounds if !isnan(dg["FRAC"][1, i])
 
                     # Fraction of ionized hydrogen according to our SF model
                     fractions[i] = dg["FRAC"][1, i]
@@ -394,6 +397,33 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
+    elseif component == :stellar
+
+        if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+
+            (
+                !logging[] ||
+                @info("computeFraction: The stellar fraction will be calculated using the fraction \
+                from out SF model")
+            )
+
+            # Fraction of stars according to our model
+            fractions = dg["FRAC"][4, :]
+
+            # When there is no data from our model, set the stellar fraction to 0
+            replace!(fractions, NaN => 0.0)
+
+        else
+
+            (
+                !logging[] ||
+                @warn("computeFraction: I could not compute the neutral fraction")
+            )
+
+            fractions = Float64[]
+
+        end
+
     else
 
         throw(ArgumentError("computeFraction: I don't recognize the component :$(component)"))
@@ -437,6 +467,7 @@ Compute the mass in each cell/particle of a given `component`.
       + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar`      -> Stellar gas mass (according to out SF model).
 
 # Returns
 
@@ -472,7 +503,7 @@ function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
         masses = data_dict[:black_hole]["MASS"]
 
-    elseif component ∈ [:molecular, :br_molecular, :atomic, :ionized, :neutral]
+    elseif component ∈ [:molecular, :br_molecular, :atomic, :ionized, :neutral, :stellar]
 
         fractions = computeFraction(data_dict, component)
 
@@ -524,6 +555,7 @@ Compute the volume density in each cell/particle of a given `component`.
       + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
       + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
+      + `:stellar`      -> Stellar gas fraction (according to out SF model).
 
 # Returns
 
@@ -547,7 +579,7 @@ function computeVolumeDensity(data_dict::Dict, component::Symbol)::Vector{<:Unit
 
         densities = data_dict[:gas]["RHO "] * (1.0 - HYDROGEN_MASSFRAC)
 
-    elseif component ∈ [:molecular, :br_molecular, :atomic, :ionized, :neutral]
+    elseif component ∈ [:molecular, :br_molecular, :atomic, :ionized, :neutral, :stellar]
 
         fractions = computeFraction(data_dict, component)
 
@@ -898,56 +930,6 @@ function computeGlobalAbundance(
 end
 
 """
-    computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
-
-Compute the "stellar mass" in every gas cell/particle.
-
-!!! note
-
-    It can be a non 0 value only for simulations with our SF routine.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-
-# Returns
-
-  - The "stellar mass" in every gas cell/particle.
-"""
-function computeStellarGasMass(data_dict::Dict)::Vector{<:Unitful.Mass}
-
-    dg = data_dict[:gas]
-
-    !isempty(dg["MASS"]) || return Unitful.Mass[]
-
-    if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
-
-        # When there is no data from our model, use a stellar fraction of 0
-        fs = replace!(dg["FRAC"][4, :], NaN => 0.0)
-
-    else
-
-        return zeros(typeof(1.0u"Msun"), length(dg["MASS"]))
-
-    end
-
-    return fs .* dg["MASS"]
-
-end
-
-"""
     computeVirialAccretion(
         present_dd::Dict,
         past_dd::Dict;
@@ -1112,7 +1094,7 @@ end
         <keyword arguments>
     )::Unitful.Length
 
-Compute the radius containing `percet`% of the total mass.
+Compute the radius containing `percent`% of the total mass.
 
 # Arguments
 
@@ -1122,7 +1104,7 @@ Compute the radius containing `percet`% of the total mass.
 
 # Returns
 
-  - The radius containing `percet`% of the total mass.
+  - The radius containing `percent`% of the total mass.
 """
 function computeMassRadius(
     positions::Matrix{<:Unitful.Length},

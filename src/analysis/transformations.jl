@@ -112,7 +112,7 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
       + ...
   - `rotation::Symbol`: Type of rotation. The options are:
 
-      + `:zero`               -> No rotation is appplied.
+      + `:zero`               -> No rotation is applied.
       + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
       + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
       + `:stellar_pa`         -> Sets the stellar principal axis as the new coordinate system.
@@ -155,7 +155,7 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
         filterData!(
             star_data,
-            filter_function=dd -> filterSubhalo(dd; halo_idx=1, subhalo_rel_idx=1),
+            filter_function=dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=1),
         )
 
         !isempty(star_data[:stars]["MASS"]) || return nothing
@@ -220,7 +220,7 @@ function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
 
     filterData!(
         star_data,
-        filter_function=dd -> filterSubhalo(dd; halo_idx=rotation[1], subhalo_rel_idx=rotation[2]),
+        filter_function=dd -> filterBySubhalo(dd; halo_idx=rotation[1], subhalo_rel_idx=rotation[2]),
     )
 
     !isempty(star_data[:stars]["MASS"]) || return nothing
@@ -276,7 +276,7 @@ function rotateData!(data_dict::Dict, rotation::Int)::Nothing
 
     filterData!(
         star_data,
-        filter_function=dd -> filterSubhalo(dd, rotation),
+        filter_function=dd -> filterBySubhalo(dd, rotation),
     )
 
     !isempty(star_data[:stars]["MASS"]) || return nothing
@@ -365,7 +365,7 @@ end
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will turn the total angular momentum into the z axis; when view as an active (alibi) trasformation.
+Compute the rotation matrix that will turn the total angular momentum into the z axis; when view as an active (alibi) transformation.
 
 # Arguments
 
@@ -406,7 +406,7 @@ end
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will turn the pricipal axis into the new coordinate system; when view as an passive (alias) trasformation.
+Compute the rotation matrix that will turn the principal axis into the new coordinate system; when view as an passive (alias) transformation.
 
 # Arguments
 
@@ -440,7 +440,7 @@ function computePARotationMatrix(
     # 3rd principal axis ≡ new z axis
     pa_z = pa[:, 3]
 
-    # Rotate the principal axis as to align the thid component with the angular momentum
+    # Rotate the principal axis as to align the third component with the angular momentum
     θ = acos(L ⋅ pa_z)
     n = cross(pa_z, L)
     aligned_pa = AngleAxis(θ, n...) * pa
@@ -450,9 +450,9 @@ function computePARotationMatrix(
 
     if det(rotation_matrix) < 0.0
         # If the determinant is < 0, that means that the chosen principal axis for the x and y
-        # directions form a left-handed cartesian reference system (x × y = -z). When applying
+        # directions form a left-handed Cartesian reference system (x × y = -z). When applying
         # this as a rotation, the z axis will be flipped. So, in this case we swap the x and y
-        # axis to get a right-handed cartesian reference system (x × y = z) and generate the
+        # axis to get a right-handed Cartesian reference system (x × y = z) and generate the
         # correct rotation
         rotation_matrix[1, :], rotation_matrix[2, :] = rotation_matrix[2, :], rotation_matrix[1, :]
     end
@@ -464,7 +464,7 @@ end
 """
     computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
 
-Compute the rotation matrix that will turn the total angular momentum of the whole system, into the z axis; when view as an active (alibi) trasformation.
+Compute the rotation matrix that will turn the total angular momentum of the whole system, into the z axis; when view as an active (alibi) transformation.
 
 # Arguments
 

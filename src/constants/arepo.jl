@@ -75,7 +75,7 @@ List of element indices above helium.
 const METAL_LIST = [3, 4, 5, 6, 7, 8, 9, 10]
 
 #############################################################
-# Quantities that can be in a sanpshot or group catalog file
+# Quantities that can be in a snapshot or group catalog file
 #############################################################
 
 """

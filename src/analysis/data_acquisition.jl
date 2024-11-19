@@ -115,7 +115,7 @@ Read the header of a snapshot in the HDF5 format.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll read the header on the first chunck.
+    If each snapshot is made of multiple files, I'll read the header on the first chunk.
 
 # Arguments
 
@@ -274,7 +274,7 @@ Checks if a given block exist in a snapshot.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll check only in the first chunck.
+    If each snapshot is made of multiple files, I'll check only in the first chunk.
 
 # Arguments
 
@@ -339,7 +339,7 @@ Read the "Time" field in the header of a snapshot file.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll read the header on the first chunck.
+    If each snapshot is made of multiple files, I'll read the header on the first chunk.
 
 # Arguments
 
@@ -1247,7 +1247,7 @@ Construct a dataframe with the path, time stamps and number of each snapshot and
 
 # Returns
 
-  - A dataframe with 8 colums:
+  - A dataframe with 8 columns:
 
       + `:ids`            -> Dataframe index of each snapshot, i.e. if there are 10 snapshots in total it runs from 1 to 10.
       + `:numbers`        -> Number in the file name of each snapshot.
@@ -1729,7 +1729,7 @@ Check if the snapshot in `path` comes from a cosmological simulation.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll read the first chunck to check if the simulation is cosmological.
+    If each snapshot is made of multiple files, I'll read the first chunk to check if the simulation is cosmological.
 
 # Arguments
 
@@ -1916,7 +1916,7 @@ Find which cell/particle types are part of the snapshot in `path`.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll check the first chunck.
+    If each snapshot is made of multiple files, I'll check the first chunk.
 
 # Arguments
 
@@ -1986,7 +1986,7 @@ Find which group catalog data types are part of the snapshot in `path`.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll check the first chunck.
+    If each snapshot is made of multiple files, I'll check the first chunk.
 
 # Arguments
 

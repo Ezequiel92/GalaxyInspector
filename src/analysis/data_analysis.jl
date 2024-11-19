@@ -488,12 +488,14 @@ Compute a profile.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -539,6 +541,25 @@ Compute a profile.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `grid::CircularGrid`: Circular grid.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
@@ -696,12 +717,14 @@ Compute the profile of a mean quantity with error bars or bands.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -747,6 +770,25 @@ Compute the profile of a mean quantity with error bars or bands.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `grid::CircularGrid`: Circular grid.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
   - `error_bar::Bool=false`: If the returned values will be compatible with `errorbars!` or with `band!` (default).
@@ -1006,12 +1048,14 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -1057,6 +1101,25 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `grid::LinearGrid`: Linear grid.
   - `type::Symbol`: Type of cell/particle.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -1199,6 +1262,7 @@ Project a 3D density field into a given plane.
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
+      + `:stellar_gas_mass`  -> Stellar gas mass (according to out SF model).
   - `field_type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
   - `reduce_grid::Symbol=:square`: Type of grid to reduce the resolution of the result. The options are:
@@ -2273,12 +2337,14 @@ Turn a scatter plot into a 2D histogram.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -2324,6 +2390,25 @@ Turn a scatter plot into a 2D histogram.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`                -> Stellar mass.
@@ -2336,12 +2421,14 @@ Turn a scatter plot into a 2D histogram.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -2387,6 +2474,25 @@ Turn a scatter plot into a 2D histogram.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
@@ -2548,12 +2654,14 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -2599,6 +2707,25 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`                -> Stellar mass.
@@ -2611,12 +2738,14 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -2662,6 +2791,25 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `z_quantity::Symbol`: Quantity for the z axis (weights). The options are:
 
       + `:stellar_mass`                -> Stellar mass.
@@ -2674,12 +2822,14 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -2725,6 +2875,25 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `z_unit::Unitful.Units`: Target unit for the z axis.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
@@ -3051,6 +3220,7 @@ Compute two global quantities of the simulation.
       + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
       + `:dm_number`                 -> Number of dark matter particles.
@@ -3060,6 +3230,8 @@ Compute two global quantities of the simulation.
       + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
       + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
@@ -3095,6 +3267,25 @@ Compute two global quantities of the simulation.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
       + `:lookback_time`             -> Physical time left to reach the last snapshot.
+      + `:ode_gas_it`                -> Integration time.
+      + `:ode_gas_accu_it`           -> Accumulated integration time.
+      + `:ode_gas_tau_s`             -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`             -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`             -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                 -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`           -> Cold gas mass fraction.
+      + `:ode_stellar_it`            -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`       -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`         -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`         -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`         -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`              -> Stellar mass.
@@ -3107,6 +3298,7 @@ Compute two global quantities of the simulation.
       + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
       + `:dm_number`                 -> Number of dark matter particles.
@@ -3116,6 +3308,8 @@ Compute two global quantities of the simulation.
       + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
       + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
@@ -3151,6 +3345,25 @@ Compute two global quantities of the simulation.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
       + `:lookback_time`             -> Physical time left to reach the last snapshot.
+      + `:ode_gas_it`                -> Integration time.
+      + `:ode_gas_accu_it`           -> Accumulated integration time.
+      + `:ode_gas_tau_s`             -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`             -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`             -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                 -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`           -> Cold gas mass fraction.
+      + `:ode_stellar_it`            -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`       -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`         -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`         -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`         -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`         -> Gas pressure, for the gas that form the stars.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -3238,12 +3451,14 @@ Compute two quantities for every cell/particle in the simulation.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -3289,6 +3504,25 @@ Compute two quantities for every cell/particle in the simulation.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`                -> Stellar mass.
@@ -3301,12 +3535,14 @@ Compute two quantities for every cell/particle in the simulation.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -3352,6 +3588,25 @@ Compute two quantities for every cell/particle in the simulation.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `x_quantity`, if you want to use log10(`x_quantity`) for the x axis.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Desired unit of `y_quantity`, if you want to use log10(`y_quantity`) for the y axis.
   - `filter_function::Function=filterNothing`: A function with the signature:
@@ -3478,12 +3733,14 @@ Compute the values for a bar plot of the gas fractions, where the bins are a giv
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -3501,6 +3758,25 @@ Compute the values for a bar plot of the gas fractions, where the bins are a giv
       + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `edges::Vector{<:Number}`: A sorted list of bin edges for `quantity`.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -3728,6 +4004,7 @@ Compute the time series of two quantities.
       + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
       + `:dm_number`                 -> Number of dark matter particles.
@@ -3737,6 +4014,8 @@ Compute the time series of two quantities.
       + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
       + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
@@ -3772,6 +4051,25 @@ Compute the time series of two quantities.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
       + `:lookback_time`             -> Physical time left to reach the last snapshot.
+      + `:ode_gas_it`                -> Integration time.
+      + `:ode_gas_accu_it`           -> Accumulated integration time.
+      + `:ode_gas_tau_s`             -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`             -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`             -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                 -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`           -> Cold gas mass fraction.
+      + `:ode_stellar_it`            -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`       -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`         -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`         -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`         -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`         -> Gas pressure, for the gas that form the stars.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`              -> Stellar mass.
@@ -3784,7 +4082,8 @@ Compute the time series of two quantities.
       + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar_number`           -> Number of stellar particles.
+      + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
+      + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
       + `:dm_number`                 -> Number of dark matter particles.
       + `:bh_number`                 -> Number of black hole particles.
@@ -3793,6 +4092,8 @@ Compute the time series of two quantities.
       + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
       + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
@@ -3828,6 +4129,25 @@ Compute the time series of two quantities.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
       + `:lookback_time`             -> Physical time left to reach the last snapshot.
+      + `:ode_gas_it`                -> Integration time.
+      + `:ode_gas_accu_it`           -> Accumulated integration time.
+      + `:ode_gas_tau_s`             -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`             -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`             -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                 -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`           -> Cold gas mass fraction.
+      + `:ode_stellar_it`            -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`       -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`         -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`         -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`         -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`         -> Gas pressure, for the gas that form the stars.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -3839,7 +4159,7 @@ Compute the time series of two quantities.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -3847,9 +4167,9 @@ Compute the time series of two quantities.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -3997,7 +4317,7 @@ Compute the evolution of the accreted mass into the virial radius.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4005,9 +4325,9 @@ Compute the evolution of the accreted mass into the virial radius.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -4222,7 +4542,7 @@ Compute the evolution of the accreted mass into the disc.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4230,9 +4550,9 @@ Compute the evolution of the accreted mass into the disc.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.

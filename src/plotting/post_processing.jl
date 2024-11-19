@@ -164,7 +164,7 @@ Add an annotation to the plot.
   - `text::AbstractString`: Text to be written.
   - `position::Tuple{<:Real,<:Real}=(0.04, 0.98)`: Relative position of the top left corner of the text box.
   - `color=:black`: Text color.
-  - `fontsize::Int=35`: Fontsize.
+  - `fontsize::Int=35`: Font size.
 """
 function ppAnnotation!(
     figure::Makie.Figure,
@@ -209,7 +209,7 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
       + `:conf_interval` -> mean ± max(upper$_{95\%}$ - mean, mean - lower$_{95\%}$).
   - `color::ColorType=Makie.wong_colors()[6],`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
-  - `linewidth::Int=3`: Lien width.
+  - `linewidth::Int=3`: Line width.
 
 # Returns
 

@@ -72,7 +72,7 @@ end
 """
     filterData(data_dict::Dict; <keyword arguments>)::Dict
 
-Returna filtered copy of `data_dict` using the indices provided by `filter_function`.
+Return a filtered copy of `data_dict` using the indices provided by `filter_function`.
 
 # Arguments
 
@@ -169,13 +169,13 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
   - A Tuple with four elements:
 
       + The filter function.
-      + Translation for the simulation box. The posibilities are:
+      + Translation for the simulation box. The posibilites are:
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
           + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
-      + Rotation for the simulation box. The posibilities are:
+      + Rotation for the simulation box. The posibilites are:
 
           + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
           + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
@@ -206,7 +206,7 @@ function selectFilter(
     elseif filter_mode == :halo
 
         # Plot only the cells/particles that belong to the main halo
-        filter_function = dd -> filterSubhalo(dd; halo_idx=1, subhalo_rel_idx=0)
+        filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=0)
         translation = (1, 0)
         rotation = :stellar_pa
 
@@ -227,7 +227,7 @@ function selectFilter(
     elseif filter_mode == :subhalo
 
         # Plot only the cells/particles that belong to the main subhalo
-        filter_function = dd -> filterSubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
+        filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
         translation = (1, 1)
         rotation = :stellar_pa
 
@@ -260,7 +260,7 @@ function selectFilter(
     elseif filter_mode == :stellar_subhalo
 
         # Plot only the cells/particles that belong to the main subhalo
-        filter_function = dd -> filterSubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
+        filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
         translation = :stars
         rotation = :stellar_pa
 
@@ -321,7 +321,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
   - `filter_mode::Dict{Symbol,Any}`: A dictionary with three entries:
 
       + `:filter_function` -> The filter function.
-      + `:translation`     -> Translation for the simulation box. The posibilities are:
+      + `:translation`     -> Translation for the simulation box. The posibilites are:
 
           + `:zero`                       -> No translation is applied.
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -329,9 +329,9 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-      + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+      + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-          + `:zero`                       -> No rotation is appplied.
+          + `:zero`                       -> No rotation is applied.
           + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
           + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
           + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -346,16 +346,16 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
   - A Tuple with four elements:
 
       + The filter function.
-      + Translation for the simulation box. The posibilities are:
+      + Translation for the simulation box. The posibilites are:
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-      + Rotation for the simulation box. The posibilities are:
+      + Rotation for the simulation box. The posibilites are:
 
-          + `:zero`                       -> No rotation is appplied.
+          + `:zero`                       -> No rotation is applied.
           + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
           + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
           + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -397,22 +397,13 @@ function selectFilter(
 end
 
 """
-    intersectFilters(
-        filter_a::Dict{Symbol,IndexType},
-        filter_b::Dict{Symbol,IndexType},
-    )::Dict{Symbol,IndexType}
+    intersectFilters(filters::Dict{Symbol,IndexType}...)::Dict{Symbol,IndexType}
 
-Generate the filter resulting from intersecting (AND in boolean logic) `filter_a` and `filter_b`.
+Generate the filter resulting from intersecting `filters` (AND in boolean logic) .
 
 # Arguments
 
-  - `filter_a::Dict{Symbol,IndexType}`: First filter, as a dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-  - `filter_b::Dict{Symbol,IndexType}`: Second filter, as a dictionary with the following shape:
+  - `filters::Dict{Symbol,IndexType}`: Filter, as a dictionary with the following shape:
 
       + `cell/particle type` -> idxs::IndexType
       + `cell/particle type` -> idxs::IndexType
@@ -428,29 +419,31 @@ Generate the filter resulting from intersecting (AND in boolean logic) `filter_a
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function intersectFilters(
-    filter_a::Dict{Symbol,IndexType},
-    filter_b::Dict{Symbol,IndexType},
-)::Dict{Symbol,IndexType}
+function intersectFilters(filters::Dict{Symbol,IndexType}...)::Dict{Symbol,IndexType}
 
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
     (
-        keys(filter_a) == keys(filter_b) ||
-        throw(ArgumentError("intersectFilters: The filters must have the sale list of components \
-        (their keys), but I got keys(`filter_a`) != keys(`filter_b`)"))
+        allequal(keys.(filters)) ||
+        throw(ArgumentError("intersectFilters: The filters must have the same list of components \
+        (their keys)"))
     )
 
-    @inbounds for component in keys(filter_a)
+    @inbounds for component in keys(filters[1])
 
-        indices[component] = filter_a[component] ∩ filter_b[component]
+        indices[component] = intersect(
+            filters[1][component],
+            getindex.(filters[2:end], component)...,
+        )
 
     end
 
     return indices
 
 end
+
+intersectFilters(filters::Dict{Symbol,IndexType})::Dict{Symbol,IndexType} = filters
 
 ####################################################################################################
 #
@@ -624,925 +617,7 @@ function filterWithinCylinder(
 end
 
 """
-    filterGasTemperature(
-        data_dict::Dict,
-        min_temp::Unitful.Temperature,
-        max_temp::Unitful.Temperature,
-    )::Dict{Symbol,IndexType}
-
-Filter out gas cells with a temperature outside the range [`min_temp`, `max_temp`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_temp::Unitful.Temperature`: Minimum gas temperature.
-  - `max_temp::Unitful.Temperature`: Maximum gas temperature.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterGasTemperature(
-    data_dict::Dict,
-    min_temp::Unitful.Temperature,
-    max_temp::Unitful.Temperature,
-)::Dict{Symbol,IndexType}
-
-    internal_energy   = data_dict[:gas]["U   "]
-    electron_fraction = data_dict[:gas]["NE  "]
-
-    # Compute the gas temperature
-    temperature = computeTemperature(internal_energy, electron_fraction)
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :gas
-            indices[component] = map(x -> min_temp <= x <= max_temp, temperature)
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterByFraction(
-        data_dict::Dict,
-        min_f::Float64,
-        max_f::Float64,
-        component::Symbol,
-    )::Dict{Symbol,IndexType}
-
-Filter out gas that has a fraction of `component` outside the range [`min_f`, `max_f`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_f::Float64`: Minimum `component` fraction.
-  - `max_f::Float64`: Maximum `component` fraction.
-  - `component::Symbol`: For which cell/particle type the fraction will be calculated. The options are:
-
-      + `:molecular`    -> Molecular hydrogen (``\\mathrm{H_2}``) fraction.
-      + `:br_molecular` -> Molecular hydrogen (``\\mathrm{H_2}``) fraction, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) fraction.
-      + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) fraction.
-      + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) fraction.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterByFraction(
-    data_dict::Dict,
-    min_f::Float64,
-    max_f::Float64,
-    component::Symbol,
-)::Dict{Symbol,IndexType}
-
-    fraction = computeFraction(data_dict, component)
-
-    isempty(fraction) && return PASS_ALL
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :gas
-            indices[component] = map(x -> min_f < x <= max_f, fraction)
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterGasDensity(
-        data_dict::Dict,
-        min_ρ::Unitful.Density,
-        max_ρ::Unitful.Density,
-    )::Dict{Symbol,IndexType}
-
-Filter out gas that is outside the density range [`min_ρ`, `max_ρ`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_ρ::Unitful.Density`: Minimum gas density.
-  - `max_ρ::Unitful.Density`: Maximum gas density.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterGasDensity(
-    data_dict::Dict,
-    min_ρ::Unitful.Density,
-    max_ρ::Unitful.Density,
-)::Dict{Symbol,IndexType}
-
-    density = data_dict[:gas]["RHO "]
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :gas
-            indices[component] = map(x -> min_ρ < x <= max_ρ, density)
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterGasACIT(
-        data_dict::Dict,
-        min_acit::Unitful.Time,
-        max_acit::Unitful.Time,
-    )::Dict{Symbol,IndexType}
-
-Filter out gas that is outside the accumulated integration time range [`min_acit`, `max_acit`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_acit::Unitful.Temperature`: Minimum accumulated integration time.
-  - `max_acit::Unitful.Temperature`: Maximum accumulated integration time.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterGasACIT(
-    data_dict::Dict,
-    min_acit::Unitful.Time,
-    max_acit::Unitful.Time,
-)::Dict{Symbol,IndexType}
-
-    acit = data_dict[:gas]["ACIT"]
-
-    isempty(acit) && return PASS_ALL
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :gas
-            indices[component] = map(x -> min_acit < x <= max_acit, acit)
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterGasEff(
-        data_dict::Dict,
-        component::Symbol,
-        min_ϵff::Float64,
-        max_ϵff::Float64,
-    )::Dict{Symbol,IndexType}
-
-Filter out gas that has a star formation efficiency per free-fall time outside the range [`min_ϵff`, `max_ϵff`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `component::Symbol`: For which gas component the star formation efficiency per free-fall time will be calculated. The options are:
-
-      + `:gas_eff`          -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`    -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff` -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`       -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`      -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`      -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
-  - `min_ϵff::Float64`: Minimum star formation efficiency per free-fall time.
-  - `max_ϵff::Float64`: Maximum star formation efficiency per free-fall time.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterGasEff(
-    data_dict::Dict,
-    component::Symbol,
-    min_ϵff::Float64,
-    max_ϵff::Float64,
-)::Dict{Symbol,IndexType}
-
-    if component ∉ [
-        :gas_eff,
-        :molecular_eff,
-        :br_molecular_eff,
-        :atomic_eff,
-        :ionized_eff,
-        :neutral_eff,
-    ]
-
-        throw(ArgumentError("filterGasEff: `component` must be :gas_eff, :molecular_eff, \
-        :br_molecular_eff, :atomic_eff, :ionized_eff or :neutral_eff, but I got $(component)"))
-
-    end
-
-    ϵff = scatterQty(data_dict, component)
-
-    isempty(ϵff) && return PASS_ALL
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :gas
-            indices[component] = map(x -> min_ϵff < x <= max_ϵff, ϵff)
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterEqGas(
-        data_dict::Dict;
-        <keyword arguments>
-    )::Dict{Symbol,IndexType}
-
-Filter out gas cells that have the molecular or ionized equation in or out of equilibrium, according to `equation` and `filtered_phase`.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `limit::Float64=1.0e-2`: Allowed deviation from equilibrium, as the fraction |RS - LS| / LS.
-  - `equation::Symbol=:molecular`: Which equilibrium equation will be used. The options are :molecular and :ionized.
-  - `filtered_phase::Symbol=:non_eq`: Which phase will be filtered out, the equilibrium phase (:eq) or the non-equilibrium phase (:non_eq).
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterEqGas(
-    data_dict::Dict;
-    limit::Float64=1.0e-2,
-    equation::Symbol=:molecular,
-    filtered_phase::Symbol=:non_eq,
-)::Dict{Symbol,IndexType}
-
-    if equation == :molecular
-
-        eq_quotient = GalaxyInspector.scatterQty(data_dict, :mol_eq_quotient)
-
-    elseif equation == :ionized
-
-        eq_quotient = GalaxyInspector.scatterQty(data_dict, :ion_eq_quotient)
-
-    else
-
-        throw(ArgumentError("filterEqGas: `equation` can only be :molecular or :ionized, \
-        but I got :$(equation)"))
-
-    end
-
-    (
-        0.0 <= limit ||
-        throw(ArgumentError("filterEqGas: `limit` must be > 0, but I got :$(limit_percent)"))
-    )
-
-    # Compute |RS - LS| / LS
-    eq_values = abs.(exp10.(-eq_quotient) .- 1.0)
-
-    if filtered_phase == :non_eq
-
-        idxs = map(x -> x < limit, eq_values)
-
-    elseif filtered_phase == :eq
-
-        idxs = map(x -> limit < x, eq_values)
-
-    else
-
-        throw(ArgumentError("filterEqGas: `filtered_phase` can only be :non_eq or :eq, \
-        but I got :$(filtered_phase)"))
-
-    end
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :gas
-            indices[component] = idxs
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterYoungStars(data_dict::Dict)::Dict{Symbol,IndexType}
-
-Filter out stars that where born one or more snapshots ago.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterYoungStars(data_dict::Dict)::Dict{Symbol,IndexType}
-
-    birth_ticks = data_dict[:stars]["GAGE"]
-
-    # Get the global index (index in the context of the whole simulation) of the current snapshot
-    present_idx = data_dict[:snap_data].global_index
-
-    if present_idx == 1 || isempty(birth_ticks)
-
-        new_stars_idxs = (:)
-
-    else
-
-        # Compute the stellar birth dates
-        if data_dict[:sim_data].cosmological
-            # Go from scale factor to physical time
-            birth_times = computeTime(birth_ticks, data_dict[:snap_data].header)
-        else
-            birth_times = birth_ticks
-        end
-
-        # Get the physical times
-        times = data_dict[:sim_data].table[:, 5]
-
-        new_stars_idxs = map(t -> t > times[present_idx - 1], birth_times)
-
-    end
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :stars
-            indices[component] = new_stars_idxs
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterStellarAge(
-        data_dict::Dict;
-        <keyword arguments>
-    )::Dict{Symbol,IndexType}
-
-Filter out stars with an age outside the range [`min_age`, `max_age`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_age::Unitful.Time=0.0u"Gyr"`: Minimum age.
-  - `max_age::Unitful.Time=AGE_RESOLUTION`: Maximum age.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterStellarAge(
-    data_dict::Dict;
-    min_age::Unitful.Time=0.0u"Gyr",
-    max_age::Unitful.Time=AGE_RESOLUTION,
-)::Dict{Symbol,IndexType}
-
-    ages = computeStellarAge(data_dict)
-
-    isempty(ages) && PASS_ALL
-
-    new_stars_idxs = map(t -> min_age <= t <= max_age, ages)
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :stars
-            indices[component] = new_stars_idxs
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterInsituStars(
-        data_dict::Dict;
-        <keyword arguments>
-    )::Dict{Symbol,IndexType}
-
-Filter out stars that where born outside the given halo and subhalo (exsitu), leaving only the ones born inside the halo and subhalo (insitu).
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are consider insitu.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterInsituStars(
-    data_dict::Dict;
-    halo_idx::Int=1,
-    subhalo_rel_idx::Int=1,
-)::Dict{Symbol,IndexType}
-
-    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
-
-    (
-        allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||
-        throw(ArgumentError("filterInsituStars: The vectors given by `locateStellarBirthPlace` \
-        do not have as many elements as there are stars. This should not be possible!"))
-    )
-
-    stars_born_in_halo = map(isequal(halo_idx), birth_halo)
-
-    if iszero(subhalo_rel_idx)
-        stars_born_in_subhalo = (:)
-    else
-        stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
-    end
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :stars
-            indices[component] = stars_born_in_halo ∩ stars_born_in_subhalo
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterExsituStars(
-        data_dict::Dict;
-        <keyword arguments>
-    )::Dict{Symbol,IndexType}
-
-Filter out stars that where born inside the given halo and subhalo (insitu), leaving only the ones born outside (exsitu).
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, only stars born outside halo `halo_idx` are consider exsitu.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterExsituStars(
-    data_dict::Dict;
-    halo_idx::Int=1,
-    subhalo_rel_idx::Int=1,
-)::Dict{Symbol,IndexType}
-
-    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
-
-    (
-        allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||
-        throw(ArgumentError("filterExsituStars: The vectors given by `locateStellarBirthPlace` \
-        do not have as many elements as there are stars. This should not be possible!"))
-
-    )
-
-    stars_born_in_halo = map(isequal(halo_idx), birth_halo)
-
-    if iszero(subhalo_rel_idx)
-        stars_born_in_subhalo = (:)
-    else
-        stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
-    end
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :stars
-            indices[component] = Vector{Bool}(.!(stars_born_in_halo ∩ stars_born_in_subhalo))
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterMetallicity(data_dict::Dict, min_Z::Float64, max_Z::Float64)::Dict{Symbol,IndexType}
-
-Filter out gas cells and stellar particles with metallicity (as the metal mass fraction) outside the range [`min_Z`, `max_Z`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_Z::Float64`: Minimum metallicity.
-  - `max_Z::Float64`: Maximum metallicity.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterMetallicity(data_dict::Dict, min_Z::Float64, max_Z::Float64)::Dict{Symbol,IndexType}
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        if component == :gas
-
-            if !isempty(data_dict[component]["GZ  "])
-
-                metallicity = data_dict[component]["GZ  "]
-
-            else
-
-                throw(ArgumentError("filterMetallicity: I could not compute the metallicity"))
-
-            end
-
-            indices[component] = map(x -> min_Z <= x <= max_Z, metallicity)
-
-        elseif component == :stars
-
-            if !isempty(data_dict[component]["GZ2 "])
-
-                metallicity = data_dict[component]["GZ2 "]
-
-            else
-
-                throw(ArgumentError("filterMetallicity: I could not compute the metallicity"))
-
-            end
-
-            indices[component] = map(x -> min_Z <= x <= max_Z, metallicity)
-
-        else
-
-            indices[component] = (:)
-
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterCircularity(data_dict::Dict, min_ϵ::Float64, max_ϵ::Float64)::Dict{Symbol,IndexType}
-
-Filter out stellar particles with circularity outside the range [`min_ϵ`, `max_ϵ`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_ϵ::Float64`: Minimum circularity.
-  - `max_ϵ::Float64`: Maximum circularity.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterCircularity(data_dict::Dict, min_ϵ::Float64, max_ϵ::Float64)::Dict{Symbol,IndexType}
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :stars
-            circularity = computeCircularity(data_dict)
-            indices[component] = map(x -> min_ϵ <= x <= max_ϵ, circularity)
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterELSFR(data_dict::Dict)::Dict{Symbol,IndexType}
-
-Filter out gas cells that have not entered our star formation routine.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterELSFR(data_dict::Dict)::Dict{Symbol,IndexType}
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :gas
-            if isempty(data_dict[:gas]["FRAC"])
-                indices[component] = Int[]
-            else
-                indices[component] = map(!isnan, data_dict[:gas]["FRAC"][1, :])
-            end
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterSubhalo(
+    filterBySubhalo(
         data_dict::Dict;
         <keyword arguments>
     )::Dict{Symbol,IndexType}
@@ -1576,7 +651,7 @@ Filter out cells/particles that do not belong to a given halo and subhalo.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterSubhalo(
+function filterBySubhalo(
     data_dict::Dict;
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
@@ -1592,7 +667,7 @@ function filterSubhalo(
     g_len_type = data_dict[:group]["G_LenType"]
     s_len_type = data_dict[:subhalo]["S_LenType"]
 
-    # If any of the data is misssing return an empty filter dictionary
+    # If any of the data is missing return an empty filter dictionary
     n_groups_total = data_dict[:gc_data].header.n_groups_total
 
     !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_len_type, s_len_type]) || return PASS_NONE
@@ -1600,7 +675,7 @@ function filterSubhalo(
     # Check that the requested halo index is within bounds
     (
         0 < halo_idx <= n_groups_total ||
-        throw(ArgumentError("filterSubhalo: There is only $(n_groups_total) FoF goups in \
+        throw(ArgumentError("filterBySubhalo: There is only $(n_groups_total) FoF groups in \
         $(data_dict[:gc_data].path), so `halo_idx` = $(halo_idx) is out of bounds"))
     )
 
@@ -1620,7 +695,7 @@ function filterSubhalo(
 
         (
             !logging[] ||
-            @info("filterSubhalo: There are 0 subhalos in the FoF group $(halo_idx) from
+            @info("filterBySubhalo: There are 0 subhalos in the FoF group $(halo_idx) from
             $(data_dict[:gc_data].path), so every particle will be filtered out")
         )
 
@@ -1630,7 +705,7 @@ function filterSubhalo(
 
     (
         subhalo_rel_idx <= n_subfinds ||
-        throw(ArgumentError("filterSubhalo: There is only $(n_subfinds) subhalos for the \
+        throw(ArgumentError("filterBySubhalo: There is only $(n_subfinds) subhalos for the \
         FoF group $(halo_idx) from $(data_dict[:gc_data].path), so `subhalo_rel_idx` = \
         $(subhalo_rel_idx) is out of bounds"))
     )
@@ -1709,7 +784,7 @@ function filterSubhalo(
 end
 
 """
-    filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
+    filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
 
 Filter out cells/particles that do not belong to a given subhalo.
 
@@ -1739,7 +814,7 @@ Filter out cells/particles that do not belong to a given subhalo.
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
+function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
 
     # If there are no subfind data, filter out every cell/particle
     if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
@@ -1749,7 +824,7 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
     # Load the necessary data
     s_len_type = data_dict[:subhalo]["S_LenType"]
 
-    # If any of the data is misssing return an empty filter dictionary
+    # If any of the data is missing return an empty filter dictionary
     n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
 
     !iszero(n_subgroups_total) && !isempty(s_len_type) || return PASS_NONE
@@ -1757,7 +832,7 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
     # Check that the requested subhalo index is within bounds
     (
         0 < subhalo_abs_idx <= n_subgroups_total ||
-        throw(ArgumentError("filterSubhalo: There is only $(n_subgroups_total) subhalos in \
+        throw(ArgumentError("filterBySubhalo: There is only $(n_subgroups_total) subhalos in \
         $(data_dict[:gc_data].path), so subhalo_abs_idx = $(subhalo_abs_idx) is out of bounds"))
     )
 
@@ -1808,6 +883,618 @@ function filterSubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Index
                 indices[component] = first_idx:last_idx
 
             end
+
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterByQuantity(
+        data_dict::Dict,
+        quantity::Symbol,
+        component::Symbol,
+        minimum::Number,
+        maximum::Number,
+    )::Dict{Symbol,IndexType}
+
+Filter out particles/cells with `quantity` outside the range [`minimum:`, `maximum`].
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `quantity::Symbol`: Target quantity. For the possibilities see the documentation of [`scatterQty`](@ref).
+  - `component::Symbol`: Type of particle/cell. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
+  - `minimum::Number`: Minimum value of `quantity`.
+  - `maximum::Number`: Maximum value of `quantity`.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterByQuantity(
+    data_dict::Dict,
+    quantity::Symbol,
+    component::Symbol,
+    minimum::Number,
+    maximum::Number,
+)::Dict{Symbol,IndexType}
+
+    # Compute the `quantity`
+    values = scatterQty(data_dict, quantity)
+
+    (
+        minimum >= maximum &&
+        throw(ArgumentError("filterByQuantity: `maximum` should be larger than `minimum`, \
+        but I got `minimum` = $(minimum) >= `maximum` = $(maximum)"))
+    )
+
+    if isempty(values)
+
+        (
+            logging[] &&
+            @warn("filterByQuantity: Quantity :$(quantity) is empty, no particles/cells will be \
+            filtered out")
+        )
+
+        return PASS_ALL
+
+    end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for type in snapshotTypes(data_dict)
+
+        (
+            length(data_dict[type]["MASS"]) != length(values) && logging[] &&
+            @warn("filterByQuantity: The amount of particles/cells of type :$(component) is not \
+            the same as the amount of values for quantity :$(quantity). Are you sure that \
+            `component` = :$(component) is correct?")
+        )
+
+        @inbounds if type == component
+            indices[type] = map(x -> minimum <= x <= maximum, values)
+        else
+            indices[type] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterByEquilibrium(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out gas cells that have the molecular or ionized equation in or out of equilibrium, according to `equation` and `filtered_phase`.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `limit::Float64=1.0e-2`: Allowed deviation from equilibrium, as the fraction |RS - LS| / LS.
+  - `equation::Symbol=:molecular`: Which equilibrium equation will be used. The options are :molecular and :ionized.
+  - `filtered_phase::Symbol=:non_eq`: Which phase will be filtered out, the equilibrium phase (:eq) or the non-equilibrium phase (:non_eq).
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterByEquilibrium(
+    data_dict::Dict;
+    limit::Float64=1.0e-2,
+    equation::Symbol=:molecular,
+    filtered_phase::Symbol=:non_eq,
+)::Dict{Symbol,IndexType}
+
+    if equation == :molecular
+
+        eq_quotient = GalaxyInspector.scatterQty(data_dict, :mol_eq_quotient)
+
+    elseif equation == :ionized
+
+        eq_quotient = GalaxyInspector.scatterQty(data_dict, :ion_eq_quotient)
+
+    else
+
+        throw(ArgumentError("filterByEquilibrium: `equation` can only be :molecular or :ionized, \
+        but I got :$(equation)"))
+
+    end
+
+    (
+        0.0 <= limit ||
+        throw(ArgumentError("filterByEquilibrium: `limit` must be > 0, but I got \
+        :$(limit_percent)"))
+    )
+
+    # Compute |RS - LS| / LS
+    eq_values = abs.(exp10.(-eq_quotient) .- 1.0)
+
+    if filtered_phase == :non_eq
+
+        idxs = map(x -> x < limit, eq_values)
+
+    elseif filtered_phase == :eq
+
+        idxs = map(x -> limit < x, eq_values)
+
+    else
+
+        throw(ArgumentError("filterByEquilibrium: `filtered_phase` can only be :non_eq or :eq, \
+        but I got :$(filtered_phase)"))
+
+    end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :gas
+            indices[component] = idxs
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterByELSFR(data_dict::Dict)::Dict{Symbol,IndexType}
+
+Filter out gas cells that have not entered our star formation routine.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterByELSFR(data_dict::Dict)::Dict{Symbol,IndexType}
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :gas
+            if isempty(data_dict[:gas]["FRAC"])
+                indices[component] = Int[]
+            else
+                indices[component] = map(!isnan, data_dict[:gas]["FRAC"][1, :])
+            end
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
+
+Filter out stars that where born one or more snapshots ago.
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
+
+    birth_ticks = data_dict[:stars]["GAGE"]
+
+    # Get the global index (index in the context of the whole simulation) of the current snapshot
+    present_idx = data_dict[:snap_data].global_index
+
+    if present_idx == 1 || isempty(birth_ticks)
+
+        new_stars_idxs = (:)
+
+    else
+
+        # Compute the stellar birth dates
+        if data_dict[:sim_data].cosmological
+            # Go from scale factor to physical time
+            birth_times = computeTime(birth_ticks, data_dict[:snap_data].header)
+        else
+            birth_times = birth_ticks
+        end
+
+        # Get the physical times
+        times = data_dict[:sim_data].table[:, 5]
+
+        new_stars_idxs = map(t -> t > times[present_idx - 1], birth_times)
+
+    end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :stars
+            indices[component] = new_stars_idxs
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterByStellarAge(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out stars with an age outside the range [`min_age`, `max_age`].
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `min_age::Unitful.Time=0.0u"Gyr"`: Minimum age.
+  - `max_age::Unitful.Time=AGE_RESOLUTION`: Maximum age.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterByStellarAge(
+    data_dict::Dict;
+    min_age::Unitful.Time=0.0u"Gyr",
+    max_age::Unitful.Time=AGE_RESOLUTION,
+)::Dict{Symbol,IndexType}
+
+    ages = computeStellarAge(data_dict)
+
+    isempty(ages) && PASS_ALL
+
+    new_stars_idxs = map(t -> min_age <= t <= max_age, ages)
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :stars
+            indices[component] = new_stars_idxs
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterExsituStars(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out stars that where born outside the given halo and subhalo (exsitu), leaving only the ones born inside the halo and subhalo (insitu).
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are consider insitu.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterExsituStars(
+    data_dict::Dict;
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+)::Dict{Symbol,IndexType}
+
+    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
+
+    (
+        allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||
+        throw(ArgumentError("filterExsituStars: The vectors given by `locateStellarBirthPlace` \
+        do not have as many elements as there are stars. This should not be possible!"))
+    )
+
+    stars_born_in_halo = map(isequal(halo_idx), birth_halo)
+
+    if iszero(subhalo_rel_idx)
+        stars_born_in_subhalo = (:)
+    else
+        stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
+    end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :stars
+            indices[component] = stars_born_in_halo ∩ stars_born_in_subhalo
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterInsituStars(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Dict{Symbol,IndexType}
+
+Filter out stars that where born inside the given halo and subhalo (insitu), leaving only the ones born outside (exsitu).
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, only stars born outside halo `halo_idx` are consider exsitu.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterInsituStars(
+    data_dict::Dict;
+    halo_idx::Int=1,
+    subhalo_rel_idx::Int=1,
+)::Dict{Symbol,IndexType}
+
+    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
+
+    (
+        allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||
+        throw(ArgumentError("filterInsituStars: The vectors given by `locateStellarBirthPlace` \
+        do not have as many elements as there are stars. This should not be possible!"))
+
+    )
+
+    stars_born_in_halo = map(isequal(halo_idx), birth_halo)
+
+    if iszero(subhalo_rel_idx)
+        stars_born_in_subhalo = (:)
+    else
+        stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
+    end
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        @inbounds if component == :stars
+            indices[component] = Vector{Bool}(.!(stars_born_in_halo ∩ stars_born_in_subhalo))
+        else
+            indices[component] = (:)
+        end
+
+    end
+
+    return indices
+
+end
+
+"""
+    filterByMetallicity(data_dict::Dict, min_Z::Float64, max_Z::Float64)::Dict{Symbol,IndexType}
+
+Filter out gas cells and stellar particles with metallicity (as the metal mass fraction) outside the range [`min_Z`, `max_Z`].
+
+# Arguments
+
+  - `data_dict::Dict`: A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+  - `min_Z::Float64`: Minimum metallicity.
+  - `max_Z::Float64`: Maximum metallicity.
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + `cell/particle type` -> idxs::IndexType
+      + ...
+"""
+function filterByMetallicity(data_dict::Dict, min_Z::Float64, max_Z::Float64)::Dict{Symbol,IndexType}
+
+    # Allocate memory
+    indices = Dict{Symbol,IndexType}()
+
+    @inbounds for component in snapshotTypes(data_dict)
+
+        if component == :gas
+
+            if !isempty(data_dict[component]["GZ  "])
+
+                metallicity = data_dict[component]["GZ  "]
+
+            else
+
+                throw(ArgumentError("filterByMetallicity: I could not compute the metallicity"))
+
+            end
+
+            indices[component] = map(x -> min_Z <= x <= max_Z, metallicity)
+
+        elseif component == :stars
+
+            if !isempty(data_dict[component]["GZ2 "])
+
+                metallicity = data_dict[component]["GZ2 "]
+
+            else
+
+                throw(ArgumentError("filterByMetallicity: I could not compute the metallicity"))
+
+            end
+
+            indices[component] = map(x -> min_Z <= x <= max_Z, metallicity)
+
+        else
+
+            indices[component] = (:)
 
         end
 

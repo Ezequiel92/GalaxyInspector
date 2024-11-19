@@ -55,7 +55,7 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
 
     (
         0 < halo_idx <= n_halos ||
-        throw(ArgumentError("computeCenter: There is only $(n_halos) FoF goups in \
+        throw(ArgumentError("computeCenter: There is only $(n_halos) FoF groups in \
         $(data_dict[:gc_data].path), so halo_idx = $(halo_idx) is out of bounds"))
     )
 

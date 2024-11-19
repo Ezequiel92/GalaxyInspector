@@ -27,7 +27,7 @@ Write a text file with information about a given snapshot.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -35,9 +35,9 @@ Write a text file with information about a given snapshot.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -204,7 +204,7 @@ function snapshotReport(
             else
 
                 throw(ArgumentError("snapshotReport: You asked for a filter base on the \
-                halos/subhalos or a perzonalized filter, but I could not find a valid \
+                halos/subhalos or a personalized filter, but I could not find a valid \
                 group catalog file"))
 
             end
@@ -644,7 +644,6 @@ function snapshotReport(
         quantities = [
             "ODIT",
             "ACIT",
-            "DTIM",
             "TAUS",
             "RHOC",
             "PARZ",
@@ -655,7 +654,6 @@ function snapshotReport(
         names = [
             "integration time",
             "accumulated integration time",
-            "delta time",
             "τS",
             "cell density",
             "metallicity",
@@ -664,7 +662,6 @@ function snapshotReport(
             "R",
         ]
         units = [
-            UnitfulAstro.Myr,
             UnitfulAstro.Myr,
             UnitfulAstro.Myr,
             UnitfulAstro.Myr,
@@ -792,7 +789,7 @@ function snapshotReport(
             (
                 0 < halo_idx <= n_groups_total ||
                 throw(ArgumentError("snapshotReport: There is only $(n_groups_total) FoF \
-                goups in $(simulation_path), so `halo_idx` = $(halo_idx) is outside of bounds"))
+                groups in $(simulation_path), so `halo_idx` = $(halo_idx) is outside of bounds"))
             )
 
             request = Dict(
@@ -866,7 +863,7 @@ function snapshotReport(
 
             if snapshot_length >= 2
 
-                insitu_idx = filterInsituStars(data_dict; halo_idx, subhalo_rel_idx)[:stars]
+                insitu_idx = filterExsituStars(data_dict; halo_idx, subhalo_rel_idx)[:stars]
 
                 iMs = sum(data_dict[:stars]["MASS"][insitu_idx]; init=0.0u"Msun")
                 tMs = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
@@ -2159,7 +2156,7 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -2167,9 +2164,9 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -2246,6 +2243,7 @@ Plot a 2D histogram of the density.
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`  -> Stellar gas mass (according to out SF model).
   - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either `:particles` or Voronoi `:cells`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -2259,7 +2257,7 @@ Plot a 2D histogram of the density.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -2267,9 +2265,9 @@ Plot a 2D histogram of the density.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -2466,7 +2464,7 @@ Plot a 2D map of the gas SFR.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -2474,9 +2472,9 @@ Plot a 2D map of the gas SFR.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -2665,6 +2663,7 @@ Plot a 2D histogram of the density, with the velocity field.
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`  -> Stellar gas mass (according to out SF model).
   - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either `:particles` or Voronoi `:cells`.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
@@ -2678,7 +2677,7 @@ Plot a 2D histogram of the density, with the velocity field.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -2686,9 +2685,9 @@ Plot a 2D histogram of the density, with the velocity field.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -2883,7 +2882,7 @@ Plot a 2D histogram of the metallicity.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -2891,9 +2890,9 @@ Plot a 2D histogram of the metallicity.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -3104,7 +3103,7 @@ Plot a 2D histogram of the temperature.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -3112,9 +3111,9 @@ Plot a 2D histogram of the temperature.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -3273,12 +3272,14 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -3324,6 +3325,25 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`                -> Stellar mass.
@@ -3336,12 +3356,14 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -3387,6 +3409,25 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `xlog::Bool=false`: If true, sets everything so the x axis is log10(`x_quantity`).
   - `ylog::Bool=false`: If true, sets everything so the y axis is log10(`y_quantity`).
   - `output_path::String="./"`: Path to the output folder.
@@ -3401,7 +3442,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -3409,9 +3450,9 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -3602,12 +3643,14 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -3653,6 +3696,25 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`                -> Stellar mass.
@@ -3665,12 +3727,14 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -3716,6 +3780,25 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `z_quantity::Symbol`: Quantity for the z axis (weights). The options are:
 
       + `:stellar_mass`                -> Stellar mass.
@@ -3728,12 +3811,14 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -3779,6 +3864,25 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `z_unit::Unitful.Units`: Target unit for the z axis.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
@@ -3798,7 +3902,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -3806,9 +3910,9 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -4089,7 +4193,7 @@ function atomicMolecularTransition(
                         (;
                             x_log=x_plot_params.unit,
                             y_log=y_plot_params.unit,
-                            filter_function=dd -> filterMetallicity(dd, range[1], range[2]),
+                            filter_function=dd -> filterByMetallicity(dd, range[1], range[2]),
                         )
                     ],
                     post_processing=getNothing,
@@ -4149,7 +4253,7 @@ function atomicMolecularTransition(
                 da_functions=[daScatterGalaxy],
                 da_args=[(x_quantity, y_quantity)],
                 da_kwargs = [
-                    (;filter_function=dd -> filterMetallicity(dd, range[1], range[2])) for
+                    (;filter_function=dd -> filterByMetallicity(dd, range[1], range[2])) for
                     range in ranges
                 ],
                 post_processing=getNothing,
@@ -4231,12 +4335,14 @@ Only for gas cells that have entered out routine.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -4266,6 +4372,25 @@ Only for gas cells that have entered out routine.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `edges::Vector{<:Number}`: A sorted list of bin edges for `quantity`.
   - `axis_label::Union{AbstractString,Nothing}=nothing`: Label for the axis. It can contain the string `auto_label`, which will be replaced by the default label: `var_name` / 10^`exp_factor` `unit`. If set to `nothing` a label will be assigned automaticaly.
   - `exp_ticks::Bool=false`: If the axis ticks will be the ``\\log_{10}`` of `edges`.
@@ -4281,7 +4406,7 @@ Only for gas cells that have entered out routine.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4289,9 +4414,9 @@ Only for gas cells that have entered out routine.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -4378,7 +4503,7 @@ function gasBarPlot(
             filter_function,
             da_functions=[daGasFractions],
             da_args=[(quantity, edges)],
-            da_kwargs=[(; filter_function=filterELSFR)],
+            da_kwargs=[(; filter_function=filterByELSFR)],
             post_processing=ppBarPlotLabels,
             pp_args=(include_stars,),
             pp_kwargs=(; colors),
@@ -4463,6 +4588,7 @@ Plot a time series.
       + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
       + `:dm_number`                 -> Number of dark matter particles.
@@ -4472,6 +4598,8 @@ Plot a time series.
       + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
       + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
@@ -4507,6 +4635,25 @@ Plot a time series.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
       + `:lookback_time`             -> Physical time left to reach the last snapshot.
+      + `:ode_gas_it`                -> Integration time.
+      + `:ode_gas_accu_it`           -> Accumulated integration time.
+      + `:ode_gas_tau_s`             -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`             -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`             -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                 -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`           -> Cold gas mass fraction.
+      + `:ode_stellar_it`            -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`       -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`         -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`         -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`         -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`         -> Gas pressure, for the gas that form the stars.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`              -> Stellar mass.
@@ -4519,6 +4666,7 @@ Plot a time series.
       + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
       + `:dm_number`                 -> Number of dark matter particles.
@@ -4528,6 +4676,8 @@ Plot a time series.
       + `:atomic_fraction`           -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
+      + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
       + `:molecular_area_density`    -> Molecular mass surface density, for a radius of `DISK_R`.
@@ -4563,6 +4713,25 @@ Plot a time series.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
       + `:lookback_time`             -> Physical time left to reach the last snapshot.
+      + `:ode_gas_it`                -> Integration time.
+      + `:ode_gas_accu_it`           -> Accumulated integration time.
+      + `:ode_gas_tau_s`             -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`             -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`             -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                 -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`           -> Cold gas mass fraction.
+      + `:ode_stellar_it`            -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`       -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`         -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`         -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`         -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`         -> Gas pressure, for the gas that form the stars.
   - `y_log::Bool=true`: If the y axis is will have a log10 scale. Only works if `fraction` = false.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `fraction::Bool=false`: If the `y_quantity` will be represented as a fraction of the last value. If `cumulative` = true, this will apply to the accumulated values.
@@ -4579,7 +4748,7 @@ Plot a time series.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4587,9 +4756,9 @@ Plot a time series.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -4724,7 +4893,7 @@ Plot a time series of the gas components. Either their masses or their fractions
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4732,9 +4901,9 @@ Plot a time series of the gas components. Either their masses or their fractions
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -5023,7 +5192,7 @@ Plot the galaxy rotation curve of a set of simulations.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5031,9 +5200,9 @@ Plot the galaxy rotation curve of a set of simulations.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -5149,6 +5318,7 @@ Plot a density profile.
       + `:atomic_mass`        -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`       -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`       -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`   -> Stellar gas mass (according to out SF model).
       + `:sfr`                -> The star formation rate.
       + `:ssfr`               -> The specific star formation rate.
       + `:observational_sfr`  -> The star formation rate of the last `AGE_RESOLUTION`.
@@ -5169,7 +5339,7 @@ Plot a density profile.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5177,9 +5347,9 @@ Plot a density profile.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -5355,6 +5525,7 @@ Plot a density profile.
       + `:atomic_mass`        -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`       -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`       -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`   -> Stellar gas mass (according to out SF model).
       + `:sfr`                -> The star formation rate.
       + `:ssfr`               -> The specific star formation rate.
       + `:observational_sfr`  -> The star formation rate of the last `AGE_RESOLUTION`.
@@ -5375,7 +5546,7 @@ Plot a density profile.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5383,9 +5554,9 @@ Plot a density profile.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -5514,6 +5685,7 @@ Plot a mass profile.
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`  -> Stellar gas mass (according to out SF model).
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
@@ -5530,7 +5702,7 @@ Plot a mass profile.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5538,9 +5710,9 @@ Plot a mass profile.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -5686,7 +5858,7 @@ Plot a velocity profile.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5694,9 +5866,9 @@ Plot a velocity profile.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -5815,7 +5987,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5823,9 +5995,9 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -5944,12 +6116,14 @@ Plot a histogram of `quantity`.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_fraction`             -> Gas mass fraction of atomic hydrogen.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
@@ -5995,6 +6169,25 @@ Plot a histogram of `quantity`.
       + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
+      + `:ode_gas_it`                  -> Integration time.
+      + `:ode_gas_accu_it`             -> Accumulated integration time.
+      + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
+      + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
+      + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
+      + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
+      + `:ode_stellar_accu_it`         -> Accumulated integration time, for the gas that form the stars.
+      + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
+      + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
+      + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
+      + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
+      + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
+      + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `type::Symbol`: Type of cell/particle.
   - ` range::NTuple{2,<:Number}`: Range of values for the histogram.
   - `n_bins::Int=100`: Number of bins.
@@ -6012,7 +6205,7 @@ Plot a histogram of `quantity`.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6020,9 +6213,9 @@ Plot a histogram of `quantity`.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -6162,7 +6355,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6170,9 +6363,9 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -6298,7 +6491,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6306,9 +6499,9 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -6494,7 +6687,7 @@ Plot the Kennicutt-Schmidt law.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6502,9 +6695,9 @@ Plot the Kennicutt-Schmidt law.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -6806,7 +6999,7 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(stellar_grid, :stellar_mass, :particles)],
-        da_kwargs=[(; reduce_factor, reduce_grid, filter_function=dd->filterStellarAge(dd))],
+        da_kwargs=[(; reduce_factor, reduce_grid, filter_function=dd->filterByStellarAge(dd))],
         transform_box=true,
         translation,
         rotation,
@@ -7407,7 +7600,7 @@ Plot the resolved Kennicutt-Schmidt relation with an optional linear fit.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -7415,9 +7608,9 @@ Plot the resolved Kennicutt-Schmidt relation with an optional linear fit.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -7528,7 +7721,7 @@ function fitResolvedKSLaw(
         filter_function,
         da_functions=[daKennicuttSchmidtLaw],
         da_args=[(grid, quantity)],
-        da_kwargs=[(; type, reduce_factor=factor, stellar_ff=dd->filterStellarAge(dd))],
+        da_kwargs=[(; type, reduce_factor=factor, stellar_ff=dd->filterByStellarAge(dd))],
         post_processing=fit ? ppFitLine! : getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -7615,7 +7808,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -7623,9 +7816,9 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -7720,7 +7913,7 @@ function fitVSFLaw(
         filter_function,
         da_functions=[daVSFLaw],
         da_args=[(grid, quantity)],
-        da_kwargs=[(; type, stellar_ff=dd->filterStellarAge(dd))],
+        da_kwargs=[(; type, stellar_ff=dd->filterByStellarAge(dd))],
         post_processing=fit ? ppFitLine! : getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -7775,7 +7968,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -7783,9 +7976,9 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -7840,7 +8033,7 @@ function massMetallicityRelation(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(grid, :stellar_mass, :particles)],
-        da_kwargs=[(; reduce_factor, filter_function=dd->filterStellarAge(dd))],
+        da_kwargs=[(; reduce_factor, filter_function=dd->filterByStellarAge(dd))],
         post_processing=getNothing,
         pp_args=(),
         pp_kwargs=(;),
@@ -8135,7 +8328,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -8143,9 +8336,9 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -8524,7 +8717,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -8532,9 +8725,9 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
@@ -8784,7 +8977,7 @@ Plot the clumping factor of `quantity` for different volume scales.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilities are:
+          + `:translation`     -> Translation for the simulation box. The posibilites are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -8792,9 +8985,9 @@ Plot the clumping factor of `quantity` for different volume scales.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilities are:
+          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
 
-              + `:zero`                       -> No rotation is appplied.
+              + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
               + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
               + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
