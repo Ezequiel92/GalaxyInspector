@@ -215,7 +215,6 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-#TODO
 function daKennicuttSchmidtLaw(
     data_dict::Dict,
     grid::CubicGrid,
@@ -242,7 +241,6 @@ function daKennicuttSchmidtLaw(
         :stellar_mass,
         :particles;
         reduce_factor,
-        projection_plane=:xy,
         filter_function=stellar_ff,
     )
 
@@ -252,7 +250,6 @@ function daKennicuttSchmidtLaw(
         quantity,
         type;
         reduce_factor,
-        projection_plane=:xy,
         filter_function=gas_ff,
     )
 

@@ -292,6 +292,8 @@ function hvcatImages(
     output_path::String="./joined_images.png",
 )::Nothing
 
+    isempty(paths) && throw(ArgumentError("hvcatImages: `paths` is empty"))
+
     new_image = hvcat(blocks_per_row, [load(path) for path in paths]...)
 
     save(output_path, new_image)

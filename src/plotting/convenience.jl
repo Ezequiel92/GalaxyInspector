@@ -7659,8 +7659,7 @@ function fitResolvedKSLaw(
 
     # Compute the number of bins in the low resolution grid (pixel size of ~ BIGIEL_PX_SIZE)
     lr_n_bins = round(Int, uconvert(Unitful.NoUnits, box_size / BIGIEL_PX_SIZE))
-
-    hr_n_bins = 400
+    hr_n_bins = 300
 
     # Compute the interger factor between the high resolution grid (~ hr_n_bins px)
     # and the low resolution grid (`lr_n_bins`px)
