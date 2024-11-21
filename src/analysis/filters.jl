@@ -1277,12 +1277,13 @@ function filterByStellarAge(
 end
 
 """
-    filterExsituStars(
-        data_dict::Dict;
+    filterByBirthPlace(
+        data_dict::Dict,
+        exclude::Symbol;
         <keyword arguments>
     )::Dict{Symbol,IndexType}
 
-Filter out stars that where born outside the given halo and subhalo (exsitu), leaving only the ones born inside the halo and subhalo (insitu).
+Filter out stars that where born either outside the given halo and subhalo (`exclude`= :exsitu), or inside (`exclude`= :insitu).
 
 # Arguments
 
@@ -1299,6 +1300,7 @@ Filter out stars that where born outside the given halo and subhalo (exsitu), le
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+  - ´exclude::Symbol´: Which stars will be filtered out, either the ones born outside the given halo and subhalo (:exsitu), or inside (:insitu).
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are consider insitu.
 
@@ -1311,19 +1313,14 @@ Filter out stars that where born outside the given halo and subhalo (exsitu), le
       + `cell/particle type` -> idxs::IndexType
       + ...
 """
-function filterExsituStars(
-    data_dict::Dict;
+function filterByBirthPlace(
+    data_dict::Dict,
+    exclude::Symbol;
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
 )::Dict{Symbol,IndexType}
 
     birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
-
-    (
-        allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||
-        throw(ArgumentError("filterExsituStars: The vectors given by `locateStellarBirthPlace` \
-        do not have as many elements as there are stars. This should not be possible!"))
-    )
 
     stars_born_in_halo = map(isequal(halo_idx), birth_halo)
 
@@ -1333,79 +1330,15 @@ function filterExsituStars(
         stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
     end
 
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
+    insitu_stars = stars_born_in_halo ∩ stars_born_in_subhalo
 
-    @inbounds for component in snapshotTypes(data_dict)
-
-        @inbounds if component == :stars
-            indices[component] = stars_born_in_halo ∩ stars_born_in_subhalo
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterInsituStars(
-        data_dict::Dict;
-        <keyword arguments>
-    )::Dict{Symbol,IndexType}
-
-Filter out stars that where born inside the given halo and subhalo (insitu), leaving only the ones born outside (exsitu).
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, only stars born outside halo `halo_idx` are consider exsitu.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterInsituStars(
-    data_dict::Dict;
-    halo_idx::Int=1,
-    subhalo_rel_idx::Int=1,
-)::Dict{Symbol,IndexType}
-
-    birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
-
-    (
-        allequal(length, [birth_halo, birth_subhalo, data_dict[:stars]["MASS"]]) ||
-        throw(ArgumentError("filterInsituStars: The vectors given by `locateStellarBirthPlace` \
-        do not have as many elements as there are stars. This should not be possible!"))
-
-    )
-
-    stars_born_in_halo = map(isequal(halo_idx), birth_halo)
-
-    if iszero(subhalo_rel_idx)
-        stars_born_in_subhalo = (:)
+    if exclude == :insitu
+        stars_idxs = Vector{Bool}(.!(insitu_stars))
+    elseif exclude == :exsitu
+        stars_idxs = insitu_stars
     else
-        stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
+        throw(ArgumentError("filterByBirthPlace: `exclude` can only be :insitu or :exsitu, \
+        but I got :$(exclude)"))
     end
 
     # Allocate memory
@@ -1414,88 +1347,9 @@ function filterInsituStars(
     @inbounds for component in snapshotTypes(data_dict)
 
         @inbounds if component == :stars
-            indices[component] = Vector{Bool}(.!(stars_born_in_halo ∩ stars_born_in_subhalo))
+            indices[component] = stars_idxs
         else
             indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterByMetallicity(data_dict::Dict, min_Z::Float64, max_Z::Float64)::Dict{Symbol,IndexType}
-
-Filter out gas cells and stellar particles with metallicity (as the metal mass fraction) outside the range [`min_Z`, `max_Z`].
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `min_Z::Float64`: Minimum metallicity.
-  - `max_Z::Float64`: Maximum metallicity.
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterByMetallicity(data_dict::Dict, min_Z::Float64, max_Z::Float64)::Dict{Symbol,IndexType}
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    @inbounds for component in snapshotTypes(data_dict)
-
-        if component == :gas
-
-            if !isempty(data_dict[component]["GZ  "])
-
-                metallicity = data_dict[component]["GZ  "]
-
-            else
-
-                throw(ArgumentError("filterByMetallicity: I could not compute the metallicity"))
-
-            end
-
-            indices[component] = map(x -> min_Z <= x <= max_Z, metallicity)
-
-        elseif component == :stars
-
-            if !isempty(data_dict[component]["GZ2 "])
-
-                metallicity = data_dict[component]["GZ2 "]
-
-            else
-
-                throw(ArgumentError("filterByMetallicity: I could not compute the metallicity"))
-
-            end
-
-            indices[component] = map(x -> min_Z <= x <= max_Z, metallicity)
-
-        else
-
-            indices[component] = (:)
-
         end
 
     end

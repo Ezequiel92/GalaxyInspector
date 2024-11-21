@@ -863,7 +863,12 @@ function snapshotReport(
 
             if snapshot_length >= 2
 
-                insitu_idx = filterExsituStars(data_dict; halo_idx, subhalo_rel_idx)[:stars]
+                insitu_idx = filterByBirthPlace(
+                    data_dict,
+                    :exsitu;
+                    halo_idx,
+                    subhalo_rel_idx,
+                )[:stars]
 
                 iMs = sum(data_dict[:stars]["MASS"][insitu_idx]; init=0.0u"Msun")
                 tMs = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
@@ -4132,8 +4137,6 @@ Plot the atomic gas to molecular gas transition for a set of metallicity ranges.
 
       + `:heatmap` -> Heatmap. One figure per range will be produced.
       + `:scatter` -> Scatter plot. A single figure with every range will be produced.
-  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are included.
   - `output_path::String="./"`: Path to the output folder.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
@@ -4142,8 +4145,6 @@ function atomicMolecularTransition(
     slice::IndexType,
     ranges::Vector{<:Tuple{<:Real,<:Real}};
     plot_type::Symbol=:heatmap,
-    halo_idx::Int=1,
-    subhalo_rel_idx::Int=1,
     output_path::String="./",
     theme::Attributes=Theme(),
 )::Nothing
@@ -4193,7 +4194,13 @@ function atomicMolecularTransition(
                         (;
                             x_log=x_plot_params.unit,
                             y_log=y_plot_params.unit,
-                            filter_function=dd -> filterByMetallicity(dd, range[1], range[2]),
+                            filter_function=dd -> filterByQuantity(
+                                dd,
+                                :gas_metallicity,
+                                :gas,
+                                range[1],
+                                range[2],
+                            )
                         )
                     ],
                     post_processing=getNothing,
@@ -4253,8 +4260,15 @@ function atomicMolecularTransition(
                 da_functions=[daScatterGalaxy],
                 da_args=[(x_quantity, y_quantity)],
                 da_kwargs = [
-                    (;filter_function=dd -> filterByMetallicity(dd, range[1], range[2])) for
-                    range in ranges
+                    (;
+                        filter_function=dd -> filterByQuantity(
+                            dd,
+                            :gas_metallicity,
+                            :gas,
+                            range[1],
+                            range[2],
+                        ),
+                    ) for range in ranges
                 ],
                 post_processing=getNothing,
                 pp_args=(),

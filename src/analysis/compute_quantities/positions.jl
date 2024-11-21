@@ -688,6 +688,12 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
 
     end
 
+    (
+        allequal(length, [birth_halo, birth_subhalo, birth_ticks]) ||
+        throw(ArgumentError("locateStellarBirthPlace: The results do not have as many elements as
+        there are stars. Something went wrong!"))
+    )
+
     return birth_halo, birth_subhalo
 
 end
