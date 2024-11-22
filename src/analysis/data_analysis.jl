@@ -650,7 +650,7 @@ function daProfile(
         total       = true
         cumulative  = false
         density     = false
-        norm_values = scatterQty(filtered_dd, :hydrogen_mass)
+        norm_values = scatterQty(filtered_dd, :gas_mass)
 
     else
 
