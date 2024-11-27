@@ -641,7 +641,13 @@ function daProfile(
     if fractions
 
         (
-            quantity ∈ [:molecular_mass, :br_molecular_mass, :atomic_mass, :ionized_mass] ||
+            quantity ∈ [
+                :neutral_mass,
+                :molecular_mass,
+                :br_molecular_mass,
+                :atomic_mass,
+                :ionized_mass,
+            ] ||
             throw(ArgumentError("daProfile: If `fractions`= true, quantity must be \
             :neutral_mass, :molecular_mass, :br_molecular_mass, :atomic_mass or :ionized_mass, but \
             I got `quantity` = :$(quantity)"))

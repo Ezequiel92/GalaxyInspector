@@ -588,7 +588,14 @@ const DEFAULT_THEME = Theme(
     # colormap = :cubehelix     - nan_color = ColorSchemes.cubehelix[1]
     ########################################################################
     Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
-    Colorbar=(size=25, ticklabelpad=10, minorticksvisible=true, ticksize=7, labelpadding=2),
+    Colorbar=(
+        colormap=:CMRmap,
+        size=25,
+        ticklabelpad=10,
+        minorticksvisible=true,
+        ticksize=7,
+        labelpadding=2,
+    ),
     BarPlot=(
         color_over_background=:black,
         color_over_bar=:black,

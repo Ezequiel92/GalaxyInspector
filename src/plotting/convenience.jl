@@ -8173,7 +8173,7 @@ function massMetallicityRelation(
         ylabel = plotParams(Symbol(element, "_gas_abundance")).axis_label
     end
 
-    with_theme(theme, merge(theme_latexfonts(), DEFAULT_THEME)) do
+    with_theme(theme, merge(DEFAULT_THEME, theme_latexfonts())) do
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
