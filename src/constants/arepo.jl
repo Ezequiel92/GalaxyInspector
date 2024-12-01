@@ -139,7 +139,7 @@ const QUANTITIES = Dict(
     "TAUS" => Qty("ODE_TauS", Unitful.𝐓, u"Myr"),
     #TODO
     "DTIM" => Qty("ODE_DeltaTime", Unitful.𝐓, u"Myr"),
-    "RHOC" => Qty("ODE_ParameterCellDensity", Unitful.𝐌 * Unitful.𝐋^-3, u"cm^-3"),
+    "RHOC" => Qty("ODE_ParameterCellDensity", Unitful.𝐋^-3, u"cm^-3"),
     "PARZ" => Qty("ODE_ParameterMetallicity", Unitful.NoDims, Unitful.NoUnits),
     "ETAD" => Qty("ODE_ParameterEtaD", Unitful.NoDims, Unitful.NoUnits),
     "ETAI" => Qty("ODE_ParameterEtaI", Unitful.NoDims, Unitful.NoUnits),

@@ -530,6 +530,7 @@ Compute a profile.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -765,6 +766,7 @@ Compute the profile of a mean quantity with error bars or bands.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -1096,6 +1098,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -2385,6 +2388,7 @@ Turn a scatter plot into a 2D histogram.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -2469,6 +2473,7 @@ Turn a scatter plot into a 2D histogram.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -2702,6 +2707,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -2786,6 +2792,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -2870,6 +2877,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -3260,6 +3268,7 @@ Compute two global quantities of the simulation.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`               -> The mean star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -3338,6 +3347,7 @@ Compute two global quantities of the simulation.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`               -> The mean star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -3499,6 +3509,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -3583,6 +3594,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -4044,6 +4056,7 @@ Compute the time series of two quantities.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`               -> The mean star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -4122,6 +4135,7 @@ Compute the time series of two quantities.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`               -> The mean star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).

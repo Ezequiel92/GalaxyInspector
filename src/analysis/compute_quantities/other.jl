@@ -83,10 +83,10 @@ function computeEqQuotient(data_dict::Dict, type::Symbol)::Vector{Float64}
 
     dg = data_dict[:gas]
 
-    !any(isempty, [dg["FRAC"], dg["RHOC"]]) || return Float64[]
+    !any(isempty, [dg["FRAC"], dg["RHO "]]) || return Float64[]
 
     # Allocate memory
-    eq_quotients = fill(NaN, length(dg["RHOC"]))
+    eq_quotients = fill(NaN, length(dg["RHO "]))
 
     if type == :molecular
 
@@ -97,8 +97,8 @@ function computeEqQuotient(data_dict::Dict, type::Symbol)::Vector{Float64}
             dg["FRAC"][2, :],
             dg["FRAC"][3, :],
             dg["FRAC"][4, :],
-            τ_star.(dg["RHOC"] .* u"mp"),
-            τ_cond.(dg["RHOC"] .* u"mp", dg["PARZ"]),
+            τ_star.(dg["RHO "]),
+            τ_cond.(dg["RHO "], dg["PARZ"]),
         )
 
         for (i, (ηd, fa, fm, fs, τS, τC)) in enumerate(iterator)
@@ -121,8 +121,8 @@ function computeEqQuotient(data_dict::Dict, type::Symbol)::Vector{Float64}
             dg["PARR"],
             dg["FRAC"][1, :],
             dg["FRAC"][3, :],
-            GalaxyInspector.τ_star.(dg["RHOC"] .* u"mp"),
-            GalaxyInspector.τ_rec.(dg["RHOC"] .* u"mp"),
+            GalaxyInspector.τ_star.(dg["RHO "]),
+            GalaxyInspector.τ_rec.(dg["RHO "]),
         )
 
         for (i, (ηi, R, fi, fm, τS, τR)) in enumerate(iterator)
@@ -621,6 +621,7 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ssfr`                      -> The specific star formation rate.
       + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`               -> The mean star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -1035,6 +1036,20 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
             integrated_qty = sfr / stellar_mass
         end
 
+    elseif quantity == :stellar_eff
+
+        ϵff = computeEfficiencyFF(
+            data_dict[:stars]["RHOC"] .* u"mp",
+            data_dict[:stars]["GMAS"],
+            data_dict[:stars]["GSFR"],
+        )
+
+        if isempty(ϵff)
+            integrated_qty = NaN
+        else
+            integrated_qty = mean(ϵff)
+        end
+
     elseif quantity == :gas_eff
 
         mass = computeMass(data_dict, :gas)
@@ -1431,6 +1446,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -1797,6 +1813,14 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         stellar_masses = data_dict[:stars]["MASS"]
 
         scatter_qty = sfr ./ stellar_masses
+
+    elseif quantity == :stellar_eff
+
+        scatter_qty = computeEfficiencyFF(
+            data_dict[:stars]["RHOC"] .* u"mp",
+            data_dict[:stars]["GMAS"],
+            data_dict[:stars]["GSFR"],
+        )
 
     elseif quantity == :gas_eff
 

@@ -3155,6 +3155,7 @@ Select the plotting parameters for a given `quantity`.
       + `:ssfr`                        -> The specific star formation rate.
       + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
+      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
       + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
       + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
       + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
@@ -3436,7 +3437,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["ETAD", "FRAC", "RHOC", "PARZ"],
+                :gas => ["ETAD", "FRAC", "RHO ", "PARZ"],
             ),
             var_name = L"\log_{10} \, \mathrm{LS^{H_2} / RS^{H_2}}",
         )
@@ -3445,7 +3446,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["ETAI", "PARR", "FRAC", "RHOC"],
+                :gas => ["ETAI", "PARR", "FRAC", "RHO "],
             ),
             var_name = L"\log_{10} \, \mathrm{LS^{HII} / RS^{HII}}",
         )
@@ -3969,10 +3970,17 @@ function plotParams(quantity::Symbol)::PlotParams
             unit     = u"yr^-1",
         )
 
+    elseif quantity == :stellar_eff
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["GMAS", "GSFR", "RHOC"]),
+            var_name = L"\epsilon_\mathrm{ff}^\star",
+        )
+
     elseif quantity == :gas_eff
 
         plot_params = PlotParams(;
-            request  = Dict(:gas => ["MASS", "SFR "]),
+            request  = Dict(:gas => ["MASS", "SFR ", "RHO "]),
             var_name = L"\epsilon_\mathrm{ff}^\mathrm{gas}",
         )
 
