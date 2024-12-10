@@ -219,15 +219,15 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fractions = fa .* fc
 
-        elseif !any(isempty, [dg["NHP "], dg["NH  "]])
+        # elseif !any(isempty, [dg["NHP "], dg["NH  "]])
 
-            (
-                !logging[] ||
-                @info("computeFraction: The atomic fraction will be calculated using the fraction \
-                of neutral and ionized gas from Arepo, \"NH  \" and \"NHP \".")
-            )
+        #     (
+        #         !logging[] ||
+        #         @info("computeFraction: The atomic fraction will be calculated using the fraction \
+        #         of neutral and ionized gas from Arepo, \"NH  \" and \"NHP \".")
+        #     )
 
-            fractions = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
+        #     fractions = dg["NH  "] ./ (dg["NHP "] .+ dg["NH  "])
 
         else
 
@@ -275,25 +275,25 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             end
 
-        elseif !any(isempty, [dg["NH  "], dg["NHP "]])
+        # elseif !any(isempty, [dg["NH  "], dg["NHP "]])
 
-            (
-                !logging[] ||
-                @info("computeFraction: The ionized fraction will be calculated using the fraction \
-                of cold gas from Arepo, \"NH\"")
-            )
+        #     (
+        #         !logging[] ||
+        #         @info("computeFraction: The ionized fraction will be calculated using the fraction \
+        #         of cold gas from Arepo, \"NH\"")
+        #     )
 
-            fc = Vector{Float64}(undef, length(dg["MASS"]))
+        #     fc = Vector{Float64}(undef, length(dg["MASS"]))
 
-            @inbounds for i in eachindex(fc)
+        #     @inbounds for i in eachindex(fc)
 
-                # When there is no data from our model,
-                # use the fraction of neutral hydrogen from "NH  "
-                fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
+        #         # When there is no data from our model,
+        #         # use the fraction of neutral hydrogen from "NH  "
+        #         fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
-            end
+        #     end
 
-            fractions = 1.0 .- fc
+        #     fractions = 1.0 .- fc
 
         elseif !any(isempty, [dg["NHP "], dg["NH  "]])
 
@@ -358,23 +358,23 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fractions = fa .+ fm
 
-        elseif !any(isempty, [dg["NH  "], dg["NHP "]])
+        # elseif !any(isempty, [dg["NH  "], dg["NHP "]])
 
-            (
-                !logging[] ||
-                @info("computeFraction: The neutral fraction will be calculated using the fraction \
-                of cold gas from Arepo, \"NH\"")
-            )
+        #     (
+        #         !logging[] ||
+        #         @info("computeFraction: The neutral fraction will be calculated using the fraction \
+        #         of cold gas from Arepo, \"NH\"")
+        #     )
 
-            fractions = Vector{Float64}(undef, length(dg["MASS"]))
+        #     fractions = Vector{Float64}(undef, length(dg["MASS"]))
 
-            @inbounds for i in eachindex(fractions)
+        #     @inbounds for i in eachindex(fractions)
 
-                # When there is no data from our model,
-                # use the fraction of neutral hydrogen from "NH  "
-                fractions[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
+        #         # When there is no data from our model,
+        #         # use the fraction of neutral hydrogen from "NH  "
+        #         fractions[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
-            end
+        #     end
 
         elseif !any(isempty, [dg["NHP "], dg["NH  "]])
 
@@ -417,7 +417,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             (
                 !logging[] ||
-                @warn("computeFraction: I could not compute the neutral fraction")
+                @warn("computeFraction: I could not compute the stellar fraction")
             )
 
             fractions = Float64[]
