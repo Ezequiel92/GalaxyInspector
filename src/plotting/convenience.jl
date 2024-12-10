@@ -5,7 +5,7 @@
 """
     snapshotReport(
         simulation_paths::Vector{String},
-        slice_n::Int;
+        slices::Vector{Int};
         <keyword arguments>
     )::Nothing
 
@@ -14,7 +14,7 @@ Write a text file with information about a given snapshot.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be printed for each simulation.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slices::Vector{Int}`: Selects which snapshots to plot for each simulation, starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = filename_number + 1.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be considered in the "filtered" section of the report. The options are:
 
@@ -50,14 +50,14 @@ Write a text file with information about a given snapshot.
 """
 function snapshotReport(
     simulation_paths::Vector{String},
-    slice_n::Int;
+    slices::Vector{Int};
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
 )::Nothing
 
-    @inbounds for simulation_path in simulation_paths
+    @inbounds for (i, simulation_path) in pairs(simulation_paths)
 
         ############################################################################################
         # Load the relevant values and check for missing files
@@ -74,13 +74,16 @@ function snapshotReport(
         #   - 8. Group catalog path
         simulation_table = makeSimulationTable(simulation_path)
 
+        # Select the slice for the `i`-th simulation
+        slice_n = ring(slices, i)
+
         # Get the number in the filename
         snap_n = safeSelect(simulation_table[!, :numbers], slice_n)
 
         # Check that after slicing there is one snapshot left
         (
             !isempty(snap_n) ||
-            throw(ArgumentError("snapshotReport: There are no snapshots with `slice_n` = \
+            throw(ArgumentError("snapshotReport: There are no snapshots number \
             $(slice_n), the contents of $(simulation_path) are: \n$(simulation_table)"))
         )
 
@@ -2148,7 +2151,7 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
 # Arguments
 
   - `simulation_paths::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = filename_number + 1.
   - `output_path::String="./"`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 

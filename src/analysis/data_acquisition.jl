@@ -1317,7 +1317,7 @@ Construct a data dictionary for a single snapshot.
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1.
+  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = filename_number + 1.
   - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref).
 
 # Returns
@@ -1649,7 +1649,7 @@ Compute the minimum and maximum values of `block`.
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, `slice_n` = filename_number + 1. If set to a negative number, the values in the whole simulation will be compared.
+  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = filename_number + 1. If set to a negative number, the values in the whole simulation will be compared.
   - `component::Symbol`: Cell/particle type. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `f::Function=identity`: A function with the signature:

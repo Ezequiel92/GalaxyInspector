@@ -1178,6 +1178,19 @@ function daLineHistogram(
     # Compute the values
     scatter_qty = scatterQty(data_dict, quantity)
 
+    if isempty(scatter_qty)
+
+        (
+            !logging[] ||
+            @warn("daLineHistogram: There is no data for the quantity :$(quantity), \\
+            even before filtering")
+
+        )
+
+        return nothing
+
+    end
+
     # Filter after computing the values, to preserve quantities that depends on
     # global properties (e.g. global gravitational potential)
     idxs = filter_function(data_dict)[type]
@@ -1211,6 +1224,7 @@ function daLineHistogram(
             \n  Quantity:   $(quantity) \
             \n  Type:       $(type) \
             \n  Max bin:    $(grid.grid[argmax(counts)]) \
+            \n  Max count:  $(maximum(counts)) \
             \n  Mean:       $(mean(clean_values)) \
             \n  Median:     $(median(clean_values)) \
             \n  Extrema:    $(extrema(clean_values))"
