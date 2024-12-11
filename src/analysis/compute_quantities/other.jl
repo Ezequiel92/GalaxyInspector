@@ -798,7 +798,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if iszero(neutral_mass)
             integrated_qty = NaN
         else
-            integrated_qty = molecular_mass / neutral_mass
+            integrated_qty = ionized_mass / neutral_mass
         end
 
     elseif quantity == :gas_mass_density
