@@ -784,7 +784,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         molecular_mass = sum(computeMass(data_dict, :molecular); init=0.0u"Msun")
         neutral_mass = sum(computeMass(data_dict, :neutral); init=0.0u"Msun")
 
-        if iszero(molecular_mass) && iszero(neutral_mass)
+        if iszero(neutral_mass)
             integrated_qty = NaN
         else
             integrated_qty = molecular_mass / neutral_mass
@@ -795,7 +795,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         ionized_mass = sum(computeMass(data_dict, :ionized); init=0.0u"Msun")
         neutral_mass = sum(computeMass(data_dict, :atomic); init=0.0u"Msun")
 
-        if iszero(ionized_mass) && iszero(neutral_mass)
+        if iszero(neutral_mass)
             integrated_qty = NaN
         else
             integrated_qty = molecular_mass / neutral_mass
