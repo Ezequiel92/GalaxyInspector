@@ -1220,6 +1220,22 @@ function daLineHistogram(
 
         clean_values = filter(x -> !isnan(x) && !isinf(x), values)
 
+        if isempty(clean_values)
+
+            min_max_v = (NaN, NaN)
+            mean_v    = NaN
+            meadian_v = NaN
+            mode_v    = NaN
+
+        else
+
+            min_max_v = extrema(clean_values)
+            mean_v    = mean(clean_values)
+            meadian_v = median(clean_values)
+            mode_v    = mode(clean_values)
+
+        end
+
         @info(
             "\nHistogram statistics \
             \n  Simulation: $(basename(data_dict[:sim_data].path)) \
@@ -1228,9 +1244,10 @@ function daLineHistogram(
             \n  Type:       $(type) \
             \n  Max bin:    $(grid.grid[argmax(counts)]) \
             \n  Max count:  $(maximum(counts)) \
-            \n  Mean:       $(mean(clean_values)) \
-            \n  Median:     $(median(clean_values)) \
-            \n  Extrema:    $(extrema(clean_values))"
+            \n  Min - Max:  $(min_max_v) \
+            \n  Mean:       $(mean_v) \
+            \n  Median:     $(meadian_v) \
+            \n  Mode:       $(mode_v)"
         )
 
     end
@@ -1510,18 +1527,36 @@ function daDensity2DProjection(
 
     if logging[]
 
-        # Compute the mininimum and maximum of `z_axis`
-        min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
+        log_z_axis = filter(!isnan, log10.(z_axis))
+
+        if isempty(log_z_axis)
+
+            min_max_z = (NaN, NaN)
+            mean_z    = NaN
+            meadian_z = NaN
+            mode_z    = NaN
+
+        else
+
+            min_max_z = extrema(log_z_axis)
+            mean_z    = mean(log_z_axis)
+            meadian_z = median(log_z_axis)
+            mode_z    = mode(log_z_axis)
+
+        end
 
         # Print the density range
         @info(
-            "\nDensity range \
+            "\nDensity range - log₁₀(ρ [$(m_unit * l_unit^-2)]) \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
             \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane) \
-            \n  log₁₀(ρ [$(m_unit * l_unit^-2)]): $(min_max)"
+            \n  Min - Max:  $(min_max_z) \
+            \n  Mean:       $(mean_z) \
+            \n  Median:     $(meadian_z) \
+            \n  Mode:       $(mode_z)"
         )
 
     end
@@ -1749,17 +1784,35 @@ function daGasSFR2DProjection(
 
     if logging[]
 
-        # Compute the mininimum and maximum of `z_axis`
-        min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
+        log_z_axis = filter(!isnan, log10.(z_axis))
 
-        # Print the gas SFR range
+        if isempty(log_z_axis)
+
+            min_max_z = (NaN, NaN)
+            mean_z    = NaN
+            meadian_z = NaN
+            mode_z    = NaN
+
+        else
+
+            min_max_z = extrema(log_z_axis)
+            mean_z    = mean(log_z_axis)
+            meadian_z = median(log_z_axis)
+            mode_z    = mode(log_z_axis)
+
+        end
+
+        # Print the SFR range
         @info(
-            "\nGas SFR range \
+            "\nGas SFR range - log₁₀(SFR [$(m_unit * t_unit^-1)]) \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane) \
-            \n  log₁₀(SFR [$(m_unit * t_unit^-1)]): $(min_max)"
+            \n  Min - Max:  $(min_max_z) \
+            \n  Mean:       $(mean_z) \
+            \n  Median:     $(meadian_z) \
+            \n  Mode:       $(mode_z)"
         )
 
     end
@@ -2052,31 +2105,36 @@ function daMetallicity2DProjection(
 
     if logging[]
 
-        # Compute the mininimum and maximum of `z_axis`
-        min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
+        clean_z_axis = filter(!isnan, z_axis)
 
-        # Print the metallicity range
-        if element == :all
-            @info(
-                "\nMetallicity range \
-                \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
-                \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
-                \n  Component:       $(component) \
-                \n  Field type:      $(field_type) \
-                \n  Plane:           $(projection_plane) \
-                \n  log₁₀(Z [Z⊙]):  $(min_max)"
-            )
+        if isempty(clean_z_axis)
+
+            min_max_z = (NaN, NaN)
+            mean_z    = NaN
+            meadian_z = NaN
+            mode_z    = NaN
+
         else
-            @info(
-                "\nMetallicity range \
-                \n  Simulation:      $(basename(filtered_dd[:sim_data].path)) \
-                \n  Snapshot:        $(filtered_dd[:snap_data].global_index) \
-                \n  Component:       $(component) \
-                \n  Field type:      $(field_type) \
-                \n  Plane:           $(projection_plane)\
-                \n  12 + log₁₀($(element) / H): $(min_max)"
-            )
+
+            min_max_z = extrema(clean_z_axis)
+            mean_z    = mean(clean_z_axis)
+            meadian_z = median(clean_z_axis)
+            mode_z    = mode(clean_z_axis)
+
         end
+
+        @info(
+            "\nMetallicity range - $(element == :all ? "log₁₀(Z [Z⊙])" : "12 + log₁₀($(element) / H)") \
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Component:  $(component) \
+            \n  Field type: $(field_type) \
+            \n  Plane:      $(projection_plane)\
+            \n  Min - Max:  $(min_max_z) \
+            \n  Mean:       $(mean_z) \
+            \n  Median:     $(meadian_z) \
+            \n  Mode:       $(mode_z)"
+        )
 
     end
 
@@ -2307,14 +2365,35 @@ function daTemperature2DProjection(
 
     if logging[]
 
+        clean_z_axis = filter(!isinf, z_axis)
+
+        if isempty(clean_z_axis)
+
+            min_max_T = (NaN, NaN)
+            mean_T    = NaN
+            meadian_T = NaN
+            mode_T    = NaN
+
+        else
+
+            min_max_T = extrema(clean_z_axis)
+            mean_T    = mean(clean_z_axis)
+            meadian_T = median(clean_z_axis)
+            mode_T    = mode(clean_z_axis)
+
+        end
+
         # Print the temperature range
         @info(
-            "\nTemperature range \
-            \n  Simulation:   $(basename(filtered_dd[:sim_data].path)) \
-            \n  Snapshot:     $(filtered_dd[:snap_data].global_index) \
-            \n  Field type:   $(field_type) \
-            \n  Plane:        $(projection_plane) \
-            \n  log₁₀(T [K]): $(extrema(z_axis))"
+            "\nTemperature range - log₁₀(T [K]) \
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Field type: $(field_type) \
+            \n  Type:       $(type) \
+            \n  Min - Max:  $(min_max_T) \
+            \n  Mean:       $(mean_T) \
+            \n  Median:     $(meadian_T) \
+            \n  Mode:       $(mode_T)"
         )
 
     end
@@ -3063,16 +3142,34 @@ function daScatterWeightedDensity(
 
     if logging[]
 
-        # Compute the mininimum and maximum values
-        min_max = isempty(values) ? (NaN, NaN) : extrema(filter(!isnan, values))
+        clean_c = filter(!isnan, values)
+
+        if isempty(clean_c)
+
+            min_max_c = (NaN, NaN)
+            mean_c    = NaN
+            meadian_c = NaN
+            mode_c    = NaN
+
+        else
+
+            min_max_c = extrema(clean_c)
+            mean_c    = mean(clean_c)
+            meadian_c = median(clean_c)
+            mode_c    = mode(clean_c)
+
+        end
 
         # Print the color range
         @info(
             "\nColor range \
-            \n  Simulation:  $(basename(filtered_dd[:sim_data].path)) \
-            \n  Snapshot:    $(filtered_dd[:snap_data].global_index) \
-            \n  Quantity:    $(z_quantity) \
-            \n  Color range: $(min_max)"
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Quantity:   $(z_quantity) \
+            \n  Min - Max:  $(min_max_c) \
+            \n  Mean:       $(mean_c) \
+            \n  Median:     $(meadian_c) \
+            \n  Mode:       $(mode_c)"
         )
 
     end

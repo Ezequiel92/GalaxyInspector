@@ -7450,15 +7450,33 @@ function kennicuttSchmidtLaw(
 
                 if logging[]
 
-                    # Compute the mininimum and maximum of `z_axis`
-                    min_max = isempty(z_axis) ? (NaN, NaN) : extrema(filter(!isnan, z_axis))
+                    clean_values = filter(!isnan, z_axis)
+
+                    if isempty(clean_values)
+
+                        min_max_v = (NaN, NaN)
+                        mean_v    = NaN
+                        meadian_v = NaN
+                        mode_v    = NaN
+
+                    else
+
+                        min_max_v = extrema(clean_values)
+                        mean_v    = mean(clean_values)
+                        meadian_v = median(clean_values)
+                        mode_v    = mode(clean_values)
+
+                    end
 
                     # Print the count range
                     @info(
                         "\nCount range \
                         \n  Simulation: $(basename(simulation)) \
                         \n  Quantity:   $(quantity) \
-                        \n  Counts:     $(min_max)"
+                        \n  Min - Max:  $(min_max_v) \
+                        \n  Mean:       $(mean_v) \
+                        \n  Median:     $(meadian_v) \
+                        \n  Mode:       $(mode_v)"
                     )
 
                 end

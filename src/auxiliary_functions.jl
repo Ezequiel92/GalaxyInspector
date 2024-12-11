@@ -2242,19 +2242,35 @@ function density3DProjection(
 
     if logging[]
 
-        log_density = log10.(density)
+        log_density = filter(!isnan, log10.(density))
 
-        # Compute the mininimum and maximum of `log_density`
-        min_max = isempty(log_density) ? (NaN, NaN) : extrema(filter(!isnan, log_density))
+        if isempty(log_density)
+
+            min_max_ρ = (NaN, NaN)
+            mean_ρ    = NaN
+            meadian_ρ = NaN
+            mode_ρ    = NaN
+
+        else
+
+            min_max_ρ = extrema(log_density)
+            mean_ρ    = mean(log_density)
+            meadian_ρ = median(log_density)
+            mode_ρ    = mode(log_density)
+
+        end
 
         # Print the density range
         @info(
-            "\nDensity range \
+            "\nDensity range - log₁₀(ρ [$(m_unit * l_unit^-3)]) \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Quantity:   $(quantity) \
             \n  Type:       $(type) \
-            \n  log₁₀(ρ [$(m_unit * l_unit^-3)]): $(min_max)"
+            \n  Min - Max:  $(min_max_ρ) \
+            \n  Mean:       $(mean_ρ) \
+            \n  Median:     $(meadian_ρ) \
+            \n  Mode:       $(mode_ρ)"
         )
 
     end
