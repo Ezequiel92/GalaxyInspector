@@ -3159,6 +3159,7 @@ Select the plotting parameters for a given `quantity`.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3239,7 +3240,7 @@ Select the plotting parameters for a given `quantity`.
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
@@ -3479,7 +3480,16 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
             ),
-            var_name = L"f_\mathrm{H_2}^\star",
+            var_name = L"f_\mathrm{H_2} / f_\mathrm{n}",
+        )
+
+    elseif quantity == :ionized_neutral_fraction
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
+            ),
+            var_name = L"f_\mathrm{HII} / f_\mathrm{n}",
         )
 
     elseif quantity == :stellar_gas_fraction
@@ -4304,7 +4314,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["RHOC"]),
-            var_name = L"\rho^\star",
+            var_name = L"\rho_\mathrm{gas}^\star",
             unit     = u"Msun*kpc^-3",
         )
 
@@ -4312,7 +4322,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["PARZ"]),
-            var_name = L"Z^\star",
+            var_name = L"Z_\mathrm{gas}^\star \, [\mathrm{Z_\odot}]",
         )
 
     elseif quantity == :ode_stellar_gas_mass

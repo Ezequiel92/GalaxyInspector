@@ -595,6 +595,8 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`  -> Fraction of ionized gas to neutral gas.
+      + `:gas_mass_density`          -> Mean gas mass density.
       + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
@@ -647,7 +649,7 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`         -> Gas pressure, for the gas that form the stars.
@@ -779,13 +781,34 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :molecular_neutral_fraction
 
-        molecular_mass = sum(computeMass(data_dict, :br_molecular); init=0.0u"Msun")
-        atomic_mass = sum(computeMass(data_dict, :atomic); init=0.0u"Msun")
+        molecular_mass = sum(computeMass(data_dict, :molecular); init=0.0u"Msun")
+        neutral_mass = sum(computeMass(data_dict, :neutral); init=0.0u"Msun")
 
-        if iszero(molecular_mass) && iszero(atomic_mass)
+        if iszero(molecular_mass) && iszero(neutral_mass)
             integrated_qty = NaN
         else
-            integrated_qty = molecular_mass / (molecular_mass + atomic_mass)
+            integrated_qty = molecular_mass / neutral_mass
+        end
+
+    elseif quantity == :ionized_neutral_fraction
+
+        ionized_mass = sum(computeMass(data_dict, :ionized); init=0.0u"Msun")
+        neutral_mass = sum(computeMass(data_dict, :atomic); init=0.0u"Msun")
+
+        if iszero(ionized_mass) && iszero(neutral_mass)
+            integrated_qty = NaN
+        else
+            integrated_qty = molecular_mass / neutral_mass
+        end
+
+    elseif quantity == :gas_mass_density
+
+        density = computeVolumeDensity(data_dict, :gas)
+
+        if isempty(density)
+            integrated_qty = 0.0u"Msun * kpc^-3"
+        else
+            integrated_qty = mean(density)
         end
 
     elseif quantity == :stellar_gas_fraction
@@ -1323,7 +1346,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
             integrated_qty = NaN
         else
             metal_mass = Z .* gas_mass
-            integrated_qty = sum(metal_mass) ./ sum(gas_mass)
+            integrated_qty = (sum(metal_mass) ./ sum(gas_mass)) ./ SOLAR_METALLICITY
         end
 
     elseif quantity == :ode_stellar_gas_mass
@@ -1408,6 +1431,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -1470,7 +1494,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
@@ -1552,9 +1576,16 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :molecular_neutral_fraction
 
         fm = computeFraction(data_dict, :molecular)
-        fa = computeFraction(data_dict, :atomic)
+        fn = computeFraction(data_dict, :neutral)
 
-        scatter_qty = fm ./ (fm .+ fa)
+        scatter_qty = fm ./ fn
+
+    elseif quantity == :ionized_neutral_fraction
+
+        fi = computeFraction(data_dict, :ionized)
+        fn = computeFraction(data_dict, :neutral)
+
+        scatter_qty = fi ./ fn
 
     elseif quantity == :stellar_gas_fraction
 
@@ -1929,7 +1960,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :ode_stellar_gas_Z
 
-        scatter_qty = data_dict[:stars]["PARZ"]
+        scatter_qty = data_dict[:stars]["PARZ"] ./ SOLAR_METALLICITY
 
     elseif quantity == :ode_stellar_gas_mass
 

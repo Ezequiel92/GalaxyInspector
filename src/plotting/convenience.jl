@@ -3287,6 +3287,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3349,7 +3350,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
@@ -3372,6 +3373,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3434,7 +3436,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
@@ -3660,6 +3662,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3722,7 +3725,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
@@ -3745,6 +3748,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3807,7 +3811,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
@@ -3830,6 +3834,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3892,7 +3897,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
@@ -4364,6 +4369,7 @@ Only for gas cells that have entered out routine.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -4410,7 +4416,7 @@ Only for gas cells that have entered out routine.
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
@@ -4622,6 +4628,8 @@ Plot a time series.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`  -> Fraction of ionized gas to neutral gas.
+      + `:gas_mass_density`          -> Mean gas mass density.
       + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
@@ -4674,7 +4682,7 @@ Plot a time series.
       + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`         -> Gas pressure, for the gas that form the stars.
@@ -4701,6 +4709,8 @@ Plot a time series.
       + `:ionized_fraction`          -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`          -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`  -> Fraction of ionized gas to neutral gas.
+      + `:gas_mass_density`          -> Mean gas mass density.
       + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
@@ -4753,7 +4763,7 @@ Plot a time series.
       + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`         -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`      -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`       -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`         -> Gas pressure, for the gas that form the stars.
@@ -4792,6 +4802,7 @@ Plot a time series.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `extra_filter` filter function.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -4811,6 +4822,7 @@ function timeSeries(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     backup_results::Bool=false,
     theme::Attributes=Theme(),
@@ -4855,6 +4867,7 @@ function timeSeries(
             (;
                 filter_mode,
                 extra_filter,
+                ff_request,
                 smooth=0,
                 cumulative,
                 fraction,
@@ -4937,6 +4950,7 @@ Plot a time series of the gas components. Either their masses or their fractions
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `extra_filter` filter function.
   - `filename::Union{String,Nothing}=nothing`: Name for the output file. If left as `nothing`, the filename will be chosen automaticaly.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
@@ -4947,6 +4961,7 @@ function gasEvolution(
     output_path::String="./",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     filename::Union{String,Nothing}=nothing,
     theme::Attributes=Theme(),
 )::Nothing
@@ -4992,7 +5007,7 @@ function gasEvolution(
             slice,
             da_functions=[daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
-            da_kwargs=[(; filter_mode, extra_filter, smooth=0, scaling=identity)],
+            da_kwargs=[(; filter_mode, extra_filter, ff_request, smooth=0, scaling=identity)],
             post_processing=getNothing,
             pp_args=(),
             pp_kwargs=(;),
@@ -6148,6 +6163,7 @@ Plot a histogram of `quantity`.
       + `:ionized_fraction`            -> Gas mass fraction of ionized hydrogen.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
+      + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -6210,7 +6226,7 @@ Plot a histogram of `quantity`.
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
-      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars.
+      + `:ode_stellar_gas_Z`           -> Gas metallicity, for the gas that form the stars (solar units).
       + `:ode_stellar_gas_mass`        -> Cell mass, for the gas that form the stars.
       + `:ode_stellar_gas_sfr`         -> SFR associated to the gas particles/cells within the code, for the gas that form the stars.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
