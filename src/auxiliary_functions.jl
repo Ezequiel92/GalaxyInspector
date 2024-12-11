@@ -3496,7 +3496,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
             ),
-            var_name = L"f_\mathrm{H_2} / f_\mathrm{n}",
+            var_name = L"f_\mathrm{H_2} \, / f_\mathrm{n}",
         )
 
     elseif quantity == :ionized_neutral_fraction
@@ -3505,7 +3505,7 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(
                 :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
             ),
-            var_name = L"f_\mathrm{HII} / f_\mathrm{n}",
+            var_name = L"f_\mathrm{HII} \, / f_\mathrm{n}",
         )
 
     elseif quantity == :stellar_gas_fraction
