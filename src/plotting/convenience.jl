@@ -1431,17 +1431,18 @@ function snapshotReport(
             println(file, "\tMasses:\n")
             for (i, mass) in pairs(g_mass_type)
 
-                component = INDEX_PARTICLE[i - 1]
+                symbol_name = INDEX_PARTICLE[i - 1]
+                component_label = PARTICLE_NAMES[symbol_name]
 
-                if component == :stars
-                    component = "Stellar/Wind particles"
-                else
-                    component = PARTICLE_NAMES[component]
+                if symbol_name == :stars
+                    component_label = "Stellar/Wind particles"
+                elseif symbol_name == :tracer
+                    mass = TRACER_MASS * internalUnits("MASS", snapshot_path)
                 end
 
                 println(
                     file,
-                    "\t\t$(component):$(" "^(22 - length(component))) \
+                    "\t\t$(component_label):$(" "^(22 - length(component_label))) \
                     $(round(typeof(1.0u"Msun"), mass, sigdigits=3))",
                 )
 
@@ -1520,17 +1521,18 @@ function snapshotReport(
             println(file, "\n\tMasses:\n")
             for (i, mass) in pairs(s_mass_type)
 
-                component = INDEX_PARTICLE[i - 1]
+                symbol_name = INDEX_PARTICLE[i - 1]
+                component_label = PARTICLE_NAMES[symbol_name]
 
-                if component == :stars
-                    component = "Stellar/Wind particles"
-                else
-                    component = PARTICLE_NAMES[component]
+                if symbol_name == :stars
+                    component_label = "Stellar/Wind particles"
+                elseif symbol_name == :tracer
+                    mass = TRACER_MASS * internalUnits("MASS", snapshot_path)
                 end
 
                 println(
                     file,
-                    "\t\t$(component):$(" "^(22 - length(component))) \
+                    "\t\t$(component_label):$(" "^(22 - length(component_label))) \
                     $(round(typeof(1.0u"Msun"), mass, sigdigits=3))",
                 )
 
@@ -6659,6 +6661,7 @@ function compareMolla2015(
 
 end
 
+#TODO
 """
     kennicuttSchmidtLaw(
         simulation_paths::Vector{String},
@@ -6696,17 +6699,12 @@ Plot the Kennicutt-Schmidt law.
     - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends, experimental measurements or several simulations at once.
   - `integrated::Bool=false`: If the integrated (one point per galaxy) or resolved (several point per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = :scatter. The central value is the weighted median and the error bars are the median absolute deviations.
   - `sfr_density::Bool=true`: If the quantity for the y axis will be the SFR surface density or, if set to false, the stellar mass surface density.
-
-
-
   - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a bin in the 2D grid) can be weighted by a gas quantity. If `integrated` = true, the median will be computed with these weights in mind. If `integrated` = false, each point will have a color given by the weight. The posible weights are:
 
       + `:gas_mass_density` -> Gas mass surface density of each bin. See the documentation for the function [`daDensity2DProjection`](@ref).
       + `:gas_sfr`          -> The total gas SFR of the column associated with each bin. See the documentation for the function [`daGasSFR2DProjection`](@ref).
       + `:gas_metallicity`  -> The total metallicity of the column associated with each bin. See the documentation for the function [`daMetallicity2DProjection`](@ref).
       + `:temperature`      -> The mean gas temperature of the column associated with each bin. See the documentation for the function [`daTemperature2DProjection`](@ref).
-
-
   - `measurements::Bool=true`: If the experimental measurements from Kennicutt (1998), Bigiel et al. (2008) or Bigiel et al. (2010) will be plotted alongside the simulation results.
   - `measurement_type::Union{String,Symbol}=:fits`: Type of measurement to plot, only valid if `measurement` = true. The option are:
 
@@ -6784,6 +6782,7 @@ function kennicuttSchmidtLaw(
     theme::Attributes=Theme(),
 )::Nothing
 
+    # Compute the number of simulations
     ns = length(simulation_paths)
 
     # Default voxel side length
@@ -6845,12 +6844,12 @@ function kennicuttSchmidtLaw(
 
     end
 
-    if reduce_grid == :square && !isnothing(bin_size) && bin_size < voxel_size
+    if bin_size < voxel_size
 
         (
             !logging[] ||
-            @warn("kennicuttSchmidtLaw: `reduce_grid` = :square and `bin_size` is set to a value \
-            lower than $(voxel_size). This is not allowed. `bin_size` will be ignored and \
+            @warn("kennicuttSchmidtLaw: `reduce_grid` is set to :square and `bin_size` is set to \
+            a value lower than $(voxel_size). This is not allowed. `bin_size` will be ignored and \
             default to $(voxel_size)")
         )
 
@@ -6873,6 +6872,7 @@ function kennicuttSchmidtLaw(
 
     if !isnothing(sim_labels)
 
+        # Compute the number of labels
         nl = length(sim_labels)
 
         (
@@ -6890,24 +6890,20 @@ function kennicuttSchmidtLaw(
 
             (
                 !logging[] ||
-                @warn("kennicuttSchmidtLaw: If `sfr_density` = false, `measurements` = true will \
-                be ignored and default to false. The experimental measurements are only for the \
-                SFR surface density")
+                @warn("kennicuttSchmidtLaw: `sfr_density` is set to false, so \
+                `measurements` = true will be ignored and default to false. The experimental \
+                measurements are only for the SFR surface density")
             )
 
             measurements = false
 
         end
 
-        if quantity == :gas_mass
+        if quantity == :gas_mass && logging[]
 
-            (
-                !logging[] ||
-                @warn("kennicuttSchmidtLaw: There are no measurements (fits or otherwise) for \
-                `quantity` = :gas_mass. `measurements` = true will be ignored and default to false")
-            )
-
-            measurements = false
+            @warn("kennicuttSchmidtLaw: The measurements (fits or otherwise) are only available \
+            for molecular and neutral gas. For `quantity` = :gas_mass the neutral gas measurements \
+            will be used, even though this is technically not correct")
 
         end
 
@@ -6935,7 +6931,7 @@ function kennicuttSchmidtLaw(
 
             (
                 !logging[] ||
-                @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, `gas_weights` = \
+                @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap, so `gas_weights` = \
                 :$(gas_weights) will be ignored and default to nothing")
             )
 
@@ -6947,8 +6943,8 @@ function kennicuttSchmidtLaw(
 
             (
                 !logging[] ||
-                @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, `measurements` = true will \
-                be ignored and default to false")
+                @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap, so \
+                `measurements` = true will be ignored and default to false")
             )
 
             measurements = false
@@ -6958,8 +6954,8 @@ function kennicuttSchmidtLaw(
         if ns > 1
 
             (
-                !logging[] || @warn("kennicuttSchmidtLaw: If `plot_type` = :heatmap, only one \
-                simulation at a time can be plotted, but I got length(simulation_paths) = \
+                !logging[] || @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap, so only \
+                one simulation at a time can be plotted, but I got length(simulation_paths) = \
                 $(ns) > 1. `plot_type` = :heatmap will be ignored and default to :scatter")
             )
 
@@ -6969,8 +6965,8 @@ function kennicuttSchmidtLaw(
 
         if reduce_grid == :circular && logging[]
 
-            @warn("kennicuttSchmidtLaw: `plot_type` = :heatmap and `reduce_grid` = :circular. \
-            Are you sure you want this?")
+            @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap and `reduce_grid` to \
+            :circular. Are you sure you want this?")
 
         end
 
@@ -7030,7 +7026,10 @@ function kennicuttSchmidtLaw(
         plotParams(:stellar_mass).request,
     )
 
+    ##########################
     # Compute the stellar map
+    ##########################
+
     plotSnapshot(
         simulation_paths,
         request,
@@ -7056,7 +7055,10 @@ function kennicuttSchmidtLaw(
         plotParams(quantity).request,
     )
 
+    #############################
     # Compute the `quantity` map
+    #############################
+
     plotSnapshot(
         simulation_paths,
         request,
@@ -7077,7 +7079,10 @@ function kennicuttSchmidtLaw(
         backup_results=true,
     )
 
+    ##########################
     # Compute the weights map
+    ##########################
+
     if !isnothing(gas_weights)
 
         if gas_weights == :gas_mass_density
@@ -7172,7 +7177,7 @@ function kennicuttSchmidtLaw(
     end
 
     ################################################################################################
-    # Read and plot the data
+    # Read and plot the data in the JLD2 files
     ################################################################################################
 
     if sfr_density
@@ -7187,6 +7192,7 @@ function kennicuttSchmidtLaw(
     else
         markersize = 6
     end
+
     current_theme = merge(
         theme,
         Theme(
@@ -7222,7 +7228,7 @@ function kennicuttSchmidtLaw(
             sim_name         = "simulation_$(lpad(string(sim_idx), 3, "0"))"
             snapshot_numbers = simulation_table[!, :numbers]
 
-            # Allocate memory for the heatmap. For a heatmap we need to accumulate the values
+            # Allocate memory for the heatmap. For heatmaps we need to accumulate the values
             # for every snapshot before plotting
             if plot_type == :heatmap
                 x_heatmap = Float64[]
@@ -7231,9 +7237,9 @@ function kennicuttSchmidtLaw(
 
             for snapshot_number in snapshot_numbers
 
-                ####################################################################################
+                ############################################
                 # Read the JLD2 files and sanitize the data
-                ####################################################################################
+                ############################################
 
                 ##############
                 # Gas density
@@ -7297,8 +7303,8 @@ function kennicuttSchmidtLaw(
                     y_data .-= log10Δt
                 end
 
-                # For the integrated Kennicutt-Schmidt law, compute the gas and stellar
-                # densities median and median absolute deviation
+                # For the integrated Kennicutt-Schmidt law, compute the median and median absolute
+                # deviation of the gas and stellar densities
                 if integrated
 
                     lin_x = exp10.(x_data)
@@ -7337,9 +7343,9 @@ function kennicuttSchmidtLaw(
                 close(y_file)
                 isnothing(gas_weights) || close(z_file)
 
-                ####################################################################################
+                #################################
                 # Plot the Kennicutt-Schmidt law
-                ####################################################################################
+                #################################
 
                 if  plot_type == :scatter
 
@@ -7442,7 +7448,7 @@ function kennicuttSchmidtLaw(
                     collect(range(yrange[1], yrange[2]; length=n_bins + 1));
                 )
 
-                # The transpose and reverse operation are to conform to the way heatmap!
+                # The transpose and reverse operation are used to conform to the way heatmap!
                 # expect the matrix to be structured
                 z_axis = reverse!(transpose(values), dims=2)
 
@@ -7521,7 +7527,7 @@ function kennicuttSchmidtLaw(
                         colors=[Makie.wong_colors()[1], Makie.wong_colors()[2]],
                     )
 
-                elseif quantity == :neutral_mass
+                else
 
                     legend_bigiel = ppBigiel2008!(
                         f,
@@ -7554,7 +7560,7 @@ function kennicuttSchmidtLaw(
                         x_unit=u"Msun * kpc^-2",
                     )
 
-                elseif quantity == :neutral_mass
+                else
 
                     pp_legend = ppBigiel2010!(
                         f;
@@ -7615,6 +7621,7 @@ function kennicuttSchmidtLaw(
 
     rm(temp_folder; recursive=true)
 
+    # Restore the original value of `PHYSICAL_UNITS`
     global PHYSICAL_UNITS = og_pu_value
 
     return nothing

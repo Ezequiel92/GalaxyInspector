@@ -1494,7 +1494,7 @@ function daDensity2DProjection(
         x_axis  = reduceTicks(grid.x_ticks, reduce_factor)
         y_axis  = reduceTicks(grid.y_ticks, reduce_factor)
 
-        # The transpose and reverse operation are to conform to
+        # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
         # Depending on the `field_type` and `projection_plane`, different operations
         # are applied to keep the axis consistent between cells and particles
@@ -1514,8 +1514,8 @@ function daDensity2DProjection(
 
     else
 
-        throw(ArgumentError("daDensity2DProjection: `reduce_grid` can only be :square or :circular, \
-        but I got :$( reduce_grid)"))
+        throw(ArgumentError("daDensity2DProjection: `reduce_grid` can only be :square or \
+        :circular, but I got :$( reduce_grid)"))
 
     end
 
@@ -1751,7 +1751,7 @@ function daGasSFR2DProjection(
         x_axis  = reduceTicks(grid.x_ticks, reduce_factor)
         y_axis  = reduceTicks(grid.y_ticks, reduce_factor)
 
-        # The transpose and reverse operation are to conform to
+        # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
         # Depending on the `field_type` and `projection_plane`, different operations
         # are applied to keep the axis consistent between cells and particles
@@ -2062,7 +2062,7 @@ function daMetallicity2DProjection(
         # Compute the metallicity in each bin
         metallicity = uconvert.(Unitful.NoUnits, metal_mass ./ norm_mass)
 
-        # The transpose and reverse operation are to conform to
+        # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
         # Depending on the `field_type` and `projection_plane`, different operations
         # are applied to keep the axis consistent between cells and particles
@@ -2332,7 +2332,7 @@ function daTemperature2DProjection(
         x_axis  = reduceTicks(grid.x_ticks, reduce_factor)
         y_axis  = reduceTicks(grid.y_ticks, reduce_factor)
 
-        # The transpose and reverse operation are to conform to
+        # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
         # Depending on the `field_type` and `projection_plane`, different operations
         # are applied to keep the axis consistent between cells and particles
@@ -2713,7 +2713,7 @@ function daScatterDensity(
     # Set bins with a value of 0 to NaN
     replace!(x -> iszero(x) ? NaN : x, counts)
 
-    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured,
+    # The transpose and reverse operation are used to conform to the way heatmap! expect the matrix to be structured,
     # and log10 is used to enhance the contrast
     z_axis = reverse!(transpose(log10.(counts)), dims=2)
 
@@ -3177,7 +3177,7 @@ function daScatterWeightedDensity(
     # Set bins with a value of 0 to NaN
     replace!(x -> iszero(x) ? NaN : x, values)
 
-    # The transpose and reverse operation are to conform to the way heatmap! expect the matrix to be structured,
+    # The transpose and reverse operation are used to conform to the way heatmap! expect the matrix to be structured,
     # and log10 is used to enhance the contrast
     z_axis = reverse!(transpose(values), dims=2)
 
@@ -3300,7 +3300,7 @@ function daVelocityField(
 
     end
 
-    # The transpose and reverse operation are to conform to the way arrows! expect the matrix to be structured
+    # The transpose and reverse operation are used to conform to the way arrows! expect the matrix to be structured
     vx = collect(reverse!(transpose(vx), dims=2))
     vy = collect(reverse!(transpose(vy), dims=2))
 
