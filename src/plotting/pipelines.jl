@@ -600,66 +600,6 @@ function plotSnapshot(
                 pf = plot_function(axes, axis_data...; pf_kwarg...)
             end
 
-            # #TODO
-            # f_dd = filterData(
-            #     data_dict;
-            #     filter_function=dd -> intersectFilters(
-            #         filterWithinSphere(dd, (0.0u"kpc", 40.0u"kpc"), :zero),
-            #         filterOldStars(dd),
-            #     )
-            # )
-            # if da_arg[1] == :stellar_eff
-
-            #     ppAnnotation!(
-            #         figure,
-            #         "# stars: $(length(f_dd[:stars]["RHOC"]))";
-            #         position=(0.65, 0.98),
-            #         color=:black,
-            #         fontsize=30,
-            #     )
-
-            #     ppAnnotation!(
-            #         figure,
-            #         "Mean eff: $(round(integrateQty(f_dd, :stellar_eff)*100; sigdigits=2))%";
-            #         position=(0.65, 0.92),
-            #         color=:black,
-            #         fontsize=30,
-            #     )
-
-            #     ppAnnotation!(
-            #         figure,"Peak eff: $(round(axis_data[1][argmax(axis_data[2])]*100; sigdigits=2))%";
-            #         position=(0.65, 0.86),
-            #         color=:black,
-            #         fontsize=30,
-            #     )
-
-            # elseif da_arg[1] == :gas_eff
-
-            #     ppAnnotation!(
-            #         figure,
-            #         "# gas: $(length(f_dd[:gas]["RHO "]))";
-            #         position=(0.65, 0.76),
-            #         color=:black,
-            #         fontsize=30,
-            #     )
-
-            #     ppAnnotation!(
-            #         figure,
-            #         "Mean eff: $(round(integrateQty(f_dd, :gas_eff)*100; sigdigits=2))%";
-            #         position=(0.65, 0.70),
-            #         color=:black,
-            #         fontsize=30,
-            #     )
-
-            #     ppAnnotation!(
-            #         figure,"Peak eff: $(round(axis_data[1][argmax(axis_data[2])]*100; sigdigits=2))%";
-            #         position=(0.65, 0.64),
-            #         color=:black,
-            #         fontsize=30,
-            #     )
-
-            # end
-
             # Add a colorbar the the heatmap
             if plot_function isa typeof(heatmap!) && colorbar
                 # For heatmaps add a colorbar

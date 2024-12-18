@@ -6661,7 +6661,6 @@ function compareMolla2015(
 
 end
 
-#TODO
 """
     kennicuttSchmidtLaw(
         simulation_paths::Vector{String},
