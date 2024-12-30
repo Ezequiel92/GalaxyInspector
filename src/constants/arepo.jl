@@ -82,9 +82,11 @@ const METAL_LIST = [3, 4, 5, 6, 7, 8, 9, 10]
 Dictionary of dimensional properties for the quantities in the code.
 """
 const QUANTITIES = Dict(
+
     ######################
     # Snapshot quantities
     ######################
+
     "ACCE" => Qty("Acceleration", Unitful.𝐋 * Unitful.𝐓^-2, :internal),
     "AGE " => Qty("StellarFormationTime", Unitful.𝐓, :internal),
     "AREA" => Qty("SurfaceArea", Unitful.𝐋^2, :internal),
@@ -122,40 +124,72 @@ const QUANTITIES = Dict(
     "VEVE" => Qty("VertexVelocity", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
     "VOL " => Qty("Volume", Unitful.𝐋^3, :internal),
     "Z   " => Qty("Metallicity", Unitful.NoDims, Unitful.NoUnits),
+
     #####################
     # sfr.txt quantities
     #####################
+
+    # Time or scale factor
     "SFC1" => Qty("", Unitful.𝐓, :internal),
+    # Total stellar mass to be formed prior to stochastic sampling
     "SFC2" => Qty("", Unitful.𝐌, :internal),
+    # Instantaneous star formation rate of all cells
     "SFC3" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    # Instantaneous star formation rate of active cells
     "SFC4" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    # Total mass in stars formed after stochastic sampling
     "SFC5" => Qty("", Unitful.𝐌, :internal),
+    # Cumulative stellar mass formed
     "SFC6" => Qty("", Unitful.𝐌, :internal),
+
     ####################
     # EL_SFR quantities
     ####################
+
+    # Integration time, in gas cells and stellar particles
     "ODIT" => Qty("ODE_IntegrationTime", Unitful.𝐓, u"Myr"),
-    "ACIT" => Qty("ODE_AccumulatedIntegrationTime", Unitful.𝐓, u"Myr"),
-    "TAUS" => Qty("ODE_TauS", Unitful.𝐓, u"Myr"),
-    #TODO
-    "DTIM" => Qty("ODE_DeltaTime", Unitful.𝐓, u"Myr"),
-    "RHOC" => Qty("ODE_ParameterCellDensity", Unitful.𝐋^-3, u"cm^-3"),
-    "PARZ" => Qty("ODE_ParameterMetallicity", Unitful.NoDims, Unitful.NoUnits),
-    "ETAD" => Qty("ODE_ParameterEtaD", Unitful.NoDims, Unitful.NoUnits),
-    "ETAI" => Qty("ODE_ParameterEtaI", Unitful.NoDims, Unitful.NoUnits),
-    "PARR" => Qty("ODE_ParameterR", Unitful.NoDims, Unitful.NoUnits),
+    # Scale factor, in gas cells and stellar particles
     "PARA" => Qty("ODE_ParameterA", Unitful.NoDims, Unitful.NoUnits),
+    # Star formation time parameter, in gas cells and stellar particles
+    "TAUS" => Qty("ODE_TauS", Unitful.𝐓, u"Myr"),
+    # Gas density, for gas cells and stellar particles
+    "RHOC" => Qty("ODE_ParameterCellDensity", Unitful.𝐋^-3, u"cm^-3"),
+    # Gas metallicity, for gas cells and stellar particles
+    "PARZ" => Qty("ODE_ParameterMetallicity", Unitful.NoDims, Unitful.NoUnits),
+    # Photodissociation parameter, for gas cells and stellar particles
+    "ETAD" => Qty("ODE_ParameterEtaD", Unitful.NoDims, Unitful.NoUnits),
+    # Photoionization parameter, for gas cells and stellar particles
+    "ETAI" => Qty("ODE_ParameterEtaI", Unitful.NoDims, Unitful.NoUnits),
+    # Mass recycling parameter, for gas cells and stellar particles
+    "PARR" => Qty("ODE_ParameterR", Unitful.NoDims, Unitful.NoUnits),
+    # Gas fractions, for gas cells and stellar particles
     "FRAC" => Qty("ODE_Fractions", Unitful.NoDims, Unitful.NoUnits),
-    "FSPR" => Qty("ODE_f_star_prev", Unitful.NoDims, Unitful.NoUnits),
+    # Star formation flag, for gas cells
+    "SFFL" => Qty("ODE_SfFlag", Unitful.NoDims, Unitful.NoUnits),
+    # Cold gas fraction, for gas cells
     "COLF" => Qty("ODE_ColdMassFrac", Unitful.NoDims, Unitful.NoUnits),
+    # Parent gas mass (at the moment of star formation), for stellar particles
     "GMAS" => Qty("ODE_GasMass", Unitful.𝐌, :internal),
+    # Parent SFR (at the moment of star formation), for stellar particles
     "GSFR" => Qty("ODE_GasSFR", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    # Parent gas pressure (at the moment of star formation), for stellar particles
     "GPRE" => Qty("ODE_GasPressure", Unitful.𝐌 * Unitful.𝐋^-1 * Unitful.𝐓^-2, :internal),
+    # Parent position (at the moment of star formation), for stellar particles
     "GPOS" => Qty("ODE_GasPosition", Unitful.𝐋, :internal),
+    # Parent velocity (at the moment of star formation), for stellar particles
     "GVEL" => Qty("ODE_GasVelocity", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
+
+    #TODO
+    # Legacy quantities
+    "ACIT" => Qty("ODE_AccumulatedIntegrationTime", Unitful.𝐓, u"Myr"),
+    "CTIM" => Qty("ODE_CurrentTime", Unitful.𝐓, u"Myr"),
+    "DTIM" => Qty("ODE_DeltaTime", Unitful.𝐓, u"Myr"),
+    "FSPR" => Qty("ODE_f_star_prev", Unitful.NoDims, Unitful.NoUnits),
+
     ##############################
     # Halo (FoF group) quantities
     ##############################
+
     "G_BHMass"             => Qty("GroupBHMass", Unitful.𝐌, :internal),
     "G_CM"                 => Qty("GroupCM", Unitful.𝐋, :internal),
     "G_FirstSub"           => Qty("GroupFirstSub", Unitful.NoDims, Unitful.NoUnits),
@@ -180,9 +214,11 @@ const QUANTITIES = Dict(
     "G_R_Mean200"          => Qty("Group_R_Mean200", Unitful.𝐋, :internal),
     "G_R_TopHat200"        => Qty("Group_R_TopHat200", Unitful.𝐋, :internal),
     "G_Vel"                => Qty("GroupVel", Unitful.𝐋 * Unitful.𝐓^-1, :gvel),
+
     ###############################
     # Subhalo (subfind) quantities
     ###############################
+
     "S_BHMass"                       => Qty("SubhaloBHMass", Unitful.𝐌, :internal),
     "S_CM"                           => Qty("SubhaloCM", Unitful.𝐋, :internal),
     "S_GasMetalFractions"            => Qty("SubhaloGasMetalFractions", Unitful.NoDims, Unitful.NoUnits),
