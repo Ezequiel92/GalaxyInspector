@@ -1061,88 +1061,109 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :stellar_eff
 
-        ϵff = computeEfficiencyFF(
+        ϵffs = computeEfficiencyFF(
             data_dict[:stars]["RHOC"] .* u"mp",
             data_dict[:stars]["GMAS"],
             data_dict[:stars]["GSFR"],
         )
 
-        if isempty(ϵff)
+        # Filter out zeros and NaNs
+        filter!(eff -> !isnan(eff) && !iszero(eff), ϵffs)
+
+        if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵff)
+            integrated_qty = mean(ϵffs)
         end
 
     elseif quantity == :gas_eff
 
         mass = computeMass(data_dict, :gas)
 
-        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+        ϵffs = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
 
-        if isempty(ϵff)
+        # Filter out zeros and NaNs
+        filter!(eff -> !isnan(eff) && !iszero(eff), ϵffs)
+
+        if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵff)
+            integrated_qty = mean(ϵffs)
         end
 
     elseif quantity == :molecular_eff
 
         mass = computeMass(data_dict, :molecular)
 
-        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+        ϵffs = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
 
-        if isempty(ϵff)
+        # Filter out zeros and NaNs
+        filter!(eff -> !isnan(eff) && !iszero(eff), ϵffs)
+
+        if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵff)
+            integrated_qty = mean(ϵffs)
         end
 
     elseif quantity == :br_molecular_eff
 
         mass = computeMass(data_dict, :br_molecular)
 
-        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+        ϵffs = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
 
-        if isempty(ϵff)
+        # Filter out zeros and NaNs
+        filter!(eff -> !isnan(eff) && !iszero(eff), ϵffs)
+
+        if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵff)
+            integrated_qty = mean(ϵffs)
         end
 
     elseif quantity == :atomic_eff
 
         mass = computeMass(data_dict, :atomic)
 
-        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+        ϵffs = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
 
-        if isempty(ϵff)
+        # Filter out zeros and NaNs
+        filter!(eff -> !isnan(eff) && !iszero(eff), ϵffs)
+
+        if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵff)
+            integrated_qty = mean(ϵffs)
         end
 
     elseif quantity == :ionized_eff
 
         mass = computeMass(data_dict, :ionized)
 
-        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+        ϵffs = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
 
-        if isempty(ϵff)
+        # Filter out zeros and NaNs
+        filter!(eff -> !isnan(eff) && !iszero(eff), ϵffs)
+
+        if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵff)
+            integrated_qty = mean(ϵffs)
         end
 
     elseif quantity == :neutral_eff
 
         mass = computeMass(data_dict, :neutral)
 
-        ϵff = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
+        ϵffs = computeEfficiencyFF(data_dict[:gas]["RHO "], mass, data_dict[:gas]["SFR "])
 
-        if isempty(ϵff)
+        # Filter out zeros and NaNs
+        filter!(eff -> !isnan(eff) && !iszero(eff), ϵffs)
+
+        if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵff)
+            integrated_qty = mean(ϵffs)
         end
 
     elseif quantity == :scale_factor
