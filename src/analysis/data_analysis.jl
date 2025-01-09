@@ -1527,7 +1527,7 @@ function daDensity2DProjection(
 
     if logging[]
 
-        log_z_axis = filter(!isnan, log10.(z_axis))
+        log_z_axis = filter(!isnan, z_axis)
 
         if isempty(log_z_axis)
 
@@ -1784,7 +1784,7 @@ function daGasSFR2DProjection(
 
     if logging[]
 
-        log_z_axis = filter(!isnan, log10.(z_axis))
+        log_z_axis = filter(!isnan, z_axis)
 
         if isempty(log_z_axis)
 
