@@ -2394,7 +2394,7 @@ function computeParticleBandProfile(
     quantity::Vector{<:Number},
     grid::CircularGrid;
     flat::Bool=true,
-)::NTuple{2,Vector{<:Number}}
+)::NTuple{3,Vector{<:Number}}
 
     if isempty(quantity)
 
@@ -2418,7 +2418,7 @@ function computeParticleBandProfile(
     # Compute the histogram of `quantity`
     histogram = listHistogram1D(distances, quantity, grid)
 
-    return mean.(histogram), std.(histogram)
+    return quantile.(histogram, 0.5), quantile.(histogram, 0.25), quantile.(histogram, 0.75)
 
 end
 
@@ -3397,7 +3397,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :stellar_gas_mass
 
         plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "FRAC"]),
+            request    = Dict(:gas => ["MASS", "FRAC", "RHO "]),
             var_name   = L"M_\star^\mathrm{gas}",
             exp_factor = 10,
             unit       = u"Msun",
@@ -3449,7 +3449,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "TAUS", "PRES", "NH  ", "NHP "],
+                :gas => ["RHO ", "MASS", "POS ", "FRAC", "TAUS", "PRES", "NH  ", "NHP "],
             ),
             var_name = L"f_\mathrm{H_2}",
         )
@@ -3467,7 +3467,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "TAUS", "PRES"],
+                :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "TAUS", "PRES"],
             ),
             var_name = L"f_\mathrm{HI}",
         )
@@ -3476,7 +3476,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "TAUS"],
+                :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "TAUS"],
             ),
             var_name = L"f_\mathrm{HII}",
         )
@@ -3485,7 +3485,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "TAUS"],
+                :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "TAUS"],
             ),
             var_name = L"f_\mathrm{H_I + H_2}",
         )
@@ -3494,7 +3494,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
+                :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
             ),
             var_name = L"f_\mathrm{H_2} \, / f_\mathrm{n}",
         )
@@ -3503,7 +3503,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
+                :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
             ),
             var_name = L"f_\mathrm{HII} \, / f_\mathrm{n}",
         )
@@ -3511,7 +3511,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :stellar_gas_fraction
 
         plot_params = PlotParams(;
-            request  = Dict(:gas => ["FRAC"]),
+            request  = Dict(:gas => ["RHO ", "FRAC"]),
             var_name = L"f_\star",
         )
 
@@ -3537,7 +3537,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(
-                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
+                :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "TAUS"],
             ),
             var_name = L"f",
         )

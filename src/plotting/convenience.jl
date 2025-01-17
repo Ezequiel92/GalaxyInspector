@@ -199,6 +199,7 @@ function snapshotReport(
                         "FRAC",
                         "ODIT",
                         "TAUS",
+                        "RHO ",
                         "RHOC",
                         "PARZ",
                         "ETAD",
@@ -3766,7 +3767,7 @@ function scatterPlot(
 
     # Set arguments for a log y axis
     if ylog
-        x_log        = y_plot_params.unit
+        y_log        = y_plot_params.unit
         y_unit       = Unitful.NoUnits
         unit_label   = getUnitLabel(0, y_plot_params.unit; latex=true)
         if isempty(unit_label)

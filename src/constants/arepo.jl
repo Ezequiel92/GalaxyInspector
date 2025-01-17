@@ -179,7 +179,6 @@ const QUANTITIES = Dict(
     # Parent velocity (at the moment of star formation), for stellar particles
     "GVEL" => Qty("ODE_GasVelocity", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
 
-    #TODO
     # Legacy quantities
     "ACIT" => Qty("ODE_AccumulatedIntegrationTime", Unitful.𝐓, u"Myr"),
     "CTIM" => Qty("ODE_CurrentTime", Unitful.𝐓, u"Myr"),

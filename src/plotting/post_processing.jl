@@ -64,6 +64,52 @@ function ppVerticalFlags!(
 end
 
 """
+    ppFillBelowLine!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Nothing
+
+Fill the space below a line plot, up to a `lower_limit`, with a solid `color`.
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure to be drawn over.
+  - `lower_limit::Number=0.0`: Lower bound.
+  - `color::ColorType=:red`: Color.
+  - `alpha::Float64=0.3`: Level of transparency. 1.0 is completely opaque and 0.0 is completely transparent.
+"""
+function ppFillBelowLine!(
+    figure::Makie.Figure;
+    lower_limit::Number=0.0,
+    color::ColorType=:red,
+    alpha::Float64=0.3,
+)::Nothing
+
+    # Read the data points in the plot
+    points = pointData(figure)
+
+    if isempty(points)
+        !logging[] || @warn("ppFillBelowLine!: There are no points in the figure")
+        return nothing
+    end
+
+    xs = Vector{Float64}(undef, length(points))
+    ys = Vector{Float64}(undef, length(points))
+
+    @inbounds for (i, point) in pairs(points)
+        xs[i] = point[1]
+        ys[i] = point[2]
+    end
+
+    ys_low = fill(lower_limit, length(xs))
+
+    band!(figure.current_axis.x, xs, ys_low, ys; color, alpha)
+
+    return nothing
+
+end
+
+"""
     ppHorizontalFlags!(
         figure::Makie.Figure,
         positions::Vector{<:Real};
