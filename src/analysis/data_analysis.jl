@@ -3835,6 +3835,10 @@ function daScatterGalaxy(
         y_axis = log10.(ustrip.(y_log, y_values))
     end
 
+    if any(isempty, [x_axis, y_axis])
+        return Float64[], Float64[]
+    end
+
     return x_axis, y_axis
 
 end
