@@ -580,7 +580,7 @@ const DEFAULT_THEME = Theme(
         cycle=Cycle([:color, :linestyle, :marker], covary=true),
     ),
     Scatter=(markersize=22, cycle=Cycle([:color, :marker], covary=true)),
-    Band=(cycle=[:color],),
+    Band=(cycle=[:color], alpha=0.3),
     Errorbars=(whiskerwidth=10,),
     ########################################################################
     # Alternative colormaps:
