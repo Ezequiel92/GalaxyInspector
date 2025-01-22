@@ -200,6 +200,41 @@ function ppCross!(
 end
 
 """
+    ppArrows!(
+        figure::Makie.Figure,
+        positions::Vector{NTuple{4,Float64}};
+        <keyword arguments>
+    )::Nothing
+
+Draw arrows.
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure to be drawn over.
+  - `positions::Vector{NTuple{4,Float64}}`: The x, y, u, and v coordinates of the arrows. x and y indicate the position of the tails, and u and v the position of the point of the arrows.
+  - `colors::Vector{<:ColorType}=[:red]`: Colors of the arrows.
+"""
+function ppArrows!(
+    figure::Makie.Figure,
+    positions::Vector{NTuple{4,Float64}};
+    colors::Vector{<:ColorType}=[:red],
+)::Nothing
+
+    @inbounds for (i, position) in pairs(positions)
+
+        x, y, u, v = position
+        color = ring(colors, i)
+
+        # Draw the arrows
+        arrows!(figure.current_axis.x, [x], [y], [u], [v]; color)
+
+    end
+
+    return nothing
+
+end
+
+"""
     ppAnnotation!(figure::Makie.Figure, text::AbstractString; <keyword arguments>)::Nothing
 
 Add an annotation to the plot.
