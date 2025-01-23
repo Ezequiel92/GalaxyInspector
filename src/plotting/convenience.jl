@@ -891,6 +891,8 @@ function snapshotReport(
 
                 values = filter(!isnan, ustrip.(unit, data_dict[:gas][quantity]))
 
+                isempty(values) && continue
+
                 println(file, "\t\tMean $name:    $(round(mean(values), sigdigits=4)) $unit")
                 println(file, "\t\tMedian $name:  $(round(median(values), sigdigits=4)) $unit")
                 println(file, "\t\tMode $name:    $(round(mode(values)[1], sigdigits=4)) $unit")
@@ -968,25 +970,29 @@ function snapshotReport(
         # of the stellar mass
         ###################################################################################
 
-        mass_height_90 = computeMassHeight(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["MASS"];
-            percent=90.0,
-        )
+        if !isempty(data_dict[:stars]["MASS"])
 
-        mass_height_95 = computeMassHeight(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["MASS"];
-            percent=95.0,
-        )
+            mass_height_90 = computeMassHeight(
+                data_dict[:stars]["POS "],
+                data_dict[:stars]["MASS"];
+                percent=90.0,
+            )
 
-        println(
-            file,
-            "\tTotal height of a cylinder, of infinite radius, containing X% of the stellar mass \
-            (filtered box):\n"
-        )
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_90), sigdigits=4)) $(u"kpc") (90%)")
-        println(file, "\t\t$(round(ustrip(u"kpc", mass_height_95), sigdigits=4)) $(u"kpc") (95%)\n")
+            mass_height_95 = computeMassHeight(
+                data_dict[:stars]["POS "],
+                data_dict[:stars]["MASS"];
+                percent=95.0,
+            )
+
+            println(
+                file,
+                "\tTotal height of a cylinder, of infinite radius, containing X% of the stellar \
+                mass (filtered box):\n"
+            )
+            println(file, "\t\t$(round(ustrip(u"kpc", mass_height_90), sigdigits=4)) $(u"kpc") (90%)")
+            println(file, "\t\t$(round(ustrip(u"kpc", mass_height_95), sigdigits=4)) $(u"kpc") (95%)\n")
+
+        end
 
         ############################################################################################
         # Print the properties of the target halo and subhalo
