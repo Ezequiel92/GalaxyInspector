@@ -542,13 +542,29 @@ function computeEfficiencyFF(
 
     end
 
-    # Compute the free-fall time
-    tff = @. sqrt(3π / (32 * Unitful.G * density))
+    ϵff = Vector{Float64}(undef, length(density))
 
-    # Compute the depletion time
-    tdep = @. mass / sfr
+    @inbounds for i in eachindex(ϵff)
 
-    return @. uconvert(Unitful.NoUnits, tff / tdep)
+        if density[i] < THRESHOLD_DENSITY
+
+            ϵff[i] = 0.0
+
+        else
+
+            # Compute the free-fall time
+            tff = sqrt(3π / (32 * Unitful.G * density[i]))
+
+            # Compute the depletion time
+            tdep = mass[i] / sfr[i]
+
+            ϵff[i] = uconvert(Unitful.NoUnits, tff / tdep)
+
+        end
+
+    end
+
+    return ϵff
 
 end
 
