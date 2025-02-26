@@ -594,8 +594,8 @@ Draw a line plot with the fit for the KS law, taken from Bigiel et al. (2008).
   - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
   - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
-  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}``  (`y_log` = false).
-  - `extend::Float64=0.0`: By default the y axis limits of the line will be the vertical range of point in the plot. This can be extended by the fraction `extend` of the vertical range.
+  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}`` (`y_log` = false).
+  - `extend::Float64=0.0`: By default the y axis limits will be the vertical range of the point in the plot. This can be extended by the multiplicative factor `extend` of the vertical range.
   - `colors::Vector{<:ColorType}=[Makie.wong_colors()[6], Makie.wong_colors()[7]]`: Colors for the line. The first color will indicate the range for which there are experimental data, and the second color will be for the extrapolation.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `linewidth::Int=3`: Line width.
@@ -645,7 +645,7 @@ function ppBigiel2008!(
     # Extend the y limits the required amount
     if extend > 0.0
 
-        extension = y_gap * extend
+        extension = y_range * extend
 
         y_limits[1] -= extension
         y_limits[2] += extension
