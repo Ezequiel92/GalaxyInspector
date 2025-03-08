@@ -70,12 +70,12 @@ function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}
     new_origin = computeCenter(data_dict, translation)
     stellar_vcm = computeVcm(data_dict, translation)
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
-        @inbounds for (block, values) in data_dict[component]
+        for (block, values) in data_dict[component]
 
             if !isempty(values)
-                @inbounds if block == "POS "
+                if block == "POS "
                     data_dict[component]["POS "] = translatePoints(values, new_origin)
                 elseif block == "VEL "
                     data_dict[component]["VEL "] = translatePoints(values, stellar_vcm)
@@ -172,11 +172,11 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
     end
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
-        @inbounds for (block, values) in data_dict[component]
+        for (block, values) in data_dict[component]
 
-            @inbounds if block ∈ ["POS ", "VEL "] && !isempty(values)
+            if block ∈ ["POS ", "VEL "] && !isempty(values)
                 data_dict[component][block] = rotation_matrix * values
             end
 
@@ -231,11 +231,11 @@ function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
         star_data[:stars]["MASS"],
     )
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
-        @inbounds for (block, values) in data_dict[component]
+        for (block, values) in data_dict[component]
 
-            @inbounds if block ∈ ["POS ", "VEL "] && !isempty(values)
+            if block ∈ ["POS ", "VEL "] && !isempty(values)
                 data_dict[component][block] = rotation_matrix * values
             end
 
@@ -287,11 +287,11 @@ function rotateData!(data_dict::Dict, rotation::Int)::Nothing
         star_data[:stars]["MASS"],
     )
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
-        @inbounds for (block, values) in data_dict[component]
+        for (block, values) in data_dict[component]
 
-            @inbounds if block ∈ ["POS ", "VEL "] && !isempty(values)
+            if block ∈ ["POS ", "VEL "] && !isempty(values)
                 data_dict[component][block] = rotation_matrix * values
             end
 

@@ -53,12 +53,12 @@ function filterData!(data_dict::Dict; filter_function::Function=filterNothing)::
     # Compute the filter dictionary
     indices = filter_function(data_dict)
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
         idxs = indices[component]
 
-        @inbounds for (block, values) in data_dict[component]
-            @inbounds if !isempty(values)
+        for (block, values) in data_dict[component]
+            if !isempty(values)
                 data_dict[component][block] = collect(selectdim(values, ndims(values), idxs))
             end
         end
@@ -126,12 +126,12 @@ function filterData(data_dict::Dict; filter_function::Function=filterNothing)::D
     # Compute the filter dictionary
     indices = filter_function(dd_copy)
 
-    @inbounds for component in snapshotTypes(dd_copy)
+    for component in snapshotTypes(dd_copy)
 
         idxs = indices[component]
 
-        @inbounds for (block, values) in dd_copy[component]
-            @inbounds if !isempty(values)
+        for (block, values) in dd_copy[component]
+            if !isempty(values)
                 dd_copy[component][block] = collect(selectdim(values, ndims(values), idxs))
             end
         end
@@ -430,7 +430,7 @@ function intersectFilters(filters::Dict{Symbol,IndexType}...)::Dict{Symbol,Index
         (their keys)"))
     )
 
-    @inbounds for component in keys(filters[1])
+    for component in keys(filters[1])
 
         indices[component] = intersect(
             filters[1][component],
@@ -531,11 +531,11 @@ function filterWithinSphere(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
         positions = data_dict[component]["POS "]
 
-        @inbounds if isempty(positions)
+        if isempty(positions)
             indices[component] = (:)
         else
             distances = computeDistance(positions; center)
@@ -598,11 +598,11 @@ function filterWithinCylinder(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
         positions = data_dict[component]["POS "]
 
-        @inbounds if isempty(positions)
+        if isempty(positions)
             indices[component] = (:)
         else
             distances = computeDistance(positions; center)
@@ -745,14 +745,14 @@ function filterBySubhalo(
     components_in_dd = snapshotTypes(data_dict)
 
     # Fill the filter dictionary
-    @inbounds for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
+    for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
 
         component = INDEX_PARTICLE[i - 1]
 
         # Only compute the indices for components in `data_dict`
         if component ∈ components_in_dd
 
-            @inbounds if first_idx == last_idx || iszero(last_idx)
+            if first_idx == last_idx || iszero(last_idx)
                 indices[component] = Int[]
             end
 
@@ -854,14 +854,14 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
     components_in_dd = snapshotTypes(data_dict)
 
     # Fill the filter dictionary
-    @inbounds for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
+    for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
 
         component = INDEX_PARTICLE[i - 1]
 
         # Only compute the indices for components in `data_dict`
         if component ∈ components_in_dd
 
-            @inbounds if first_idx == last_idx || iszero(last_idx)
+            if first_idx == last_idx || iszero(last_idx)
                 indices[component] = Int[]
             end
 
@@ -964,7 +964,7 @@ function filterByQuantity(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for type in snapshotTypes(data_dict)
+    for type in snapshotTypes(data_dict)
 
         (
             length(data_dict[type]["MASS"]) != length(values) && logging[] &&
@@ -973,7 +973,7 @@ function filterByQuantity(
             `component` = :$(component) is correct?")
         )
 
-        @inbounds if type == component
+        if type == component
             indices[type] = map(x -> minimum <= x <= maximum, values)
         else
             indices[type] = (:)
@@ -1070,9 +1070,9 @@ function filterByEquilibrium(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
-        @inbounds if component == :gas
+        if component == :gas
             indices[component] = idxs
         else
             indices[component] = (:)
@@ -1119,9 +1119,9 @@ function filterByELSFR(data_dict::Dict)::Dict{Symbol,IndexType}
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
-        @inbounds if component == :gas
+        if component == :gas
             if isempty(data_dict[:gas]["FRAC"])
                 indices[component] = Int[]
             else
@@ -1198,9 +1198,9 @@ function filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
-        @inbounds if component == :stars
+        if component == :stars
             indices[component] = new_stars_idxs
         else
             indices[component] = (:)
@@ -1262,9 +1262,9 @@ function filterByStellarAge(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
-        @inbounds if component == :stars
+        if component == :stars
             indices[component] = new_stars_idxs
         else
             indices[component] = (:)
@@ -1344,9 +1344,9 @@ function filterByBirthPlace(
     # Allocate memory
     indices = Dict{Symbol,IndexType}()
 
-    @inbounds for component in snapshotTypes(data_dict)
+    for component in snapshotTypes(data_dict)
 
-        @inbounds if component == :stars
+        if component == :stars
             indices[component] = stars_idxs
         else
             indices[component] = (:)

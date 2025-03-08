@@ -292,7 +292,7 @@ function plotSnapshot(
     plot_something = false
 
     # Loop through the different snapshots
-    @inbounds for (slice_index, global_index) in pairs(slice_indices)
+    for (slice_index, global_index) in pairs(slice_indices)
 
         # Flag to keep the x axis with a linear scale if there are no data points left after
         # trying to use a nonlinear scale
@@ -314,7 +314,7 @@ function plotSnapshot(
         snapshot_number = snapshot_numbers[global_index]
 
         # Loop through each simulation for a given snapshot
-        @inbounds for (simulation_index, simulation_table) in pairs(simulation_tables)
+        for (simulation_index, simulation_table) in pairs(simulation_tables)
 
             snapshot_row = filter(:numbers => ==(snapshot_number), simulation_table)
 
@@ -696,7 +696,7 @@ function plotSnapshot(
                 markers    = current_theme[:palette][:marker][]
                 linestyles = current_theme[:palette][:linestyle][]
 
-                @inbounds for i in eachindex(legend_element)
+                for i in eachindex(legend_element)
                     color = ring(colors, i)
                     marker = ring(markers, i)
                     linestyle = ring(linestyles, i)
@@ -957,7 +957,7 @@ function plotTimeSeries(
     yscale_flag = true
 
     # Loop through each simulation
-    @inbounds for (simulation_index, simulation_path) in pairs(simulation_paths)
+    for (simulation_index, simulation_path) in pairs(simulation_paths)
 
         ############################################################################################
         # Compute the metadata for the current simulation
@@ -1088,7 +1088,7 @@ function plotTimeSeries(
             markers    = current_theme[:palette][:marker][]
             linestyles = current_theme[:palette][:linestyle][]
 
-            @inbounds for i in eachindex(legend_element)
+            for i in eachindex(legend_element)
                 color = ring(colors, i)
                 marker = ring(markers, i)
                 linestyle = ring(linestyles, i)

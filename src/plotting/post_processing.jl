@@ -51,7 +51,7 @@ function ppVerticalFlags!(
     else
 
         # Draw the vertical lines
-        @inbounds for (i, position) in pairs(positions)
+        for (i, position) in pairs(positions)
             color = ring(colors, i)
             linestyle = ring(line_styles, i)
             vlines!(figure.current_axis.x, position; color, linestyle)
@@ -96,7 +96,7 @@ function ppFillBelowLine!(
     xs = Vector{Float64}(undef, length(points))
     ys = Vector{Float64}(undef, length(points))
 
-    @inbounds for (i, point) in pairs(points)
+    for (i, point) in pairs(points)
         xs[i] = point[1]
         ys[i] = point[2]
     end
@@ -143,7 +143,7 @@ function ppHorizontalFlags!(
     else
 
         # Draw the horizontal lines
-        @inbounds for (i, position) in pairs(positions)
+        for (i, position) in pairs(positions)
             color = ring(colors, i)
             linestyle = ring(line_styles, i)
             hlines!(figure.current_axis.x, position; color, linestyle)
@@ -220,7 +220,7 @@ function ppArrows!(
     colors::Vector{<:ColorType}=[:red],
 )::Nothing
 
-    @inbounds for (i, position) in pairs(positions)
+    for (i, position) in pairs(positions)
 
         x, y, u, v = position
         color = ring(colors, i)
@@ -1207,7 +1207,7 @@ function ppFeldmann2020!(
     histogram = Vector{Int}[Vector{Int}[] for _ in 1:n_bins]
 
     # Compute the histogram; ignoring missings and values outside the grid range
-    @inbounds for (x_idx, x_value) in pairs(scaled_xs)
+    for (x_idx, x_value) in pairs(scaled_xs)
 
         if ismissing(x_value)
             continue
@@ -1232,7 +1232,7 @@ function ppFeldmann2020!(
     # Allocate memory
     y_axis = Vector{Union{Measurement{Float64},Missing}}(undef, n_bins)
 
-    @inbounds for (i, hist_idxs) in pairs(histogram)
+    for (i, hist_idxs) in pairs(histogram)
 
         # For each bin select the corresponding y measurements
         binned_y_measurements = skipmissing(scaled_ys[hist_idxs])

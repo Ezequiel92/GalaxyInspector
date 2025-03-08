@@ -1426,7 +1426,7 @@ function daDensity2DProjection(
         kdtree = KDTree(ustrip.(l_unit, positions))
 
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
             physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
             physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
@@ -1439,7 +1439,7 @@ function daDensity2DProjection(
         mass_grid = similar(grid.grid, Float64)
 
         # Compute the mass in each voxel
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             mass_grid[i] = densities[idxs[i]] * voxel_volume
         end
 
@@ -1680,7 +1680,7 @@ function daGasSFR2DProjection(
         kdtree = KDTree(ustrip.(l_unit, positions))
 
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
             physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
             physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
@@ -1696,7 +1696,7 @@ function daGasSFR2DProjection(
         voxel_volume = ustrip(l_unit^3, grid.bin_volume)
 
         # Compute the gas SFR in each voxel
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             sfr_grid[i] = sfr_densities[idxs[i]] * voxel_volume
         end
 
@@ -1957,7 +1957,7 @@ function daMetallicity2DProjection(
         physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
 
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             physical_grid[1, i] = ustrip(u"kpc", grid.grid[i][1])
             physical_grid[2, i] = ustrip(u"kpc", grid.grid[i][2])
             physical_grid[3, i] = ustrip(u"kpc", grid.grid[i][3])
@@ -1974,9 +1974,9 @@ function daMetallicity2DProjection(
         metal_mass_grid = similar(grid.grid, Float64)
 
         # Compute the corresponding masses in each voxel
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
 
-            @inbounds if element == :all
+            if element == :all
                 norm_mass_grid[i]   = ustrip.(u"Msun", cell_densities[idxs[i]] * grid.bin_volume)
             else
                 norm_mass_grid[i]   = ustrip.(u"Msun", hydrogen_density[idxs[i]] * grid.bin_volume)
@@ -2252,7 +2252,7 @@ function daTemperature2DProjection(
         physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
 
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             physical_grid[1, i] = ustrip(u"kpc", grid.grid[i][1])
             physical_grid[2, i] = ustrip(u"kpc", grid.grid[i][2])
             physical_grid[3, i] = ustrip(u"kpc", grid.grid[i][3])
@@ -2269,7 +2269,7 @@ function daTemperature2DProjection(
         mass_grid        = similar(grid.grid, Float64)
 
         # Compute the temperature and mass of each voxel
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             temperature_grid[i] = temperatures[idxs[i]]
             mass_grid[i]        = densities[idxs[i]] * voxel_volume
         end
@@ -4371,7 +4371,7 @@ function daEvolution(
     x_axis = Vector{Number}(fill(NaN, length(iterator)))
     y_axis = Vector{Number}(fill(NaN, length(iterator)))
 
-    @inbounds for (slice_index, sim_table_data) in pairs(iterator)
+    for (slice_index, sim_table_data) in pairs(iterator)
 
         global_index  = sim_table_data[1]
         scale_factor  = sim_table_data[3]
@@ -4588,7 +4588,7 @@ function daVirialAccretion(
     # Iteration over the snapshots
     ################################################################################################
 
-    @inbounds for (slice_index, sim_table_data) in pairs(iterator[2:end])
+    for (slice_index, sim_table_data) in pairs(iterator[2:end])
 
         global_index  = sim_table_data[1]
         scale_factor  = sim_table_data[3]
@@ -4814,7 +4814,7 @@ function daDiscAccretion(
     # Iteration over the snapshots
     ################################################################################################
 
-    @inbounds for (slice_index, sim_table_data) in pairs(iterator[2:end])
+    for (slice_index, sim_table_data) in pairs(iterator[2:end])
 
         global_index  = sim_table_data[1]
         scale_factor  = sim_table_data[3]
@@ -5455,7 +5455,7 @@ function daClumpingFactor(
         neighbor indices don't have the same lengths. This should not happen!"))
     )
 
-    @inbounds for (i, idx) in pairs(idxs)
+    for (i, idx) in pairs(idxs)
 
         V[i]  = sum(cell_volumes[idx]; init=0.0u"kpc^3")
         Cρ[i] = computeClumpingFactor(number_densities[idx])
@@ -5593,7 +5593,7 @@ function daClumpingFactorProfile(
     # Allocate memory
     Cρ = similar(grid.grid, Float64)
 
-    @inbounds for (i, n) in pairs(n_profile)
+    for (i, n) in pairs(n_profile)
 
         Cρ[i] = computeClumpingFactor(n)
 

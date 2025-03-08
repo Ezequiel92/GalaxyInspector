@@ -61,9 +61,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fractions = Vector{Float64}(undef, length(dg["MASS"]))
 
-            @inbounds for i in eachindex(fractions)
+            for i in eachindex(fractions)
 
-                @inbounds if !isnan(dg["FRAC"][3, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(dg["FRAC"][3, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
 
                     # Fraction of molecular hydrogen according to our SF model
                     fractions[i] = dg["FRAC"][3, i] + dg["FRAC"][4, i]
@@ -94,7 +94,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fc = Vector{Float64}(undef, length(dg["NH  "]))
 
-            @inbounds for i in eachindex(fc)
+            for i in eachindex(fc)
 
                 fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
@@ -160,9 +160,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fractions = Vector{Float64}(undef, length(dg["MASS"]))
 
-            @inbounds for i in eachindex(fractions)
+            for i in eachindex(fractions)
 
-                @inbounds if !isnan(dg["FRAC"][2, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(dg["FRAC"][2, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
 
                     # Fraction of atomic hydrogen according to our SF model
                     fractions[i] = dg["FRAC"][2, i]
@@ -193,7 +193,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fc = Vector{Float64}(undef, length(dg["MASS"]))
 
-            @inbounds for i in eachindex(fc)
+            for i in eachindex(fc)
 
                 fc[i] = dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
 
@@ -228,9 +228,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fractions = Vector{Float64}(undef, length(dg["NHP "]))
 
-            @inbounds for i in eachindex(fractions)
+            for i in eachindex(fractions)
 
-                @inbounds if !isnan(dg["FRAC"][1, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(dg["FRAC"][1, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
 
                     # Fraction of ionized hydrogen according to our SF model
                     fractions[i] = dg["FRAC"][1, i]
@@ -283,9 +283,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
             fa = Vector{Float64}(undef, length(dg["MASS"]))
             fm = Vector{Float64}(undef, length(dg["MASS"]))
 
-            @inbounds for i in eachindex(fa)
+            for i in eachindex(fa)
 
-                @inbounds if !isnan(dg["FRAC"][2, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(dg["FRAC"][2, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
 
                     # Fraction of atomic hydrogen according to our SF model
                     fa[i] = dg["FRAC"][2, i]
@@ -343,9 +343,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fractions = Vector{Float64}(undef, length(dg["MASS"]))
 
-            @inbounds for i in eachindex(fractions)
+            for i in eachindex(fractions)
 
-                @inbounds if !isnan(dg["FRAC"][4, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(dg["FRAC"][4, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
 
                     # Fraction of stars according to our SF model
                     fractions[i] = dg["FRAC"][4, i]

@@ -128,7 +128,7 @@ function parentIDToIndex(
     # Allocate memory
     index_dict = Dict{Symbol,Vector{Int}}()
 
-    @inbounds for ts in components
+    for ts in components
 
         # Read the IDs of the cell/particles
         parent_ids = data_dict[ts]["ID  "]

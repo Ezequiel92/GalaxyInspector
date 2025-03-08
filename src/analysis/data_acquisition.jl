@@ -488,7 +488,7 @@ function readGoupCatBlocks(
     h5open(file_path, "r") do gc_file
 
         # Read from the request only the group catalog types
-        @inbounds for component in groupcatTypes(request)
+        for component in groupcatTypes(request)
 
             blocks = copy(request[component])
 
@@ -511,14 +511,14 @@ function readGoupCatBlocks(
                     )
 
                     # Return an empty array for every missing block
-                    @inbounds for block in blocks
+                    for block in blocks
                         unit = internalUnits(block, snapshot_path)
                         qty_data[block] = typeof(1.0 * unit)[]
                     end
 
                 else
 
-                    @inbounds for block in blocks
+                    for block in blocks
 
                         unit = internalUnits(block, snapshot_path)
 
@@ -552,7 +552,7 @@ function readGoupCatBlocks(
                 )
 
                 # Return an empty array for every missing block
-                @inbounds for block in blocks
+                for block in blocks
                     unit = internalUnits(block, snapshot_path)
                     qty_data[block] = typeof(1.0 * unit)[]
                 end
@@ -614,7 +614,7 @@ function readSnapBlocks(
     h5open(file_path, "r") do snapshot
 
         # Read from the request only the cell/particle types
-        @inbounds for component in snapshotTypes(request)
+        for component in snapshotTypes(request)
 
             blocks = copy(request[component])
 
@@ -637,7 +637,7 @@ function readSnapBlocks(
                     )
 
                     # Return an empty array for every missing block
-                    @inbounds for block in blocks
+                    for block in blocks
                         unit = internalUnits(block, snapshot_path)
                         qty_data[block] = typeof(1.0 * unit)[]
                     end
@@ -651,7 +651,7 @@ function readSnapBlocks(
                         idxs = (:)
                     end
 
-                    @inbounds for block in blocks
+                    for block in blocks
 
                         unit = internalUnits(block, file_path)
 
@@ -714,7 +714,7 @@ function readSnapBlocks(
                     :$(component) in $(file_path) is missing")
                 )
 
-                @inbounds for block in blocks
+                for block in blocks
                     unit = internalUnits(block, file_path)
                     qty_data[block] = typeof(1.0 * unit)[]
                 end
@@ -796,11 +796,11 @@ function readGroupCatalog(
         # Allocate memory
         output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
-        @inbounds for (component, data_blocks) in first(data_in_files)
+        for (component, data_blocks) in first(data_in_files)
 
             qty_data = Dict{String,VecOrMat{<:Number}}()
 
-            @inbounds for block in keys(data_blocks)
+            for block in keys(data_blocks)
 
                 raw = [
                     data_in_file[component][block] for
@@ -880,11 +880,11 @@ function readSnapshot(
         # Allocate memory
         output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
-        @inbounds for (component, data_blocks) in first(data_in_files)
+        for (component, data_blocks) in first(data_in_files)
 
             qty_data = Dict{String,VecOrMat{<:Number}}()
 
-            @inbounds for block in keys(data_blocks)
+            for block in keys(data_blocks)
 
                 raw = [
                     data_in_file[component][block] for
@@ -1043,7 +1043,7 @@ function readCpuFile(
     # Time step
     time_step = 0
 
-    @inbounds for line in file_data
+    for line in file_data
 
         # Ignore empty lines
         !isempty(line) || continue
@@ -1086,7 +1086,7 @@ function readCpuFile(
     data_out = Dict{String,Matrix{Float64}}()
 
     # Try reducing the data size
-    @inbounds for (target, values) in data_aux
+    for (target, values) in data_aux
 
         # Ignore empty targets
         !isempty(values) || continue

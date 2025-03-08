@@ -580,7 +580,7 @@ const DEFAULT_THEME = Theme(
         cycle=Cycle([:color, :linestyle, :marker], covary=true),
     ),
     Scatter=(markersize=22, cycle=Cycle([:color, :marker], covary=true)),
-    Band=(cycle=[:color], alpha=0.3),
+    Band=(cycle=[:color], alpha=0.5),
     Errorbars=(whiskerwidth=10,),
     ########################################################################
     # Alternative colormaps:
@@ -1045,7 +1045,7 @@ struct SquareGrid
         grid = Matrix{NTuple{2,<:Number}}(undef, n_bins, n_bins)
 
         # Compute the position of each grid point
-        @inbounds for i in eachindex(grid)
+        for i in eachindex(grid)
 
             # The grid index `i` goes from top to bottom first, and then left to right,
             # starting at the top left of the grid
@@ -1176,7 +1176,7 @@ struct CubicGrid
         grid = Array{NTuple{3,<:Number},3}(undef, n_bins, n_bins, n_bins)
 
         # Compute the position of each grid point
-        @inbounds for i in eachindex(grid)
+        for i in eachindex(grid)
 
             flat_idx = mod1(i, n_bins * n_bins)
 

@@ -749,7 +749,7 @@ function listHistogram1D(
     histogram = [eltype(values)[] for _ in 1:n_bins]
 
     # Compute the histogram; ignoring NaNs and positions outside the grid range
-    @inbounds for (position, value) in zip(positions, values)
+    for (position, value) in zip(positions, values)
 
         if isnan(position) || isnan(value)
             continue
@@ -814,7 +814,7 @@ function listHistogram1D(
     histogram = [eltype(values)[] for _ in 1:n_bins]
 
     # Compute the histogram; ignoring NaNs and positions outside of range
-    @inbounds for (position, value) in zip(positions, values)
+    for (position, value) in zip(positions, values)
 
         if isnan(position) || isnan(value)
             continue
@@ -860,11 +860,11 @@ function listHistogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Ve
 
     # Allocate memory
     histogram = Array{Vector{Int}}(undef, size(grid.grid))
-    @inbounds for i in eachindex(histogram)
+    for i in eachindex(histogram)
         histogram[i] = Int[]
     end
 
-    @inbounds for (idx, point) in pairs(eachcol(positions))
+    for (idx, point) in pairs(eachcol(positions))
 
         !any(isnan, point) || continue
 
@@ -965,7 +965,7 @@ function histogram1D(
     counts = zeros(Int, n_bins)
 
     # Compute the histogram; ignoring NaNs and positions outside the grid range
-    @inbounds for (position, value) in zip(positions, values)
+    for (position, value) in zip(positions, values)
 
         if isnan(position) || isnan(value)
             continue
@@ -988,8 +988,8 @@ function histogram1D(
         # Set empty bins to NaN
         nan = NaN * unit(first(values))
 
-        @inbounds for (i, count) in pairs(counts)
-            @inbounds if iszero(count)
+        for (i, count) in pairs(counts)
+            if iszero(count)
                 histogram[i] = nan
             end
         end
@@ -997,8 +997,8 @@ function histogram1D(
 
     if !total
         # Compute the mean value instead of just the sum for each bin
-        @inbounds for (i, count) in pairs(counts)
-            @inbounds if !iszero(count)
+        for (i, count) in pairs(counts)
+            if !iszero(count)
                 histogram[i] /= count
             end
         end
@@ -1057,7 +1057,7 @@ function histogram1D(
     counts = zeros(Int, n_bins)
 
     # Compute the histogram; ignoring NaNs and positions outside of range
-    @inbounds for (position, value) in zip(positions, values)
+    for (position, value) in zip(positions, values)
 
         if isnan(position) || isnan(value)
             continue
@@ -1078,8 +1078,8 @@ function histogram1D(
         # Set empty bins to NaN
         nan = NaN * unit(first(values))
 
-        @inbounds for (i, count) in pairs(counts)
-            @inbounds if iszero(count)
+        for (i, count) in pairs(counts)
+            if iszero(count)
                 histogram[i] = nan
             end
         end
@@ -1087,8 +1087,8 @@ function histogram1D(
 
     if !total
         # Compute the mean value instead of just the sum for each bin
-        @inbounds for (i, count) in pairs(counts)
-            @inbounds if !iszero(count)
+        for (i, count) in pairs(counts)
+            if !iszero(count)
                 histogram[i] /= count
             end
         end
@@ -1139,7 +1139,7 @@ function histogram1D(
     histogram = zeros(Int, n_bins)
 
     # Compute the histogram; ignoring NaNs and positions outside the grid range
-    @inbounds for position in positions
+    for position in positions
 
         if isnan(position)
             continue
@@ -1188,7 +1188,7 @@ function histogram1D(positions::Vector{<:Number}, edges::Vector{<:Number})::Vect
     histogram = zeros(Int, n_bins)
 
     # Compute the histogram; ignoring NaNs and positions outside of range
-    @inbounds for position in positions
+    for position in positions
 
         if isnan(position)
             continue
@@ -1256,7 +1256,7 @@ function histogram2D(
     histogram = zeros(eltype(values), size(grid.grid))
     counts = zeros(Int, size(grid.grid))
 
-    @inbounds for (i, point) in pairs(eachcol(positions))
+    for (i, point) in pairs(eachcol(positions))
 
         !isnan(values[i])  || continue
         !any(isnan, point) || continue
@@ -1292,8 +1292,8 @@ function histogram2D(
         # Set empty bins to NaN
         nan = NaN * unit(first(values))
 
-        @inbounds for i in eachindex(histogram)
-            @inbounds if iszero(counts[i])
+        for i in eachindex(histogram)
+            if iszero(counts[i])
                 histogram[i] = nan
             end
         end
@@ -1301,8 +1301,8 @@ function histogram2D(
 
     if !total
         # Compute the mean value instead of just the sum for each bin
-        @inbounds for i in eachindex(histogram)
-            @inbounds if !iszero(counts[i])
+        for i in eachindex(histogram)
+            if !iszero(counts[i])
                 histogram[i] /= counts[i]
             end
         end
@@ -1365,7 +1365,7 @@ function histogram2D(
     histogram = zeros(eltype(values), (n_x_bins, n_y_bins))
     counts = zeros(Int, (n_x_bins, n_y_bins))
 
-    @inbounds for (i, point) in pairs(eachcol(positions))
+    for (i, point) in pairs(eachcol(positions))
 
         !isnan(values[i])  || continue
         !any(isnan, point) || continue
@@ -1397,8 +1397,8 @@ function histogram2D(
         # Set empty bins to NaN
         nan = NaN * unit(first(values))
 
-        @inbounds for i in eachindex(histogram)
-            @inbounds if iszero(counts[i])
+        for i in eachindex(histogram)
+            if iszero(counts[i])
                 histogram[i] = nan
             end
         end
@@ -1406,8 +1406,8 @@ function histogram2D(
 
     if !total
         # Compute the mean value instead of just the sum for each bin
-        @inbounds for i in eachindex(histogram)
-            @inbounds if !iszero(counts[i])
+        for i in eachindex(histogram)
+            if !iszero(counts[i])
                 histogram[i] /= counts[i]
             end
         end
@@ -1443,7 +1443,7 @@ function histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int}
     # Allocate memory
     histogram = zeros(Int, size(grid.grid))
 
-    @inbounds for point in eachcol(positions)
+    for point in eachcol(positions)
 
         !any(isnan, point) || continue
 
@@ -1514,7 +1514,7 @@ function histogram2D(
     # Allocate memory
     histogram = zeros(Int, (n_x_bins, n_y_bins))
 
-    @inbounds for point in eachcol(positions)
+    for point in eachcol(positions)
 
         !any(isnan, point) || continue
 
@@ -1593,7 +1593,7 @@ function histogram3D(
     histogram = zeros(eltype(values), size(grid.grid))
     counts = zeros(Int, size(grid.grid))
 
-    @inbounds for (i, point) in pairs(eachcol(positions))
+    for (i, point) in pairs(eachcol(positions))
 
         !isnan(values[i])  || continue
         !any(isnan, point) || continue
@@ -1639,8 +1639,8 @@ function histogram3D(
         # Set empty bins to NaN
         nan = NaN * unit(first(values))
 
-        @inbounds for i in eachindex(histogram)
-            @inbounds if iszero(counts[i])
+        for i in eachindex(histogram)
+            if iszero(counts[i])
                 histogram[i] = nan
             end
         end
@@ -1648,8 +1648,8 @@ function histogram3D(
 
     if !total
         # Compute the mean value instead of just the sum for each bin
-        @inbounds for i in eachindex(histogram)
-            @inbounds if !iszero(counts[i])
+        for i in eachindex(histogram)
+            if !iszero(counts[i])
                 histogram[i] /= counts[i]
             end
         end
@@ -1686,7 +1686,7 @@ function histogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Int,3}
     # Allocate memory
     histogram = zeros(Int, size(grid.grid))
 
-    @inbounds for point in eachcol(positions)
+    for point in eachcol(positions)
 
         !any(isnan, point) || continue
 
@@ -1848,7 +1848,7 @@ function deltas(data::Vector{<:Number})::Vector{<:Number}
     # Set the first value to 0, by convention
     Δd[1] = zero(data[1])
 
-    @inbounds for i in 2:nd
+    for i in 2:nd
         Δd[i] = data[i] - data[i - 1]
     end
 
@@ -1910,14 +1910,14 @@ function reduceResolution(
     # Compute the number of old pixels per new pixel
     old_n_pixels = factor * factor
 
-    @inbounds for i in eachindex(lr_matrix)
+    for i in eachindex(lr_matrix)
 
         # Compute the row and column of the new matrix corresponding to index i
         row = mod1(i, new_size)
         col = ceil(Int, i / new_size)
 
-        @inbounds for j in (factor * (row - 1) + 1):(factor * row)
-            @inbounds for k in (factor * (col - 1) + 1):(factor * col)
+        for j in (factor * (row - 1) + 1):(factor * row)
+            for k in (factor * (col - 1) + 1):(factor * col)
 
                 if !isnan(hr_matrix[j, k])
                     lr_matrix[i] += hr_matrix[j, k]
@@ -1972,7 +1972,7 @@ function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
 
         shift = factor ÷ 2
 
-        @inbounds for i in eachindex(lr_ticks)
+        for i in eachindex(lr_ticks)
 
             idx = (i - 1) * factor + shift
 
@@ -1984,7 +1984,7 @@ function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
 
         shift = ceil(Int, factor / 2)
 
-        @inbounds for i in eachindex(lr_ticks)
+        for i in eachindex(lr_ticks)
 
             idx = (i - 1) * factor + shift
 
@@ -2205,7 +2205,7 @@ function density3DProjection(
         kdtree = KDTree(ustrip.(l_unit, positions))
 
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
             physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
             physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
@@ -2218,7 +2218,7 @@ function density3DProjection(
         density = similar(grid.grid, Float64)
 
         # Compute the density in each voxel
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             density[i] = densities[idxs[i]]
         end
 
@@ -2711,7 +2711,7 @@ function findClosestSnapshot(simulation_path::String, times::Vector{<:Unitful.Ti
     slices = similar(times, Int)
 
     # Find the closest snapshot to each of the `times`
-    @inbounds for (i, time) in pairs(times)
+    for (i, time) in pairs(times)
 
         slices[i] = argmin(abs.(snap_times .- time))
 

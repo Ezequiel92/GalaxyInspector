@@ -57,7 +57,7 @@ function snapshotReport(
     subhalo_rel_idx::Int=1,
 )::Nothing
 
-    @inbounds for (i, simulation_path) in pairs(simulation_paths)
+    for (i, simulation_path) in pairs(simulation_paths)
 
         ############################################################################################
         # Load the relevant values and check for missing files
@@ -1830,7 +1830,7 @@ function simulationReport(
     output_path::String="./",
 )::Nothing
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         # Make a dataframe with the following columns:
         #   - 1. DataFrame index
@@ -2586,19 +2586,19 @@ function densityMap(
 
     pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
 
-    @inbounds for (i, quantity) in pairs(quantities)
+    for (i, quantity) in pairs(quantities)
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,
             mergeRequests(plotParams(quantity).request, ff_request),
         )
 
-        @inbounds for simulation_path in simulation_paths
+        for simulation_path in simulation_paths
 
             # Get the simulation name as a string
             sim_name = basename(simulation_path)
 
-            @inbounds for projection_plane in projection_planes
+            for projection_plane in projection_planes
 
                 # Construct the file name
                 base_filename = "$(sim_name)_$(quantity)_$(projection_plane)_density_map"
@@ -2795,12 +2795,12 @@ function gasSFRMap(
         ),
     )
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
 
-        @inbounds for projection_plane in projection_planes
+        for projection_plane in projection_planes
 
             # Construct the file name
             base_filename = "$(sim_name)_$(projection_plane)_gas_sfr_map"
@@ -2979,7 +2979,7 @@ function densityMapVelField(
 
     pf_kwargs = isnothing(colorrange) ? [(;), (;)] : [(; colorrange), (;)]
 
-    @inbounds for (i, quantity) in pairs(quantities)
+    for (i, quantity) in pairs(quantities)
 
         filter_function, translation, rotation, request = selectFilter(
             filter_mode,
@@ -3007,12 +3007,12 @@ function densityMapVelField(
             which is not a valid symbol. See the documentation for valid options."))
         end
 
-        @inbounds for simulation_path in simulation_paths
+        for simulation_path in simulation_paths
 
             # Get the simulation name as a string
             sim_name = basename(simulation_path)
 
-            @inbounds for projection_plane in projection_planes
+            for projection_plane in projection_planes
 
                 # Construct the file name
                 base_filename = "$(sim_name)_$(quantity)_$(projection_plane)_density_map"
@@ -3205,7 +3205,7 @@ function metallicityMap(
 
     pf_kwargs = isnothing(colorrange) ? [(;)] : [(; colorrange)]
 
-    @inbounds for (i, component) in pairs(components)
+    for (i, component) in pairs(components)
 
         if component == :gas
 
@@ -3232,12 +3232,12 @@ function metallicityMap(
 
         end
 
-        @inbounds for simulation_path in simulation_paths
+        for simulation_path in simulation_paths
 
             # Get the simulation name as a string
             sim_name = basename(simulation_path)
 
-            @inbounds for projection_plane in projection_planes
+            for projection_plane in projection_planes
 
                 # Construct the file name
                 base_filename = "$(sim_name)_$(component)_$(projection_plane)_metallicity_map"
@@ -3402,12 +3402,12 @@ function temperatureMap(
         mergeRequests(plotParams(:temperature).request, plotParams(:gas_mass_density).request),
     )
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
 
-        @inbounds for projection_plane in projection_planes
+        for projection_plane in projection_planes
 
             # Construct the file name
             base_filename = "$(sim_name)_$(projection_plane)_temperature_map"
@@ -3789,7 +3789,7 @@ function scatterPlot(
         y_exp_factor = y_plot_params.exp_factor
     end
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
@@ -4278,7 +4278,7 @@ function scatterDensityMap(
         y_exp_factor = y_plot_params.exp_factor
     end
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
@@ -4405,7 +4405,7 @@ function atomicMolecularTransition(
         ),
     )
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
@@ -4733,7 +4733,7 @@ function gasBarPlot(
 
     n_sims = length(simulation_paths)
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
@@ -5857,7 +5857,7 @@ function densityProfile(
 
     grid = CircularGrid(radius, n_bins)
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
@@ -6015,7 +6015,7 @@ function massProfile(
 
     n_sims = length(simulation_paths)
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         # Get the simulation name as a string
         sim_name = basename(simulation_path)
@@ -8672,7 +8672,7 @@ function gasVelocityCubes(
 
         physical_grid = Matrix{Float64}(undef, 3, n_rows)
 
-        @inbounds for i in eachindex(grid.grid)
+        for i in eachindex(grid.grid)
             physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
             physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
             physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
@@ -8686,7 +8686,7 @@ function gasVelocityCubes(
     # Create the output HDF5 file
     hdf5_file = h5open(output_file, "w")
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         simulation_name = basename(simulation_path)
 
@@ -8702,7 +8702,7 @@ function gasVelocityCubes(
         # Create an HDF5 group for each simulation
         hdf5_group = create_group(hdf5_file, simulation_name)
 
-        @inbounds for snap_n in slice
+        for snap_n in slice
 
             data_dict = makeDataDict(simulation_path, snap_n, request)
 
@@ -8770,7 +8770,7 @@ function gasVelocityCubes(
                 # Find the `n_neighbors` nearest cells to each voxel
                 idxs, dists = knn(kdtree, physical_grid, n_neighbors, true)
 
-                @inbounds for i in eachindex(grid.grid)
+                for i in eachindex(grid.grid)
 
                     # Physical coordinates of the voxel [l_unit]
                     data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
@@ -8824,7 +8824,7 @@ function gasVelocityCubes(
                 # Find which particles are within each voxel
                 idxs = listHistogram3D(positions, grid)
 
-                @inbounds for i in eachindex(grid.grid)
+                for i in eachindex(grid.grid)
 
                     # Physical coordinates of the voxel [l_unit]
                     data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
@@ -9055,7 +9055,7 @@ function stellarVelocityCubes(
     # Create the output HDF5 file
     hdf5_file = h5open(output_file, "w")
 
-    @inbounds for simulation_path in simulation_paths
+    for simulation_path in simulation_paths
 
         simulation_name = basename(simulation_path)
 
@@ -9071,7 +9071,7 @@ function stellarVelocityCubes(
         # Create an HDF5 group for each simulation
         hdf5_group = create_group(hdf5_file, simulation_name)
 
-        @inbounds for snap_n in slice
+        for snap_n in slice
 
             data_dict = makeDataDict(simulation_path, snap_n, request)
 
@@ -9116,7 +9116,7 @@ function stellarVelocityCubes(
             # Find which particles are within each voxel
             idxs = listHistogram3D(positions, grid)
 
-            @inbounds for i in eachindex(grid.grid)
+            for i in eachindex(grid.grid)
 
                 # Physical coordinates of the voxel [l_unit]
                 data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])

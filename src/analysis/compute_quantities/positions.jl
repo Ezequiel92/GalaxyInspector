@@ -431,7 +431,7 @@ function findHaloSubhalo(
     ############################################################################################
     # Compute in which halo and subhalo each star was born
     ############################################################################################
-    @inbounds for (i, star_idx) in enumerate(star_idxs)
+    for (i, star_idx) in enumerate(star_idxs)
 
         ############################################################################################
         # Compute in which halo each star was born
@@ -457,7 +457,7 @@ function findHaloSubhalo(
         # compute the index of the last real star particle in each subhalo of halo `halo_idx`
         if !born_in_this_halo[halo_idx]
 
-            @inbounds if isone(halo_idx)
+            if isone(halo_idx)
                 # Absolute index of the first subhalo
                 first_subhalo_abs_idx = 1
 
@@ -482,7 +482,7 @@ function findHaloSubhalo(
             map!(x -> x + n_star_floor, last_idxs_in_subhalo, last_idxs_in_subhalo)
 
             # Compute the index of the last real star particle in each of the subhalos of the halo `halo_idx`
-            @inbounds for (i, idx) in enumerate(last_idxs_in_subhalo)
+            for (i, idx) in enumerate(last_idxs_in_subhalo)
 
                 # Compute the number of wind particles up to the particle with index `idx`
                 n_wind = count(x -> !(x), real_stars_idxs[(n_star_floor + 1):idx])
@@ -579,11 +579,11 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     # Allocate memory
     present_star_idxs = [Int[] for _ in 1:n_snaps]
 
-    @inbounds for (star_idx, birth_time) in enumerate(birth_times)
+    for (star_idx, birth_time) in enumerate(birth_times)
 
         snap_idx = searchsortedfirst(times, birth_time)
 
-        @inbounds if snap_idx > n_snaps
+        if snap_idx > n_snaps
             push!(present_star_idxs[n_snaps], star_idx)
         else
             push!(present_star_idxs[snap_idx], star_idx)
@@ -619,7 +619,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
         :subhalo => ["S_LenType"],
     )
 
-    @inbounds for (global_idx, snapshot_row) in pairs(eachrow(simulation_table))
+    for (global_idx, snapshot_row) in pairs(eachrow(simulation_table))
 
         # Select the IDs of the stars born in this snapshot
         ids = star_ids[global_idx]

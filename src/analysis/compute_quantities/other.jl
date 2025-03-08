@@ -544,7 +544,7 @@ function computeEfficiencyFF(
 
     ϵff = Vector{Float64}(undef, length(density))
 
-    @inbounds for i in eachindex(ϵff)
+    for i in eachindex(ϵff)
 
         if density[i] < THRESHOLD_DENSITY
 
