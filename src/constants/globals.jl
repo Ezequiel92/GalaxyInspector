@@ -528,11 +528,10 @@ For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is
 const DEFAULT_THEME = Theme(
     #################################################################################################
     # Size of the figures in code units
-    # For PDFs and SVGs, 880 [code ]unit = 8.8 cm and 600 [code ]unit = 6 cm
+    # For PDFs and SVGs, 880 [code ]unit = 8.8 cm
     # For PNGs, when printed to a size of 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm)
-    # figure height / figure width = 600 / 880 ~ 0.682
     #################################################################################################
-    size=(880, 600),
+    size=(880, 880),
     ######################################
     # 35 unit * 0.283466 pt/unit ~ 9.9 pt
     ######################################
