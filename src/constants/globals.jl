@@ -494,12 +494,29 @@ const ReducedIndexType = Union{
 """
 Default list of marker types.
 """
-const MARKERS = [:circle, :rect, :diamond, :hexagon, :cross, :xcross, :pentagon]
+const MARKERS = [
+    :circle,
+    :rect,
+    :dtriangle,
+    :utriangle,
+    :cross,
+    :diamond,
+    :ltriangle,
+    :rtriangle,
+    :pentagon,
+    :xcross,
+    :hexagon,
+]
 
 """
 Default list of line styles.
 """
 const LINE_STYLES = [:solid, :dash, :dot, :dashdot, :dashdotdot]
+
+"""
+Default cycler.
+"""
+const CYCLE = Cycle([:color, :linestyle, :marker], covary=true)
 
 """
 Default plot theme.
@@ -511,10 +528,11 @@ For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is
 const DEFAULT_THEME = Theme(
     #################################################################################################
     # Size of the figures in code units
-    # For PDFs and SVGs, 880 [code ]unit = 8.8 cm
+    # For PDFs and SVGs, 880 [code ]unit = 8.8 cm and 600 [code ]unit = 6 cm
     # For PNGs, when printed to a size of 1 point = 0.1 mm, one will get a dpi of 600 (23.622 px/mm)
+    # figure height / figure width = 600 / 880 ~ 0.682
     #################################################################################################
-    size=(880, 880),
+    size=(880, 600),
     ######################################
     # 35 unit * 0.283466 pt/unit ~ 9.9 pt
     ######################################
@@ -571,16 +589,16 @@ const DEFAULT_THEME = Theme(
             Point2f(0.15, 0.85),
         ],
     ),
-    Lines=(linewidth=5, cycle=Cycle([:color, :linestyle], covary=true)),
-    VLines=(linewidth=3, cycle=Cycle([:color, :linestyle], covary=true)),
-    HLines=(linewidth=3, cycle=Cycle([:color, :linestyle], covary=true)),
+    Lines=(linewidth=5, cycle=CYCLE),
+    VLines=(linewidth=3, cycle=CYCLE),
+    HLines=(linewidth=3, cycle=CYCLE),
     ScatterLines=(
         linewidth=5,
         markersize=22,
-        cycle=Cycle([:color, :linestyle, :marker], covary=true),
+        cycle=CYCLE,
     ),
-    Scatter=(markersize=22, cycle=Cycle([:color, :marker], covary=true)),
-    Band=(cycle=[:color], alpha=0.5),
+    Scatter=(markersize=22, cycle=CYCLE),
+    Band=(cycle=CYCLE, alpha=0.5),
     Errorbars=(whiskerwidth=10,),
     ########################################################################
     # Alternative colormaps:
