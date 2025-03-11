@@ -109,7 +109,6 @@ export lineHistogram
 export compareFeldmann2020
 export compareMolla2015
 export kennicuttSchmidtLaw
-export fitResolvedKSLaw
 export fitVSFLaw
 export massMetallicityRelation
 export gasVelocityCubes
