@@ -964,6 +964,155 @@ function ppBigiel2010!(
 
 end
 
+@doc raw"""
+    ppSun2023!(
+	    figure::Makie.Figure;
+        <keyword arguments>
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+Draw a scatter plot of the SFR surface density vs molecular surface density (molecular Kennicutt-Schmidt law) for a given galaxy, using the data of Sun et al. (2023).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure to be drawn over.
+  - `galaxy::Union{String,Symbol}=:main`: Target galaxy. The options are:
+
+      + One of the 80 galaxies in the dataset, e.g. "ESO097-013", "IC1954", "IC5273", "NGC1546", "NGC1559", "NGC1566", etc. For a full list see the reference below.
+      + :main: Every galaxy with $-2.0 < \log_{10}(t_\mathrm{dep} \, / \, \mathrm{Gyr}) < 2.0$, where $t_\mathrm{dep} = \Sigma_\mathrm{H_2} / \Sigma_\mathrm{SFR}$ is the depletion time.
+      + :all: All 80 galaxies in the dataset.
+    For more information on each galaxy see Sun et al. (2023).
+  - `sfr_calibration::Symbol=:Halpha`: SFR calibration for combining UV, optical, and/or IR data. The options are: `:Halpha`, `:FUV`, and `:AV_corrected_Halpha`. For an explanation of each one see section 2 of Sun et al. (2023).
+  - `h2_prescription::Symbol=:S20`: Prescription for the CO-to-H₂ conversion factor. The options are: `:S20`, `:Mw`, `:B13`, and `:G20`. For an explanation of each one see section 2 of Sun et al. (2023).
+  - `x_log::Bool=true`: If the x axis will be plotted as the log10 of the gas surface density.
+  - `y_log::Bool=true`: If the y axis will be plotted as the log10 of the SFR surface density.
+  - `x_unit::Unitful.Units=u"Msun * kpc^-2"`: Unit for the x axis.
+  - `y_unit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2"`: Unit for the y axis.
+  - `color::ColorType=Makie.wong_colors()[2]`: Color of the markers.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `MarkerElement` to be used as the marker.
+      + The label string.
+
+# References
+
+J. Sun J et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
+"""
+function ppSun2023!(
+	figure::Makie.Figure;
+	galaxy::Union{String,Symbol}=:main,
+    sfr_calibration::Symbol=:Halpha,
+	h2_prescription::Symbol=:S20,
+	x_log::Bool=true,
+	y_log::Bool=true,
+	x_unit::Unitful.Units=u"Msun * kpc^-2",
+	y_unit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2",
+    color::ColorType=Makie.wong_colors()[2],
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+	################################################################################################
+	# Load table A1 from Sun et al. 2023
+	################################################################################################
+
+	raw_data = readdlm(SUN2023_TABLE, skipstart=57, header=false)
+
+    clean_data = DataFrame(replace(raw_data, "" => missing), :auto)
+
+    # Shift in the column indices correspondig to each SFR calibration
+    sfr_calibrations = Dict(:Halpha => 0, :FUV => 2, :AV_corrected_Halpha => 4)
+
+    # Shift in the column indices correspondig to each CO-to-H₂ prescription
+	h2_prescriptions = Dict(:S20 => 0, :Mw => 2, :B13 => 4, :G20 => 6)
+
+    # List of available galaxies
+    galaxies = unique(raw_data[:, 1])
+
+	################################################################################################
+	# Find the target galaxy and read its values
+	################################################################################################
+
+    if isa(galaxy, String)
+
+        (
+            galaxy ∈ galaxies ||
+            throw(ArgumentError("ppSun2023!: `galaxy` = $(galaxy) is not a valid galaxy"))
+        )
+
+        data = filter(:x1 => isequal(galaxy), clean_data)
+
+    else
+
+        (
+            galaxy ∈ [:main, :all] ||
+            throw(
+                ArgumentError("ppSun2023!: `galaxy` can noly be :main or :all but I got :$(galaxy)")
+            )
+        )
+
+        data = clean_data
+
+    end
+
+    Σsfr = data[:, 4 + sfr_calibrations[sfr_calibration]] .* u"Msun * yr^-1 * kpc^-2"
+    Σh2  = data[:, 10 + h2_prescriptions[h2_prescription]] .* u"Msun * pc^-2"
+
+    # Set the correct scale and units
+	if x_log
+        x_data = log10.(ustrip.(x_unit, Σh2))
+    else
+        x_data = ustrip.(x_unit, Σh2)
+    end
+
+    if y_log
+        y_data = log10.(ustrip.(y_unit, Σsfr))
+    else
+        y_data = ustrip.(y_unit, Σsfr)
+    end
+
+    # Delete missing data
+    filter = x -> isnan(x) || isinf(x) || ismissing(x)
+    idxs   = map(filter, x_data) ∪ map(filter, y_data)
+
+    if galaxy == :main
+        # Compute the depletion time
+        tdep = log10.(ustrip.(u"Gyr", Σh2 ./ Σsfr))
+
+        # Filter galaxies with tdep outside the range [-2.0, 2.0]
+        tdep_filter = x -> isnan(x) || isinf(x) || ismissing(x) || x < -2.0 || x > 2.0
+
+        idxs = idxs ∪ map(tdep_filter, tdep)
+    end
+
+    deleteat!(x_data, idxs)
+    deleteat!(y_data, idxs)
+
+	################################################################################################
+	# Plot the galactic data
+	################################################################################################
+
+	scatter!(
+        figure.current_axis.x,
+        x_data,
+        y_data;
+        color=(color, 0.5),
+        marker=:star4,
+        markersize=10,
+    )
+
+    if isa(galaxy, String)
+        label = "$(galaxy) - Suo et al. 2023"
+    elseif galaxy == :all
+        label = "Suo et al. 2023 (80 galaxies)"
+    else
+        label = "Suo et al. 2023 (main population)"
+    end
+
+    return ([MarkerElement(; color, marker=:star4)], [label])
+
+end
+
 """
     ppMolla2015!(
         figure::Makie.Figure,

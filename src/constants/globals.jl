@@ -359,6 +359,18 @@ const BIGIEL2010_TABLE_3 = joinpath(
     "../../experimental_data/Bigiel2010/aj351668t3_mrt.txt",
 )
 
+"""
+Path to the file with Table A1 from Sun et al. (2023).
+
+# References
+
+J. Sun J et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
+"""
+const SUN2023_TABLE = joinpath(
+    @__DIR__,
+    "../../experimental_data/Sun2023/apjlacbd9ct3_mrt.txt",
+)
+
 @doc raw"""
 Range of values for
 
