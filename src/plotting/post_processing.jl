@@ -985,7 +985,7 @@ Draw a scatter plot of the SFR surface density vs molecular surface density (mol
   - `h2_prescription::Symbol=:S20`: Prescription for the CO-to-H₂ conversion factor. The options are: `:S20`, `:Mw`, `:B13`, and `:G20`. For an explanation of each one see section 2 of Sun et al. (2023).
   - `x_log::Bool=true`: If the x axis will be plotted as the log10 of the gas surface density.
   - `y_log::Bool=true`: If the y axis will be plotted as the log10 of the SFR surface density.
-  - `x_unit::Unitful.Units=u"Msun * kpc^-2"`: Unit for the x axis.
+  - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the x axis.
   - `y_unit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2"`: Unit for the y axis.
   - `color::ColorType=Makie.wong_colors()[2]`: Color of the markers.
 
@@ -1007,7 +1007,7 @@ function ppSun2023!(
 	h2_prescription::Symbol=:S20,
 	x_log::Bool=true,
 	y_log::Bool=true,
-	x_unit::Unitful.Units=u"Msun * kpc^-2",
+	x_unit::Unitful.Units=u"Msun * pc^-2",
 	y_unit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2",
     color::ColorType=Makie.wong_colors()[2],
 )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
@@ -1018,7 +1018,7 @@ function ppSun2023!(
 
 	raw_data = readdlm(SUN2023_TABLE, skipstart=57, header=false)
 
-    clean_data = DataFrame(replace(raw_data, "" => missing), :auto)
+    clean_data = DataFrame(replace(raw_data, "" => Inf), :auto)
 
     # Shift in the column indices correspondig to each SFR calibration
     sfr_calibrations = Dict(:Halpha => 0, :FUV => 2, :AV_corrected_Halpha => 4)
@@ -1072,7 +1072,7 @@ function ppSun2023!(
     end
 
     # Delete missing data
-    filter = x -> isnan(x) || isinf(x) || ismissing(x)
+    filter = x -> isnan(x) || isinf(x)
     idxs   = map(filter, x_data) ∪ map(filter, y_data)
 
     if galaxy == :main
@@ -1080,7 +1080,7 @@ function ppSun2023!(
         tdep = log10.(ustrip.(u"Gyr", Σh2 ./ Σsfr))
 
         # Filter galaxies with tdep outside the range [-2.0, 2.0]
-        tdep_filter = x -> isnan(x) || isinf(x) || ismissing(x) || x < -2.0 || x > 2.0
+        tdep_filter = x -> isnan(x) || isinf(x) || x < -2.0 || x > 2.0
 
         idxs = idxs ∪ map(tdep_filter, tdep)
     end
@@ -1102,11 +1102,11 @@ function ppSun2023!(
     )
 
     if isa(galaxy, String)
-        label = "$(galaxy) - Suo et al. 2023"
+        label = "$(galaxy) - Sun et al. 2023"
     elseif galaxy == :all
-        label = "Suo et al. 2023 (80 galaxies)"
+        label = "Sun et al. 2023 (all galaxies)"
     else
-        label = "Suo et al. 2023 (main population)"
+        label = "Sun et al. 2023"
     end
 
     return ([MarkerElement(; color, marker=:star4)], [label])

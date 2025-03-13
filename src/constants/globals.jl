@@ -317,6 +317,15 @@ F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC S
 """
 const BIGIEL_PX_SIZE = 750.0u"pc"
 
+"""
+Spatial resolution used in Sun et al. (2023).
+
+# References
+
+J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
+"""
+const SUN_PX_SIZE = 1.5u"kpc"
+
 @doc raw"""
 Range of values for
 

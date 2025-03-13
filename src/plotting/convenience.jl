@@ -6910,9 +6910,9 @@ Plot the Kennicutt-Schmidt law.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
       + `:gas_mass`          -> Total gas mass surface density.
-      + `:molecular_mass`    -> Molecular mass surface density. This one can be plotted with the results of Bigiel et al. (2008) and Bigiel et al. (2010).
-      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one can be plotted with the results of Bigiel et al. (2008) and Bigiel et al. (2010).
-      + `:neutral_mass`      -> Neutral mass surface density. This one can be plotted with the results of Bigiel et al. (2008), Bigiel et al. (2010), and Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular mass surface density. This one can be plotted with the results of Bigiel et al. (2008) and Sun et al. (2023).
+      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one can be plotted with the results of Bigiel et al. (2008) and Sun et al. (2023).
+      + `:neutral_mass`      -> Neutral mass surface density. This one can be plotted with the results of Bigiel et al. (2008), and Kennicutt (1998).
   - `gas_type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in :particles or in Voronoi :cells.
   - `reduce_grid::Symbol=:square`: Grid for the density projection. The options are:
 
@@ -6933,8 +6933,9 @@ Plot the Kennicutt-Schmidt law.
   - `measurement_type::Union{String,Symbol}=:fits`: Type of measurement to plot, only valid if `measurement` = true. The option are:
 
       + `:fits`: Fits from Bigiel et al. (2008) and/or Kennicutt (1998) depending on the quantity in the x axis. The fits will be plotted as lines with uncertanty bands.
-      + `"NGC XXX"`: Plot the resolved data of the given NGC galaxy as a scatter plot. Uses the data from Bigiel et al. (2010). See the documentation of [`ppBigiel2010!`](@ref) for options.
-      + `:all`: Plot the data of every galaxy in Bigiel et al. (2010), as a scatter plot.
+      + `"NGC XXX"`: Plot the resolved data of the given galaxy as a scatter plot. Uses the data from Sun et al. (2023). See the documentation of [`ppSun2023!`](@ref) for options.
+      + `:main`: Plot the data of the main galaxy distribution in Sun et al. (2023), as a scatter plot.
+      + `:all`: Plot the data of every galaxy in Sun et al. (2023), as a scatter plot.
   - `fit::Bool=false`: If the simulation data law will be fitted with a power law. The fit will be plotted as a line. This option is only valid if `integrated` = false and `plot_type` = :scatter, otherwise it will be ignored.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the heatmap grid. If set to `nothing`, the extrema of the x values will be used. Only relevant if `plot_type` = :heatmap.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the y values will be used. Only relevant if `plot_type` = :heatmap.
@@ -6980,8 +6981,6 @@ L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressu
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
-
-F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
 
 J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
 """
@@ -7155,11 +7154,18 @@ function kennicuttSchmidtLaw(
 
         end
 
-        if measurement_type == :all && integrated && logging[]
+        if measurement_type ∈ [:all, :main] && integrated && logging[]
 
             @warn("kennicuttSchmidtLaw: `integrated` is set to true but you have set \
-            `measurement_type` to plot the resolved measurements of all galaxies in \
-            Bigiel et al. (2010). Are you sure you want this?")
+            `measurement_type` to plot the resolved measurements of several galaxies in \
+            Sun et al. (2023). Are you sure you want this?")
+
+        end
+
+        if measurement_type ∈ [:all, :main] && quantity ∈ [:gas_mass, :neutral_mass] && logging[]
+
+            @warn("kennicuttSchmidtLaw: The measurements from Sun et al. (2023) are only for \
+            molecular gas, but the selected quantity is :$(quantity). Are you sure you want this?")
 
         end
 
@@ -7472,7 +7478,7 @@ function kennicuttSchmidtLaw(
             ylabel=L"$\log_{10}$ %$(y_label)",
         )
 
-        colors = [:grey25, current_theme[:palette][:color][][2:ns]...]
+        colors = [:gray15, current_theme[:palette][:color][][2:ns]...]
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
@@ -7636,11 +7642,15 @@ function kennicuttSchmidtLaw(
                                 ax,
                                 x_data,
                                 y_data;
-                                color=(colors[sim_idx], 0.5),
+                                color=(colors[sim_idx], 0.8),
                             )
 
                             if fit
-                                ppFitLine!(f; top_position=(0.65, 0.99))
+                                ppFitLine!(
+                                    f;
+                                    top_position=(0.65, 0.99),
+                                    color=Makie.wong_colors()[1],
+                                )
                             end
 
                         else
@@ -7654,7 +7664,12 @@ function kennicuttSchmidtLaw(
                             )
 
                             if fit
-                                ppFitLine!(f; top_position=(0.65, 0.99), wts=exp10.(z_data))
+                                ppFitLine!(
+                                    f;
+                                    top_position=(0.65, 0.99),
+                                    wts=exp10.(z_data),
+                                    color=Makie.wong_colors()[1],
+                                )
                             end
 
                         end
@@ -7760,7 +7775,7 @@ function kennicuttSchmidtLaw(
             if !isnothing(gas_weights) && !integrated
 
                 markers = [
-                    MarkerElement(; color=:grey25, marker=:circle, markersize=20) for
+                    MarkerElement(; color=(colors[1], 0.8), marker=:circle, markersize=20) for
                     _ in eachindex(sim_labels)
                 ]
 
@@ -7811,25 +7826,7 @@ function kennicuttSchmidtLaw(
 
             else
 
-                if quantity ∈ [:molecular_mass, :br_molecular_mass]
-
-                    pp_legend = ppBigiel2010!(
-                        f;
-                        galaxy=measurement_type,
-                        quantity=:molecular,
-                        x_unit=u"Msun * kpc^-2",
-                    )
-
-                else
-
-                    pp_legend = ppBigiel2010!(
-                        f;
-                        galaxy=measurement_type,
-                        quantity=:neutral,
-                        x_unit=u"Msun * kpc^-2",
-                    )
-
-                end
+                pp_legend = ppSun2023!(f; galaxy=measurement_type, x_unit=u"Msun * kpc^-2")
 
             end
 
