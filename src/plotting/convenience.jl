@@ -7012,8 +7012,21 @@ function kennicuttSchmidtLaw(
     # Compute the number of simulations
     ns = length(simulation_paths)
 
+    ################################################################################################
+    # Default values
+    ################################################################################################
+
     # Default voxel side length
     voxel_size = 200.0u"pc"
+
+    # Default units for the gas surface density
+    Σg_m_unit = u"Msun"
+    Σg_l_unit = u"kpc"
+
+    # Default units for the stellar/sfr surface density
+    Σs_m_unit = u"Msun"
+    Σs_l_unit = u"kpc"
+    Σs_t_unit = u"yr"
 
     ################################################################################################
     # Physical units
@@ -7298,7 +7311,15 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(stellar_grid, :stellar_mass, :particles)],
-        da_kwargs=[(; reduce_factor, reduce_grid, filter_function=dd->filterByStellarAge(dd))],
+        da_kwargs=[
+            (;
+                reduce_factor,
+                reduce_grid,
+                filter_function=dd->filterByStellarAge(dd),
+                m_unit=Σs_m_unit,
+                l_unit=Σs_l_unit,
+            ),
+        ],
         transform_box=true,
         translation,
         rotation,
@@ -7327,7 +7348,7 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(gas_grid, quantity, gas_type)],
-        da_kwargs=[(; reduce_factor, reduce_grid)],
+        da_kwargs=[(; reduce_factor, reduce_grid, m_unit=Σg_m_unit, l_unit=Σg_l_unit,)],
         transform_box=true,
         translation,
         rotation,
@@ -7408,29 +7429,35 @@ function kennicuttSchmidtLaw(
 
     if quantity == :gas_mass
 
-        x_label = getLabel(plotParams(:gas_area_density).var_name, 0, u"Msun * kpc^-2")
+        x_label = getLabel(plotParams(:gas_area_density).var_name, 0, Σg_m_unit * Σg_l_unit^-2)
 
     elseif quantity == :molecular_mass
 
-        x_label = getLabel(plotParams(:molecular_area_density).var_name, 0, u"Msun * kpc^-2")
+        x_label = getLabel(
+            plotParams(:molecular_area_density).var_name, 0, Σg_m_unit * Σg_l_unit^-2,
+        )
 
     elseif quantity == :br_molecular_mass
 
-        x_label = getLabel(plotParams(:br_molecular_area_density).var_name, 0, u"Msun * kpc^-2")
+        x_label = getLabel(
+            plotParams(:br_molecular_area_density).var_name, 0, Σg_m_unit * Σg_l_unit^-2,
+        )
 
     elseif quantity == :neutral_mass
 
-        x_label = getLabel(plotParams(:neutral_area_density).var_name, 0, u"Msun * kpc^-2")
+        x_label = getLabel(plotParams(:neutral_area_density).var_name, 0, Σg_m_unit * Σg_l_unit^-2)
 
     end
 
     if sfr_density
 
-        y_label = getLabel(plotParams(:sfr_area_density).var_name, 0, u"Msun * yr^-1 * kpc^-2")
+        y_label = getLabel(
+            plotParams(:sfr_area_density).var_name, 0, Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
+        )
 
     else
 
-        y_label = getLabel(plotParams(:stellar_area_density).var_name, 0, u"Msun * kpc^-2")
+        y_label = getLabel(plotParams(:stellar_area_density).var_name, 0, Σs_m_unit * Σs_l_unit^-2)
 
     end
 
@@ -7441,7 +7468,7 @@ function kennicuttSchmidtLaw(
     if sfr_density
         # Factor to go from stellar surface density to SFR surface density
         # log10(Σsfr) = log10(Σ*) - log10Δt
-        log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
+        log10Δt = log10(ustrip(Σs_t_unit, AGE_RESOLUTION))
     end
 
     # Set the plot theme
@@ -7648,7 +7675,7 @@ function kennicuttSchmidtLaw(
                             if fit
                                 ppFitLine!(
                                     f;
-                                    top_position=(0.65, 0.99),
+                                    top_position=(0.72, 0.99),
                                     color=Makie.wong_colors()[1],
                                 )
                             end
@@ -7666,7 +7693,7 @@ function kennicuttSchmidtLaw(
                             if fit
                                 ppFitLine!(
                                     f;
-                                    top_position=(0.65, 0.99),
+                                    top_position=(0.72, 0.99),
                                     wts=exp10.(z_data),
                                     color=Makie.wong_colors()[1],
                                 )
@@ -7798,7 +7825,8 @@ function kennicuttSchmidtLaw(
                     pp_legend = ppBigiel2008!(
                         f,
                         true;
-                        x_unit=u"Msun * kpc^-2",
+                        x_unit=Σg_m_unit * Σg_l_unit^-2,
+                        y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
                         colors=[Makie.wong_colors()[1], Makie.wong_colors()[2]],
                     )
 
@@ -7807,13 +7835,15 @@ function kennicuttSchmidtLaw(
                     legend_bigiel = ppBigiel2008!(
                         f,
                         false;
-                        x_unit=u"Msun * kpc^-2",
+                        x_unit=Σg_m_unit * Σg_l_unit^-2,
+                        y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
                         colors=[Makie.wong_colors()[1], Makie.wong_colors()[2]],
                     )
 
                     legend_kennicut = ppKennicutt1998!(
                         f;
-                        x_unit=u"Msun * kpc^-2",
+                        x_unit=Σg_m_unit * Σg_l_unit^-2,
+                        y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
                         colors=[Makie.wong_colors()[3], Makie.wong_colors()[4]],
                     )
 
@@ -7826,7 +7856,12 @@ function kennicuttSchmidtLaw(
 
             else
 
-                pp_legend = ppSun2023!(f; galaxy=measurement_type, x_unit=u"Msun * kpc^-2")
+                pp_legend = ppSun2023!(
+                    f;
+                    galaxy=measurement_type,
+                    x_unit=Σg_m_unit * Σg_l_unit^-2,
+                    y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
+                )
 
             end
 

@@ -3,13 +3,13 @@
 ####################################################################################################
 
 """
-    meta_formatter(level::LogLevel, _module, group, id, file, line)
+    metaFormatter(level::LogLevel, _module, group, id, file, line)
 
 Formatter for loggers.
 
 See the documentation for [ConsoleLogger](https://docs.julialang.org/en/v1/stdlib/Logging/#Base.CoreLogging.ConsoleLogger)
 """
-function meta_formatter(level::LogLevel, _module, group, id, file, line)
+function metaFormatter(level::LogLevel, _module, group, id, file, line)
 
     @nospecialize
 
@@ -48,7 +48,7 @@ function setLogging!(verb::Bool; stream::IO=stdout)::Nothing
 
     logging[] = verb
 
-    verb && global_logger(ConsoleLogger(stream; meta_formatter))
+    verb && global_logger(ConsoleLogger(stream; meta_formatter=metaFormatter))
 
     return nothing
 
@@ -2740,6 +2740,20 @@ function findClosestSnapshot(simulation_path::String, time::Unitful.Time)::Int
     return findClosestSnapshot(simulation_path, [time])[1]
 
 end
+
+####################################################################################################
+# Unitful.jl utilities
+####################################################################################################
+
+"""
+List component units of a `Unitful.FreeUnits` object.
+"""
+unitList(::Unitful.FreeUnits{N,D,A}) where {N,D,A} = N
+
+"""
+List component units of a `Unitful.Quantity` object.
+"""
+unitList(x::Unitful.Quantity) = unitList(Unitful.units(x))
 
 ####################################################################################################
 # Makie.jl and plotting utilities
