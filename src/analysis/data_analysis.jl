@@ -2216,7 +2216,7 @@ Project the 3D temperature field to a given plane.
 function daTemperature2DProjection(
     data_dict::Dict,
     grid::CubicGrid,
-    type::Symbol;
+    field_type::Symbol;
     reduce_factor::Int=1,
     reduce_grid::Symbol=:square,
     projection_plane::Symbol=:xy,
