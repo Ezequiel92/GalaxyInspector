@@ -1776,8 +1776,8 @@ function daGasSFR2DProjection(
 
     end
 
-    # Set bins with a value of 0 to NaN
-    replace!(x -> iszero(x) ? NaN : x, sfr)
+    # Set bins with 0 or Inf to NaN
+    replace!(x -> (iszero(x) || isinf(x)) ? NaN : x, sfr)
 
     # Apply log10 to enhance the contrast
     z_axis = log10.(sfr)
@@ -2003,8 +2003,6 @@ function daMetallicity2DProjection(
         metal_mass = dropdims(sum(metal_mass_grid; dims); dims)
         norm_mass  = dropdims(sum(norm_mass_grid; dims); dims)
 
-        metallicity = metal_mass ./ norm_mass
-
     elseif field_type == :particles
 
         # Project the particles to the given plane
@@ -2018,11 +2016,6 @@ function daMetallicity2DProjection(
             throw(ArgumentError("daMetallicity2DProjection: The argument `projection_plane` must \
             be :xy, :xz or :yz, but I got :$(projection_plane)"))
         end
-
-        metallicities = uconvert.(
-            Unitful.NoUnits,
-            computeMetalMass(filtered_dd, component) ./ filtered_dd[component]["MASS"],
-        )
 
         # Compute the metal mass 2D histogram
         metal_mass = histogram2D(
@@ -2039,8 +2032,6 @@ function daMetallicity2DProjection(
             flattenGrid(grid);
             empty_nan=true,
         )
-
-        metallicity = uconvert.(Unitful.NoUnits, metal_mass ./ norm_mass)
 
     else
 
@@ -2088,12 +2079,12 @@ function daMetallicity2DProjection(
     else
 
         throw(ArgumentError("daMetallicity2DProjection: `reduce_grid` can only be :square or \
-        :circular, but I got :$( reduce_grid)"))
+        :circular, but I got :$(reduce_grid)"))
 
     end
 
-    # Set bins with a value of 0 to NaN
-    replace!(x -> iszero(x) ? NaN : x, metallicity)
+    # Set bins with 0 or Inf to NaN
+    replace!(x -> (iszero(x) || isinf(x)) ? NaN : x, metallicity)
 
     # Apply log10 to enhance the contrast
     if element == :all
