@@ -265,7 +265,7 @@ function daKennicuttSchmidtLaw(
     deleteat!(x_axis, delete_idxs)
     deleteat!(y_axis, delete_idxs)
 
-    !any(isempty.([x_axis, y_axis])) || return nothing
+    !any(isempty, [x_axis, y_axis]) || return nothing
 
     return x_axis, y_axis .- log10Δt
 
@@ -5300,7 +5300,7 @@ function daVSFLaw(
     deleteat!(x_axis, delete_idxs)
     deleteat!(y_axis, delete_idxs)
 
-    !any(isempty.([x_axis, y_axis])) || return nothing
+    !any(isempty, [x_axis, y_axis]) || return nothing
 
     return log10.(x_axis), log10.(y_axis) .- log10Δt
 

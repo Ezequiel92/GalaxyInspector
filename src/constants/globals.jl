@@ -353,7 +353,7 @@ F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISK
 """
 const BIGIEL2010_TABLE_2 = joinpath(
     @__DIR__,
-    "../../experimental_data/Bigiel2010/aj351668t2_mrt.txt",
+    "../../experimental_data/bigiel_2010/aj351668t2_mrt.txt",
 )
 
 """
@@ -365,7 +365,7 @@ F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISK
 """
 const BIGIEL2010_TABLE_3 = joinpath(
     @__DIR__,
-    "../../experimental_data/Bigiel2010/aj351668t3_mrt.txt",
+    "../../experimental_data/bigiel_2010/aj351668t3_mrt.txt",
 )
 
 """
@@ -377,7 +377,7 @@ J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Gal
 """
 const SUN2023_TABLE = joinpath(
     @__DIR__,
-    "../../experimental_data/Sun2023/apjlacbd9ct3_mrt.txt",
+    "../../experimental_data/sun_2023/apjlacbd9ct3_mrt.txt",
 )
 
 @doc raw"""
@@ -427,7 +427,7 @@ Path to the file with the Milky Way profiles from Mollá et al. (2015).
 
 M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
-const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/Mollá2015.csv")
+const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/mollá_2015.csv")
 
 """
 Path to the file with the global galactic properties from Feldmann (2020).
@@ -436,7 +436,26 @@ Path to the file with the global galactic properties from Feldmann (2020).
 
 R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*. Communications Physics **3(226)**. [doi:10.1038/s42005-020-00493-0](https://doi.org/10.1038/s42005-020-00493-0)
 """
-const FELDMANN2020_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/Feldmann2020.csv")
+const FELDMANN2020_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/feldmann_2020.csv")
+
+"""
+Path to the file with the data from Leroy et al. (2008).
+
+# References
+
+A. K. Leroy et al. (2008). *THE STAR FORMATION EFFICIENCY IN NEARBY GALAXIES: MEASURING WHERE GAS FORMS STARS EFFECTIVELY*. The Astronomical Journal **136(6)**, 2782–2845. [doi:10.1088/0004-6256/136/6/2782](https://doi.org/10.1088/0004-6256/136/6/2782)
+
+"""
+const LEROY2008_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/leroy_2008.jld2")
+
+"""
+Path to the file with the fits from McMillan (2011).
+
+# References
+
+P. J. McMillan (2011). *Mass models of the Milky Way*. Monthly Notices of the Royal Astronomical Society **414(3)**, 2446–2457. [doi:10.1111/j.1365-2966.2011.18564.x](https://doi.org/10.1111/j.1365-2966.2011.18564.x)
+"""
+const MCMILLAN2011_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/mcmillan_2011.jld2")
 
 """
 Reference pressure for the molecular fraction-pressure relation, taken from Blitz et al. (2006) (Table 2, "Mean" row, Third column).

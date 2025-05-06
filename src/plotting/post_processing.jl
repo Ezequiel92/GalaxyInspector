@@ -1060,15 +1060,15 @@ function ppSun2023!(
 
     # Set the correct scale and units
 	if x_log
-        x_data = log10.(ustrip.(x_unit, Σh2))
+        x_data = @. log10(ustrip(x_unit, Σh2))
     else
-        x_data = ustrip.(x_unit, Σh2)
+        x_data = @. ustrip(x_unit, Σh2)
     end
 
     if y_log
-        y_data = log10.(ustrip.(y_unit, Σsfr))
+        y_data = @. log10(ustrip(y_unit, Σsfr))
     else
-        y_data = ustrip.(y_unit, Σsfr)
+        y_data = @. ustrip(y_unit, Σsfr)
     end
 
     # Delete missing data
@@ -1077,7 +1077,7 @@ function ppSun2023!(
 
     if galaxy == :main
         # Compute the depletion time
-        tdep = log10.(ustrip.(u"Gyr", Σh2 ./ Σsfr))
+        tdep = @. log10(ustrip(u"Gyr", Σh2 ./ Σsfr))
 
         # Filter galaxies with tdep outside the range [-2.0, 2.0]
         tdep_filter = x -> isnan(x) || isinf(x) || x < -2.0 || x > 2.0
@@ -1493,7 +1493,7 @@ Return the legend elements for the plot made by [`gasBarPlot`](@ref).
 
   - A tuple with the elements for the legend:
 
-      + A `PolyElement`s to be used in the legend.
+      + A `PolyElement` to be used in the legend.
       + The label strings.
 """
 function ppBarPlotLabels(
@@ -1509,5 +1509,138 @@ function ppBarPlotLabels(
     end
 
     return [PolyElement(polycolor=colors[i]) for i in 1:length(labels)], labels
+
+end
+
+"""
+    ppAgertz2021!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+Draw a line plot using the experimental data and fits from McMillan (2011) and Leroy et al. (2008), show in Agertz et al. (2021). for the stellar density profile.
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure to be drawn over.
+  - `galaxies::Vector{String}=["MW"]`: Target galaxies. The options are:
+
+      + One of the 23 galaxies in Leroy et al. (2008), e.g. "DDO154", "HOI", "HOII", "IC2574", "NGC0628", "NGC0925", etc. For a full list see the reference below.
+      + "MW": The Milky Way fits from McMillan (2011).
+  - `x_unit::Unitful.Units=u"kpc"`: Unit for the x axis.
+  - `y_unit::Unitful.Units=u"Msun * kpc^-2"`: Unit for the y axis.
+  - `x_log::Bool=false`: If the x axis will be plotted as the log10 of the galactocentric radius.
+  - `y_log::Bool=true`: If the y axis will be plotted as the log10 of the stellar surface density.
+  - `error_band::Bool=true`: If the error band will be plotted.
+  - `colors::Vector{<:ColorType}=[Makie.wong_colors()[2]]`: Colors for the lines.
+  - `linestyle::LineStyleType=nothing`: Style of the lines. `nothing` will produce a solid line.
+  - `linewidth::Int=3`: Width of the lines.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A vector of `LineElement`.
+      + A vector of labels.
+
+# References
+
+O. Agertz et al. (2021). *VINTERGATAN – I. The origins of chemically, kinematically, and structurally distinct discs in a simulated Milky Way-mass galaxy*. Monthly Notices of the Royal Astronomical Society. **503(4), 5826–5845. [doi:10.1093/mnras/stab322](https://doi.org/10.1093/mnras/stab322)
+
+A. K. Leroy et al. (2008). *THE STAR FORMATION EFFICIENCY IN NEARBY GALAXIES: MEASURING WHERE GAS FORMS STARS EFFECTIVELY*. The Astronomical Journal **136(6)**, 2782–2845. [doi:10.1088/0004-6256/136/6/2782](https://doi.org/10.1088/0004-6256/136/6/2782)
+
+P. J. McMillan (2011). *Mass models of the Milky Way*. Monthly Notices of the Royal Astronomical Society **414(3)**, 2446–2457. [doi:10.1111/j.1365-2966.2011.18564.x](https://doi.org/10.1111/j.1365-2966.2011.18564.x)
+"""
+function ppAgertz2021!(
+    figure::Makie.Figure;
+    galaxies::Vector{String}=["MW"],
+    x_unit::Unitful.Units=u"kpc",
+    y_unit::Unitful.Units=u"Msun * kpc^-2",
+    x_log::Bool=false,
+    y_log::Bool=true,
+    error_band::Bool=true,
+    colors::Vector{<:ColorType}=[Makie.wong_colors()[2]],
+    linestyle::LineStyleType=nothing,
+    linewidth::Int=3,
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+    ################################################################################################
+	# Load the data from McMillan (2011) and Leroy et al. (2008)
+	################################################################################################
+
+	mcmillan2011 = load(MCMILLAN2011_DATA_PATH)["dataframe"]
+    leroy2008 = load(LEROY2008_DATA_PATH)["dataframe"]
+
+    # List of available galaxies in Leroy et al. (2008)
+    leroy_galaxies = unique(leroy2008[!, "Name"])
+
+	################################################################################################
+	# Find the target galaxies and read its values
+	################################################################################################
+
+    line_elements = Vector{LineElement}(undef, length(galaxies))
+    labels = Vector{String}(undef, length(galaxies))
+
+    for (i, galaxy) in pairs(galaxies)
+
+        if galaxy ∈ leroy_galaxies
+
+            leroy_data = filter(:Name => isequal(galaxy), leroy2008)
+            r  = leroy_data[!, "Rad"]
+            Σs = leroy_data[!, "Sigma*"] ± leroy_data[!, "e_Sigma*"]
+
+        elseif galaxy == "MW"
+
+            r  = mcmillan2011[!, :r]
+            Σs = mcmillan2011[!, :Sigma]
+
+        else
+
+            throw(ArgumentError("ppAgertz2021!: $(galaxy) is not a valid galaxy"))
+
+        end
+
+        # Set the correct scale and units for the x axis
+        if x_log
+            x_data = @. log10(ustrip(x_unit, r))
+        else
+            x_data = @. ustrip(x_unit, r)
+        end
+
+        # Set the correct scale and units for the x axis
+        if y_log
+            y_data = @. Measurements.value(log10(ustrip(y_unit, Σs)))
+            y_error = @. Measurements.uncertainty(log10(ustrip(y_unit, Σs)))
+        else
+            y_data = @. Measurements.value(ustrip(y_unit, Σs))
+            y_error = @. Measurements.uncertainty(ustrip(y_unit, Σs))
+        end
+
+        color = ring(colors, i)
+
+        if error_band
+            bp = band!(
+                figure.current_axis.x,
+                x_data,
+                y_data .- y_error,
+                y_data .+ y_error;
+                color=(color, 0.3),
+            )
+        end
+
+        lp = lines!(figure.current_axis.x, x_data, y_data; color, linestyle, linewidth)
+
+        # Put the post processing elements at the back of the plot
+        if error_band
+            translate!(Accum, bp, 0, 0, -10)
+        end
+        translate!(Accum, lp, 0, 0, -9)
+
+        line_elements[i] = LineElement(; color, linestyle, linewidth)
+        labels[i] = "$(galaxy)"
+
+    end
+
+    return line_elements, labels
 
 end

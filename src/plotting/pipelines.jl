@@ -677,8 +677,8 @@ function plotSnapshot(
             # Apply the post processing function
             pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
-            legend_elements = Vector{Makie.LegendElement}[]
-            legend_labels = Vector{<:Union{AbstractString,Nothing}}[]
+            legend_elements = Vector{Makie.LegendElement}(undef, 0)
+            legend_labels = Vector{Union{AbstractString,Nothing}}(undef, 0)
 
             if !isnothing(sim_labels)
                 # Add the main legend
@@ -689,46 +689,41 @@ function plotSnapshot(
                     $(length(sim_labels)) != length(`simulation_paths`) = $(n_simulations)"))
                 )
 
-                legend_element = Vector{Makie.LegendElement}(undef, n_simulations)
-
                 # Load the current palette
                 colors     = current_theme[:palette][:color][]
                 markers    = current_theme[:palette][:marker][]
                 linestyles = current_theme[:palette][:linestyle][]
 
-                for i in eachindex(legend_element)
+                for i in 1:n_simulations
                     color = ring(colors, i)
                     marker = ring(markers, i)
                     linestyle = ring(linestyles, i)
                     plot_function = ring(plot_functions, i)
 
-                    if plot_function ∈ [lines!, errorbars!]
-                        legend_element[i] = LineElement(; color, linestyle)
+                    if plot_function == lines!
+                        push!(legend_elements, LineElement(; color, linestyle))
                     else
-                        legend_element[i] = MarkerElement(; color, marker)
+                        push!(legend_elements, MarkerElement(; color, marker))
                     end
                 end
 
-                push!(legend_elements, legend_element)
-                push!(legend_labels, sim_labels)
+                append!(legend_labels, sim_labels)
 
             end
 
             if !isnothing(pp_legend)
                 # Add the post processing legend
-                push!(legend_elements, pp_legend[1])
-                push!(legend_labels, pp_legend[2])
+                append!(legend_elements, pp_legend[1])
+                append!(legend_labels, pp_legend[2])
             end
 
-            if !any(isempty.([legend_elements, legend_labels]))
-                #TODO
-                titles = fill("", length(legend_elements))
+            if !any(isempty, [legend_elements, legend_labels])
                 # Add a legend to the plot
                 Makie.Legend(
                     figure[1, 1],
                     legend_elements,
                     legend_labels,
-                    titles,
+                    [""],
                 )
             end
 
@@ -1069,8 +1064,8 @@ function plotTimeSeries(
         # Apply the post processing function
         pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
-        legend_elements = Vector{Makie.LegendElement}[]
-        legend_labels = Vector{<:Union{AbstractString,Nothing}}[]
+        legend_elements = Vector{Makie.LegendElement}(undef, 0)
+        legend_labels = Vector{Union{AbstractString,Nothing}}(undef, 0)
 
         if !isnothing(sim_labels)
             # Add the main legend
@@ -1081,47 +1076,42 @@ function plotTimeSeries(
                 $(length(sim_labels)) != length(`simulation_paths`) = $(n_simulations)"))
             )
 
-            legend_element = Vector{Makie.LegendElement}(undef, n_simulations)
-
             # Load the current palette
             colors     = current_theme[:palette][:color][]
             markers    = current_theme[:palette][:marker][]
             linestyles = current_theme[:palette][:linestyle][]
 
-            for i in eachindex(legend_element)
+            for i in 1:n_simulations
                 color = ring(colors, i)
                 marker = ring(markers, i)
                 linestyle = ring(linestyles, i)
                 plot_function = ring(plot_functions, i)
 
                 if plot_function == lines!
-                    legend_element[i] = LineElement(; color, linestyle)
+                    push!(legend_elements, LineElement(; color, linestyle))
                 else
-                    legend_element[i] = MarkerElement(; color, marker)
+                    push!(legend_elements, MarkerElement(; color, marker))
                 end
 
             end
 
-            push!(legend_elements, legend_element)
-            push!(legend_labels, sim_labels)
+            append!(legend_labels, sim_labels)
 
         end
 
         if !isnothing(pp_legend)
             # Add the post processing legend
-            push!(legend_elements, pp_legend[1])
-            push!(legend_labels, pp_legend[2])
+            append!(legend_elements, pp_legend[1])
+            append!(legend_labels, pp_legend[2])
         end
 
-        if !any(isempty.([legend_elements, legend_labels]))
-            #TODO
-            titles = fill("", length(legend_elements))
+        if !any(isempty, [legend_elements, legend_labels])
             # Add a legend to the plot
             Makie.Legend(
                 figure[1, 1],
                 legend_elements,
                 legend_labels,
-                titles,
+                [""],
             )
         end
 
