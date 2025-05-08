@@ -1523,9 +1523,10 @@ Draw a line plot using the experimental data and fits from McMillan (2011) and L
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
-  - `galaxies::Vector{String}=["MW"]`: Target galaxies. The options are:
+  - `galaxies::Vector=["MW"]`: Target galaxies. The options are:
 
       + One of the 23 galaxies in Leroy et al. (2008), e.g. "DDO154", "HOI", "HOII", "IC2574", "NGC0628", "NGC0925", etc. For a full list see the reference below.
+      + :all: All 23 galaxies in the dataset of Leroy et al. (2008) (this options will plot the data as an single color scatter plot with transparency).
       + "MW": The Milky Way fits from McMillan (2011).
   - `x_unit::Unitful.Units=u"kpc"`: Unit for the x axis.
   - `y_unit::Unitful.Units=u"Msun * kpc^-2"`: Unit for the y axis.
@@ -1553,7 +1554,7 @@ P. J. McMillan (2011). *Mass models of the Milky Way*. Monthly Notices of the Ro
 """
 function ppAgertz2021!(
     figure::Makie.Figure;
-    galaxies::Vector{String}=["MW"],
+    galaxies::Vector=["MW"],
     x_unit::Unitful.Units=u"kpc",
     y_unit::Unitful.Units=u"Msun * kpc^-2",
     x_log::Bool=false,
@@ -1578,7 +1579,7 @@ function ppAgertz2021!(
 	# Find the target galaxies and read its values
 	################################################################################################
 
-    line_elements = Vector{LineElement}(undef, length(galaxies))
+    legend_elements = Vector{LegendElement}(undef, length(galaxies))
     labels = Vector{String}(undef, length(galaxies))
 
     for (i, galaxy) in pairs(galaxies)
@@ -1587,7 +1588,12 @@ function ppAgertz2021!(
 
             leroy_data = filter(:Name => isequal(galaxy), leroy2008)
             r  = leroy_data[!, "Rad"]
-            Σs = leroy_data[!, "Sigma*"] ± leroy_data[!, "e_Sigma*"]
+            Σs = leroy_data[!, "Sigma*"] .± leroy_data[!, "e_Sigma*"]
+
+        elseif galaxy == :all
+
+            r  = leroy2008[!, "Rad"]
+            Σs = leroy2008[!, "Sigma*"] .± leroy2008[!, "e_Sigma*"]
 
         elseif galaxy == "MW"
 
@@ -1596,7 +1602,7 @@ function ppAgertz2021!(
 
         else
 
-            throw(ArgumentError("ppAgertz2021!: $(galaxy) is not a valid galaxy"))
+            throw(ArgumentError("ppAgertz2021!: $(galaxy) is not a valid argument for a galaxy"))
 
         end
 
@@ -1618,29 +1624,43 @@ function ppAgertz2021!(
 
         color = ring(colors, i)
 
-        if error_band
-            bp = band!(
-                figure.current_axis.x,
-                x_data,
-                y_data .- y_error,
-                y_data .+ y_error;
-                color=(color, 0.3),
-            )
+        if galaxy == :all
+
+            sp = scatter!(figure.current_axis.x, x_data, y_data; color=(color, 0.3))
+
+            # Put the post processing elements at the back of the plot
+            translate!(Accum, sp, 0, 0, -10)
+
+            legend_elements[i] = MarkerElement(; color, marker=:circle)
+            labels[i] = "Leroy et al. (2008)"
+
+        else
+
+            if error_band
+                bp = band!(
+                    figure.current_axis.x,
+                    x_data,
+                    y_data .- y_error,
+                    y_data .+ y_error;
+                    color=(color, 0.8),
+                )
+            end
+
+            lp = lines!(figure.current_axis.x, x_data, y_data; color, linestyle, linewidth)
+
+            # Put the post processing elements at the back of the plot
+            if error_band
+                translate!(Accum, bp, 0, 0, -10)
+            end
+            translate!(Accum, lp, 0, 0, -9)
+
+            legend_elements[i] = LineElement(; color, linestyle, linewidth)
+            labels[i] = "$(galaxy)"
+
         end
-
-        lp = lines!(figure.current_axis.x, x_data, y_data; color, linestyle, linewidth)
-
-        # Put the post processing elements at the back of the plot
-        if error_band
-            translate!(Accum, bp, 0, 0, -10)
-        end
-        translate!(Accum, lp, 0, 0, -9)
-
-        line_elements[i] = LineElement(; color, linestyle, linewidth)
-        labels[i] = "$(galaxy)"
 
     end
 
-    return line_elements, labels
+    return legend_elements, labels
 
 end
