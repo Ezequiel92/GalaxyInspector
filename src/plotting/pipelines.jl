@@ -101,7 +101,7 @@ Some of the features are:
       + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
       + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
       + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `smooth::Int=0`: The result of `da_functions` will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing. Only valid for `scatter!`, `lines!`, and `scatterlines!` plots.
+  - `smooth::Int=0`: The result of `da_functions` will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing. Only valid for `scatter!`, `lines!`, and `scatterlines!` plots.
   - `x_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the x axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the y axis. The values will be converted accordingly. Use the default value of `Unitful.NoUnits` for dimensionless quantities.
   - `x_exp_factor::Int=0`: Numerical exponent to scale down the x axis, e.g. if `x_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
@@ -753,10 +753,11 @@ function plotSnapshot(
 
     end
 
-    if logging[] && !plot_something
-        @warn("plotSnapshot: Nothing could be plotted because there was a problem \
-        for every snapshot")
-    end
+    (
+        !logging[] || plot_something ||
+        @warn("plotSnapshot: Nothing could be plotted because there was a problem for every \
+        snapshot")
+    )
 
     if animation
         # Save the animation
@@ -1050,10 +1051,11 @@ function plotTimeSeries(
 
     end
 
-    if logging[] && !plot_something
-        @warn("plotTimeSeries: Nothing could be plotted because there was a problem \
-        for every snapshot")
-    end
+    (
+        !logging[] || plot_something ||
+        @warn("plotTimeSeries: Nothing could be plotted because there was a problem for every \
+        snapshot")
+    )
 
     if save_figures
 

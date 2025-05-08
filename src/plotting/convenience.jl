@@ -27,7 +27,7 @@ Write a text file with information about a given snapshot.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -35,7 +35,7 @@ Write a text file with information about a given snapshot.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -2199,7 +2199,7 @@ Plot a time series of the data in the `sfr.txt` file.
 
       + `:stellar_mass` -> Stellar mass.
       + `:sfr`          -> The star formation rate.
-  - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="./"`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -2294,7 +2294,7 @@ Plot a time series of the data in the `cpu.txt` file.
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
       + `:tot_clock_time_s`       -> Total clock time in seconds.
       + `:tot_clock_time_percent` -> Total clock time as a percentage.
-  - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.
   - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`. This option does not affect histograms.
@@ -2392,7 +2392,7 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -2400,7 +2400,7 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -2494,7 +2494,7 @@ Plot a 2D histogram of the density.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -2502,7 +2502,7 @@ Plot a 2D histogram of the density.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -2701,7 +2701,7 @@ Plot a 2D map of the gas SFR.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -2709,7 +2709,7 @@ Plot a 2D map of the gas SFR.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -2915,7 +2915,7 @@ Plot a 2D histogram of the density, with the velocity field.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -2923,7 +2923,7 @@ Plot a 2D histogram of the density, with the velocity field.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -3122,7 +3122,7 @@ Plot a 2D histogram of the metallicity.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -3130,7 +3130,7 @@ Plot a 2D histogram of the metallicity.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -3343,7 +3343,7 @@ Plot a 2D histogram of the temperature.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -3351,7 +3351,7 @@ Plot a 2D histogram of the temperature.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -3686,7 +3686,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -3694,7 +3694,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -4152,7 +4152,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4160,7 +4160,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -4667,7 +4667,7 @@ Only for gas cells that have entered out routine.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4675,7 +4675,7 @@ Only for gas cells that have entered out routine.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -5015,7 +5015,7 @@ Plot a time series.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5023,7 +5023,7 @@ Plot a time series.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -5163,7 +5163,7 @@ Plot a time series of the gas components. Either their masses or their fractions
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5171,7 +5171,7 @@ Plot a time series of the gas components. Either their masses or their fractions
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -5288,7 +5288,7 @@ Plot a time series of the accreted mass into the virial radius.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
-  - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="./"`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -5373,7 +5373,7 @@ Plot a time series of the accreted mass into the disc.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
-  - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="./"`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -5464,7 +5464,7 @@ Plot the galaxy rotation curve of a set of simulations.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5472,7 +5472,7 @@ Plot the galaxy rotation curve of a set of simulations.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -5612,7 +5612,7 @@ Plot a density profile.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5620,7 +5620,7 @@ Plot a density profile.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -5828,7 +5828,7 @@ Plot a density profile.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5836,7 +5836,7 @@ Plot a density profile.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -5985,7 +5985,7 @@ Plot a mass profile.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -5993,7 +5993,7 @@ Plot a mass profile.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -6141,7 +6141,7 @@ Plot a velocity profile.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6149,7 +6149,7 @@ Plot a velocity profile.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -6270,7 +6270,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6278,7 +6278,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -6490,7 +6490,7 @@ Plot a histogram of `quantity`.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6498,7 +6498,7 @@ Plot a histogram of `quantity`.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -6640,7 +6640,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6648,7 +6648,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -6776,7 +6776,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6784,7 +6784,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -6933,7 +6933,7 @@ Plot the Kennicutt-Schmidt law.
   - `reduce_grid::Symbol=:square`: Grid for the density projection. The options are:
 
       + `:square`    -> The gas and stellar distributions will be projected into a regular cubic grid first and then into a flat square one, to emulate the way the surface densities are measured in observations.
-      + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations.
+      + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations.
   - `grid_size::Unitful.Length=BOX_L`: Physical side length of the cubic and square grids, and diameter of the circular grid (if `reduce_grid` = :circular). As a reference, Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2). This limits which cells/particles will be consider.
   - `bin_size::Unitful.Length=BIGIEL_PX_SIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`. For the cubic grids a default value of 200 pc is always used.
   - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends, experimental measurements or several simulations at once.
@@ -6969,7 +6969,7 @@ Plot the Kennicutt-Schmidt law.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -6977,7 +6977,7 @@ Plot the Kennicutt-Schmidt law.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -7780,14 +7780,14 @@ function kennicuttSchmidtLaw(
 
                         min_max_v = (NaN, NaN)
                         mean_v    = NaN
-                        meadian_v = NaN
+                        median_v = NaN
                         mode_v    = NaN
 
                     else
 
                         min_max_v = extrema(clean_values)
                         mean_v    = mean(clean_values)
-                        meadian_v = median(clean_values)
+                        median_v = median(clean_values)
                         mode_v    = mode(clean_values)
 
                     end
@@ -7799,7 +7799,7 @@ function kennicuttSchmidtLaw(
                         \n  Quantity:   $(quantity) \
                         \n  Min - Max:  $(min_max_v) \
                         \n  Mean:       $(mean_v) \
-                        \n  Median:     $(meadian_v) \
+                        \n  Median:     $(median_v) \
                         \n  Mode:       $(mode_v)"
                     )
 
@@ -7978,7 +7978,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -7986,7 +7986,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -8138,7 +8138,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -8146,7 +8146,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -8498,7 +8498,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -8506,7 +8506,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -8887,7 +8887,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -8895,7 +8895,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -9147,7 +9147,7 @@ Plot the clumping factor of `quantity` for different volume scales.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -9155,7 +9155,7 @@ Plot the clumping factor of `quantity` for different volume scales.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.

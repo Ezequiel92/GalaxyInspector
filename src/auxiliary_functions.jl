@@ -2251,14 +2251,14 @@ function density3DProjection(
 
             min_max_ρ = (NaN, NaN)
             mean_ρ    = NaN
-            meadian_ρ = NaN
+            median_ρ = NaN
             mode_ρ    = NaN
 
         else
 
             min_max_ρ = extrema(log_density)
             mean_ρ    = mean(log_density)
-            meadian_ρ = median(log_density)
+            median_ρ = median(log_density)
             mode_ρ    = mode(log_density)
 
         end
@@ -2272,7 +2272,7 @@ function density3DProjection(
             \n  Type:       $(type) \
             \n  Min - Max:  $(min_max_ρ) \
             \n  Mean:       $(mean_ρ) \
-            \n  Median:     $(meadian_ρ) \
+            \n  Median:     $(median_ρ) \
             \n  Mode:       $(mode_ρ)"
         )
 
@@ -3182,7 +3182,7 @@ Select the plotting parameters for a given `quantity`.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
-      + `:generic_mass`                -> Parameters for plots with several diferent masses.
+      + `:generic_mass`                -> Parameters for plots with several different masses.
       + `:stellar_number`              -> Number of stellar particles.
       + `:gas_number`                  -> Number of gas cells.
       + `:dm_number`                   -> Number of dark matter particles.
@@ -3198,7 +3198,7 @@ Select the plotting parameters for a given `quantity`.
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
-      + `:generic_fraction`            -> Parameters for plots with several diferent fraction.
+      + `:generic_fraction`            -> Parameters for plots with several different fraction.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -3215,7 +3215,7 @@ Select the plotting parameters for a given `quantity`.
       + `:ionized_area_density`        -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`        -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`            -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
-      + `:generic_area_density`        -> Parameters for plots with several diferent area densities.
+      + `:generic_area_density`        -> Parameters for plots with several different area densities.
       + `:gas_td`                      -> Total gas depletion time.
       + `:molecular_td`                -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time.
       + `:br_molecular_td`             -> Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).

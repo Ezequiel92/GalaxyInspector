@@ -146,7 +146,7 @@ Compute the gas mass surface density and the SFR surface density, used in the Ke
       + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006). This one will be plotted with the results of Bigiel et al. (2008).
       + `:neutral_mass`      -> Neutral mass surface density. This one will be plotted with the results of Bigiel et al. (2008).
   - `type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
-  - `reduce::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
+  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. It has to be a function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -428,7 +428,7 @@ function daMolla2015(
     elseif quantity == :C_stellar_abundance
 
         positions   = filtered_dd[:stars]["POS "]
-        masses      = computeElementMass(filtered_dd, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
+        masses      = computeElementMass(filtered_dd, :stars, :C) ./ ATOMIC_WEIGHTS[:C]
         norm_values = computeElementMass(filtered_dd, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
         f           = x -> 12 .+ log10.(x)
         density     = false
@@ -442,7 +442,9 @@ function daMolla2015(
     # Return `nothing` if any of the necessary quantities are missing
     !any(isempty, [positions, masses]) || return nothing
 
-    density_profile = f(computeParticleProfile(positions, masses, grid; norm_values, total=true, density))
+    density_profile = f(
+        computeParticleProfile(positions, masses, grid; norm_values, total=true, density),
+    )
 
     return grid.grid, density_profile
 
@@ -1225,16 +1227,16 @@ function daLineHistogram(
         if isempty(clean_values)
 
             min_max_v = (NaN, NaN)
-            mean_v    = NaN
-            meadian_v = NaN
-            mode_v    = NaN
+            mean_v = NaN
+            median_v = NaN
+            mode_v = NaN
 
         else
 
             min_max_v = extrema(clean_values)
-            mean_v    = mean(clean_values)
-            meadian_v = median(clean_values)
-            mode_v    = mode(clean_values)
+            mean_v = mean(clean_values)
+            median_v = median(clean_values)
+            mode_v = mode(clean_values)
 
         end
 
@@ -1248,7 +1250,7 @@ function daLineHistogram(
             \n  Max count:  $(maximum(counts)) \
             \n  Min - Max:  $(min_max_v) \
             \n  Mean:       $(mean_v) \
-            \n  Median:     $(meadian_v) \
+            \n  Median:     $(median_v) \
             \n  Mode:       $(mode_v)"
         )
 
@@ -1311,7 +1313,7 @@ Project a 3D density field into a given plane.
   - `reduce_grid::Symbol=:square`: Type of grid to reduce the resolution of the result. The options are:
 
       + `:square`    -> The density distribution will be reduced into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
-      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
+      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
@@ -1538,14 +1540,14 @@ function daDensity2DProjection(
 
             min_max_z = (NaN, NaN)
             mean_z    = NaN
-            meadian_z = NaN
+            median_z = NaN
             mode_z    = NaN
 
         else
 
             min_max_z = extrema(log_z_axis)
             mean_z    = mean(log_z_axis)
-            meadian_z = median(log_z_axis)
+            median_z = median(log_z_axis)
             mode_z    = mode(log_z_axis)
 
         end
@@ -1560,7 +1562,7 @@ function daDensity2DProjection(
             \n  Plane:      $(projection_plane) \
             \n  Min - Max:  $(min_max_z) \
             \n  Mean:       $(mean_z) \
-            \n  Median:     $(meadian_z) \
+            \n  Median:     $(median_z) \
             \n  Mode:       $(mode_z)"
         )
 
@@ -1605,7 +1607,7 @@ Project the 3D gas SFR field into a given plane.
   - `reduce_grid::Symbol=:square`: Type of grid to reduce the resolution of the result. The options are:
 
       + `:square`    -> The density distribution will be reduced into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
-      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
+      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
@@ -1795,14 +1797,14 @@ function daGasSFR2DProjection(
 
             min_max_z = (NaN, NaN)
             mean_z    = NaN
-            meadian_z = NaN
+            median_z = NaN
             mode_z    = NaN
 
         else
 
             min_max_z = extrema(log_z_axis)
             mean_z    = mean(log_z_axis)
-            meadian_z = median(log_z_axis)
+            median_z = median(log_z_axis)
             mode_z    = mode(log_z_axis)
 
         end
@@ -1816,7 +1818,7 @@ function daGasSFR2DProjection(
             \n  Plane:      $(projection_plane) \
             \n  Min - Max:  $(min_max_z) \
             \n  Mean:       $(mean_z) \
-            \n  Median:     $(meadian_z) \
+            \n  Median:     $(median_z) \
             \n  Mode:       $(mode_z)"
         )
 
@@ -1864,7 +1866,7 @@ Project the 3D metallicity field to a given plane.
   - `reduce_grid::Symbol=:square`: Type of grid to reduce the resolution of the result. The options are:
 
       + `:square`    -> The density distribution will be reduced into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
-      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
+      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -1924,7 +1926,7 @@ function daMetallicity2DProjection(
         element ∈ [:all, keys(ELEMENT_INDEX)...] ||
         throw(ArgumentError("daMetallicity2DProjection: The argument `element` can only be :all \
         or one of the keys of `ELEMENT_INDEX` (see `./src/constants/globals.jl`), \
-        but I got :$(quantity)"))
+        but I got :$(element)"))
     )
 
     # Load the cell/particle positions
@@ -2107,14 +2109,14 @@ function daMetallicity2DProjection(
 
             min_max_z = (NaN, NaN)
             mean_z    = NaN
-            meadian_z = NaN
+            median_z = NaN
             mode_z    = NaN
 
         else
 
             min_max_z = extrema(clean_z_axis)
             mean_z    = mean(clean_z_axis)
-            meadian_z = median(clean_z_axis)
+            median_z = median(clean_z_axis)
             mode_z    = mode(clean_z_axis)
 
         end
@@ -2128,7 +2130,7 @@ function daMetallicity2DProjection(
             \n  Plane:      $(projection_plane)\
             \n  Min - Max:  $(min_max_z) \
             \n  Mean:       $(mean_z) \
-            \n  Median:     $(meadian_z) \
+            \n  Median:     $(median_z) \
             \n  Mode:       $(mode_z)"
         )
 
@@ -2173,7 +2175,7 @@ Project the 3D temperature field to a given plane.
   - `reduce_grid::Symbol=:square`: Type of grid to reduce the resolution of the result. The options are:
 
       + `:square`    -> The density distribution will be reduced into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
-      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditonal way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
+      + `:circular` -> The density distribution will be reduced into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations. `reduce_factor` = 1 means that the result will be a single point, the opposite of the `reduce_grid` = :square case.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
@@ -2367,14 +2369,14 @@ function daTemperature2DProjection(
 
             min_max_T = (NaN, NaN)
             mean_T    = NaN
-            meadian_T = NaN
+            median_T = NaN
             mode_T    = NaN
 
         else
 
             min_max_T = extrema(clean_z_axis)
             mean_T    = mean(clean_z_axis)
-            meadian_T = median(clean_z_axis)
+            median_T = median(clean_z_axis)
             mode_T    = mode(clean_z_axis)
 
         end
@@ -2385,10 +2387,9 @@ function daTemperature2DProjection(
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Field type: $(field_type) \
-            \n  Type:       $(type) \
             \n  Min - Max:  $(min_max_T) \
             \n  Mean:       $(mean_T) \
-            \n  Median:     $(meadian_T) \
+            \n  Median:     $(median_T) \
             \n  Mode:       $(mode_T)"
         )
 
@@ -2632,7 +2633,7 @@ Turn a scatter plot into a 2D histogram.
 
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
-      + A matrix with the counts.
+      + A matrix with the the log10 of the counts.
 
 # References
 
@@ -2663,7 +2664,7 @@ function daScatterDensity(
 
     (
         length(x_values) == length(y_values) ||
-        throw(ArgumentError("daScatterDensity: :$(x_quantity) and :$(y_quantity) have a diferent \
+        throw(ArgumentError("daScatterDensity: :$(x_quantity) and :$(y_quantity) have a different \
         number of values. They should be the same"))
     )
 
@@ -3041,7 +3042,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
 
       + A vector with the x coordinates of the grid.
       + A vector with the y coordinates of the grid.
-      + A matrix with the counts.
+      + A matrix with the log10 of the weights (`z_quantity`) for each bin.
 
 # References
 
@@ -3077,7 +3078,7 @@ function daScatterWeightedDensity(
     (
         allequal(length, [x_values, y_values, z_values]) ||
         throw(ArgumentError("daScatterWeightedDensity: :$(x_quantity), :$(y_quantity), \
-        and :$(z_quantity) have a diferent number of values. They should be the same"))
+        and :$(z_quantity) have a different number of values. They should be the same"))
     )
 
     # Delete NaN values
@@ -3128,13 +3129,15 @@ function daScatterWeightedDensity(
     y_axis = collect(range(y_range[1] + y_bin_h_width; length=n_bins, step=2 * y_bin_h_width))
 
     # Compute the 2D histogram
-    values = log10.(ustrip.(z_unit, histogram2D(
+    hist_vals = histogram2D(
         permutedims(hcat(x_values, y_values), (2, 1)),
         z_values,
         collect(range(x_range[1], x_range[2]; length=n_bins + 1)),
         collect(range(y_range[1], y_range[2]; length=n_bins + 1));
         total,
-    )))
+    )
+    # Apply log10 to enhance the contrast
+    values = log10.(ustrip.(z_unit, hist_vals))
 
     if logging[]
 
@@ -3144,14 +3147,14 @@ function daScatterWeightedDensity(
 
             min_max_c = (NaN, NaN)
             mean_c    = NaN
-            meadian_c = NaN
+            median_c = NaN
             mode_c    = NaN
 
         else
 
             min_max_c = extrema(clean_c)
             mean_c    = mean(clean_c)
-            meadian_c = median(clean_c)
+            median_c = median(clean_c)
             mode_c    = mode(clean_c)
 
         end
@@ -3164,7 +3167,7 @@ function daScatterWeightedDensity(
             \n  Quantity:   $(z_quantity) \
             \n  Min - Max:  $(min_max_c) \
             \n  Mean:       $(mean_c) \
-            \n  Median:     $(meadian_c) \
+            \n  Median:     $(median_c) \
             \n  Mode:       $(mode_c)"
         )
 
@@ -3173,8 +3176,8 @@ function daScatterWeightedDensity(
     # Set bins with a value of 0 to NaN
     replace!(x -> iszero(x) ? NaN : x, values)
 
-    # The transpose and reverse operation are used to conform to the way heatmap! expect the matrix to be structured,
-    # and log10 is used to enhance the contrast
+    # The transpose and reverse operation are used to conform to the way heatmap!
+    # expect the matrix to be structured
     z_axis = reverse!(transpose(values), dims=2)
 
     return x_axis, y_axis, z_axis
@@ -3209,7 +3212,7 @@ Compute a 2D mean velocity field.
   - `grid::SquareGrid`: Square grid.
   - `component::Symbol`: For which cell/particle type the velocity field will be computed. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`. The disk is generally oriented to have its axis of rotation parallel to the z axis.
-  - `velocity_units::Bool=false`: If the velocity will be given as an `Unitful.Quantity` with units or as a `Flot64` (in which case the underlying unit is ``\\mathrm{km} \\, \\mathrm{s}^{-1}``).
+  - `velocity_units::Bool=false`: If the velocity will be given as an `Unitful.Quantity` with units or as a `Float64` (in which case the underlying unit is ``\\mathrm{km} \\, \\mathrm{s}^{-1}``).
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -3798,7 +3801,7 @@ function daScatterGalaxy(
 
     (
         length(x_values) == length(y_values) ||
-        throw(ArgumentError("daScatterGalaxy: :$(x_quantity) and :$(y_quantity) have a diferent \
+        throw(ArgumentError("daScatterGalaxy: :$(x_quantity) and :$(y_quantity) have a different \
         number of values. They should be the same"))
     )
 
@@ -4020,7 +4023,7 @@ function daGasFractions(
 end
 
 """
-    daStellarMetallictyHistogram(data_dict::Dict)::Union{Tuple{Vector{Float64}},Nothing}
+    daStellarMetallicityHistogram(data_dict::Dict)::Union{Tuple{Vector{Float64}},Nothing}
 
 Compute the stellar metallicity (in [`SOLAR_METALLICITY`](@ref) units), for an histogram.
 
@@ -4046,7 +4049,7 @@ Compute the stellar metallicity (in [`SOLAR_METALLICITY`](@ref) units), for an h
 
       + A Vector with the stellar metallicites.
 """
-function daStellarMetallictyHistogram(data_dict::Dict)::Union{Tuple{Vector{Float64}},Nothing}
+function daStellarMetallicityHistogram(data_dict::Dict)::Union{Tuple{Vector{Float64}},Nothing}
 
     metallicity = scatterQty(data_dict, :stellar_metallicity)
 
@@ -4306,7 +4309,7 @@ Compute the time series of two quantities.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4314,7 +4317,7 @@ Compute the time series of two quantities.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -4326,7 +4329,7 @@ Compute the time series of two quantities.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `extra_filter` filter function.
-  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `fraction::Bool=false`: If the `y_quantity` will be represented as a fraction of the last value. If `cumulative` = true, this will apply to the accumulated values.
   - `scaling::Function=identity`: Function to scale the x-axis (only relevant if `smooth` != 0). The bins will be computed accordingly. The options are the scaling functions accepted by Makie.jl: log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
@@ -4467,7 +4470,7 @@ Compute the evolution of the accreted mass into the virial radius.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4475,7 +4478,7 @@ Compute the evolution of the accreted mass into the virial radius.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -4487,7 +4490,7 @@ Compute the evolution of the accreted mass into the virial radius.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion. If false, `filter_mode` will be ignored.
-  - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
 
 # Returns
 
@@ -4692,7 +4695,7 @@ Compute the evolution of the accreted mass into the disc.
       + A dictionary with three entries:
 
           + `:filter_function` -> The filter function.
-          + `:translation`     -> Translation for the simulation box. The posibilites are:
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -4700,7 +4703,7 @@ Compute the evolution of the accreted mass into the disc.
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-          + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
               + `:zero`                       -> No rotation is applied.
               + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -4712,7 +4715,7 @@ Compute the evolution of the accreted mass into the disc.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
-  - `smooth::Int=0`: The time series will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
 
 # Returns
 
@@ -4901,7 +4904,7 @@ Compute the stellar mass or SFR evolution using the data in the `sfr.txt` file.
 
       + `:stellar_mass` -> Stellar mass.
       + `:sfr`          -> The star formation rate.
-  - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
 
 # Returns
 
@@ -5043,7 +5046,7 @@ Compute the evolution of a measured quantity in the `cpu.txt` file, for a given 
       + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
       + `:tot_clock_time_s`       -> Total clock time in seconds.
       + `:tot_clock_time_percent` -> Total clock time as a percentage.
-  - `smooth::Int=0`: The result will be smooth out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
 
 # Returns
 
@@ -5245,8 +5248,8 @@ Compute the gas mass density and the SFR density, used in the volumetric star fo
 
   - A tuple with two elements:
 
-      + A vector with log10(ρH / M⊙ * pc^-2).
-      + A vector with log10(ρsfr / M⊙ * yr^-1 * kpc^-2).
+      + A vector with log10(ρH / M⊙ * pc^-3).
+      + A vector with log10(ρsfr / M⊙ * yr^-1 * kpc^-3).
 
     It returns `nothing` if any of the necessary quantities are missing.
 
@@ -5447,7 +5450,7 @@ function daClumpingFactor(
 
     (
         allequal(length, [V, Cρ, idxs]) ||
-        throw(DomainError("daClumpingFactor: The lists of numer densities, volumes, and nearest \
+        throw(DomainError("daClumpingFactor: The lists of number densities, volumes, and nearest \
         neighbor indices don't have the same lengths. This should not happen!"))
     )
 

@@ -121,6 +121,10 @@ Return a filtered copy of `data_dict` using the indices provided by `filter_func
 """
 function filterData(data_dict::Dict; filter_function::Function=filterNothing)::Dict
 
+    if filter_function == filterNothing
+        return data_dict
+    end
+
     dd_copy = deepcopy(data_dict)
 
     # Compute the filter dictionary
@@ -169,13 +173,13 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
   - A Tuple with four elements:
 
       + The filter function.
-      + Translation for the simulation box. The posibilites are:
+      + Translation for the simulation box. The possibilities are:
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
           + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
-      + Rotation for the simulation box. The posibilites are:
+      + Rotation for the simulation box. The possibilities are:
 
           + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
           + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
@@ -321,7 +325,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
   - `filter_mode::Dict{Symbol,Any}`: A dictionary with three entries:
 
       + `:filter_function` -> The filter function.
-      + `:translation`     -> Translation for the simulation box. The posibilites are:
+      + `:translation`     -> Translation for the simulation box. The possibilities are:
 
           + `:zero`                       -> No translation is applied.
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
@@ -329,7 +333,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-      + `:rotation`        -> Rotation for the simulation box. The posibilites are:
+      + `:rotation`        -> Rotation for the simulation box. The possibilities are:
 
           + `:zero`                       -> No rotation is applied.
           + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
@@ -346,14 +350,14 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
   - A Tuple with four elements:
 
       + The filter function.
-      + Translation for the simulation box. The posibilites are:
+      + Translation for the simulation box. The possibilities are:
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-      + Rotation for the simulation box. The posibilites are:
+      + Rotation for the simulation box. The possibilities are:
 
           + `:zero`                       -> No rotation is applied.
           + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
