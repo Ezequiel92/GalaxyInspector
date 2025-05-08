@@ -116,6 +116,7 @@ const Zeff = 1e-3 * Zsun
 # Clumping factor
 const Cρ   = 100.0
 
+const C_xd   = 0.28359533
 const C_star = sqrt(3π / 32u"G") / ϵff
 const C_rec  = u"mp" / αH
 const C_cond = (u"mp" * Zsun) / (2 * Rsun * Cρ)
