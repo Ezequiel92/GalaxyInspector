@@ -22,6 +22,7 @@ Compute the fraction in each cell/particle of a given `component`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `component::Symbol`: For which cell/particle type the fraction will be calculated. The options are:
 
       + `:molecular`    -> Molecular hydrogen (``\\mathrm{H_2}``) fraction.
@@ -43,8 +44,13 @@ L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressu
 function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     dg = data_dict[:gas]
+    gas_mass = dg["MASS"]
 
-    !isempty(dg["MASS"]) || return Float64[]
+    # If there is no gas, return an empty array
+    !isempty(gas_mass) || return Float64[]
+
+    # Compute the number of gas cells
+    n_cells = length(gas_mass)
 
     ################################################################################################
     # Molecular fraction
@@ -52,7 +58,11 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     if component == :molecular
 
-        if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+        # Read the neutral and ionized hydrogen fractions from Arepo
+        nh = dg["NH  "]
+        nhp = dg["NHP "]
+
+        if !any(isempty, [nh, nhp, dg["FRAC"]])
 
             (
                 !logging[] ||
@@ -60,14 +70,18 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
                 fractions from out SF model")
             )
 
-            fractions = Vector{Float64}(undef, length(dg["MASS"]))
+            molecular_fraction = view(dg["FRAC"], 3, :)
+            stellar_fraction = view(dg["FRAC"], 4, :)
+            ρ_gas = dg["RHO "]
+
+            fractions = Vector{Float64}(undef, n_cells)
 
             for i in eachindex(fractions)
 
-                if !isnan(dg["FRAC"][3, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(molecular_fraction[i]) && ρ_gas[i] >= THRESHOLD_DENSITY
 
                     # Fraction of molecular hydrogen according to our SF model
-                    fractions[i] = dg["FRAC"][3, i] + dg["FRAC"][4, i]
+                    fractions[i] = molecular_fraction[i] + stellar_fraction[i]
 
                 else
 
@@ -79,7 +93,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             end
 
-        elseif !any(isempty, [dg["NH  "], dg["NHP "], dg["PRES"]])
+        elseif !any(isempty, [nh, nhp, dg["PRES"]])
 
             (
                 !logging[] ||
@@ -90,21 +104,18 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             relative_pressure = @. uconvert(Unitful.NoUnits, dg["PRES"] / P0)^ALPHA_BLITZ
 
-            # Fraction of neutral gas that is molecular hydrogen according
+            # Compute the fraction of neutral gas that is molecular hydrogen according
             # to the pressure relation in Blitz et al. (2006)
             fm = @. 1.0 / (1.0 + relative_pressure)
 
             # Compute the fraction of neutral gas according to Arepo
-            fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
+            fn = @. nh / (nhp + nh)
 
             fractions = fm .* fn
 
         else
 
-            (
-                !logging[] ||
-                @warn("computeFraction: I could not compute the molecular fraction")
-            )
+            !logging[] || @warn("computeFraction: I could not compute the molecular fraction")
 
             fractions = Float64[]
 
@@ -126,16 +137,13 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             relative_pressure = @. uconvert(Unitful.NoUnits, dg["PRES"] / P0)^ALPHA_BLITZ
 
-            # Fraction of gas that is molecular hydrogen according
+            # Compute the fraction of gas that is molecular hydrogen according
             # to the pressure relation in Blitz et al. (2006)
             fractions = @. 1.0 / (1.0 + relative_pressure)
 
         else
 
-            (
-                !logging[] ||
-                @warn("computeFraction: I could not compute the BR molecular fraction")
-            )
+            !logging[] || @warn("computeFraction: I could not compute the BR molecular fraction")
 
             fractions = Float64[]
 
@@ -147,7 +155,11 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     elseif component == :atomic
 
-        if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+        # Read the neutral and ionized hydrogen fractions from Arepo
+        nh = dg["NH  "]
+        nhp = dg["NHP "]
+
+        if !any(isempty, [nh, nhp, dg["FRAC"]])
 
             (
                 !logging[] ||
@@ -155,28 +167,32 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
                 from our SF model")
             )
 
-            fractions = Vector{Float64}(undef, length(dg["MASS"]))
+            atomic_fraction = view(dg["FRAC"], 2, :)
+            ρ_gas = dg["RHO "]
+            gas_metallicity = dg["GZ  "]
+
+            fractions = Vector{Float64}(undef, n_cells)
 
             for i in eachindex(fractions)
 
-                if !isnan(dg["FRAC"][2, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(atomic_fraction[i]) && ρ_gas[i] >= THRESHOLD_DENSITY
 
                     # Fraction of atomic hydrogen according to our SF model
-                    fractions[i] = dg["FRAC"][2, i]
+                    fractions[i] = atomic_fraction[i]
 
                 else
 
-                    Z = setPositive(dg["GZ  "][i])
+                    Z = setPositive(gas_metallicity[i])
 
                     # When there is no data from our model or the density is below the SF threshold,
                     # use the fraction of neutral hydrogen from Arepo
-                    fractions[i] = (1 - Z) * dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
+                    fractions[i] = (1 - Z) * nh[i] / (nhp[i] + nh[i])
 
                 end
 
             end
 
-        elseif !any(isempty, [dg["NH  "], dg["NHP "], dg["PRES"]])
+        elseif !any(isempty, [nh, nhp, dg["PRES"]])
 
             (
                 !logging[] ||
@@ -186,21 +202,18 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             relative_pressure = @. uconvert(Unitful.NoUnits, dg["PRES"] / P0)^ALPHA_BLITZ
 
-            # Fraction of neutral gas that is atomic hydrogen according
+            # Compute the fraction of neutral gas that is atomic hydrogen according
             # to the pressure relation in Blitz et al. (2006)
             fa = @. relative_pressure / (1.0 + relative_pressure)
 
             # Compute the fraction of neutral gas according to Arepo
-            fn = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
+            fn = @. nh / (nhp + nh)
 
             fractions = fa .* fn
 
         else
 
-            (
-                !logging[] ||
-                @warn("computeFraction: I could not compute the atomic fraction")
-            )
+            !logging[] || @warn("computeFraction: I could not compute the atomic fraction")
 
             fractions = Float64[]
 
@@ -212,7 +225,11 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     elseif component == :ionized
 
-        if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+        # Read the neutral and ionized hydrogen fractions from Arepo
+        nh = dg["NH  "]
+        nhp = dg["NHP "]
+
+        if !any(isempty, [nh, nhp, dg["FRAC"]])
 
             (
                 !logging[] ||
@@ -220,28 +237,32 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
                 fractions from our SF model")
             )
 
-            fractions = Vector{Float64}(undef, length(dg["NHP "]))
+            ionized_fraction = view(dg["FRAC"], 1, :)
+            ρ_gas = dg["RHO "]
+            gas_metallicity = dg["GZ  "]
+
+            fractions = Vector{Float64}(undef, n_cells)
 
             for i in eachindex(fractions)
 
-                if !isnan(dg["FRAC"][1, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(ionized_fraction[i]) && ρ_gas[i] >= THRESHOLD_DENSITY
 
                     # Fraction of ionized hydrogen according to our SF model
-                    fractions[i] = dg["FRAC"][1, i]
+                    fractions[i] = ionized_fraction[i]
 
                 else
 
-                    Z = setPositive(dg["GZ  "][i])
+                    Z = setPositive(gas_metallicity[i])
 
                     # When there is no data from our model or the density is below the SF threshold,
                     # use the fraction of ionized hydrogen from Arepo
-                    fractions[i] = (1 - Z) * dg["NHP "][i] / (dg["NHP "][i] + dg["NH  "][i])
+                    fractions[i] = (1 - Z) * nhp[i] / (nhp[i] + nh[i])
 
                 end
 
             end
 
-        elseif !any(isempty, [dg["NH  "], dg["NHP "]])
+        elseif !any(isempty, [nh, nhp])
 
             (
                 !logging[] ||
@@ -249,14 +270,12 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
                 of ionized gas from Arepo")
             )
 
-            fractions = @. dg["NHP "] / (dg["NHP "] + dg["NH  "])
+            # Compute the fraction of ionized gas according to Arepo
+            fractions = @. nhp / (nhp + nh)
 
         else
 
-            (
-                !logging[] ||
-                @warn("computeFraction: I could not compute the ionized fraction")
-            )
+            !logging[] || @warn("computeFraction: I could not compute the ionized fraction")
 
             fractions = Float64[]
 
@@ -268,7 +287,11 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     elseif component == :neutral
 
-        if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+        # Read the neutral and ionized hydrogen fractions from Arepo
+        nh = dg["NH  "]
+        nhp = dg["NHP "]
+
+        if !any(isempty, [nh, nhp, dg["FRAC"]])
 
             (
                 !logging[] ||
@@ -276,27 +299,33 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
                 fractions from out SF model")
             )
 
-            fa = Vector{Float64}(undef, length(dg["MASS"]))
-            fm = Vector{Float64}(undef, length(dg["MASS"]))
+            atomic_fraction = view(dg["FRAC"], 2, :)
+            molecular_fraction = view(dg["FRAC"], 3, :)
+            stellar_fraction = view(dg["FRAC"], 4, :)
+            ρ_gas = dg["RHO "]
+            gas_metallicity = dg["GZ  "]
+
+            fa = Vector{Float64}(undef, n_cells)
+            fm = Vector{Float64}(undef, n_cells)
 
             for i in eachindex(fa)
 
-                if !isnan(dg["FRAC"][2, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(atomic_fraction[i]) && ρ_gas[i] >= THRESHOLD_DENSITY
 
                     # Fraction of atomic hydrogen according to our SF model
-                    fa[i] = dg["FRAC"][2, i]
+                    fa[i] = atomic_fraction[i]
 
-                    # Fraction of molecular hydrogen according to our model
-                    fm[i] = dg["FRAC"][3, i] + dg["FRAC"][4, i]
+                    # Fraction of molecular hydrogen according to our SF model
+                    fm[i] = molecular_fraction[i] + stellar_fraction[i]
 
                 else
 
-                    Z = setPositive(dg["GZ  "][i])
+                    Z = setPositive(gas_metallicity[i])
 
                     # When there is no data from our model or the density is below the SF threshold,
                     # use the fraction of neutral hydrogen from Arepo as the atomic fraction
                     # and set the molecular fraction to 0
-                    fa[i] = (1 - Z) * dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
+                    fa[i] = (1 - Z) * nh[i] / (nhp[i] + nh[i])
                     fm[i] = 0.0
 
                 end
@@ -305,7 +334,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
             fractions = fa .+ fm
 
-        elseif !any(isempty, [dg["NH  "], dg["NHP "]])
+        elseif !any(isempty, [nh, nhp])
 
             (
                 !logging[] ||
@@ -313,14 +342,12 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
                 of neutral gas from Arepo")
             )
 
-            fractions = @. dg["NH  "] / (dg["NHP "] + dg["NH  "])
+            # Compute the fraction of neutral gas according to Arepo
+            fractions = @. nh / (nhp + nh)
 
         else
 
-            (
-                !logging[] ||
-                @warn("computeFraction: I could not compute the neutral fraction")
-            )
+            !logging[] || @warn("computeFraction: I could not compute the neutral fraction")
 
             fractions = Float64[]
 
@@ -332,7 +359,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     elseif component == :stellar
 
-        if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+        if !isempty(dg["FRAC"])
 
             (
                 !logging[] ||
@@ -340,14 +367,17 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
                 fractions from out SF model")
             )
 
-            fractions = Vector{Float64}(undef, length(dg["RHO "]))
+            stellar_fraction = view(dg["FRAC"], 4, :)
+            ρ_gas = dg["RHO "]
+
+            fractions = Vector{Float64}(undef, n_cells)
 
             for i in eachindex(fractions)
 
-                if !isnan(dg["FRAC"][4, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(stellar_fraction[i]) && ρ_gas[i] >= THRESHOLD_DENSITY
 
                     # Fraction of stars according to our SF model
-                    fractions[i] = dg["FRAC"][4, i]
+                    fractions[i] = stellar_fraction[i]
 
                 else
 
@@ -361,10 +391,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         else
 
-            (
-                !logging[] ||
-                @warn("computeFraction: I could not compute the stellar fraction")
-            )
+            !logging[] || @warn("computeFraction: I could not compute the stellar fraction")
 
             fractions = Float64[]
 
@@ -376,7 +403,11 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     elseif component == :dust
 
-        if "FRAC" ∈ keys(dg) && !isempty(dg["FRAC"])
+        # Read the neutral and ionized hydrogen fractions from Arepo
+        nh = dg["NH  "]
+        nhp = dg["NHP "]
+
+        if !any(isempty, [nh, nhp, dg["FRAC"]])
 
             (
                 !logging[] ||
@@ -384,19 +415,24 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
                 from our SF model")
             )
 
-            fractions = Vector{Float64}(undef, length(dg["MASS"]))
+            dust_fraction = view(dg["FRAC"], 6, :)
+            ρ_gas = dg["RHO "]
+            gas_metallicity = dg["GZ  "]
+
+            fractions = Vector{Float64}(undef, n_cells)
 
             for i in eachindex(fractions)
 
-                if !isnan(dg["FRAC"][6, i]) && dg["RHO "][i] >= THRESHOLD_DENSITY
+                if !isnan(dust_fraction[i]) && ρ_gas[i] >= THRESHOLD_DENSITY
 
                     # Fraction of dust according to our SF model
-                    fractions[i] = dg["FRAC"][6, i]
+                    fractions[i] = dust_fraction[i]
 
                 else
 
-                    Z = setPositive(dg["GZ  "][i])
-                    fa = (1 - Z) * dg["NH  "][i] / (dg["NHP "][i] + dg["NH  "][i])
+                    Z = setPositive(gas_metallicity[i])
+
+                    fa = (1 - Z) * nh[i] / (nhp[i] + nh[i])
 
                     # When there is no data from our model or the density is below the SF threshold,
                     # use the fraction of neutral hydrogen and the metallicity from Arepo
@@ -408,10 +444,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         else
 
-            (
-                !logging[] ||
-                @warn("computeFraction: I could not compute the dust fraction")
-            )
+            !logging[] || @warn("computeFraction: I could not compute the dust fraction")
 
             fractions = Float64[]
 
