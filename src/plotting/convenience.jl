@@ -7719,7 +7719,8 @@ function kennicuttSchmidtLaw(
                             if fit
                                 ppFitLine!(
                                     f;
-                                    top_position=(0.7, 0.99),
+                                    text_position=(0.97, 0.99),
+                                    text_handle=:right,
                                     color=Makie.wong_colors()[1],
                                 )
                             end
@@ -7737,7 +7738,8 @@ function kennicuttSchmidtLaw(
                             if fit
                                 ppFitLine!(
                                     f;
-                                    top_position=(0.7, 0.99),
+                                    text_position=(0.97, 0.99),
+                                    text_handle=:right,
                                     wts=exp10.(z_data),
                                     color=Makie.wong_colors()[1],
                                 )

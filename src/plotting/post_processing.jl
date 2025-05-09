@@ -283,7 +283,8 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure to be drawn over.
-  - `top_position::Tuple{<:Real,<:Real}=(0.04, 0.98)`: Relative position of the top left corner of the legend box.
+  - `text_position::Tuple{<:Real,<:Real}=(0.04, 0.98)`: Relative position of the legend box.
+  - `text_handle::Symbol=:left`: Top corner of the legend box whose positions is set with `text_position`.
   - `wts::Union{Vector{Float64},Nothing}=nothing`: Weights for the fits. Set to `nothing` for a non-weighted fit.
   - `error_formating::Symbol=:std_error`: Error format for the annotation. The options are:
 
@@ -302,7 +303,8 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
 """
 function ppFitLine!(
     figure::Makie.Figure;
-    top_position::Tuple{<:Real,<:Real}=(0.04, 0.98),
+    text_position::Tuple{<:Real,<:Real}=(0.04, 0.98),
+    text_handle::symbol=:left,
     wts::Union{Vector{Float64},Nothing}=nothing,
     error_formating::Symbol=:std_error,
     color::ColorType=Makie.wong_colors()[6],
@@ -394,16 +396,16 @@ function ppFitLine!(
     intercept, δintercept = formatError(intercept_mean, intercept_error)
     slope, δslope = formatError(slope_mean, slope_error)
 
-    # Set the position of the top left corner of the legend box
-    x_tp = top_position[1]
-    y_tp = top_position[2]
+    # Set the position of the selected top corner of the legend box
+    x_tp = text_position[1]
+    y_tp = text_position[2]
 
     # Draw the annotation
     text!(
         figure.current_axis.x,
         [(x_tp, y_tp), (x_tp, y_tp - 0.05), (x_tp, y_tp - 0.1)];
         text=[L"y = a \, x + b", L"a = %$slope \pm %$δslope", L"b = %$intercept \pm %$δintercept"],
-        align=(:left, :top),
+        align=(text_handle, :top),
         color,
         space=:relative,
     )

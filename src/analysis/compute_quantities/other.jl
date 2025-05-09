@@ -546,14 +546,21 @@ function computeEfficiencyFF(
 
     for i in eachindex(ϵff)
 
-        if iszero(mass[i]) || iszero(sfr[i]) || density[i] < THRESHOLD_DENSITY
+        m = mass[i]
+        ρ = density[i]
+        sf = sfr[i]
+
+        if iszero(m) || iszero(sf) || ρ < THRESHOLD_DENSITY
 
             ϵff[i] = NaN
 
         else
 
+            # Compute the free-fall time
+            tff = sqrt(3π / (32 * Unitful.G * ρ))
+
             # Compute the depletion time
-            tdep = mass[i] / sfr[i]
+            tdep = m / sf
 
             # Compute the star formation efficiency per free-fall time
             ϵff[i] = uconvert(Unitful.NoUnits, tff / tdep)
