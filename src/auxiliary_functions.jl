@@ -37,7 +37,7 @@ end
 """
     setLogging!(verb::Bool; <keyword arguments>)::Nothing
 
-Set if logging messages will printed out. By default no logs are printed.
+Set if logging messages will be printed out. By default no logs are printed.
 
 # Arguments
 
@@ -219,7 +219,7 @@ function area(r::Number)::Number
 
     x = setPositive(r)
 
-    return π * x * x
+    return π * x^2
 
 end
 
@@ -230,7 +230,7 @@ function volume(r::Number)::Number
 
     x = setPositive(r)
 
-    return π * x * x * x * 1.333
+    return π * x^3 * 4.0 / 3.0
 
 end
 
@@ -337,7 +337,7 @@ function rangeCut!(
         # Check that after the transformation at least `min_left` elements will be left
         count(x -> range[1] <= x <= range[2], raw_values) >= min_left || return false
 
-        # Delete element outside of the provided range
+        # Delete elements outside of the provided range
         filter!(x -> range[1] <= x <= range[2], raw_values)
 
     else
@@ -345,7 +345,7 @@ function rangeCut!(
         # Check that after the transformation at least `min_left` elements will be left
         count(x -> range[1] < x < range[2], raw_values) >= min_left || return false
 
-        # Delete element outside of the provided range
+        # Delete elements outside of the provided range
         filter!(x -> range[1] < x < range[2], raw_values)
 
     end
@@ -403,7 +403,7 @@ function rangeCut!(
         # Check that after the transformation at least `min_left` elements will be left
         count(.!idxs) >= min_left || return false
 
-        # Delete element outside of the provided range
+        # Delete elements outside of the provided range
         deleteat!(m_data, idxs)
         deleteat!(s_data, idxs)
 
@@ -415,7 +415,7 @@ function rangeCut!(
         # Check that after the transformation at least `min_left` elements will be left
         count(.!idxs) >= min_left || return false
 
-        # Delete element outside of the provided range
+        # Delete elements outside of the provided range
         deleteat!(m_data, idxs)
         deleteat!(s_data, idxs)
 
@@ -841,7 +841,7 @@ Compute a 3D histogram of `positions`, returning the full list of indices within
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Positions of the points in the grid. Each column correspond to a point and each row is a dimension. This determines to which bin the index of each point will be added.
+  - `positions::Matrix{<:Number}`: Positions of the points in the grid. Each column corresponds to a point and each row is a dimension. This determines to which bin the index of each point will be added.
   - `grid::CubicGrid`: A cubic grid.
 
 # Returns
@@ -1220,7 +1220,7 @@ Compute a 2D histogram of `values`.
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Positions of the values in the grid. Each column correspond to a value and each row is a dimension. This determines to which bin each value will be added.
+  - `positions::Matrix{<:Number}`: Positions of the values in the grid. Each column corresponds to a value and each row is a dimension. This determines to which bin each value will be added.
   - `values::Vector{<:Number}`: The values that will be added up in each square bin, according to their `positions`.
   - `grid::SquareGrid`: A square grid.
   - `total::Bool=true`: If the sum (default) or the mean of `values` will be computed in each bin.
@@ -1325,7 +1325,7 @@ Compute a 2D histogram of `values`.
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Positions of the values in the grid. Each column correspond to a value and each row is a dimension. This determines to which bin each value will be added.
+  - `positions::Matrix{<:Number}`: Positions of the values in the grid. Each column corresponds to a value and each row is a dimension. This determines to which bin each value will be added.
   - `values::Vector{<:Number}`: The values that will be added up in each square bin, according to their `positions`.
   - `x_edges::Vector{<:Number}`: A sorted list of bin edges for the x axis.
   - `y_edges::Vector{<:Number}`: A sorted list of bin edges for the y axis.
@@ -1556,7 +1556,7 @@ Compute a 3D histogram of `values`.
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Positions of the values in the grid. Each column correspond to a value and each row is a dimension. This determines to which bin each value will be added.
+  - `positions::Matrix{<:Number}`: Positions of the values in the grid. Each column corresponds to a value and each row is a dimension. This determines to which bin each value will be added.
   - `values::Vector{<:Number}`: The values that will be added up in each square bin, according to their `positions`.
   - `grid::CubicGrid`: A cubic grid.
   - `total::Bool=true`: If the sum (default) or the mean of `values` will be computed in each bin.
@@ -1948,7 +1948,7 @@ Reduce the number of ticks in `hr_ticks` by `factor` keeping the total length of
 """
 function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
 
-    !isone(factor) || hr_ticks
+    !isone(factor) || return hr_ticks
 
     l = length(hr_ticks)
     (
@@ -2068,7 +2068,7 @@ Sample the 3D density field of a given quantity using a cubic grid
 
 !!! note
 
-    If the source of the field are particles, a simple 3D histogram is used. If they are Voronoi cells instead, the density of the cell that intersect each voxel is used.
+    If the source of the field are particles, a simple 3D histogram is used. If they are Voronoi cells instead, the density of the cell that intersects each voxel is used.
 
 # Arguments
 
@@ -2304,7 +2304,7 @@ Compute a profile, using an 1D histogram.
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
-  - `empty_nan::Bool=true`: If empty bins will be set to NaN, 0 is used otherwise. Be carefull if `empty_nan` = true and `cumulative` = true, because every bin after the first NaN will be set to NaN.
+  - `empty_nan::Bool=true`: If empty bins will be set to NaN, 0 is used otherwise. Be careful if `empty_nan` = true and `cumulative` = true, because every bin after the first NaN will be set to NaN.
 
 # Returns
 
@@ -2558,7 +2558,7 @@ function bigiel2008(
     if log_output
         return log10Σsfr
     else
-        return @. exp10(log10Σsfr ) * u"Msun * yr^-1 * kpc^-2"
+        return @. exp10(log10Σsfr) * u"Msun * yr^-1 * kpc^-2"
     end
 
 end
@@ -2647,7 +2647,7 @@ function kennicutt1998(Σgas::Vector{<:SurfaceDensity}; log_output::Bool=true)::
     if log_output
         return log10Σsfr
     else
-        return @. exp10(log10Σsfr ) * u"Msun * yr^-1 * kpc^-2"
+        return @. exp10(log10Σsfr) * u"Msun * yr^-1 * kpc^-2"
     end
 
 end
@@ -3047,7 +3047,7 @@ For values between 0 and 0.01 the label will be "< 0.01", otherwise it will be t
 
 # Arguments
 
-  - `x::Number`: Value to be formated.
+  - `x::Number`: Value to be formatted.
 
 # Returns
 
@@ -3072,7 +3072,7 @@ Method for compatibility with the barplot! function of [Makie](https://docs.maki
 
 # Arguments
 
-  - `x::Number`: Value to be formated.
+  - `x::Number`: Value to be formatted.
 
 # Returns
 

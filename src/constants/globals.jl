@@ -22,7 +22,7 @@ Relative path, within the simulation directory, of the `cpu.txt` file.
 const CPU_REL_PATH = "output/cpu.txt"
 
 """
-If logging messages will printed out.
+If logging messages will be printed out.
 """
 const logging = Ref(false)
 
@@ -186,7 +186,7 @@ One gets,
 
 `OverDensThresh` = 76.8495 [internal units of density]
 
-And, for a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``1.42857 \\times 10^{-5} \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
+And, for a cosmological simulation at redshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``1.42857 \\times 10^{-5} \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
 
 ``\\log_{10} \\rho \\ [\\mathrm{M_\\odot \\, kpc^{-3}}] = 2.548``
 
@@ -200,7 +200,7 @@ This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` 
 
 `PhysDensThresh` = ``1.03378 \\times 10^{6}`` [internal units of density]
 
-For a cosmological simulation at readshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
+For a cosmological simulation at redshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
 
 ``\\log_{10} \\rho \\, [\\mathrm{M_\\odot \\, kpc^{-3}}] = 6.677``
 """
@@ -564,7 +564,7 @@ Default plot theme.
 
 Regarding the graphic units used, we know that ``1 \\, \\mathrm{mm} = 2.83466 \\, \\mathrm{pt}`` and ``1 \\, \\mathrm{in} = 25.4 \\, \\mathrm{mm}``. Then, if we want ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}`` in vector graphics, we have to use `pt_per_unit` = 0.283466.
 
-For pixel images, we control the ppi with `px_per_unit`. A resonable high ppi is 600. So, using `px_per_unit` = ``2.3622`` we get ``23.622 \\, \\mathrm{px/mm} \\sim 600 \\, \\mathrm{px/in}`` (remember that ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}``).
+For pixel images, we control the ppi with `px_per_unit`. A reasonable high ppi is 600. So, using `px_per_unit` = ``2.3622`` we get ``23.622 \\, \\mathrm{px/mm} \\sim 600 \\, \\mathrm{px/in}`` (remember that ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}``).
 """
 const DEFAULT_THEME = Theme(
     #################################################################################################
@@ -1053,7 +1053,7 @@ struct SquareGrid
     # Arguments
 
       - `physical_size::Number`: Side length of the square grid.
-      - `n_bins::Int`: Number of bins per dimesion of the grid.
+      - `n_bins::Int`: Number of bins per dimension of the grid.
       - `center::Vector{<:Number}=zeros(typeof(physical_size),3)`: 3D location of the center of the grid. The z axis is taken as the normal vector of the grid.
     """
     function SquareGrid(
@@ -1159,7 +1159,7 @@ struct CubicGrid
     # Arguments
 
       - `physical_size::Number`: Side length of the cubic grid.
-      - `n_bins::Int`: Number of bins per dimesion of the grid.
+      - `n_bins::Int`: Number of bins per dimension of the grid.
       - `center::Vector{<:Number}=zeros(typeof(physical_size),3)`: 3D location of the center of the grid.
     """
     function CubicGrid(

@@ -1764,7 +1764,7 @@ function isCosmological(path::String)::Bool
             # If the param.txt is saved in the snapshot metadata, read `ComovingIntegrationOn`
             read_attribute(snapshot["Parameters"], "ComovingIntegrationOn")
         else
-            # Otherwise, use the readshift in the header
+            # Otherwise, use the redshift in the header
             !iszero(read_attribute(snapshot["Header"], "Redshift"))
         end
 
