@@ -31,6 +31,7 @@ Compute the fraction in each cell/particle of a given `component`.
       + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) fraction.
       + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) fraction.
       + `:stellar`      -> Stellar gas fraction (according to our SF model).
+      + `:metals`       -> Metallicity (according to our SF model).
       + `:dust`         -> Dust fraction (according to our SF model).
 
 # Returns
@@ -398,6 +399,59 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         end
 
     ################################################################################################
+    # Metal fraction
+    ################################################################################################
+
+    elseif component == :metals
+
+        # Read the neutral and ionized hydrogen fractions from Arepo
+        nh = dg["NH  "]
+        nhp = dg["NHP "]
+
+        if !any(isempty, [nh, nhp, dg["FRAC"]])
+
+            (
+                !logging[] ||
+                @info("computeFraction: The metallicity will be calculated using the \
+                fractions from out SF model")
+            )
+
+            metal_fraction = view(dg["FRAC"], 5, :)
+            ρ_gas = dg["RHO "]
+            gas_metallicity = dg["GZ  "]
+
+            fractions = Vector{Float64}(undef, n_cells)
+
+            for i in eachindex(fractions)
+
+                if !isnan(metal_fraction[i]) && ρ_gas[i] >= THRESHOLD_DENSITY
+
+                    # Metallicity according to our SF model
+                    fractions[i] = metal_fraction[i]
+
+                else
+
+                    Z = setPositive(gas_metallicity[i])
+
+                    fa = (1 - Z) * nh[i] / (nhp[i] + nh[i])
+
+                    # When there is no data from our model or the density is below the SF threshold,
+                    # use the fraction of neutral hydrogen and the metallicity from Arepo
+                    fractions[i] = Z * (1.0 - C_xd * fa)
+
+                end
+
+            end
+
+        else
+
+            !logging[] || @warn("computeFraction: I could not compute the metallicity")
+
+            fractions = Float64[]
+
+        end
+
+    ################################################################################################
     # Dust fraction
     ################################################################################################
 
@@ -494,6 +548,7 @@ Compute the mass in each cell/particle of a given `component`.
       + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar`      -> Stellar gas mass (according to out SF model).
+      + `:metals`       -> Metal mass (according to our SF model).
       + `:dust`         -> Dust mass.
 
 # Returns
@@ -530,7 +585,16 @@ function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
         masses = data_dict[:black_hole]["MASS"]
 
-    elseif component ∈ [:molecular, :br_molecular, :atomic, :ionized, :neutral, :stellar, :dust]
+    elseif component ∈ [
+        :molecular,
+        :br_molecular,
+        :atomic,
+        :ionized,
+        :neutral,
+        :stellar,
+        :metals,
+        :dust,
+    ]
 
         fractions = computeFraction(data_dict, component)
 
@@ -555,7 +619,7 @@ end
 """
     computeVolumeDensity(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Density}
 
-Compute the volume density in each cell/particle of a given `component`.
+Compute the volume mass density in each cell/particle of a given `component`.
 
 # Arguments
 
@@ -574,15 +638,17 @@ Compute the volume density in each cell/particle of a given `component`.
       + ...
   - `component::Symbol`: For which cell/particle type the mass will be calculated. The options are:
 
-      + `:gas`          -> Gas density.
-      + `:hydrogen`     -> Hydrogen density.
-      + `:helium`       -> Helium density.
-      + `:molecular`    -> Molecular hydrogen (``\\mathrm{H_2}``) density.
-      + `:br_molecular` -> Molecular hydrogen (``\\mathrm{H_2}``) density, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
-      + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
-      + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
-      + `:stellar`      -> Stellar gas fraction (according to out SF model).
+      + `:gas`          -> Gas mass density.
+      + `:hydrogen`     -> Hydrogen mass density.
+      + `:helium`       -> Helium mass density.
+      + `:molecular`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass density.
+      + `:br_molecular` -> Molecular hydrogen (``\\mathrm{H_2}``) mass density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) mass density.
+      + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) mass density.
+      + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass density.
+      + `:stellar`      -> Stellar mass density (according to out SF model).
+      + `:metals`       -> Metal mass density (according to our SF model).
+      + `:dust`         -> Dust mass density.
 
 # Returns
 
@@ -606,7 +672,16 @@ function computeVolumeDensity(data_dict::Dict, component::Symbol)::Vector{<:Unit
 
         densities = data_dict[:gas]["RHO "] * (1.0 - HYDROGEN_MASSFRAC)
 
-    elseif component ∈ [:molecular, :br_molecular, :atomic, :ionized, :neutral, :stellar]
+    elseif component ∈ [
+        :molecular,
+        :br_molecular,
+        :atomic,
+        :ionized,
+        :neutral,
+        :stellar,
+        :metals,
+        :dust,
+    ]
 
         fractions = computeFraction(data_dict, component)
 

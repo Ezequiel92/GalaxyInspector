@@ -2099,6 +2099,7 @@ Sample the 3D density field of a given quantity using a cubic grid
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
       + `:stellar_gas_mass`  -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`   -> Metal mass (according to out SF model).
       + `:dust_mass`         -> Dust mass.
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
@@ -2159,6 +2160,7 @@ function density3DProjection(
         :ionized_mass,
         :neutral_mass,
         :stellar_gas_mass,
+        :metals_gas_mass,
         :dust_mass,
     ]
         component = :gas
@@ -3181,6 +3183,7 @@ Select the plotting parameters for a given `quantity`.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:generic_mass`                -> Parameters for plots with several different masses.
       + `:stellar_number`              -> Number of stellar particles.
@@ -3195,6 +3198,7 @@ Select the plotting parameters for a given `quantity`.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3394,6 +3398,14 @@ function plotParams(quantity::Symbol)::PlotParams
             unit       = u"Msun",
         )
 
+    elseif quantity == :metals_gas_mass
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "GZ  "]),
+            var_name   = L"M_Z^\mathrm{gas}",
+            unit       = u"Msun",
+        )
+
     elseif quantity == :dust_mass
 
         plot_params = PlotParams(;
@@ -3504,6 +3516,13 @@ function plotParams(quantity::Symbol)::PlotParams
         plot_params = PlotParams(;
             request  = Dict(:gas => ["RHO ", "FRAC"]),
             var_name = L"f_\star",
+        )
+
+    elseif quantity == :metal_gas_fraction
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "GZ  "]),
+            var_name = L"f_Z",
         )
 
     elseif quantity == :dust_fraction

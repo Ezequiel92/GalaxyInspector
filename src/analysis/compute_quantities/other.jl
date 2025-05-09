@@ -601,6 +601,7 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`           -> Metal mass (according to out SF model).
       + `:dust_mass`                 -> Dust mass.
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
@@ -615,6 +616,7 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ionized_neutral_fraction`  -> Fraction of ionized gas to neutral gas.
       + `:gas_mass_density`          -> Mean gas mass density.
       + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`        -> Metallicity (according to out SF model).
       + `:dust_fraction`             -> Dust mass fraction.
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
@@ -723,6 +725,10 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
     elseif quantity == :stellar_gas_mass
 
         integrated_qty = sum(computeMass(data_dict, :stellar); init=0.0u"Msun")
+
+    elseif quantity == :metals_gas_mass
+
+        integrated_qty = sum(computeMass(data_dict, :metals); init=0.0u"Msun")
 
     elseif quantity == :dust_mass
 
@@ -840,6 +846,17 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
             integrated_qty = NaN
         else
             integrated_qty = stellar_gas_mass / gas_mass
+        end
+
+    elseif quantity == :metal_gas_fraction
+
+        metal_mass = sum(computeMetalMass(data_dict, :metals); init=0.0u"Msun")
+        gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
+
+        if iszero(gas_mass)
+            integrated_qty = NaN
+        else
+            integrated_qty = metal_mass / gas_mass
         end
 
     elseif quantity == :dust_fraction
@@ -1455,6 +1472,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -1464,6 +1482,7 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -1583,6 +1602,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         scatter_qty = computeMass(data_dict, :stellar)
 
+    elseif quantity == :metals_gas_mass
+
+        scatter_qty = computeMass(data_dict, :metals)
+
     elseif quantity == :dust_mass
 
         scatter_qty = computeMass(data_dict, :dust)
@@ -1624,6 +1647,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :stellar_gas_fraction
 
         scatter_qty = computeFraction(data_dict, :stellar)
+
+    elseif quantity == :metal_gas_fraction
+
+        scatter_qty = computeFraction(data_dict, :metals)
 
     elseif quantity == :dust_fraction
 

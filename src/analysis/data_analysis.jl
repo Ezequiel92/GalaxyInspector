@@ -488,6 +488,7 @@ Compute a profile.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -497,6 +498,7 @@ Compute a profile.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -566,7 +568,7 @@ Compute a profile.
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
-  - `fractions::Bool=false`: If a profile of the gas mass fractions will be calculated. It is only valid with `quantity` equal to :neutral_mass, :molecular_mass, :br_molecular_mass, :atomic_mass, :ionized_mass, :stellar_gas_mass or :dust_mass, and it forces `total` = true, `cumulative` = false, and `density` = false.
+  - `fractions::Bool=false`: If a profile of the gas mass fractions will be calculated. It is only valid with `quantity` equal to :neutral_mass, :molecular_mass, :br_molecular_mass, :atomic_mass, :ionized_mass, :stellar_gas_mass, :metal_gas_mass or :dust_mass, and it forces `total` = true, `cumulative` = false, and `density` = false.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -652,11 +654,12 @@ function daProfile(
                 :atomic_mass,
                 :ionized_mass,
                 :stellar_gas_mass,
+                :metal_gas_mass,
                 :dust_mass,
             ] ||
             throw(ArgumentError("daProfile: If `fractions`= true, quantity must be \
             :neutral_mass, :molecular_mass, :br_molecular_mass, :atomic_mass, :ionized_mass, \
-            :stellar_gas_mass or :dust_mass, but I got `quantity` = :$(quantity)"))
+            :stellar_gas_mass, :metal_gas_mass or :dust_mass, but I got `quantity` = :$(quantity)"))
         )
 
         total       = true
@@ -727,6 +730,7 @@ Compute the profile of a mean quantity with error bars or bands.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -736,6 +740,7 @@ Compute the profile of a mean quantity with error bars or bands.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -1060,6 +1065,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -1069,6 +1075,7 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -1307,6 +1314,7 @@ Project a 3D density field into a given plane.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
       + `:stellar_gas_mass`  -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`   -> Metal mass (according to out SF model).
       + `:dust_mass`         -> Dust mass.
   - `field_type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
@@ -1380,6 +1388,7 @@ function daDensity2DProjection(
         :ionized_mass,
         :neutral_mass,
         :stellar_gas_mass,
+        :metals_gas_mass,
         :dust_mass,
     ]
         component = :gas
@@ -2437,6 +2446,7 @@ Turn a scatter plot into a 2D histogram.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -2446,6 +2456,7 @@ Turn a scatter plot into a 2D histogram.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -2523,6 +2534,7 @@ Turn a scatter plot into a 2D histogram.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -2532,6 +2544,7 @@ Turn a scatter plot into a 2D histogram.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -2758,6 +2771,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -2767,6 +2781,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -2844,6 +2859,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -2853,6 +2869,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -2930,6 +2947,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -2939,6 +2957,7 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3350,6 +3369,7 @@ Compute two global quantities of the simulation.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`           -> Metal mass (according to out SF model).
       + `:dust_mass`                 -> Dust mass.
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
@@ -3364,6 +3384,7 @@ Compute two global quantities of the simulation.
       + `:ionized_neutral_fraction`  -> Fraction of ionized gas to neutral gas.
       + `:gas_mass_density`          -> Mean gas mass density.
       + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`             -> Dust mass fraction.
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
@@ -3431,6 +3452,7 @@ Compute two global quantities of the simulation.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`           -> Metal mass (according to out SF model).
       + `:dust_mass`                 -> Dust mass.
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
@@ -3445,6 +3467,7 @@ Compute two global quantities of the simulation.
       + `:ionized_neutral_fraction`  -> Fraction of ionized gas to neutral gas.
       + `:gas_mass_density`          -> Mean gas mass density.
       + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`        -> Metallicity (according to out SF model).
       + `:dust_fraction`             -> Dust mass fraction.
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
@@ -3587,6 +3610,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -3596,6 +3620,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3673,6 +3698,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -3682,6 +3708,7 @@ Compute two quantities for every cell/particle in the simulation.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3877,6 +3904,7 @@ Compute the values for a bar plot of the gas fractions, where the bins are a giv
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -3886,6 +3914,7 @@ Compute the values for a bar plot of the gas fractions, where the bins are a giv
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -4149,6 +4178,7 @@ Compute the time series of two quantities.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`           -> Metal mass (according to out SF model).
       + `:dust_mass`                 -> Dust mass.
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
@@ -4163,6 +4193,7 @@ Compute the time series of two quantities.
       + `:ionized_neutral_fraction`  -> Fraction of ionized gas to neutral gas.
       + `:gas_mass_density`          -> Mean gas mass density.
       + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`        -> Metallicity (according to out SF model).
       + `:dust_fraction`             -> Dust mass fraction.
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
@@ -4230,6 +4261,7 @@ Compute the time series of two quantities.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
+      + `:metals_gas_mass`           -> Metal mass (according to out SF model).
       + `:dust_mass`                 -> Dust mass.
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
@@ -4244,6 +4276,7 @@ Compute the time series of two quantities.
       + `:ionized_neutral_fraction`  -> Fraction of ionized gas to neutral gas.
       + `:gas_mass_density`          -> Mean gas mass density.
       + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
+      + `:metal_gas_fraction`        -> Metallicity (according to out SF model).
       + `:dust_fraction`             -> Dust mass fraction.
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
