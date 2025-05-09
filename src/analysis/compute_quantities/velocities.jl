@@ -25,7 +25,7 @@ Read the velocity of the center of mass of a given halo or subhalo.
   - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If it is set to 0, the potential minimum of the halo with index `halo_idx` is returned.
+      + Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, the potential minimum of the halo with index `halo_idx` is returned.
 
 # Returns
 
@@ -197,7 +197,7 @@ function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity
     end
 
     throw(ArgumentError("computeVcm: `cm_type` can only be :global_cm, :zero or one of the keys of \
-    `PARTICLE_INDEX` but I got :$(center_type)"))
+    `PARTICLE_INDEX` but I got :$(cm_type)"))
 
 end
 
@@ -429,7 +429,7 @@ in order to distinguish between inflows ($v^*_z < 0$) and outflows ($v^*_z > 0$)
 
 # Returns
 
-  - The chosen cylindricall component of the velocity.
+  - The chosen cylindrical component of the velocity.
 """
 function computeVpolar(
     data_dict::Dict,
@@ -451,13 +451,41 @@ function computeVpolar(
 
     if component == :radial
 
-        # Compute the radial component
-        vp = @. (x * vx + y * vy) / sqrt(x^2 + y^2)
+        vp = similar(x, eltype(vx))
+
+        for i in eachindex(vp)
+            r = sqrt(x[i]^2 + y[i]^2)
+
+            if iszero(r)
+
+                vp[i] = sqrt(vx[i]^2 + vy[i]^2)
+
+            else
+
+                # Compute the radial component
+                vp[i] = (x[i] * vx[i] + y[i] * vy[i]) / r
+
+            end
+        end
 
     elseif component == :tangential
 
-        # Compute the tangential component
-        vp = @. (x * vy - y * vx) / sqrt(x^2 + y^2)
+        vp = similar(x, eltype(vx))
+
+        for i in eachindex(vp)
+            r = sqrt(x[i]^2 + y[i]^2)
+
+            if iszero(r)
+
+                vp[i] = 0.0u"km*s^-1"
+
+            else
+
+                # Compute the tangential component
+                vp[i] = (x[i] * vy[i] - y[i] * vx[i]) / r
+
+            end
+        end
 
     elseif component == :zstar
 
@@ -669,11 +697,28 @@ function computeSpinParameter(
         is undefined"))
     )
 
+    (
+        !iszero(R) ||
+        throw(ArgumentError("computeSpinParameter: `R` must be greater than 0, but I got $(R)"))
+    )
+
     # Find cells/particles within the virial radius
     idx = map(x -> x <= R, computeDistance(positions))
 
     # Compute the total mass within the virial radius
     M = sum(masses[idx]; init=0.0u"Msun")
+
+    if iszero(M)
+
+        (
+            !logging[] ||
+            @info("computeSpinParameter: The total mass within the virial radius is 0, so \
+            the spin parameter will be NaN")
+        )
+
+        return NaN
+
+    end
 
     # Compute the norm of the total angular momentum
     J = norm(

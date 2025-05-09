@@ -371,7 +371,7 @@ end
 
 Compute the star formation rate of each stellar particle.
 
-For stellar particles younger that `age_resol`, the SFR is its mass divided by `age_resol`. It is defined as 0 for older particles.
+For stellar particles younger than `age_resol`, the SFR is its mass divided by `age_resol`. It is defined as 0 for older particles.
 
 # Arguments
 
@@ -506,7 +506,7 @@ t_\mathrm{ff} = \sqrt{\frac{3 \, \pi}{32 \, G \, \rho}} \, ,
 is the free-fall time, and
 
 ```math
-t_\mathrm{ff} = \frac{M_\mathrm{H_2}}{\dot{M}_\star} \, ,
+t_\mathrm{dep} = \frac{M_\mathrm{H_2}}{\dot{M}_\star} \, ,
 ```
 is the depletion time.
 
@@ -522,7 +522,7 @@ is the depletion time.
 
 # References
 
-M. R. Krumholz et al. (2011). *A UNIVERSAL, LOCAL STAR FORMATION LAW IN GALACTIC CLOUDS, NEARBY GALAXIES, HIGH-REDSHIFT DISKS, AND STARBURSTS*. The Astrophysical Journal, **745(1)**, 69. [doi:10.1088/0004-637X/745/1/69](https://doi.org/10.1088/0004-637X/745/1/69)
+M. R. Krumholz et al. (2012). *A UNIVERSAL, LOCAL STAR FORMATION LAW IN GALACTIC CLOUDS, NEARBY GALAXIES, HIGH-REDSHIFT DISKS, AND STARBURSTS*. The Astrophysical Journal, **745(1)**, 69. [doi:10.1088/0004-637X/745/1/69](https://doi.org/10.1088/0004-637X/745/1/69)
 """
 function computeEfficiencyFF(
     density::Vector{<:Unitful.Density},
@@ -546,18 +546,16 @@ function computeEfficiencyFF(
 
     for i in eachindex(ϵff)
 
-        if density[i] < THRESHOLD_DENSITY
+        if iszero(mass[i]) || iszero(sfr[i]) || density[i] < THRESHOLD_DENSITY
 
-            ϵff[i] = 0.0
+            ϵff[i] = NaN
 
         else
-
-            # Compute the free-fall time
-            tff = sqrt(3π / (32 * Unitful.G * density[i]))
 
             # Compute the depletion time
             tdep = mass[i] / sfr[i]
 
+            # Compute the star formation efficiency per free-fall time
             ϵff[i] = uconvert(Unitful.NoUnits, tff / tdep)
 
         end
@@ -600,8 +598,8 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:atomic_mass`               -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar_gas_mass`          -> Stellar gas mass (according to out SF model).
-      + `:metals_gas_mass`           -> Metal mass (according to out SF model).
+      + `:stellar_gas_mass`          -> Stellar gas mass (according to our SF model).
+      + `:metals_gas_mass`           -> Metal mass (according to our SF model).
       + `:dust_mass`                 -> Dust mass.
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
@@ -615,8 +613,8 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:molecular_neutral_fraction`-> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`  -> Fraction of ionized gas to neutral gas.
       + `:gas_mass_density`          -> Mean gas mass density.
-      + `:stellar_gas_fraction`      -> Stellar gas fraction (according to out SF model).
-      + `:metal_gas_fraction`        -> Metallicity (according to out SF model).
+      + `:stellar_gas_fraction`      -> Stellar gas fraction (according to our SF model).
+      + `:metal_gas_fraction`        -> Metallicity (according to our SF model).
       + `:dust_fraction`             -> Dust mass fraction.
       + `:stellar_area_density`      -> Stellar area mass density, for a radius of `DISK_R`.
       + `:gas_area_density`          -> Gas mass surface density, for a radius of `DISK_R`.
@@ -657,13 +655,13 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ode_gas_it`                -> Integration time.
       + `:ode_gas_tau_s`             -> Star formation time scale, ``\\tau_\\mathrm{S}``.
       + `:ode_gas_eta_d`             -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
-      + `:ode_gas_eta_i`             -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_eta_i`             -> Photoionization efficiency, ``\\eta_\\mathrm{ion}``.
       + `:ode_gas_r`                 -> Mass recycling parameter, ``R``.
       + `:ode_gas_cold_mf`           -> Cold gas mass fraction.
       + `:ode_stellar_it`            -> Integration time, for the gas that form the stars.
       + `:ode_stellar_tau_s`         -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
       + `:ode_stellar_eta_d`         -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
-      + `:ode_stellar_eta_i`         -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`         -> Photoionization efficiency, ``\\eta_\\mathrm{ion}``, for the gas that form the stars.
       + `:ode_stellar_r`             -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`       -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`       -> Gas mass density, for the gas that form the stars.
@@ -674,7 +672,7 @@ Compute an integrated quantity for the whole system in `data_dict`.
 
 # Returns
 
-  - The velue of `quantity` for the whole system in `data_dict`.
+  - The value of `quantity` for the whole system in `data_dict`.
 
 # References
 
@@ -850,7 +848,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
     elseif quantity == :metal_gas_fraction
 
-        metal_mass = sum(computeMetalMass(data_dict, :metals); init=0.0u"Msun")
+        metal_mass = sum(computeMass(data_dict, :metals); init=0.0u"Msun")
         gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
         if iszero(gas_mass)
@@ -1036,8 +1034,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
         positions = data_dict[:halo]["POS "]
         velocities = data_dict[:halo]["VEL "]
-        masses = data_dict
-        masses = [:halo]["MASS"]
+        masses = data_dict[:halo]["MASS"]
 
         if any(isempty, [positions, velocities, masses])
             integrated_qty = NaN
@@ -1471,8 +1468,8 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -1481,8 +1478,8 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
-      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
-      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -1533,13 +1530,13 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:ode_gas_it`                  -> Integration time.
       + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
       + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
-      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\eta_\\mathrm{ion}``.
       + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
       + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
       + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
       + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
       + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
-      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\eta_\\mathrm{ion}``, for the gas that form the stars.
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.
@@ -1642,7 +1639,15 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         fi = computeFraction(data_dict, :ionized)
         fn = computeFraction(data_dict, :neutral)
 
-        scatter_qty = fi ./ fn
+        scatter_qty = similar(fi, Float64)
+
+        for i in eachindex(fn)
+            if iszero(fn[i])
+                scatter_qty[i] = NaN
+            else
+                scatter_qty[i] = fi[i] / fn[i]
+            end
+        end
 
     elseif quantity == :stellar_gas_fraction
 
@@ -1884,9 +1889,9 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         # Load the stellar masses
         stellar_masses = data_dict[:stars]["MASS"]
 
-        if present_idx == 1 || iszero(stellar_mass)
+        if present_idx == 1 || isempty(stellar_masses)
 
-            scatter_qty = zeros(typeof(1.0u"yr^-1"), length(stellar_masses))
+            scatter_qty = Float64[]
 
         else
 

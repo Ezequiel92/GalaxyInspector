@@ -63,12 +63,12 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         nh = dg["NH  "]
         nhp = dg["NHP "]
 
-        if !any(isempty, [nh, nhp, dg["FRAC"]])
+        if !isempty(dg["FRAC"])
 
             (
                 !logging[] ||
                 @info("computeFraction: The molecular fraction will be calculated using the \
-                fractions from out SF model")
+                fractions from our SF model")
             )
 
             molecular_fraction = view(dg["FRAC"], 3, :)
@@ -297,7 +297,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
             (
                 !logging[] ||
                 @info("computeFraction: The neutral fraction will be calculated using the \
-                fractions from out SF model")
+                fractions from our SF model")
             )
 
             atomic_fraction = view(dg["FRAC"], 2, :)
@@ -365,7 +365,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
             (
                 !logging[] ||
                 @info("computeFraction: The stellar fraction will be calculated using the \
-                fractions from out SF model")
+                fractions from our SF model")
             )
 
             stellar_fraction = view(dg["FRAC"], 4, :)
@@ -413,7 +413,7 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
             (
                 !logging[] ||
                 @info("computeFraction: The metallicity will be calculated using the \
-                fractions from out SF model")
+                fractions from our SF model")
             )
 
             metal_fraction = view(dg["FRAC"], 5, :)
@@ -547,7 +547,7 @@ Compute the mass in each cell/particle of a given `component`.
       + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar`      -> Stellar gas mass (according to out SF model).
+      + `:stellar`      -> Stellar gas mass (according to our SF model).
       + `:metals`       -> Metal mass (according to our SF model).
       + `:dust`         -> Dust mass.
 
@@ -601,7 +601,7 @@ function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
         if isempty(fractions)
             masses = Unitful.Mass[]
         else
-            masses = data_dict[:gas]["MASS"] .* computeFraction(data_dict, component)
+            masses = data_dict[:gas]["MASS"] .* fractions
         end
 
     else
@@ -646,7 +646,7 @@ Compute the volume mass density in each cell/particle of a given `component`.
       + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) mass density.
       + `:ionized`      -> Ionized hydrogen (``\\mathrm{HII}``) mass density.
       + `:neutral`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass density.
-      + `:stellar`      -> Stellar mass density (according to out SF model).
+      + `:stellar`      -> Stellar mass density (according to our SF model).
       + `:metals`       -> Metal mass density (according to our SF model).
       + `:dust`         -> Dust mass density.
 
@@ -688,7 +688,7 @@ function computeVolumeDensity(data_dict::Dict, component::Symbol)::Vector{<:Unit
         if isempty(fractions)
             densities = Unitful.Density[]
         else
-            densities = data_dict[:gas]["RHO "] .* computeFraction(data_dict, component)
+            densities = data_dict[:gas]["RHO "] .* fractions
         end
 
     else
@@ -750,7 +750,7 @@ function computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:Numb
 
         n_densities = densities / Unitful.mp
 
-    elseif component == [:helium, :molecular, :br_molecular]
+    elseif component ∈ [:helium, :molecular, :br_molecular]
 
         n_densities = densities / (2 * Unitful.mp)
 
@@ -1089,7 +1089,7 @@ function computeVirialAccretion(
     # Find the tracers inside R200 in the past snapshot
     past_tracer_ids    = tracersWithinR200(past_dd; halo_idx)
 
-    # Find the tracers that are inside R200 now, but where outside R200 in the past
+    # Find the tracers that are inside R200 now, but were outside R200 in the past
     inflow_ids  = setdiff(present_tracer_ids, past_tracer_ids)
     # Find the tracers that were inside R200 in the past, but are now outside R200
     outflow_ids = setdiff(past_tracer_ids, present_tracer_ids)
@@ -1100,12 +1100,12 @@ function computeVirialAccretion(
     # Compute the inflow mass
     inflow_mass = length(inflow_ids) * tracer_mass
     # Compute the outflow mass
-    ouflow_mass = length(outflow_ids) * tracer_mass
+    outflow_mass = length(outflow_ids) * tracer_mass
 
     # Compute the net mass
-    net_mass_increase = inflow_mass - ouflow_mass
+    net_mass_increase = inflow_mass - outflow_mass
 
-    return net_mass_increase, inflow_mass, ouflow_mass
+    return net_mass_increase, inflow_mass, outflow_mass
 
 end
 
@@ -1169,7 +1169,7 @@ function computeDiscAccretion(
     # Find the tracers inside a given cylinder in the past snapshot
     past_tracer_ids    = tracersWithinDisc(past_dd; max_r, max_z)
 
-    # Find the tracers that are inside a given cylinder now, but where outside in the past
+    # Find the tracers that are inside a given cylinder now, but were outside in the past
     inflow_ids  = setdiff(present_tracer_ids, past_tracer_ids)
     # Find the tracers that were inside a given cylinder in the past, but are now outside
     outflow_ids = setdiff(past_tracer_ids, present_tracer_ids)
@@ -1180,12 +1180,12 @@ function computeDiscAccretion(
     # Compute the inflow mass
     inflow_mass = length(inflow_ids) * tracer_mass
     # Compute the outflow mass
-    ouflow_mass = length(outflow_ids) * tracer_mass
+    outflow_mass = length(outflow_ids) * tracer_mass
 
     # Compute the net mass
-    net_mass_increase = inflow_mass - ouflow_mass
+    net_mass_increase = inflow_mass - outflow_mass
 
-    return net_mass_increase, inflow_mass, ouflow_mass
+    return net_mass_increase, inflow_mass, outflow_mass
 
 end
 
@@ -1251,7 +1251,7 @@ end
         <keyword arguments>
     )::Unitful.Length
 
-Compute the total height of a cylinder, of infinite radius, containing `percet`% of the total mass.
+Compute the total height of a cylinder, of infinite radius, containing `percent`% of the total mass.
 
 # Arguments
 
@@ -1261,7 +1261,7 @@ Compute the total height of a cylinder, of infinite radius, containing `percet`%
 
 # Returns
 
-  - The height containing `percet`% of the total mass.
+  - The height containing `percent`% of the total mass.
 """
 function computeMassHeight(
     positions::Matrix{<:Unitful.Length},
@@ -1306,7 +1306,7 @@ end
         <keyword arguments>
     )::Number
 
-Compute the maximum value of `quantity` that "contains" `percet`% of the total mass.
+Compute the maximum value of `quantity` that "contains" `percent`% of the total mass.
 
 # Arguments
 
@@ -1316,7 +1316,7 @@ Compute the maximum value of `quantity` that "contains" `percet`% of the total m
 
 # Returns
 
-  - The maximum value of `quantity` that "contains" `percet`% of the total mass.
+  - The maximum value of `quantity` that "contains" `percent`% of the total mass.
 """
 function computeMassQty(
     quantity::Vector{<:Number},
@@ -1352,13 +1352,13 @@ function computeMassQty(
 end
 
 """
-    computeMassPercent(
+    computeMassFraction(
         quantity::Vector{<:Number},
         masses::Vector{<:Unitful.Mass},
         qty_limits::Tuple{<:Number,<:Number},
     )::Float64
 
-Compute the fraction of the total mass "contained" within a given values of `quantity`.
+Compute the fraction of the total mass "contained" within given values of `quantity`.
 
 # Arguments
 
@@ -1368,7 +1368,7 @@ Compute the fraction of the total mass "contained" within a given values of `qua
 
 # Returns
 
-  - The fraction of the total mass "contained" within a given value of `quantity`.
+  - The fraction of the total mass "contained" within given values of `quantity`.
 """
 function computeMassFraction(
     quantity::Vector{<:Number},

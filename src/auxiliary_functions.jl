@@ -2098,8 +2098,8 @@ Sample the 3D density field of a given quantity using a cubic grid
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) density.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
-      + `:stellar_gas_mass`  -> Stellar gas mass (according to out SF model).
-      + `:metals_gas_mass`   -> Metal mass (according to out SF model).
+      + `:stellar_gas_mass`  -> Stellar gas mass (according to our SF model).
+      + `:metals_gas_mass`   -> Metal mass (according to our SF model).
       + `:dust_mass`         -> Dust mass.
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
@@ -3182,8 +3182,8 @@ Select the plotting parameters for a given `quantity`.
       + `:atomic_mass`                 -> Atomic hydrogen (``\\mathrm{HI}``) mass.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
-      + `:stellar_gas_mass`            -> Stellar gas mass (according to out SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to out SF model).
+      + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
+      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:generic_mass`                -> Parameters for plots with several different masses.
       + `:stellar_number`              -> Number of stellar particles.
@@ -3197,8 +3197,8 @@ Select the plotting parameters for a given `quantity`.
       + `:neutral_fraction`            -> Gas mass fraction of neutral hydrogen.
       + `:molecular_neutral_fraction`  -> Fraction of molecular hydrogen in the neutral gas.
       + `:ionized_neutral_fraction`    -> Fraction of ionized gas to neutral gas.
-      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to out SF model).
-      + `:metal_gas_fraction`          -> Metallicity (according to out SF model).
+      + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
+      + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
       + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
       + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
@@ -3267,13 +3267,13 @@ Select the plotting parameters for a given `quantity`.
       + `:ode_gas_it`                  -> Integration time.
       + `:ode_gas_tau_s`               -> Star formation time scale, ``\\tau_\\mathrm{S}``.
       + `:ode_gas_eta_d`               -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``.
-      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``.
+      + `:ode_gas_eta_i`               -> Photoionization efficiency, ``\\eta_\\mathrm{ion}``.
       + `:ode_gas_r`                   -> Mass recycling parameter, ``R``.
       + `:ode_gas_cold_mf`             -> Cold gas mass fraction.
       + `:ode_stellar_it`              -> Integration time, for the gas that form the stars.
       + `:ode_stellar_tau_s`           -> Star formation time scale, ``\\tau_\\mathrm{S}``, for the gas that form the stars.
       + `:ode_stellar_eta_d`           -> Photodissociation efficiency, ``\\eta_\\mathrm{diss}``, for the gas that form the stars.
-      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\ate_\\mathrm{ion}``, for the gas that form the stars.
+      + `:ode_stellar_eta_i`           -> Photoionization efficiency, ``\\eta_\\mathrm{ion}``, for the gas that form the stars.
       + `:ode_stellar_r`               -> Mass recycling parameter, ``R``, for the gas that form the stars.
       + `:ode_stellar_cold_mf`         -> Cold gas mass fraction, for the gas that form the stars.
       + `:ode_stellar_gas_rho`         -> Gas mass density, for the gas that form the stars.

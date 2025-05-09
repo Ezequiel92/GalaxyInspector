@@ -25,7 +25,7 @@ Read the position of the particle/cell at the potential minimum of a given halo 
   - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If it is set to 0, the potential minimum of the halo with index `halo_idx` is returned.
+      + Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, the potential minimum of the halo with index `halo_idx` is returned.
 
 # Returns
 
@@ -199,7 +199,7 @@ function computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Lengt
     end
 
     throw(ArgumentError("computeCenter: `cm_type` can only be :global_cm, :zero or one of the keys \
-    of `PARTICLE_INDEX` but I got :$(center_type)"))
+    of `PARTICLE_INDEX` but I got :$(cm_type)"))
 
 end
 
@@ -562,7 +562,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
 
     (
         length(times) >= 2 ||
-        throw(ArgumentError("locateStellarBirthPlace: I found less that two snapshots in \
+        throw(ArgumentError("locateStellarBirthPlace: I found less than two snapshots in \
         $(data_dict[:sim_data].path). But I need more to locate the birth place of the stars"))
     )
 
