@@ -9,7 +9,7 @@ Read the header of a group catalog in the HDF5 format.
 
 !!! note
 
-    If each group catalog is made of multiple files, I'll read the header on the first one.
+    If each group catalog is made of multiple files, the function will read the header of the first one.
 
 # Arguments
 
@@ -23,10 +23,7 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     if ismissing(path)
 
-        (
-            !logging[] ||
-            @warn("readGroupCatHeader: The group catalog file or folder is missing")
-        )
+        !logging[] || @warn("readGroupCatHeader: The group catalog file or folder is missing")
 
         return GroupCatHeader()
 
@@ -54,7 +51,7 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     else
 
-        throw(ArgumentError("readGroupCatHeader: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("readGroupCatHeader: $(path) does not exists as a file or folder"))
 
     end
 
@@ -62,7 +59,6 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
         h = gc_file["Header"]
 
-        # Read which attributes are present
         attrs_present = keys(HDF5.attrs(h))
 
         missing_attrs = setdiff(
@@ -115,7 +111,7 @@ Read the header of a snapshot in the HDF5 format.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll read the header on the first chunk.
+    If each snapshot is made of multiple files, the function will read the header of the first chunk.
 
 # Arguments
 
@@ -159,7 +155,7 @@ function readSnapHeader(path::String)::SnapshotHeader
 
     else
 
-        throw(ArgumentError("readSnapHeader: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("readSnapHeader: $(path) does not exists as a file or folder"))
 
     end
 
@@ -167,7 +163,6 @@ function readSnapHeader(path::String)::SnapshotHeader
 
         h = snap_file["Header"]
 
-        # Read which attributes are present
         attrs_present = keys(HDF5.attrs(h))
 
         missing_attrs = setdiff(
@@ -244,7 +239,7 @@ end
 """
     isBlockPresent(block::String, group::HDF5.Group)::Bool
 
-Checks if a given data block exist in a HDF5 group.
+Checks if a given data block exists in a HDF5 group.
 
 # Arguments
 
@@ -253,7 +248,7 @@ Checks if a given data block exist in a HDF5 group.
 
 # Returns
 
-  - If `block` exist in `group`.
+  - If `block` exists in `group`.
 """
 function isBlockPresent(block::String, group::HDF5.Group)::Bool
 
@@ -270,11 +265,11 @@ end
 """
     isBlockPresent(component::Symbol, block::String, path::String)::Bool
 
-Checks if a given block exist in a snapshot.
+Checks if a given block exists in a snapshot.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll check only in the first chunk.
+    If each snapshot is made of multiple files, the function will only check the first chunk.
 
 # Arguments
 
@@ -284,7 +279,7 @@ Checks if a given block exist in a snapshot.
 
 # Returns
 
-  - If `block` exist in the snapshot.
+  - If `block` exists in the snapshot.
 """
 function isBlockPresent(component::Symbol, block::String, path::String)::Bool
 
@@ -312,7 +307,7 @@ function isBlockPresent(component::Symbol, block::String, path::String)::Bool
 
     else
 
-        throw(ArgumentError("isBlockPresent: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("isBlockPresent: $(path) does not exists as a file or folder"))
 
     end
 
@@ -339,7 +334,7 @@ Read the "Time" field in the header of a snapshot file.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll read the header on the first chunk.
+    If each snapshot is made of multiple files, the function will read the header of the first chunk.
 
 # Arguments
 
@@ -347,7 +342,7 @@ Read the "Time" field in the header of a snapshot file.
 
 # Returns
 
-  - The "Time" field in the header (for cosmological simulations is the scale factor).
+  - The "Time" field in the header (for cosmological simulations it is the scale factor).
 """
 function readTime(path::String)::Float64
 
@@ -375,7 +370,7 @@ function readTime(path::String)::Float64
 
     else
 
-        throw(ArgumentError("readTime: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("readTime: $(path) does not exists as a file or folder"))
 
     end
 
@@ -412,7 +407,7 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
 
     else
 
-        throw(ArgumentError("readTemperature: $(file_path) does not exist as a file"))
+        throw(ArgumentError("readTemperature: $(file_path) does not exists as a file"))
 
     end
 
@@ -478,7 +473,7 @@ function readGoupCatBlocks(
 
     else
 
-        throw(ArgumentError("readGoupCatBlocks: $(file_path) does not exist as a file"))
+        throw(ArgumentError("readGoupCatBlocks: $(file_path) does not exists as a file"))
 
     end
 
@@ -601,7 +596,7 @@ function readSnapBlocks(
 
     else
 
-        throw(ArgumentError("readSnapBlocks: $(file_path) does not exist as a file"))
+        throw(ArgumentError("readSnapBlocks: $(file_path) does not exists as a file"))
 
     end
 
@@ -678,7 +673,7 @@ function readSnapBlocks(
 
                             else
 
-                                # All cell/particles have the same mass
+                                # All cells/particles have the same mass
                                 cp_number = header.num_part[PARTICLE_INDEX[component] + 1]
                                 qty_data["MASS"] = fill(mass_table, cp_number) .* unit
 
@@ -758,10 +753,7 @@ function readGroupCatalog(
 
     if ismissing(path)
 
-        (
-            !logging[] ||
-            @warn("readGroupCatalog: The group catalog file or folder is missing")
-        )
+        !logging[] || @warn("readGroupCatalog: The group catalog file or folder is missing")
 
         return Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
@@ -819,7 +811,7 @@ function readGroupCatalog(
 
     else
 
-        throw(ArgumentError("readGroupCatalog: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("readGroupCatalog: $(path) does not exists as a file or folder"))
 
     end
 
@@ -907,7 +899,7 @@ function readSnapshot(
 
     else
 
-        throw(ArgumentError("readSnapshot: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("readSnapshot: $(path) does not exists as a file or folder"))
 
     end
 
@@ -963,10 +955,7 @@ function readSfrFile(
     snap_path::String,
 )::Dict{Int32,VecOrMat{<:Number}}
 
-    (
-        isfile(file_path) ||
-        throw(ArgumentError("readSfrFile: $(file_path) does not exist as a file"))
-    )
+    isfile(file_path) || throw(ArgumentError("readSfrFile: $(file_path) does not exists as a file"))
 
     # Load the data from the `sfr.txt` file
     file_data = readdlm(file_path, Float64)
@@ -981,7 +970,7 @@ function readSfrFile(
     (
         !(logging[] && n_cols < 6) ||
         @warn("readSfrFile: I could only find $(n_cols) columns \
-        in $(flie_path). I was expecting 6")
+        in $(file_path). I was expecting 6")
     )
 
     # Load the units for each column
@@ -1027,10 +1016,7 @@ function readCpuFile(
     step::Int=1,
 )::Dict{String,Matrix{Float64}}
 
-    (
-        isfile(file_path) ||
-        throw(ArgumentError("readCpuFile: $(file_path) does not exist as a file"))
-    )
+    isfile(file_path) || throw(ArgumentError("readCpuFile: $(file_path) does not exists as a file"))
 
     # Load the data from the `cpu.txt` file
     file_data = eachline(file_path)
@@ -1134,7 +1120,7 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
     (
         isdir(simulation_path) ||
-        throw(ArgumentError("getSnapshotPaths: $(simulation_path) does not exist as a directory"))
+        throw(ArgumentError("getSnapshotPaths: $(simulation_path) does not exists as a directory"))
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
@@ -1197,7 +1183,7 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
     (
         isdir(simulation_path) ||
-        throw(ArgumentError("getGroupCatPaths: $(simulation_path) does not exist as a directory"))
+        throw(ArgumentError("getGroupCatPaths: $(simulation_path) does not exists as a directory"))
     )
 
     # Get the full list of paths to every group catalog in `simulation_path`
@@ -1357,7 +1343,7 @@ function makeDataDict(
 
     (
         length(snapshot_numbers) >= slice_n ||
-        throw(ArgumentError("makeDataDict: The snapshot number $(slice_n) does not exist in  \
+        throw(ArgumentError("makeDataDict: The snapshot number $(slice_n) does not exists in  \
         $(simulation_path). There are only $(length(snapshot_numbers)) snapshots. \
         The full simulation table is:\n\n$(simulation_table)"))
     )
@@ -1429,7 +1415,7 @@ function countSnapshot(simulation_path::String)::Int
 
     (
         isdir(simulation_path) ||
-        throw(ArgumentError("countSnapshot: $(simulation_path) does not exist as a directory"))
+        throw(ArgumentError("countSnapshot: $(simulation_path) does not exists as a directory"))
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
@@ -1550,7 +1536,7 @@ function isSubfindActive(path::String)::Bool
 
     else
 
-        throw(ArgumentError("isSubfindActive: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("isSubfindActive: $(path) does not exists as a file or folder"))
 
     end
 
@@ -1614,7 +1600,7 @@ function findRealStars(path::String)::Vector{Bool}
 
     else
 
-        throw(ArgumentError("findRealStars: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("findRealStars: $(path) does not exists as a file or folder"))
 
     end
 
@@ -1675,7 +1661,7 @@ function findQtyExtrema(
 
     (
         isdir(simulation_path) ||
-        throw(ArgumentError("findQtyExtrema: $(simulation_path) does not exist as a directory"))
+        throw(ArgumentError("findQtyExtrema: $(simulation_path) does not exists as a directory"))
     )
 
     simulation_table = makeSimulationTable(simulation_path)
@@ -1729,7 +1715,7 @@ Check if the snapshot in `path` comes from a cosmological simulation.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll read the first chunk to check if the simulation is cosmological.
+    If each snapshot is made of multiple files, the function will read the first chunk to check if the simulation is cosmological.
 
 # Arguments
 
@@ -1768,7 +1754,7 @@ function isCosmological(path::String)::Bool
 
     else
 
-        throw(ArgumentError("isCosmological: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("isCosmological: $(path) does not exists as a file or folder"))
 
     end
 
@@ -1834,8 +1820,8 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
                 @warn(
                     "internalUnits: You have set the unit system to use comoving lengths \
                     (`PHYSICAL_UNITS` = $(PHYSICAL_UNITS)), but the simulation is not \
-                    cosmological. I'll keep the lengths physical. Check `PHYSICAL_UNITS` \
-                    in `constants/globals.jl`",
+                    cosmological. The function will keep the lengths physical. \
+                    Check `PHYSICAL_UNITS` in `constants/globals.jl`",
                     maxlog=1,
                 )
             end
@@ -1916,7 +1902,7 @@ Find which cell/particle types are part of the snapshot in `path`.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll check the first chunk.
+    If each snapshot is made of multiple files, the function will check the first chunk.
 
 # Arguments
 
@@ -1952,7 +1938,7 @@ function snapshotTypes(path::String)::Vector{Symbol}
 
     else
 
-        throw(ArgumentError("snapshotTypes: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("snapshotTypes: $(path) does not exists as a file or folder"))
 
     end
 
@@ -1986,7 +1972,7 @@ Find which group catalog data types are part of the snapshot in `path`.
 
 !!! note
 
-    If each snapshot is made of multiple files, I'll check the first chunk.
+    If each snapshot is made of multiple files, the function will check the first chunk.
 
 # Arguments
 
@@ -2022,7 +2008,7 @@ function groupcatTypes(path::String)::Vector{Symbol}
 
     else
 
-        throw(ArgumentError("groupcatTypes: $(path) does not exist as a file or folder"))
+        throw(ArgumentError("groupcatTypes: $(path) does not exists as a file or folder"))
 
     end
 

@@ -5,7 +5,7 @@
 """
     computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
-Read the position of the particle/cell at the potencial minimum of a given halo or subhalo.
+Read the position of the particle/cell at the potential minimum of a given halo or subhalo.
 
 # Arguments
 
@@ -25,11 +25,11 @@ Read the position of the particle/cell at the potencial minimum of a given halo 
   - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If it is set to 0, the potencial minimum of the halo with index `halo_idx` is returned.
+      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If it is set to 0, the potential minimum of the halo with index `halo_idx` is returned.
 
 # Returns
 
-  - The position of the potencial minimum.
+  - The position of the potential minimum.
 """
 function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
@@ -59,7 +59,7 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
         $(data_dict[:gc_data].path), so halo_idx = $(halo_idx) is out of bounds"))
     )
 
-    # Select the halo potencial minimum if `subhalo_rel_idx` == 0
+    # Select the halo potential minimum if `subhalo_rel_idx` == 0
     isPositive(subhalo_rel_idx) || return g_pos[:, halo_idx]
 
     # Check that the requested subhalo index is within bounds
@@ -70,7 +70,7 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
         (
             !logging[] ||
             @info("computeCenter: There are 0 subhalos in the FoF group $(halo_idx) from \
-            $(data_dict[:gc_data].path), so the center will be the halo potencial minimum")
+            $(data_dict[:gc_data].path), so the center will be the halo potential minimum")
 
         )
 
@@ -96,7 +96,7 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
     # Compute the subhalo absolute index
     subhalo_abs_idx = n_subs_floor + subhalo_rel_idx
 
-    # Select the subhalo potencial minimum
+    # Select the subhalo potential minimum
     return s_pos[:, subhalo_abs_idx]
 
 end
@@ -104,7 +104,7 @@ end
 """
     computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Length}
 
-Read the position of the potencial minimum of a given subhalo.
+Read the position of the potential minimum of a given subhalo.
 
 # Arguments
 
@@ -125,7 +125,7 @@ Read the position of the potencial minimum of a given subhalo.
 
 # Returns
 
-  - The specified potencial minimum.
+  - The specified potential minimum.
 """
 function computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Length}
 
@@ -147,7 +147,7 @@ function computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.
         $(data_dict[:gc_data].path), so `subhalo_abs_idx` = $(subhalo_abs_idx) is out of bounds"))
     )
 
-    # Select the subhalo potencial minimum
+    # Select the subhalo potential minimum
     return s_pos[:, subhalo_abs_idx]
 
 end
@@ -421,7 +421,7 @@ function findHaloSubhalo(
     for (i, idx) in enumerate(last_idxs_in_halo)
 
         # Compute the number of wind particles up to the particle with index `idx`
-        n_wind = count(x -> !(x), real_stars_idxs[1:idx])
+        n_wind = count(!, real_stars_idxs[1:idx])
 
         # Shift `last_idxs_in_halo` to ignore wind particles
         last_idxs_in_halo[i] = idx - n_wind
@@ -485,7 +485,7 @@ function findHaloSubhalo(
             for (i, idx) in enumerate(last_idxs_in_subhalo)
 
                 # Compute the number of wind particles up to the particle with index `idx`
-                n_wind = count(x -> !(x), real_stars_idxs[(n_star_floor + 1):idx])
+                n_wind = count(!, real_stars_idxs[(n_star_floor + 1):idx])
 
                 # Shift `last_idxs_in_subhalo` to ignore wind particles
                 last_idxs_in_subhalo[i] = idx - n_wind

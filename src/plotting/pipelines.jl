@@ -88,7 +88,7 @@ Some of the features are:
       + `:zero`                       -> No translation is applied.
       + `:global_cm`                  -> Sets the center of mass of the whole system (after filtering) as the new origin.
       + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
       + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo, as the new origin.
       + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
   - `rotation::Union{Symbol,NTuple{2,Int},Int}=:zero`: Type of rotation (only relevant if `transform_box` = true). The options are:
@@ -195,7 +195,7 @@ function plotSnapshot(
     framerate::Int=15,
 )::Nothing
 
-    # Create the output folder if it doesn't exist
+    # Create the output folder if it doesn't exists
     mkpath(output_path)
 
     # Compute the number of simulations
@@ -318,7 +318,7 @@ function plotSnapshot(
 
             snapshot_row = filter(:numbers => ==(snapshot_number), simulation_table)
 
-            # Skip if this snapshot does not exist for the current simulation
+            # Skip if this snapshot does not exists for the current simulation
             if isempty(snapshot_row)
                 (
                     !logging[] ||
@@ -883,7 +883,7 @@ function plotTimeSeries(
     title::AbstractString="",
 )::Tuple{Makie.Axis,Figure}
 
-    # Create the output folder if it doesn't exist
+    # Create the output folder if it doesn't exists
     mkpath(output_path)
 
     # Compute the number of simulations

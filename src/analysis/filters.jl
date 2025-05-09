@@ -163,7 +163,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + `:all`             -> Plot every cell/particle within the simulation box.
       + `:halo`            -> Plot only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
+      + `:sphere`          -> Plot only the cells/particles inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
       + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
   - `request::Dict{Symbol,Vector{String}}`: Base request dictionary, nothing will be deleted from it.
@@ -177,7 +177,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
           + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
       + Rotation for the simulation box. The possibilities are:
 
@@ -330,7 +330,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
           + `:zero`                       -> No translation is applied.
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
       + `:rotation`        -> Rotation for the simulation box. The possibilities are:
@@ -354,7 +354,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
           + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potencial minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
       + Rotation for the simulation box. The possibilities are:
@@ -495,7 +495,7 @@ filterNothing(x...; y...)::Dict{Symbol,IndexType} = PASS_ALL
         origin...,
     )::Dict{Symbol,IndexType}
 
-Filter out the cell/particles outside a given spherical shell.
+Filter out the cells/particles outside a given spherical shell.
 
 # Arguments
 
@@ -560,7 +560,7 @@ end
         origin...,
     )::Dict{Symbol,IndexType}
 
-Filter out the cell/particles outside a given cylinder.
+Filter out the cells/particles outside a given cylinder.
 
 # Arguments
 
@@ -765,8 +765,8 @@ function filterBySubhalo(
                 # Find the indices of the stars, excluding wind particles
                 real_stars_idxs = findRealStars(data_dict[:snap_data].path)
 
-                n_wind_before = count(x -> !(x), real_stars_idxs[1:(first_idx - 1)])
-                n_wind_between = count(x -> !(x), real_stars_idxs[first_idx:last_idx])
+                n_wind_before = count(!, real_stars_idxs[1:(first_idx - 1)])
+                n_wind_between = count(!, real_stars_idxs[first_idx:last_idx])
 
                 stars_first_idx = first_idx - n_wind_before
                 stars_last_idx = last_idx - n_wind_before - n_wind_between
@@ -874,8 +874,8 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
                 # Find the indices of the stars, excluding wind particles
                 real_stars_idxs = findRealStars(data_dict[:snap_data].path)
 
-                n_wind_before = count(x -> !(x), real_stars_idxs[1:(first_idx - 1)])
-                n_wind_between = count(x -> !(x), real_stars_idxs[first_idx:last_idx])
+                n_wind_before = count(!, real_stars_idxs[1:(first_idx - 1)])
+                n_wind_between = count(!, real_stars_idxs[first_idx:last_idx])
 
                 stars_first_idx = first_idx - n_wind_before
                 stars_last_idx = last_idx - n_wind_before - n_wind_between
@@ -905,7 +905,7 @@ end
         maximum::Number,
     )::Dict{Symbol,IndexType}
 
-Filter out particles/cells with `quantity` outside the range [`minimum:`, `maximum`].
+Filter out particles/cells with `quantity` outside the range [`minimum`, `maximum`].
 
 # Arguments
 
@@ -1049,8 +1049,7 @@ function filterByEquilibrium(
 
     (
         0.0 <= limit ||
-        throw(ArgumentError("filterByEquilibrium: `limit` must be > 0, but I got \
-        :$(limit_percent)"))
+        throw(ArgumentError("filterByEquilibrium: `limit` must be > 0, but I got :$(limit)"))
     )
 
     # Compute |RS - LS| / LS
@@ -1144,7 +1143,7 @@ end
 """
     filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
 
-Filter out stars that where born one or more snapshots ago.
+Filter out stars that were born one or more snapshots ago.
 
 # Arguments
 
@@ -1287,7 +1286,7 @@ end
         <keyword arguments>
     )::Dict{Symbol,IndexType}
 
-Filter out stars that where born either outside the given halo and subhalo (`exclude`= :exsitu), or inside (`exclude`= :insitu).
+Filter out stars that were born either outside the given halo and subhalo (`exclude`= :exsitu), or inside (`exclude`= :insitu).
 
 # Arguments
 
@@ -1304,9 +1303,9 @@ Filter out stars that where born either outside the given halo and subhalo (`exc
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - ´exclude::Symbol´: Which stars will be filtered out, either the ones born outside the given halo and subhalo (:exsitu), or inside (:insitu).
+  - `exclude::Symbol`: Which stars will be filtered out, either the ones born outside the given halo and subhalo (:exsitu), or inside (:insitu).
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are consider insitu.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are consider in-situ.
 
 # Returns
 

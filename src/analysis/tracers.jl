@@ -86,7 +86,7 @@ end
         target_ids::Vector{UInt},
     )::Dict{Symbol,Vector{Int}}
 
-Find the indices of the cell/particles with IDs given by `target_ids`.
+Find the indices of the cells/particles with IDs given by `target_ids`.
 
 # Arguments
 
@@ -130,7 +130,7 @@ function parentIDToIndex(
 
     for ts in components
 
-        # Read the IDs of the cell/particles
+        # Read the IDs of the cells/particles
         parent_ids = data_dict[ts]["ID  "]
 
         # Find the indices of the target IDs in the cell/particle ID list, ignoring invalid targets
@@ -206,7 +206,7 @@ function findTracers(data_dict::Dict; filter_function::Function=filterNothing)::
     # Read the IDs of the cells and particles that are allowed by `filter_function`
     parent_ids = vcat([data_dict[ts]["ID  "][filter_idxs[ts]] for ts in components]...)
 
-    !isempty(parent_ids) || return Vector{UInt}[]
+    !isempty(parent_ids) || return UInt[]
 
     # Find the IDs of the tracers whose parent are allowed by `filter_function`,
     # ignoring cells and particles with no tracers
@@ -217,7 +217,7 @@ end
 """
     tracersWithinR200(data_dict::Dict; <keyword arguments>)::Vector{UInt}
 
-Find the tracers that are within the virial radius (``R_{200}``).
+Find the tracers whose parents are within the virial radius (``R_{200}``).
 
 # Arguments
 
@@ -263,7 +263,7 @@ end
 """
     tracersWithinDisc(data_dict::Dict; <keyword arguments>)::Vector{UInt}
 
-Find the tracers that are within a given cylinder.
+Find the tracers whose parents are within a given cylinder.
 
 # Arguments
 
@@ -306,7 +306,7 @@ end
         target_ids::Vector{UInt},
     )::Dict{Symbol,Vector{<:Unitful.Mass}}
 
-Find the masses of the parent cell/particles of the tracers with IDs `target_ids`.
+Find the masses of the parent cells/particles of the tracers with IDs `target_ids`.
 
 # Arguments
 

@@ -25,7 +25,7 @@ Read the velocity of the center of mass of a given halo or subhalo.
   - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If it is set to 0, the potencial minimum of the halo with index `halo_idx` is returned.
+      + Index of the target subhalo (subfind), relative the target halo. Starts at 1. If it is set to 0, the potential minimum of the halo with index `halo_idx` is returned.
 
 # Returns
 
@@ -621,7 +621,7 @@ where $J$ is the norm of the total angular momentum, $M$ the total mass, $G$ the
 E = |E_P + E_k| \, ,
 ```
 
-where $E_P$ is the total potencial energy and $E_k$ is the total kinetic energy (including thermal energy of the gas).
+where $E_P$ is the total potential energy and $E_k$ is the total kinetic energy (including thermal energy of the gas).
 
 Due to the computational complexity of calculating $E_P$ for a large group of particles, Bullock et al. (2001) proposed an alternative definition of the spin parameter,
 
