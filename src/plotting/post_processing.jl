@@ -304,7 +304,7 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
 function ppFitLine!(
     figure::Makie.Figure;
     text_position::Tuple{<:Real,<:Real}=(0.04, 0.98),
-    text_handle::symbol=:left,
+    text_handle::Symbol=:left,
     wts::Union{Vector{Float64},Nothing}=nothing,
     error_formating::Symbol=:std_error,
     color::ColorType=Makie.wong_colors()[6],
