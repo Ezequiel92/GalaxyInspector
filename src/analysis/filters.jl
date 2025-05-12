@@ -217,9 +217,7 @@ function selectFilter(
         new_request = mergeRequests(
             addRequest(
                 request,
-                Dict(
-                    component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)
-                ),
+                Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
             ),
             Dict(
                 :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],

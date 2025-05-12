@@ -427,8 +427,12 @@ function computePARotationMatrix(
     # Check for missing data
     !isempty(positions) || return I
 
-    # Principal axis operator
-    R = ustrip.(positions * positions')
+    # Center the data (subtract the mean of each row)
+    mean_point = mean(positions, dims=2)
+    centered_pos = positions .- mean_point
+
+    # Compute the covariance matrix (principal axis operator)
+    R = ustrip.(cov(centered_pos; dims=2))
 
     # Reverse the order of the eigenvectors, making the last column the eigenvector
     # with the largest eigenvalue, which should correspond to the new z axis
