@@ -1644,7 +1644,7 @@ function ppAgertz2021!(
                     x_data,
                     y_data .- y_error,
                     y_data .+ y_error;
-                    color=(color, 0.8),
+                    color=(color, 0.9),
                 )
             end
 
