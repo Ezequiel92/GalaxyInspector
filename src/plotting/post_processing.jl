@@ -431,7 +431,7 @@ function ppFitLine!(
         x_band,
         values .- uncertainties,
         values .+ uncertainties;
-        color=(color, 0.3),
+        color,
     )
 
     # Put the post processing elements at the back of the plot
@@ -570,7 +570,7 @@ function ppKennicutt1998!(
             x_axis,
             values .- uncertainties,
             values .+ uncertainties;
-            color=(color, 0.3),
+            color,
         )
 
         lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
@@ -716,7 +716,7 @@ function ppBigiel2008!(
             x_axis,
             values .- uncertainties,
             values .+ uncertainties;
-            color=(color, 0.25),
+            color,
         )
 
         lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
@@ -1450,17 +1450,17 @@ function ppFeldmann2020!(
     yupper_1σ = Makie.inverse_transform(y_scaling).(y_axis_value .+ y_axis_uncertainty)
     ylower_1σ = Makie.inverse_transform(y_scaling).(y_axis_value .- y_axis_uncertainty)
     # Plot the 1σ band
-    band!(figure.current_axis.x, x_axis, ylower_1σ, yupper_1σ; color=(:red, 0.15))
+    band!(figure.current_axis.x, x_axis, ylower_1σ, yupper_1σ; color=:red)
 
     # Construct the 2σ upper band
     high_band_2σ = Makie.inverse_transform(y_scaling).(y_axis_value .+ 2 * y_axis_uncertainty)
     # Plot the 2σ upper band
-    band!(figure.current_axis.x, x_axis, yupper_1σ, high_band_2σ; color=(:orange, 0.15))
+    band!(figure.current_axis.x, x_axis, yupper_1σ, high_band_2σ; color=:orange)
 
     # Construct the 2σ lower band
     low_band_2σ = Makie.inverse_transform(y_scaling).(y_axis_value .- 2 * y_axis_uncertainty)
     # Plot the 2σ lower band
-    bp = band!(figure.current_axis.x, x_axis, low_band_2σ, ylower_1σ; color=(:orange, 0.15))
+    bp = band!(figure.current_axis.x, x_axis, low_band_2σ, ylower_1σ; color=:orange)
 
     # Put the post processing elements at the back of the plot
     translate!(Accum, bp, 0, 0, -10)
@@ -1644,7 +1644,7 @@ function ppAgertz2021!(
                     x_data,
                     y_data .- y_error,
                     y_data .+ y_error;
-                    color=(color, 0.9),
+                    color,
                 )
             end
 
