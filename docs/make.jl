@@ -8,7 +8,7 @@ CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== 
 makedocs(
     sitename="GalaxyInspector.jl",
     authors="Ezequiel Lozano",
-    format   = Documenter.HTML(
+    format=Documenter.HTML(
         prettyurls=CI,
         assets=["./assets/GI-docs.css"],
         warn_outdated=true,
@@ -20,6 +20,7 @@ makedocs(
     modules=[GalaxyInspector],
     pages=[
         "Introduction" => "intro.md",
+        "Index" => "index.md",
         "API" => Any[
             "api/plotting/pipelines.md",
             "api/plotting/convenience.md",
@@ -37,7 +38,6 @@ makedocs(
             "api/analysis/tracers.md",
             "api/analysis/transformations.md",
         ],
-        "Index" => "index.md",
     ],
     warnonly=[:missing_docs],
 )
