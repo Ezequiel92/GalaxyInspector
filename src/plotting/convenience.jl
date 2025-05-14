@@ -196,33 +196,36 @@ function snapshotReport(
                         "NHP ",
                         "NH  ",
                         "PRES",
-                        "FRAC",
-                        "ODIT",
                         "GZ  ",
                         "RHO ",
+                        "ID  ",
+                        "ODIT",
+                        "PARA",
+                        "TAUS",
                         "RHOC",
                         "PARZ",
                         "ETAD",
                         "ETAI",
                         "PARR",
-                        "ID  ",
+                        "PAZN",
+                        "FRAC",
                         "SFFL",
-                        "TAUS",
                     ],
                     :stars => [
                         "ODIT",
                         "PARA",
+                        "TAUS",
                         "RHOC",
                         "PARZ",
                         "ETAD",
                         "ETAI",
                         "PARR",
+                        "PAZN",
                         "FRAC",
                         "GMAS",
                         "GSFR",
                         "GPRE",
                         "ID  ",
-                        "TAUS",
                     ],
                 ),
             ),
@@ -305,13 +308,13 @@ function snapshotReport(
             "\n\t\tTotal mass:              $(round(typeof(1.0u"Msun"), total_mass, sigdigits=3))\n",
         )
 
-        ########################################
-        # Print the mass of each hydrogen phase
-        ########################################
+        #######################################
+        # Print the mass of each gas component
+        #######################################
 
         if :gas in component_list
 
-            println(file, "\tHydrogen masses (full simulation box):\n")
+            println(file, "\tGas component masses (full simulation box):\n")
 
             gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
@@ -329,6 +332,12 @@ function snapshotReport(
 
             hn_mass = sum(computeMass(data_dict, :neutral); init=0.0u"Msun")
             hn_percent = round((hn_mass / gas_mass) * 100, sigdigits=3)
+
+            me_mass = sum(computeMass(data_dict, :metals); init=0.0u"Msun")
+            me_percent = round((me_mass / gas_mass) * 100, sigdigits=3)
+
+            du_mass = sum(computeMass(data_dict, :dust); init=0.0u"Msun")
+            du_percent = round((du_mass / gas_mass) * 100, sigdigits=3)
 
             if !iszero(hii_mass)
                 title = "Ionized mass:"
@@ -376,7 +385,27 @@ function snapshotReport(
                 println(
                     file,
                     "\t\t$(title)$(round(typeof(1.0u"Msun"), hn_mass, sigdigits=3)) \
-                    ($(hn_percent)% of total gas mass)\n",
+                    ($(hn_percent)% of total gas mass)",
+                )
+            end
+
+            if !iszero(me_mass)
+                title = "Metal mass:"
+                title *= " "^(25 - length(title))
+                println(
+                    file,
+                    "\t\t$(title)$(round(typeof(1.0u"Msun"), me_mass, sigdigits=3)) \
+                    ($(me_percent)% of total gas mass)",
+                )
+            end
+
+            if !iszero(du_mass)
+                title = "Dust mass:"
+                title *= " "^(25 - length(title))
+                println(
+                    file,
+                    "\t\t$(title)$(round(typeof(1.0u"Msun"), du_mass, sigdigits=3)) \
+                    ($(du_percent)% of total gas mass)\n",
                 )
             end
 
@@ -454,13 +483,13 @@ function snapshotReport(
             "\n\t\tTotal mass:              $(round(typeof(1.0u"Msun"), total_mass, sigdigits=3))\n",
         )
 
-        ########################################
-        # Print the mass of each hydrogen phase
-        ########################################
+        #######################################
+        # Print the mass of each gas component
+        #######################################
 
         if :gas in component_list
 
-            println(file, "\tHydrogen masses (filtered box):\n")
+            println(file, "\tGas component masses (filtered box):\n")
 
             gas_mass = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
@@ -478,6 +507,12 @@ function snapshotReport(
 
             hn_mass = sum(computeMass(data_dict, :neutral); init=0.0u"Msun")
             hn_percent = round((hn_mass / gas_mass) * 100, sigdigits=3)
+
+            me_mass = sum(computeMass(data_dict, :metals); init=0.0u"Msun")
+            me_percent = round((me_mass / gas_mass) * 100, sigdigits=3)
+
+            du_mass = sum(computeMass(data_dict, :dust); init=0.0u"Msun")
+            du_percent = round((du_mass / gas_mass) * 100, sigdigits=3)
 
             if !iszero(hii_mass)
                 title = "Ionized mass:"
@@ -525,7 +560,27 @@ function snapshotReport(
                 println(
                     file,
                     "\t\t$(title)$(round(typeof(1.0u"Msun"), hn_mass, sigdigits=3)) \
-                    ($(hn_percent)% of total gas mass)\n",
+                    ($(hn_percent)% of total gas mass)",
+                )
+            end
+
+            if !iszero(me_mass)
+                title = "Metal mass:"
+                title *= " "^(25 - length(title))
+                println(
+                    file,
+                    "\t\t$(title)$(round(typeof(1.0u"Msun"), me_mass, sigdigits=3)) \
+                    ($(me_percent)% of total gas mass)",
+                )
+            end
+
+            if !iszero(du_mass)
+                title = "Dust mass:"
+                title *= " "^(25 - length(title))
+                println(
+                    file,
+                    "\t\t$(title)$(round(typeof(1.0u"Msun"), du_mass, sigdigits=3)) \
+                    ($(du_percent)% of total gas mass)\n",
                 )
             end
 
@@ -584,285 +639,82 @@ function snapshotReport(
         # Print the properties of the star forming gas
         ###############################################
 
-        if any(
-            !isempty,
-            [
-                data_dict[:stars]["ODIT"],
-                data_dict[:stars]["PARA"],
-                data_dict[:stars]["TAUS"],
-                data_dict[:stars]["RHOC"],
-                data_dict[:stars]["PARZ"],
-                data_dict[:stars]["ETAD"],
-                data_dict[:stars]["ETAI"],
-                data_dict[:stars]["PARR"],
-                data_dict[:stars]["FRAC"],
-                data_dict[:stars]["GMAS"],
-                data_dict[:stars]["GSFR"],
-                data_dict[:stars]["GPRE"],
-            ],
-        )
+        quantities = [
+            "ODIT",
+            "TAUS",
+            "RHOC",
+            "PARZ",
+            "ETAD",
+            "ETAI",
+            "PARR",
+            "PAZN",
+            "GMAS",
+            "GSFR",
+            "GPRE",
+        ]
+        names = [
+            "Integration time",
+            "τS",
+            "Cell density",
+            "Metallicity",
+            "Photodissociation parameter (ηd)",
+            "Photoionization parameter (ηi)",
+            "Mass recycling parameter (R)",
+            "Metallicity of the supernova ejecta (Zsn)",
+            "Parent gas mass",
+            "Parent SFR",
+            "Parent gas pressure",
+        ]
+        units = [
+            u"Myr",
+            u"Myr",
+            u"cm^-3",
+            Unitful.NoUnits,
+            Unitful.NoUnits,
+            Unitful.NoUnits,
+            Unitful.NoUnits,
+            Unitful.NoUnits,
+            u"Msun",
+            u"Msun*yr^-1",
+            u"dyn*cm^-2",
+        ]
+
+        present_qty = isBlockPresent.(:stars, quantities, snapshot_path)
+
+        if any(present_qty)
 
             println(file, "\tProperties of the gas that has formed stars (filtered box):\n")
 
-        end
+            iterator = collect(zip(quantities, units, names))[present_qty]
 
-        if !isempty(data_dict[:stars]["ODIT"])
+            for (quantity, unit, name) in iterator
 
-            odit = ustrip.(u"Myr", data_dict[:stars]["ODIT"])
+                values = filter(!isnan, ustrip.(unit, data_dict[:stars][quantity]))
 
-            println(file, "\t\tTotal integration time:\n")
-            println(file, "\t\t\tMean:    $(round(mean(odit), sigdigits=4)) Myr")
-            println(file, "\t\t\tMedian:  $(round(median(odit), sigdigits=4)) Myr")
-            println(file, "\t\t\tMode:    $(round(mode(odit)[1], sigdigits=4)) Myr")
-            println(file, "\t\t\tMinimum: $(round(minimum(odit), sigdigits=4)) Myr")
-            println(file, "\t\t\tMaximum: $(round(maximum(odit), sigdigits=4)) Myr\n")
+                isempty(values) && continue
 
-            odit_50 = computeMassQty(odit, data_dict[:stars]["MASS"]; percent=50.0)
-            odit_90 = computeMassQty(odit, data_dict[:stars]["MASS"]; percent=90.0)
-            odit_95 = computeMassQty(odit, data_dict[:stars]["MASS"]; percent=95.0)
+                if quantity == "PARZ"
+                    values = values ./ SOLAR_METALLICITY
+                    unit = "Z⊙"
+                end
 
-            println(file, "\t\t\tTotal integration time enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(odit_50, sigdigits=4)) Myr (50%)")
-            println(file, "\t\t\t\t$(round(odit_90, sigdigits=4)) Myr (90%)")
-            println(file, "\t\t\t\t$(round(odit_95, sigdigits=4)) Myr (95%)\n")
+                println(file, "\t\t$(name):\n")
+                println(file, "\t\t\tMean:    $(round(mean(values), sigdigits=4)) $unit")
+                println(file, "\t\t\tMedian:  $(round(median(values), sigdigits=4)) $unit")
+                println(file, "\t\t\tMode:    $(round(mode(values)[1], sigdigits=4)) $unit")
+                println(file, "\t\t\tMinimum: $(round(minimum(values), sigdigits=4)) $unit")
+                println(file, "\t\t\tMaximum: $(round(maximum(values), sigdigits=4)) $unit\n")
 
-            odit_percent_low = computeMassFraction(
-                odit,
-                data_dict[:stars]["MASS"],
-                (0.0, 100.0), # Myr
-            ) * 100
+                values_50 = computeMassQty(values, data_dict[:stars]["MASS"]; percent=50.0)
+                values_90 = computeMassQty(values, data_dict[:stars]["MASS"]; percent=90.0)
+                values_95 = computeMassQty(values, data_dict[:stars]["MASS"]; percent=95.0)
 
-            println(file, "\t\t\tFraction of stellar mass with a total integration time < 100 Myr:\n")
-            println(file, "\t\t\t\t$(round(odit_percent_low, sigdigits=4))%\n")
+                println(file, "\t\t$(name) enclosing X% of the stellar mass:\n")
+                println(file, "\t\t\t$(round(values_50, sigdigits=4)) $unit (50%)")
+                println(file, "\t\t\t$(round(values_90, sigdigits=4)) $unit (90%)")
+                println(file, "\t\t\t$(round(values_95, sigdigits=4)) $unit (95%)\n")
 
-            odit_percent_high = computeMassFraction(
-                odit,
-                data_dict[:stars]["MASS"],
-                (100.0, Inf), # Myr
-            ) * 100
-
-            println(file, "\t\t\tFraction of stellar mass with a total integration time > 100 Myr:\n")
-            println(file, "\t\t\t\t$(round(odit_percent_high, sigdigits=4))%\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["PARA"])
-
-            para = data_dict[:stars]["PARA"]
-
-            println(file, "\t\tScale factor:\n")
-            println(file, "\t\t\tMean:    $(round(mean(para), sigdigits=4))")
-            println(file, "\t\t\tMedian:  $(round(median(para), sigdigits=4))")
-            println(file, "\t\t\tMode:    $(round(mode(para)[1], sigdigits=4))")
-            println(file, "\t\t\tMinimum: $(round(minimum(para), sigdigits=4))")
-            println(file, "\t\t\tMaximum: $(round(maximum(para), sigdigits=4))\n")
-
-            para_50 = computeMassQty(para, data_dict[:stars]["MASS"]; percent=50.0)
-            para_90 = computeMassQty(para, data_dict[:stars]["MASS"]; percent=90.0)
-            para_95 = computeMassQty(para, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tScale factor enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(para_50, sigdigits=4)) (50%)")
-            println(file, "\t\t\t\t$(round(para_90, sigdigits=4)) (90%)")
-            println(file, "\t\t\t\t$(round(para_95, sigdigits=4)) (95%)\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["TAUS"])
-
-            τS = ustrip.(u"Myr", data_dict[:stars]["TAUS"])
-
-            println(file, "\t\tStar formation time parameter (τS):\n")
-            println(file, "\t\t\tMean:    $(round(mean(τS), sigdigits=4)) Myr")
-            println(file, "\t\t\tMedian:  $(round(median(τS), sigdigits=4)) Myr")
-            println(file, "\t\t\tMode:    $(round(mode(τS)[1], sigdigits=4)) Myr")
-            println(file, "\t\t\tMinimum: $(round(minimum(τS), sigdigits=4)) Myr")
-            println(file, "\t\t\tMaximum: $(round(maximum(τS), sigdigits=4)) Myr\n")
-
-            τS_50 = computeMassQty(τS, data_dict[:stars]["MASS"]; percent=50.0)
-            τS_90 = computeMassQty(τS, data_dict[:stars]["MASS"]; percent=90.0)
-            τS_95 = computeMassQty(τS, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tτS enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(τS_50, sigdigits=4)) Myr (50%)")
-            println(file, "\t\t\t\t$(round(τS_90, sigdigits=4)) Myr (90%)")
-            println(file, "\t\t\t\t$(round(τS_95, sigdigits=4)) Myr (95%)\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["RHOC"])
-
-            rhoc = ustrip.(u"cm^-3", data_dict[:stars]["RHOC"])
-
-            println(file, "\t\tCell density:\n")
-            println(file, "\t\t\tMean:    $(round(mean(rhoc), sigdigits=4)) cm^-3")
-            println(file, "\t\t\tMedian:  $(round(median(rhoc), sigdigits=4)) cm^-3")
-            println(file, "\t\t\tMode:    $(round(mode(rhoc)[1], sigdigits=4)) cm^-3")
-            println(file, "\t\t\tMinimum: $(round(minimum(rhoc), sigdigits=4)) cm^-3")
-            println(file, "\t\t\tMaximum: $(round(maximum(rhoc), sigdigits=4)) cm^-3\n")
-
-            rhoc_50 = computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=50.0)
-            rhoc_90 = computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=90.0)
-            rhoc_95 = computeMassQty(rhoc, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tCell density enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(rhoc_50, sigdigits=4)) cm^-3 (50%)")
-            println(file, "\t\t\t\t$(round(rhoc_90, sigdigits=4)) cm^-3 (90%)")
-            println(file, "\t\t\t\t$(round(rhoc_95, sigdigits=4)) cm^-3 (95%)\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["PARZ"])
-
-            parz = data_dict[:stars]["PARZ"] ./ SOLAR_METALLICITY
-
-            println(file, "\t\tMetallicity:\n")
-            println(file, "\t\t\tMean:    $(round(mean(parz), sigdigits=4)) Z⊙")
-            println(file, "\t\t\tMedian:  $(round(median(parz), sigdigits=4)) Z⊙")
-            println(file, "\t\t\tMode:    $(round(mode(parz)[1], sigdigits=4)) Z⊙")
-            println(file, "\t\t\tMinimum: $(round(minimum(parz), sigdigits=4)) Z⊙")
-            println(file, "\t\t\tMaximum: $(round(maximum(parz), sigdigits=4)) Z⊙\n")
-
-            parz_50 = computeMassQty(parz, data_dict[:stars]["MASS"]; percent=50.0)
-            parz_90 = computeMassQty(parz, data_dict[:stars]["MASS"]; percent=90.0)
-            parz_95 = computeMassQty(parz, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tMetallicity enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(parz_50, sigdigits=4)) Z⊙ (50%)")
-            println(file, "\t\t\t\t$(round(parz_90, sigdigits=4)) Z⊙ (90%)")
-            println(file, "\t\t\t\t$(round(parz_95, sigdigits=4)) Z⊙ (95%)\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["ETAD"])
-
-            ηd = data_dict[:stars]["ETAD"]
-
-            println(file, "\t\tPhotodissociation parameter (ηd):\n")
-            println(file, "\t\t\tMean:    $(round(mean(ηd), sigdigits=4))")
-            println(file, "\t\t\tMedian:  $(round(median(ηd), sigdigits=4))")
-            println(file, "\t\t\tMode:    $(round(mode(ηd)[1], sigdigits=4))")
-            println(file, "\t\t\tMinimum: $(round(minimum(ηd), sigdigits=4))")
-            println(file, "\t\t\tMaximum: $(round(maximum(ηd), sigdigits=4))\n")
-
-            ηd_50 = computeMassQty(ηd, data_dict[:stars]["MASS"]; percent=50.0)
-            ηd_90 = computeMassQty(ηd, data_dict[:stars]["MASS"]; percent=90.0)
-            ηd_95 = computeMassQty(ηd, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tηd enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(ηd_50, sigdigits=4)) (50%)")
-            println(file, "\t\t\t\t$(round(ηd_90, sigdigits=4)) (90%)")
-            println(file, "\t\t\t\t$(round(ηd_95, sigdigits=4)) (95%)\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["ETAI"])
-
-            ηi = data_dict[:stars]["ETAI"]
-
-            println(file, "\t\tPhotoionization parameter (ηi):\n")
-            println(file, "\t\t\tMean:    $(round(mean(ηi), sigdigits=4))")
-            println(file, "\t\t\tMedian:  $(round(median(ηi), sigdigits=4))")
-            println(file, "\t\t\tMode:    $(round(mode(ηi)[1], sigdigits=4))")
-            println(file, "\t\t\tMinimum: $(round(minimum(ηi), sigdigits=4))")
-            println(file, "\t\t\tMaximum: $(round(maximum(ηi), sigdigits=4))\n")
-
-            ηi_50 = computeMassQty(ηi, data_dict[:stars]["MASS"]; percent=50.0)
-            ηi_90 = computeMassQty(ηi, data_dict[:stars]["MASS"]; percent=90.0)
-            ηi_95 = computeMassQty(ηi, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tηi enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(ηi_50, sigdigits=4)) (50%)")
-            println(file, "\t\t\t\t$(round(ηi_90, sigdigits=4)) (90%)")
-            println(file, "\t\t\t\t$(round(ηi_95, sigdigits=4)) (95%)\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["PARR"])
-
-            R = data_dict[:stars]["PARR"]
-
-            println(file, "\t\tMass recycling parameter (R):\n")
-            println(file, "\t\t\tMean:    $(round(mean(R), sigdigits=4))")
-            println(file, "\t\t\tMedian:  $(round(median(R), sigdigits=4))")
-            println(file, "\t\t\tMode:    $(round(mode(R)[1], sigdigits=4))")
-            println(file, "\t\t\tMinimum: $(round(minimum(R), sigdigits=4))")
-            println(file, "\t\t\tMaximum: $(round(maximum(R), sigdigits=4))\n")
-
-            R_50 = computeMassQty(R, data_dict[:stars]["MASS"]; percent=50.0)
-            R_90 = computeMassQty(R, data_dict[:stars]["MASS"]; percent=90.0)
-            R_95 = computeMassQty(R, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tR enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(R_50, sigdigits=4)) (50%)")
-            println(file, "\t\t\t\t$(round(R_90, sigdigits=4)) (90%)")
-            println(file, "\t\t\t\t$(round(R_95, sigdigits=4)) (95%)\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["GMAS"])
-
-            gmas = ustrip.(u"Msun", data_dict[:stars]["GMAS"]) ./ exp10(4.0)
-
-            println(file, "\t\tParent gas mass:\n")
-            println(file, "\t\t\tMean:    $(round(mean(gmas), sigdigits=4)) × 10⁴ M⊙")
-            println(file, "\t\t\tMedian:  $(round(median(gmas), sigdigits=4)) × 10⁴ M⊙")
-            println(file, "\t\t\tMode:    $(round(mode(gmas)[1], sigdigits=4)) × 10⁴ M⊙")
-            println(file, "\t\t\tMinimum: $(round(minimum(gmas), sigdigits=4)) × 10⁴ M⊙")
-            println(file, "\t\t\tMaximum: $(round(maximum(gmas), sigdigits=4)) × 10⁴ M⊙\n")
-
-            gmas_50 = computeMassQty(gmas, data_dict[:stars]["MASS"]; percent=50.0)
-            gmas_90 = computeMassQty(gmas, data_dict[:stars]["MASS"]; percent=90.0)
-            gmas_95 = computeMassQty(gmas, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tParent gas mass enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(gmas_50, sigdigits=4)) × 10⁴ M⊙ (50%)")
-            println(file, "\t\t\t\t$(round(gmas_90, sigdigits=4)) × 10⁴ M⊙ (90%)")
-            println(file, "\t\t\t\t$(round(gmas_95, sigdigits=4)) × 10⁴ M⊙ (95%)\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["GSFR"])
-
-            gsfr = ustrip.(u"Msun*yr^-1", data_dict[:stars]["GSFR"])
-
-            println(file, "\t\tParent SFR:\n")
-            println(file, "\t\t\tMean:    $(round(mean(gsfr), sigdigits=4)) M⊙ yr^-1")
-            println(file, "\t\t\tMedian:  $(round(median(gsfr), sigdigits=4)) M⊙ yr^-1")
-            println(file, "\t\t\tMode:    $(round(mode(gsfr)[1], sigdigits=4)) M⊙ yr^-1")
-            println(file, "\t\t\tMinimum: $(round(minimum(gsfr), sigdigits=4)) M⊙ yr^-1")
-            println(file, "\t\t\tMaximum: $(round(maximum(gsfr), sigdigits=4)) M⊙ yr^-1\n")
-
-            gsfr_50 = computeMassQty(gsfr, data_dict[:stars]["MASS"]; percent=50.0)
-            gsfr_90 = computeMassQty(gsfr, data_dict[:stars]["MASS"]; percent=90.0)
-            gsfr_95 = computeMassQty(gsfr, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tParent SFR enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(gsfr_50, sigdigits=4)) M⊙ yr^-1 (50%)")
-            println(file, "\t\t\t\t$(round(gsfr_90, sigdigits=4)) M⊙ yr^-1 (90%)")
-            println(file, "\t\t\t\t$(round(gsfr_95, sigdigits=4)) M⊙ yr^-1 (95%)\n")
-
-        end
-
-        if !isempty(data_dict[:stars]["GPRE"])
-
-            gpre = ustrip.(u"dyn*cm^-2", data_dict[:stars]["GPRE"])
-
-            println(file, "\t\tParent gas pressure:\n")
-            println(file, "\t\t\tMean:    $(round(mean(gpre), sigdigits=4)) dyn cm^-2")
-            println(file, "\t\t\tMedian:  $(round(median(gpre), sigdigits=4)) dyn cm^-2")
-            println(file, "\t\t\tMode:    $(round(mode(gpre)[1], sigdigits=4)) dyn cm^-2")
-            println(file, "\t\t\tMinimum: $(round(minimum(gpre), sigdigits=4)) dyn cm^-2")
-            println(file, "\t\t\tMaximum: $(round(maximum(gpre), sigdigits=4)) dyn cm^-2\n")
-
-            gpre_50 = computeMassQty(gpre, data_dict[:stars]["MASS"]; percent=50.0)
-            gpre_90 = computeMassQty(gpre, data_dict[:stars]["MASS"]; percent=90.0)
-            gpre_95 = computeMassQty(gpre, data_dict[:stars]["MASS"]; percent=95.0)
-
-            println(file, "\t\t\tParent gas pressure enclosing X% of the stellar mass:\n")
-            println(file, "\t\t\t\t$(round(gpre_50, sigdigits=4)) dyn cm^-2 (50%)")
-            println(file, "\t\t\t\t$(round(gpre_90, sigdigits=4)) dyn cm^-2 (90%)")
-            println(file, "\t\t\t\t$(round(gpre_95, sigdigits=4)) dyn cm^-2 (95%)\n")
+            end
 
         end
 
@@ -870,12 +722,22 @@ function snapshotReport(
         # Print the values of the ODEs parameters for the gas cells
         ############################################################
 
-        quantities = ["ODIT", "TAUS", "RHOC", "PARZ", "ETAD", "ETAI", "PARR"]
-        names = [ "integration time", "τS", "cell density", "metallicity", "ηd", "ηi", "R"]
+        quantities = ["ODIT", "TAUS", "RHOC", "PARZ", "ETAD", "ETAI", "PARR", "PAZN"]
+        names = [
+            "Integration time",
+            "τS",
+            "Cell density",
+            "Metallicity",
+            "Photodissociation parameter (ηd)",
+            "Photoionization parameter (ηi)",
+            "Mass recycling parameter (R)",
+            "Metallicity of the supernova ejecta (Zsn)",
+        ]
         units = [
             u"Myr",
             u"Myr",
             u"cm^-3",
+            Unitful.NoUnits,
             Unitful.NoUnits,
             Unitful.NoUnits,
             Unitful.NoUnits,
@@ -888,17 +750,25 @@ function snapshotReport(
 
             println(file, "\tODE parameters for the gas cells (filtered box):\n")
 
-            for (quantity, unit, name) in zip(quantities, units, names)[present_qty]
+            iterator = collect(zip(quantities, units, names))[present_qty]
+
+            for (quantity, unit, name) in iterator
 
                 values = filter(!isnan, ustrip.(unit, data_dict[:gas][quantity]))
 
                 isempty(values) && continue
 
-                println(file, "\t\tMean $name:    $(round(mean(values), sigdigits=4)) $unit")
-                println(file, "\t\tMedian $name:  $(round(median(values), sigdigits=4)) $unit")
-                println(file, "\t\tMode $name:    $(round(mode(values)[1], sigdigits=4)) $unit")
-                println(file, "\t\tMinimum $name: $(round(minimum(values), sigdigits=4)) $unit")
-                println(file, "\t\tMaximum $name: $(round(maximum(values), sigdigits=4)) $unit\n")
+                if quantity == "PARZ"
+                    values = values ./ SOLAR_METALLICITY
+                    unit = "Z⊙"
+                end
+
+                println(file, "\t\t$(name):\n")
+                println(file, "\t\t\tMean:    $(round(mean(values), sigdigits=4)) $unit")
+                println(file, "\t\t\tMedian:  $(round(median(values), sigdigits=4)) $unit")
+                println(file, "\t\t\tMode:    $(round(mode(values)[1], sigdigits=4)) $unit")
+                println(file, "\t\t\tMinimum: $(round(minimum(values), sigdigits=4)) $unit")
+                println(file, "\t\t\tMaximum: $(round(maximum(values), sigdigits=4)) $unit\n")
 
             end
 
@@ -1113,6 +983,7 @@ function snapshotReport(
                 molecular_masses   = computeMass(data_dict, :molecular)
                 molecular_p_masses = computeMass(data_dict, :br_molecular)
                 neutral_masses     = computeMass(data_dict, :neutral)
+                dust_masses        = computeMass(data_dict, :dust)
 
                 stellar_mass_inside  = stellar_masses[disc_idxs[:stars]]
                 stellar_mass_outside = stellar_masses[halo_idxs[:stars]]
@@ -1143,6 +1014,11 @@ function snapshotReport(
                 if !isempty(neutral_masses)
                     neutral_mass_inside  = neutral_masses[disc_idxs[:gas]]
                     neutral_mass_outside = neutral_masses[halo_idxs[:gas]]
+                end
+
+                if !isempty(dust_masses)
+                    dust_mass_inside  = dust_masses[disc_idxs[:gas]]
+                    dust_mass_outside = dust_masses[halo_idxs[:gas]]
                 end
 
                 println(file, "Characteristic radii (filtered box):\n")
@@ -1372,6 +1248,36 @@ function snapshotReport(
 
                 end
 
+                #######
+                # Dust
+                #######
+
+                if !isempty(dust_masses)
+
+                    mass_radius_90 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        dust_mass_inside;
+                        percent=90.0,
+                    )
+
+                    mass_radius_95 = computeMassRadius(
+                        data_dict[:gas]["POS "][:, disc_idxs[:gas]],
+                        dust_mass_inside;
+                        percent=95.0,
+                    )
+
+                    println(file, "\tRadius containing X% of the dust mass (r < $(DISK_R)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_90), sigdigits=4)) $(u"kpc") (90%)",
+                    )
+                    println(
+                        file,
+                        "\t\t$(round(ustrip(u"kpc", mass_radius_95), sigdigits=4)) $(u"kpc") (95%)\n",
+                    )
+
+                end
+
                 #####################################################
                 # Print the masses withing the disc (r < DISK_R) and
                 # outside the disc (DISK_R < r < R200)
@@ -1392,8 +1298,8 @@ function snapshotReport(
                 total_stellar_mass_outside = sum(stellar_mass_outside; init=0.0u"Msun")
                 total_stellar_mass         = total_stellar_mass_inside + total_stellar_mass_outside
 
-                s_inside_percent  = (total_stellar_mass_inside / total_stellar_mass) * 100.0
-                s_outside_percent = (total_stellar_mass_outside / total_stellar_mass) * 100.0
+                inside_percent  = (total_stellar_mass_inside / total_stellar_mass) * 100.0
+                outside_percent = (total_stellar_mass_outside / total_stellar_mass) * 100.0
 
                 println(file, "\t", "#"^40)
                 println(file, "\tStars:")
@@ -1403,14 +1309,14 @@ function snapshotReport(
                 println(
                     file,
                     "\t\t$(round(typeof(1.0u"Msun"), total_stellar_mass_inside, sigdigits=3)) \
-                    ($(round(s_inside_percent, sigdigits=3))% of the total stellar mass)\n",
+                    ($(round(inside_percent, sigdigits=3))% of the total stellar mass)\n",
                 )
 
                 println(file, "\tStellar mass outside the disc ($(DISK_R) < r < R200):\n")
                 println(
                     file,
                     "\t\t$(round(typeof(1.0u"Msun"), total_stellar_mass_outside, sigdigits=3)) \
-                    ($(round(s_outside_percent, sigdigits=3))% of the total stellar mass)\n",
+                    ($(round(outside_percent, sigdigits=3))% of the total stellar mass)\n",
                 )
 
                 ############
@@ -1421,8 +1327,8 @@ function snapshotReport(
                 total_gas_mass_outside = sum(gas_mass_outside; init=0.0u"Msun")
                 total_gas_mass         = total_gas_mass_inside + total_gas_mass_outside
 
-                g_inside_percent  = (total_gas_mass_inside / total_gas_mass) * 100.0
-                g_outside_percent = (total_gas_mass_outside / total_gas_mass) * 100.0
+                inside_percent  = (total_gas_mass_inside / total_gas_mass) * 100.0
+                outside_percent = (total_gas_mass_outside / total_gas_mass) * 100.0
 
                 println(file, "\t", "#"^40)
                 println(file, "\tTotal gas:")
@@ -1432,14 +1338,14 @@ function snapshotReport(
                 println(
                     file,
                     "\t\t$(round(typeof(1.0u"Msun"), total_gas_mass_inside, sigdigits=3)) \
-                    ($(round(g_inside_percent, sigdigits=3))% of the gas mass)\n",
+                    ($(round(inside_percent, sigdigits=3))% of the gas mass)\n",
                 )
 
                 println(file, "\tGas mass outside the disc ($(DISK_R) < r < R200):\n")
                 println(
                     file,
                     "\t\t$(round(typeof(1.0u"Msun"), total_gas_mass_outside, sigdigits=3)) \
-                    ($(round(g_outside_percent, sigdigits=3))% of the gas mass)\n",
+                    ($(round(outside_percent, sigdigits=3))% of the gas mass)\n",
                 )
 
                 ##############
@@ -1451,8 +1357,8 @@ function snapshotReport(
                     total_ion_mass_inside  = sum(ionized_mass_inside; init=0.0u"Msun")
                     total_ion_mass_outside = sum(ionized_mass_outside; init=0.0u"Msun")
 
-                    i_inside_percent  = (total_ion_mass_inside  / total_gas_mass_inside) * 100.0
-                    i_outside_percent = (total_ion_mass_outside / total_gas_mass_outside) * 100.0
+                    inside_percent  = (total_ion_mass_inside  / total_gas_mass_inside) * 100.0
+                    outside_percent = (total_ion_mass_outside / total_gas_mass_outside) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tIonized gas:")
@@ -1462,46 +1368,14 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ion_mass_inside, sigdigits=3)) \
-                        ($(round(i_inside_percent, sigdigits=3))% of the gas mass)\n",
+                        ($(round(inside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                     println(file, "\tIonized mass outside the disc ($(DISK_R) < r < R200):\n")
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ion_mass_outside, sigdigits=3)) \
-                        ($(round(i_outside_percent, sigdigits=3))% of the gas mass)\n",
-                    )
-
-                end
-
-                ##############
-                # Neutral gas
-                ##############
-
-                if !isempty(neutral_masses)
-
-                    total_neu_mass_inside  = sum(neutral_mass_inside; init=0.0u"Msun")
-                    total_neu_mass_outside = sum(neutral_mass_outside; init=0.0u"Msun")
-
-                    m_inside_percent  = (total_neu_mass_inside  / total_gas_mass_inside) * 100.0
-                    m_outside_percent = (total_neu_mass_outside / total_gas_mass_outside) * 100.0
-
-                    println(file, "\t", "#"^40)
-                    println(file, "\tNeutral gas:")
-                    println(file, "\t", "#"^40, "\n")
-
-                    println(file, "\tNeutral mass inside the disc (r < $(DISK_R)):\n")
-                    println(
-                        file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_neu_mass_inside, sigdigits=3)) \
-                        ($(round(m_inside_percent, sigdigits=3))% of the gas mass)\n",
-                    )
-
-                    println(file, "\tNeutral mass outside the disc ($(DISK_R) < r < R200):\n")
-                    println(
-                        file,
-                        "\t\t$(round(typeof(1.0u"Msun"), total_neu_mass_outside, sigdigits=3)) \
-                        ($(round(m_outside_percent, sigdigits=3))% of the gas mass)\n",
+                        ($(round(outside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                 end
@@ -1515,8 +1389,8 @@ function snapshotReport(
                     total_ato_mass_inside  = sum(atomic_mass_inside; init=0.0u"Msun")
                     total_ato_mass_outside = sum(atomic_mass_outside; init=0.0u"Msun")
 
-                    a_inside_percent  = (total_ato_mass_inside  / total_gas_mass_inside) * 100.0
-                    a_outside_percent = (total_ato_mass_outside / total_gas_mass_outside) * 100.0
+                    inside_percent  = (total_ato_mass_inside  / total_gas_mass_inside) * 100.0
+                    outside_percent = (total_ato_mass_outside / total_gas_mass_outside) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tAtomic gas:")
@@ -1526,14 +1400,14 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_inside, sigdigits=3)) \
-                        ($(round(a_inside_percent, sigdigits=3))% of the gas mass)\n",
+                        ($(round(inside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                     println(file, "\tAtomic mass outside the disc ($(DISK_R) < r < R200):\n")
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_ato_mass_outside, sigdigits=3)) \
-                        ($(round(a_outside_percent, sigdigits=3))% of the gas mass)\n",
+                        ($(round(outside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                 end
@@ -1547,8 +1421,8 @@ function snapshotReport(
                     total_mol_mass_inside  = sum(molecular_mass_inside; init=0.0u"Msun")
                     total_mol_mass_outside = sum(molecular_mass_outside; init=0.0u"Msun")
 
-                    m_inside_percent  = (total_mol_mass_inside  / total_gas_mass_inside) * 100.0
-                    m_outside_percent = (total_mol_mass_outside / total_gas_mass_outside) * 100.0
+                    inside_percent  = (total_mol_mass_inside  / total_gas_mass_inside) * 100.0
+                    outside_percent = (total_mol_mass_outside / total_gas_mass_outside) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tMolecular gas:")
@@ -1558,14 +1432,14 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_inside, sigdigits=3)) \
-                        ($(round(m_inside_percent, sigdigits=3))% of the gas mass)\n",
+                        ($(round(inside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                     println(file, "\tMolecular mass outside the disc ($(DISK_R) < r < R200):\n")
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_mol_mass_outside, sigdigits=3)) \
-                        ($(round(m_outside_percent, sigdigits=3))% of the gas mass)\n",
+                        ($(round(outside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                 end
@@ -1579,8 +1453,8 @@ function snapshotReport(
                     total_mol_p_mass_inside  = sum(molecular_p_mass_inside; init=0.0u"Msun")
                     total_mol_p_mass_outside = sum(molecular_p_mass_outside; init=0.0u"Msun")
 
-                    m_p_inside_percent  = (total_mol_p_mass_inside  / total_gas_mass_inside) * 100.0
-                    m_p_outside_percent = (total_mol_p_mass_outside / total_gas_mass_outside) * 100.0
+                    inside_percent  = (total_mol_p_mass_inside  / total_gas_mass_inside) * 100.0
+                    outside_percent = (total_mol_p_mass_outside / total_gas_mass_outside) * 100.0
 
                     println(file, "\t", "#"^40)
                     println(file, "\tMolecular gas (BR recipe):")
@@ -1590,7 +1464,7 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_mol_p_mass_inside, sigdigits=3)) \
-                        ($(round(m_p_inside_percent, sigdigits=3))% of the gas mass)\n",
+                        ($(round(inside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                     println(
@@ -1600,7 +1474,71 @@ function snapshotReport(
                     println(
                         file,
                         "\t\t$(round(typeof(1.0u"Msun"), total_mol_p_mass_outside, sigdigits=3)) \
-                        ($(round(m_p_outside_percent, sigdigits=3))% of the gas mass)\n",
+                        ($(round(outside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                end
+
+                ##############
+                # Neutral gas
+                ##############
+
+                if !isempty(neutral_masses)
+
+                    total_neu_mass_inside  = sum(neutral_mass_inside; init=0.0u"Msun")
+                    total_neu_mass_outside = sum(neutral_mass_outside; init=0.0u"Msun")
+
+                    inside_percent  = (total_neu_mass_inside  / total_gas_mass_inside) * 100.0
+                    outside_percent = (total_neu_mass_outside / total_gas_mass_outside) * 100.0
+
+                    println(file, "\t", "#"^40)
+                    println(file, "\tNeutral gas:")
+                    println(file, "\t", "#"^40, "\n")
+
+                    println(file, "\tNeutral mass inside the disc (r < $(DISK_R)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_neu_mass_inside, sigdigits=3)) \
+                        ($(round(inside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                    println(file, "\tNeutral mass outside the disc ($(DISK_R) < r < R200):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_neu_mass_outside, sigdigits=3)) \
+                        ($(round(outside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                end
+
+                #######
+                # Dust
+                #######
+
+                if !isempty(dust_masses)
+
+                    total_dust_mass_inside  = sum(dust_mass_inside; init=0.0u"Msun")
+                    total_dust_mass_outside = sum(dust_mass_outside; init=0.0u"Msun")
+
+                    inside_percent  = (total_dust_mass_inside  / total_gas_mass_inside) * 100.0
+                    outside_percent = (total_dust_mass_outside / total_gas_mass_outside) * 100.0
+
+                    println(file, "\t", "#"^40)
+                    println(file, "\tDust:")
+                    println(file, "\t", "#"^40, "\n")
+
+                    println(file, "\tDust mass inside the disc (r < $(DISK_R)):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_dust_mass_inside, sigdigits=3)) \
+                        ($(round(inside_percent, sigdigits=3))% of the gas mass)\n",
+                    )
+
+                    println(file, "\tDust mass outside the disc ($(DISK_R) < r < R200):\n")
+                    println(
+                        file,
+                        "\t\t$(round(typeof(1.0u"Msun"), total_dust_mass_outside, sigdigits=3)) \
+                        ($(round(outside_percent, sigdigits=3))% of the gas mass)\n",
                     )
 
                 end
