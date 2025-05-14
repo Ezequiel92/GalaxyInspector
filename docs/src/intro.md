@@ -21,7 +21,3 @@ GalaxyInspector is intended for researchers and students working with galaxy sim
 ## License
 
 GalaxyInspector is free software, released under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html).
-
----
-
-For more details, see the [API documentation](https://ezequiel92.github.io/GalaxyInspector/dev/intro/) and explore the available modules and functions.

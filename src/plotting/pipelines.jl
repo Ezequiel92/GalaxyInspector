@@ -43,7 +43,7 @@ Some of the features are:
 
 ### plotSnapshot configuration
 
-  - `output_path::String="./plots"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `base_filename::String="snapshot"`: Every file will be named `base_filename`-XXX`output_format` where XXX is the snapshot number.
   - `output_format::String=".png"`: File format for the figure. All formats supported by [Makie](https://docs.makie.org/stable/) can be used, namely `.pdf`, `.svg` and `.png`.
   - `show_progress::Bool=true`: If a progress bar will be shown.
@@ -148,7 +148,7 @@ function plotSnapshot(
     plot_functions::Vector{<:Function};
     pf_kwargs::Vector{<:NamedTuple}=[(;)],
     # `plotSnapshot` configuration
-    output_path::String="./plots",
+    output_path::String=".",
     base_filename::String="snapshot",
     output_format::String=".png",
     show_progress::Bool=true,
@@ -195,7 +195,7 @@ function plotSnapshot(
     framerate::Int=15,
 )::Nothing
 
-    # Create the output folder if it doesn't exists
+    # Create the output folder if it doesn't exist
     mkpath(output_path)
 
     # Compute the number of simulations
@@ -795,7 +795,7 @@ Some of the features are:
 
 ### plotTimeSeries configuration
 
-  - `output_path::String="./plots"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filename::String="time_series"`: Filename for the figure, without the extension.
   - `output_format::String=".png"`: File format for the figure. All formats supported by [Makie](https://docs.makie.org/stable/) can be used, namely `.pdf`, `.svg` and `.png`.
   - `show_progress::Bool=true`: If a progress bar will be shown.
@@ -822,8 +822,8 @@ Some of the features are:
 
 ### Axes options
 
-  - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_var_name` [10^`x_exp_factor` `x_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section arround `auto_label` is delimited with a `\$ \$` pair.
-  - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` [10^`y_exp_factor` `y_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section arround `auto_label` is delimited with a `\$ \$` pair.
+  - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_var_name` [10^`x_exp_factor` `x_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
+  - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` [10^`y_exp_factor` `y_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
   - `xaxis_var_name::AbstractString="x"`: Name of the variable for the x axis.
   - `yaxis_var_name::AbstractString="y"`: Name of the variable for the y axis.
   - `xaxis_scale_func::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
@@ -846,7 +846,7 @@ function plotTimeSeries(
     plot_functions::Vector{<:Function};
     pf_kwargs::Vector{<:NamedTuple}=[(;)],
     # `plotTimeSeries` configuration
-    output_path::String="./plots",
+    output_path::String=".",
     filename::String="time_series",
     output_format::String=".png",
     show_progress::Bool=true,
@@ -883,7 +883,7 @@ function plotTimeSeries(
     title::AbstractString="",
 )::Tuple{Makie.Axis,Figure}
 
-    # Create the output folder if it doesn't exists
+    # Create the output folder if it doesn't exist
     mkpath(output_path)
 
     # Compute the number of simulations

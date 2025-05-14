@@ -1303,7 +1303,7 @@ Filter out stars that were born either outside the given halo and subhalo (`excl
       + ...
   - `exclude::Symbol`: Which stars will be filtered out, either the ones born outside the given halo and subhalo (:exsitu), or inside (:insitu).
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are consider in-situ.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are considered in-situ.
 
 # Returns
 

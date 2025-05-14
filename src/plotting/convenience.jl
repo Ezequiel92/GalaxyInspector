@@ -14,8 +14,8 @@ Write a text file with information about a given snapshot.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be printed for each simulation.
-  - `slices::Vector{Int}`: Selects which snapshots to plot for each simulation, starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = filename_number + 1.
-  - `output_path::String="./"`: Path to the output folder.
+  - `slices::Vector{Int}`: Selects which snapshots to plot for each simulation, starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = (number in filename) + 1.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be considered in the "filtered" section of the report. The options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -51,7 +51,7 @@ Write a text file with information about a given snapshot.
 function snapshotReport(
     simulation_paths::Vector{String},
     slices::Vector{Int};
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     halo_idx::Int=1,
     subhalo_rel_idx::Int=1,
@@ -555,14 +555,14 @@ function snapshotReport(
         println(file, "\t\tGlobal center of mass:   $(global_cm) $(u"Mpc")\n")
 
         #################################################################
-        # Print the fraction of gas cells that have enter the SF routine
+        # Print the fraction of gas cells that have entered the SF routine
         #################################################################
 
         if !isempty(data_dict[:gas]["SFFL"])
 
             println(
                 file,
-                "\tFraction of gas cells that have enter the SF routine (filtered box):\n"
+                "\tFraction of gas cells that have entered the SF routine (filtered box):\n"
             )
 
             gas_masses = computeMass(data_dict, :gas)
@@ -882,13 +882,13 @@ function snapshotReport(
             Unitful.NoUnits,
         ]
 
-        if any(isBlockPresent.(:gas, quantities, snapshot_path))
+        present_qty = isBlockPresent.(:gas, quantities, snapshot_path)
+
+        if any(present_qty)
+
             println(file, "\tODE parameters for the gas cells (filtered box):\n")
-        end
 
-        for (quantity, unit, name) in zip(quantities, units, names)
-
-            if isBlockPresent(:gas, quantity, snapshot_path)
+            for (quantity, unit, name) in zip(quantities, units, names)[present_qty]
 
                 values = filter(!isnan, ustrip.(unit, data_dict[:gas][quantity]))
 
@@ -1149,7 +1149,7 @@ function snapshotReport(
 
                 #######################################################
                 # Print the radius containing 90% and 95% of the mass,
-                # withing de disc (r < `DISK_R`)
+                # withing the disc (r < `DISK_R`)
                 #######################################################
 
                 ########
@@ -1373,7 +1373,7 @@ function snapshotReport(
                 end
 
                 #####################################################
-                # Print the masses withing de disc (r < DISK_R) and
+                # Print the masses withing the disc (r < DISK_R) and
                 # outside the disc (DISK_R < r < R200)
                 #####################################################
 
@@ -1619,7 +1619,7 @@ function snapshotReport(
             ############################
 
             println(file, "\n", "#"^71)
-            println(file, "NOTE: Stellar particle counts include wind particles from here on out!")
+            println(file, "NOTE: Henceforth, stellar particle counts include wind particles!")
             println(file, "#"^71)
 
             # Compute halo number
@@ -1824,11 +1824,11 @@ Write a text file with information about a given simulation
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be printed for each simulation.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
 """
 function simulationReport(
     simulation_paths::Vector{String};
-    output_path::String="./",
+    output_path::String=".",
 )::Nothing
 
     for simulation_path in simulation_paths
@@ -2200,7 +2200,7 @@ Plot a time series of the data in the `sfr.txt` file.
       + `:stellar_mass` -> Stellar mass.
       + `:sfr`          -> The star formation rate.
   - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
@@ -2209,7 +2209,7 @@ function sfrTXT(
     x_quantity::Symbol,
     y_quantity::Symbol;
     smooth::Int=0,
-    output_path::String="./",
+    output_path::String=".",
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
@@ -2298,7 +2298,7 @@ Plot a time series of the data in the `cpu.txt` file.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.
   - `y_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the y coordinates fit within `y_trim`. This option does not affect histograms.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
@@ -2311,7 +2311,7 @@ function cpuTXT(
     yscale::Function=identity,
     x_trim::NTuple{2,<:Real}=(-Inf, Inf),
     y_trim::NTuple{2,<:Real}=(-Inf, Inf),
-    output_path::String="./",
+    output_path::String=".",
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
@@ -2379,8 +2379,8 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
 # Arguments
 
   - `simulation_paths::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = filename_number + 1.
-  - `output_path::String="./"`: Path to the output folder.
+  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = (number in filename) + 1.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -2414,7 +2414,7 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
 function stellarBirthHalos(
     simulation_path::String,
     slice_n::Int;
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
 )::Nothing
 
@@ -2483,7 +2483,7 @@ Plot a 2D histogram of the density.
       + `:metals_gas_mass`   -> Metal mass (according to our SF model).
       + `:dust_mass`         -> Dust mass.
   - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either `:particles` or Voronoi `:cells`.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -2563,7 +2563,7 @@ function densityMap(
     slice::IndexType;
     quantities::Vector{Symbol}=[:gas_mass],
     types::Vector{Symbol}=[:cells],
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
@@ -2690,7 +2690,7 @@ Plot a 2D map of the gas SFR.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
   - `types::Symbol=:cells`: Gas type for the SFR fields. It can be either `:particles` or Voronoi `:cells`.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -2764,7 +2764,7 @@ function gasSFRMap(
     simulation_paths::Vector{String},
     slice::IndexType;
     type::Symbol=:cells,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
@@ -2905,7 +2905,7 @@ Plot a 2D histogram of the density, with the velocity field.
       + `:metals_gas_mass`   -> Metal mass (according to our SF model).
       + `:dust_mass`         -> Dust mass.
   - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either `:particles` or Voronoi `:cells`.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -2958,7 +2958,7 @@ function densityMapVelField(
     slice::IndexType;
     quantities::Vector{Symbol}=[:gas_mass],
     types::Vector{Symbol}=[:cells],
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
@@ -3113,7 +3113,7 @@ Plot a 2D histogram of the metallicity.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
   - `components::Vector{Symbol}=[:gas]`: Target component. It can be either `:stars` or `:gas`.
   - `types::Vector{Symbol}=[:cells]`: List of component types for the metallicity fields, each element can be either `:particles` or Voronoi `:cells`.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -3188,7 +3188,7 @@ function metallicityMap(
     slice::IndexType;
     components::Vector{Symbol}=[:gas],
     types::Vector{Symbol}=[:cells],
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
@@ -3334,7 +3334,7 @@ Plot a 2D histogram of the temperature.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
   - `type::Symbol=:cells`: If the gas will be assumed to be in `:particles` or in Voronoi `:cells`.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -3382,7 +3382,7 @@ function temperatureMap(
     simulation_paths::Vector{String},
     slice::IndexType;
     type::Symbol=:cells,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     projection_planes::Vector{Symbol}=[:xy],
     box_size::Unitful.Length=100u"kpc",
@@ -3681,7 +3681,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:ode_stellar_gas_P`           -> Gas pressure, for the gas that form the stars.
   - `xlog::Bool=false`: If true, sets everything so the x axis is log10(`x_quantity`).
   - `ylog::Bool=false`: If true, sets everything so the y axis is log10(`y_quantity`).
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -3750,7 +3750,7 @@ function scatterPlot(
     y_quantity::Symbol;
     xlog::Bool=false,
     ylog::Bool=false,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
@@ -4153,7 +4153,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
   - `ylog::Bool=false`: If true, sets everything so the y axis is log10(`y_quantity`).
   - `total::Bool=true`: If the sum (default) or the mean of `z_quantity` will be used as the value of each pixel.
   - `n_bins::Int=100`: Number of bins per side of the square grid.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -4235,7 +4235,7 @@ function scatterDensityMap(
     ylog::Bool=false,
     total::Bool=true,
     n_bins::Int=100,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
@@ -4395,7 +4395,7 @@ Plot the atomic gas to molecular gas transition for a set of metallicity ranges.
 
       + `:heatmap` -> Heatmap. One figure per range will be produced.
       + `:scatter` -> Scatter plot. A single figure with every range will be produced.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function atomicMolecularTransition(
@@ -4403,7 +4403,7 @@ function atomicMolecularTransition(
     slice::IndexType,
     ranges::Vector{<:Tuple{<:Real,<:Real}};
     plot_type::Symbol=:heatmap,
-    output_path::String="./",
+    output_path::String=".",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -4592,7 +4592,7 @@ end
 
 Plot a bar plot of the gas fractions, where the bins are a given gas `quantity`.
 
-Only for gas cells that have entered out routine.
+Only for gas cells that have entered our routine.
 
 # Arguments
 
@@ -4670,7 +4670,7 @@ Only for gas cells that have entered out routine.
   - `edges::Vector{<:Number}`: A sorted list of bin edges for `quantity`.
   - `axis_label::Union{AbstractString,Nothing}=nothing`: Label for the axis. It can contain the string `auto_label`, which will be replaced by the default label: `var_name` / 10^`exp_factor` `unit`. If set to `nothing` a label will be assigned automaticaly.
   - `exp_ticks::Bool=false`: If the axis ticks will be the ``\\log_{10}`` of `edges`.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -4713,7 +4713,7 @@ function gasBarPlot(
     edges::Vector{<:Number};
     axis_label::Union{AbstractString,Nothing}=nothing,
     exp_ticks::Bool=false,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     theme::Attributes=Theme(),
 )::Nothing
@@ -4781,7 +4781,7 @@ function gasBarPlot(
             da_args=[(quantity, edges)],
             da_kwargs=[(; filter_function=filterByELSFR)],
             post_processing=ppBarPlotLabels,
-            pp_args=(include_stars,),
+            pp_args=(false,),
             pp_kwargs=(; colors),
             transform_box=true,
             translation,
@@ -4820,7 +4820,7 @@ function gasBarPlot(
                     BarPlot=(
                         flip_labels_at=10,
                         label_formatter=barPlotLabelFormater,
-                        label_size=include_stars ? 25 : 35,
+                        label_size=35,
                     ),
                 ),
             ),
@@ -5022,7 +5022,7 @@ Plot a time series.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `fraction::Bool=false`: If the `y_quantity` will be represented as a fraction of the last value. If `cumulative` = true, this will apply to the accumulated values.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -5070,7 +5070,7 @@ function timeSeries(
     cumulative::Bool=false,
     fraction::Bool=false,
     slice::IndexType=(:),
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
@@ -5170,7 +5170,7 @@ Plot a time series of the gas components. Either their masses or their fractions
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `fractions::Bool=true`: If the fractions (default), or the masses, will be plotted.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -5209,7 +5209,7 @@ function gasEvolution(
     simulation_paths::Vector{String};
     fractions::Bool=false,
     slice::IndexType=(:),
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
@@ -5308,7 +5308,7 @@ Plot a time series of the accreted mass into the virial radius.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
@@ -5318,7 +5318,7 @@ function virialAccretionEvolution(
     halo_idx::Int=1,
     tracers::Bool=false,
     smooth::Int=0,
-    output_path::String="./",
+    output_path::String=".",
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
@@ -5393,7 +5393,7 @@ Plot a time series of the accreted mass into the disc.
   - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
@@ -5403,7 +5403,7 @@ function discAccretionEvolution(
     max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     smooth::Int=0,
-    output_path::String="./",
+    output_path::String=".",
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
@@ -5471,7 +5471,7 @@ Plot the galaxy rotation curve of a set of simulations.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `radius::Unitful.Length=DISK_R`: Maximum radial distance for the rotation curve.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -5508,7 +5508,7 @@ function rotationCurve(
     simulation_paths::Vector{String},
     slice::IndexType;
     radius::Unitful.Length=DISK_R,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -5620,7 +5620,7 @@ Plot a density profile.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -5665,7 +5665,7 @@ function densityProfile(
     yscale::Function=identity,
     radius::Unitful.Length=DISK_R,
     n_bins::Int=100,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -5841,7 +5841,7 @@ Plot a density profile.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -5886,7 +5886,7 @@ function densityProfile(
     yscale::Function=identity,
     radius::Unitful.Length=DISK_R,
     n_bins::Int=100,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=string.(quantities),
     theme::Attributes=Theme(),
@@ -5999,7 +5999,7 @@ Plot a mass profile.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -6044,7 +6044,7 @@ function massProfile(
     yscale::Function=identity,
     radius::Unitful.Length=DISK_R,
     n_bins::Int=100,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=string.(quantities),
     theme::Attributes=Theme(),
@@ -6155,7 +6155,7 @@ Plot a velocity profile.
       + `:stellar_vtangential` -> Stellar tangential speed (``v_\\theta``).
       + `:stellar_vzstar`      -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -6193,7 +6193,7 @@ function velocityProfile(
     slice::IndexType,
     component::Symbol;
     yscale::Function=identity,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -6284,7 +6284,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
       + `:stellar_metallicity` -> Mass fraction of all elements above He in the stars (solar units).
   - `y_log::Bool=true`: If the y axis is will have a log10 scale.
   - `n_bins::Int=20`: Number of bins (time intervals).
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -6324,7 +6324,7 @@ function stellarHistory(
     quantity::Symbol;
     y_log::Bool=true,
     n_bins::Int=20,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     backup_results::Bool=false,
@@ -6506,7 +6506,7 @@ Plot a histogram of `quantity`.
   - `n_bins::Int=100`: Number of bins.
   - `log::Bool=false`: If the bins will be logarithmic.
   - `norm::Int=0`: Number of count that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -6550,7 +6550,7 @@ function lineHistogram(
     n_bins::Int=100,
     log::Bool=false,
     norm::Int=0,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
@@ -6656,7 +6656,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
       + `:sfr`               -> The star formation rate of the last `AGE_RESOLUTION`.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -6701,7 +6701,7 @@ function compareFeldmann2020(
     y_quantity::Symbol;
     slice::IndexType=(:),
     scatter::Bool=false,
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -6792,7 +6792,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
       + `:O_stellar_abundance`       -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
       + `:N_stellar_abundance`       -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`       -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -6835,7 +6835,7 @@ function compareMolla2015(
     simulation_paths::Vector{String},
     slice::IndexType,
     quantity::Symbol;
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -6941,7 +6941,7 @@ Plot the Kennicutt-Schmidt law.
 
 !!! note
 
-    Only stars younger than [`AGE_RESOLUTION`](@ref) are consider. The star formation surface density is the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
+    Only stars younger than [`AGE_RESOLUTION`](@ref) are considered. The star formation surface density is the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
 
 !!! note
 
@@ -7977,7 +7977,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
 
 !!! note
 
-    Only stars younger than [`AGE_RESOLUTION`](@ref) are consider. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
+    Only stars younger than [`AGE_RESOLUTION`](@ref) are considered. The star formation surface density is just the stellar mass surface density divided by [`AGE_RESOLUTION`](@ref).
 
 # Arguments
 
@@ -7996,7 +7996,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
   - `fit::Bool=true`: If a fit of the plotted values will be added on top of the scatter plot.
   - `box_size::Unitful.Length=BOX_L`: Physical side length for the grids
   - `x_range::NTuple{2,<:Real}=(-Inf, Inf)`: Only the data withing this range (for the x coordinates) will be fitted.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -8041,7 +8041,7 @@ function fitVSFLaw(
     fit::Bool=true,
     box_size::Unitful.Length=BOX_L,
     x_range::NTuple{2,<:Real}=(-Inf, Inf),
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     sim_label::Union{String,Nothing}=basename(simulation_path),
     theme::Attributes=Theme(),
@@ -8144,7 +8144,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
 
 !!! note
 
-    Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `DISK_R` are consider.
+    Only stars younger than [`AGE_RESOLUTION`](@ref) and gas cells/particles within a sphere of radius `DISK_R` are considered.
 
 # Arguments
 
@@ -8516,7 +8516,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
   - `v_unit::Unitful.Units=u"km * s^-1"`: Velocity unit.
-  - `output_file::String="./gas_velocity_cube.hdf5"`: Path to the output HDF5 file. This file will be created, and the full path to it too, if it doesn't exists.
+  - `output_file::String="./gas_velocity_cube.hdf5"`: Path to the output HDF5 file. This file will be created, and the full path to it too, if it doesn't exist.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:subhalo`: Which cells/particles will be consider, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -8905,7 +8905,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
   - `v_unit::Unitful.Units=u"km * s^-1"`: Velocity unit.
-  - `output_file::String="./stellar_velocity_cube.hdf5"`: Path to the output HDF5 file. This file will be created, and the full path to it too, if it doesn't exists.
+  - `output_file::String="./stellar_velocity_cube.hdf5"`: Path to the output HDF5 file. This file will be created, and the full path to it too, if it doesn't exist.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:subhalo`: Which cells/particles will be consider, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -9165,7 +9165,7 @@ Plot the clumping factor of `quantity` for different volume scales.
   - `nn::Int=32`: Number of neighbors.
   - `smooth::Int=0`: The result will be average out using `smooth` bins for the volume. Set it to 0 if you want no smoothing.
   - `x_trim::NTuple{2,<:Real}=(-Inf, Inf)`: The data will be trim down so the x coordinates fit within `x_trim`.
-  - `output_path::String="./"`: Path to the output folder.
+  - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
@@ -9235,7 +9235,7 @@ function clumpingFactor(
     nn::Int=32,
     smooth::Int=100,
     x_trim::NTuple{2,<:Real}=(-Inf, Inf),
-    output_path::String="./",
+    output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
