@@ -1241,14 +1241,14 @@ Draw a line, or scatter, plot using the experimental data from the xGASS and xCO
       + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:observational_sfr` -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr` -> Star formation rate of the last `AGE_RESOLUTION`.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`      -> Stellar mass.
       + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:observational_sfr` -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr` -> Star formation rate of the last `AGE_RESOLUTION`.
   - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
 
 # Returns

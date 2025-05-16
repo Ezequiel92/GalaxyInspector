@@ -2136,7 +2136,7 @@ Plot a time series of the data in the `sfr.txt` file.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass` -> Stellar mass.
-      + `:sfr`          -> The star formation rate.
+      + `:sfr`          -> Star formation rate.
   - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="."`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
@@ -2418,7 +2418,7 @@ Plot a 2D histogram of the density.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`  -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`   -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`    -> Metal mass (according to our SF model).
       + `:dust_mass`         -> Dust mass.
   - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either `:particles` or Voronoi `:cells`.
   - `output_path::String="."`: Path to the output folder.
@@ -2840,7 +2840,7 @@ Plot a 2D histogram of the density, with the velocity field.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`  -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`   -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`    -> Metal mass (according to our SF model).
       + `:dust_mass`         -> Dust mass.
   - `types::Vector{Symbol}=[:cells]`: List of component types for the density fields, each element can be either `:particles` or Voronoi `:cells`.
   - `output_path::String="."`: Path to the output folder.
@@ -2938,7 +2938,7 @@ function densityMapVelField(
             :ionized_mass,
             :neutral_mass,
             :stellar_gas_mass,
-            :metals_gas_mass,
+            :ode_metal_mass,
             :dust_mass,
         ]
             component = :gas
@@ -3454,7 +3454,8 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -3499,17 +3500,17 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:stellar_vtangential`         -> Stellar tangential speed.
       + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                 -> Stellar age.
-      + `:sfr`                         -> The star formation rate.
+      + `:sfr`                         -> Star formation rate.
       + `:ssfr`                        -> The specific star formation rate.
-      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`           -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`                 -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                     -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
       + `:ode_gas_it`                  -> Integration time.
@@ -3542,7 +3543,8 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -3587,17 +3589,17 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:stellar_vtangential`         -> Stellar tangential speed.
       + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                 -> Stellar age.
-      + `:sfr`                         -> The star formation rate.
+      + `:sfr`                         -> Star formation rate.
       + `:ssfr`                        -> The specific star formation rate.
-      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`           -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`                 -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                     -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
       + `:ode_gas_it`                  -> Integration time.
@@ -3833,7 +3835,8 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -3878,17 +3881,17 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:stellar_vtangential`         -> Stellar tangential speed.
       + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                 -> Stellar age.
-      + `:sfr`                         -> The star formation rate.
+      + `:sfr`                         -> Star formation rate.
       + `:ssfr`                        -> The specific star formation rate.
-      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`           -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`                 -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                     -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
       + `:ode_gas_it`                  -> Integration time.
@@ -3921,7 +3924,8 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -3966,17 +3970,17 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:stellar_vtangential`         -> Stellar tangential speed.
       + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                 -> Stellar age.
-      + `:sfr`                         -> The star formation rate.
+      + `:sfr`                         -> Star formation rate.
       + `:ssfr`                        -> The specific star formation rate.
-      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`           -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`                 -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                     -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
       + `:ode_gas_it`                  -> Integration time.
@@ -4009,7 +4013,8 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -4054,17 +4059,17 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:stellar_vtangential`         -> Stellar tangential speed.
       + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                 -> Stellar age.
-      + `:sfr`                         -> The star formation rate.
+      + `:sfr`                         -> Star formation rate.
       + `:ssfr`                        -> The specific star formation rate.
-      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`           -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`                 -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                     -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
       + `:ode_gas_it`                  -> Integration time.
@@ -4546,7 +4551,8 @@ Only for gas cells that have entered our routine.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -4579,13 +4585,13 @@ Only for gas cells that have entered our routine.
       + `:gas_radial_distance`         -> Distance of every gas cell to the origin.
       + `:gas_xy_distance`             -> Projected distance of every gas cell to the origin.
       + `:gas_sfr`                     -> SFR associated to each gas particle/cell within the code.
-      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`                 -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                     -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
       + `:ode_gas_it`                  -> Integration time.
@@ -4803,8 +4809,9 @@ Plot a time series.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`          -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`           -> Metal mass (according to our SF model).
-      + `:dust_mass`                 -> Dust mass.
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
+      + `:dust_mass`                   -> Dust mass.
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
       + `:dm_number`                 -> Number of dark matter particles.
@@ -4828,12 +4835,12 @@ Plot a time series.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
-      + `:gas_td`                    -> The mean total gas depletion time.
-      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
-      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
-      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
-      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
+      + `:gas_td`                    -> Gas depletion time.
+      + `:molecular_td`              -> The molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -4841,17 +4848,17 @@ Plot a time series.
       + `:stellar_specific_am`       -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`           -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`            -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                       -> The star formation rate.
+      + `:sfr`                       -> Star formation rate.
       + `:ssfr`                      -> The specific star formation rate.
-      + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`         -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`               -> The mean star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`               -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                   -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
@@ -4886,8 +4893,9 @@ Plot a time series.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`          -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`           -> Metal mass (according to our SF model).
-      + `:dust_mass`                 -> Dust mass.
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
+      + `:dust_mass`                   -> Dust mass.
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
       + `:dm_number`                 -> Number of dark matter particles.
@@ -4911,12 +4919,12 @@ Plot a time series.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
-      + `:gas_td`                    -> The mean total gas depletion time.
-      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
-      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
-      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
-      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
+      + `:gas_td`                    -> Gas depletion time.
+      + `:molecular_td`              -> The molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -4924,17 +4932,17 @@ Plot a time series.
       + `:stellar_specific_am`       -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`           -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`            -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                       -> The star formation rate.
+      + `:sfr`                       -> Star formation rate.
       + `:ssfr`                      -> The specific star formation rate.
-      + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`         -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`               -> The mean star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`               -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                   -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
@@ -5548,11 +5556,11 @@ Plot a density profile.
       + `:ionized_mass`       -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`       -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`   -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`    -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`     -> Metal mass (according to our SF model).
       + `:dust_mass`          -> Dust mass.
-      + `:sfr`                -> The star formation rate.
+      + `:sfr`                -> Star formation rate.
       + `:ssfr`               -> The specific star formation rate.
-      + `:observational_sfr`  -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`  -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr` -> The specific star formation rate of the last `AGE_RESOLUTION`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
@@ -5656,7 +5664,7 @@ function densityProfile(
 
         yaxis_var_name = L"\Sigma_\star^\mathrm{gas}"
 
-    elseif quantity == :metals_gas_mass
+    elseif quantity == :ode_metal_mass
 
         yaxis_var_name = L"\Sigma_Z^\mathrm{gas}"
 
@@ -5769,11 +5777,11 @@ Plot a density profile.
       + `:ionized_mass`       -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`       -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`   -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`    -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`     -> Metal mass (according to our SF model).
       + `:dust_mass`          -> Dust mass.
-      + `:sfr`                -> The star formation rate.
+      + `:sfr`                -> Star formation rate.
       + `:ssfr`               -> The specific star formation rate.
-      + `:observational_sfr`  -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`  -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr` -> The specific star formation rate of the last `AGE_RESOLUTION`.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
@@ -5931,7 +5939,7 @@ Plot a mass profile.
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`  -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`   -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`    -> Metal mass (according to our SF model).
       + `:dust_mass`         -> Dust mass.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `yscale::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
@@ -6216,7 +6224,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
   - `slice::IndexType`: Snapshot at which the stellar ages will be read. If set to several snapshots, one plot per snapshot will be done. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:sfr`                 -> The star formation rate.
+      + `:sfr`                 -> Star formation rate.
       + `:ssfr`                -> The specific star formation rate.
       + `:stellar_mass`        -> Stellar mass.
       + `:stellar_metallicity` -> Mass fraction of all elements above He in the stars (solar units).
@@ -6364,7 +6372,7 @@ Plot a histogram of `quantity`.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -6409,17 +6417,17 @@ Plot a histogram of `quantity`.
       + `:stellar_vtangential`         -> Stellar tangential speed.
       + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                 -> Stellar age.
-      + `:sfr`                         -> The star formation rate.
+      + `:sfr`                         -> Star formation rate.
       + `:ssfr`                        -> The specific star formation rate.
-      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`           -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`                 -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                     -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
       + `:ode_gas_it`                  -> Integration time.
@@ -6584,14 +6592,14 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
       + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:sfr`               -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`               -> Star formation rate of the last `AGE_RESOLUTION`.
   - `y_quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_mass`      -> Stellar mass.
       + `:molecular_mass`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:br_molecular_mass` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic_mass`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
-      + `:sfr`               -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:sfr`               -> Star formation rate of the last `AGE_RESOLUTION`.
   - `slice::IndexType=(:)`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `scatter::Bool=false`: If the data will be presented as a line plot with error bands (default), or alternatively, a scatter plot.
   - `output_path::String="."`: Path to the output folder.
@@ -6910,7 +6918,7 @@ Plot the Kennicutt-Schmidt law.
       + `:gas_mass_density` -> Gas mass surface density of each bin. See the documentation for the function [`daDensity2DProjection`](@ref).
       + `:gas_sfr`          -> The total gas SFR of the column associated with each bin. See the documentation for the function [`daGasSFR2DProjection`](@ref).
       + `:gas_metallicity`  -> The total metallicity of the column associated with each bin. See the documentation for the function [`daMetallicity2DProjection`](@ref).
-      + `:temperature`      -> The mean gas temperature of the column associated with each bin. See the documentation for the function [`daTemperature2DProjection`](@ref).
+      + `:temperature`      -> The median gas temperature of the column associated with each bin. See the documentation for the function [`daTemperature2DProjection`](@ref).
   - `measurements::Bool=true`: If the experimental measurements from Kennicutt (1998), Bigiel et al. (2008) or Bigiel et al. (2010) will be plotted alongside the simulation results.
   - `measurement_type::Union{String,Symbol}=:fits`: Type of measurement to plot, only valid if `measurement` = true. The option are:
 

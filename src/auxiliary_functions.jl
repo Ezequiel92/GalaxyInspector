@@ -239,7 +239,7 @@ end
 
 Evaluate a normal distribution at the values in `data`.
 
-The mean and standard deviation of the distribution are the ones from `data` itself.
+The median and standard deviation of the distribution are the ones from `data` itself.
 
 # Arguments
 
@@ -2099,7 +2099,7 @@ Sample the 3D density field of a given quantity using a cubic grid
       + `:ionized_mass`      -> Ionized hydrogen (``\\mathrm{HII}``) density.
       + `:neutral_mass`      -> Neutral hydrogen (``\\mathrm{HI + H_2}``) density.
       + `:stellar_gas_mass`  -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`   -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`    -> Metal mass (according to our SF model).
       + `:dust_mass`         -> Dust mass.
   - `type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
@@ -2160,7 +2160,7 @@ function density3DProjection(
         :ionized_mass,
         :neutral_mass,
         :stellar_gas_mass,
-        :metals_gas_mass,
+        :ode_metal_mass,
         :dust_mass,
     ]
         component = :gas
@@ -3085,7 +3085,7 @@ barPlotLabelFormater(x::LaTeXString)::LaTeXString = x
 
 Nicely format a magnitude with uncertainty.
 
-It follows the traditional rules for error presentation: the error has only one significant digit, unless such digit is a one, in which case two significant digits are used. The mean will have as many digits as to match the last significant position of the error. An error equal to 0 will leave the mean unchanged.
+It follows the traditional rules for error presentation: the error has only one significant digit, unless such digit is a one, in which case two significant digits are used. The median will have as many digits as to match the last significant position of the error. An error equal to 0 will leave the mean unchanged.
 
 # Arguments
 
@@ -3183,7 +3183,8 @@ Select the plotting parameters for a given `quantity`.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:generic_mass`                -> Parameters for plots with several different masses.
       + `:stellar_number`              -> Number of stellar particles.
@@ -3247,17 +3248,17 @@ Select the plotting parameters for a given `quantity`.
       + `:stellar_vtangential`         -> Stellar tangential speed.
       + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                 -> Stellar age.
-      + `:sfr`                         -> The star formation rate.
+      + `:sfr`                         -> Star formation rate.
       + `:ssfr`                        -> The specific star formation rate.
-      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`           -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`                 -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                     -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
       + `:scale_factor`                -> Scale factor.
@@ -3398,12 +3399,19 @@ function plotParams(quantity::Symbol)::PlotParams
             unit       = u"Msun",
         )
 
-    elseif quantity == :metals_gas_mass
+    elseif quantity == :ode_metal_mass
 
         plot_params = PlotParams(;
             request    = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "GZ  "]),
             var_name   = L"M_Z^\mathrm{gas}",
             unit       = u"Msun",
+        )
+
+    elseif quantity == :ode_metallicity
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "GZ  "]),
+            var_name = L"Z_\mathrm{gas}^\star \, [\mathrm{Z_\odot}]",
         )
 
     elseif quantity == :dust_mass
@@ -4200,7 +4208,7 @@ function plotParams(quantity::Symbol)::PlotParams
     elseif quantity == :ode_stellar_gas_Z
 
         plot_params = PlotParams(;
-            request  = Dict(:stars => ["PARZ"]),
+            request  = Dict(:stars => ["PARZ", "GMAS"]),
             var_name = L"Z_\mathrm{gas}^\star \, [\mathrm{Z_\odot}]",
         )
 

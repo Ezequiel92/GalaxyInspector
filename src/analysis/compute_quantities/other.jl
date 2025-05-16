@@ -606,7 +606,8 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ionized_mass`              -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`              -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`          -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`           -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`            -> Metal mass (according to our SF model).
+      + `:ode_metallicity`           -> Metallicity (according to our SF model).
       + `:dust_mass`                 -> Dust mass.
       + `:stellar_number`            -> Number of stellar particles.
       + `:gas_number`                -> Number of gas cells.
@@ -631,12 +632,12 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:ionized_area_density`      -> Ionized hydrogen area mass density, for a radius of `DISK_R`.
       + `:neutral_area_density`      -> Neutral mass surface density, for a radius of `DISK_R`.
       + `:sfr_area_density`          -> Star formation rate area density, for the last `AGE_RESOLUTION` and a radius of `DISK_R`.
-      + `:gas_td`                    -> The mean total gas depletion time.
-      + `:molecular_td`              -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time.
-      + `:br_molecular_td`           -> The mean molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_td`                 -> The mean atomic hydrogen (``\\mathrm{HI}``) depletion time.
-      + `:ionized_td`                -> The mean ionized hydrogen (``\\mathrm{HII}``) depletion time.
-      + `:neutral_td`                -> The mean neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
+      + `:gas_td`                    -> Gas depletion time.
+      + `:molecular_td`              -> The molecular hydrogen (``\\mathrm{H_2}``) depletion time.
+      + `:br_molecular_td`           -> The Molecular hydrogen (``\\mathrm{H_2}``) depletion time, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_td`                 -> The atomic hydrogen (``\\mathrm{HI}``) depletion time.
+      + `:ionized_td`                -> The ionized hydrogen (``\\mathrm{HII}``) depletion time.
+      + `:neutral_td`                -> The neutral hydrogen (``\\mathrm{HI + H_2}``) depletion time.
       + `:gas_metallicity`           -> Mass fraction of all elements above He in the gas (solar units).
       + `:stellar_metallicity`       -> Mass fraction of all elements above He in the stars (solar units).
       + `:X_gas_abundance`           -> Gas abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
@@ -644,17 +645,17 @@ Compute an integrated quantity for the whole system in `data_dict`.
       + `:stellar_specific_am`       -> Norm of the stellar specific angular momentum.
       + `:gas_specific_am`           -> Norm of the gas specific angular momentum.
       + `:dm_specific_am`            -> Norm of the dark matter specific angular momentum.
-      + `:sfr`                       -> The star formation rate.
+      + `:sfr`                       -> Star formation rate.
       + `:ssfr`                      -> The specific star formation rate.
-      + `:observational_sfr`         -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`         -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`        -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`               -> The mean star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                   -> The mean star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`             -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`          -> The mean star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                -> The mean star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`               -> The mean star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`               -> The mean star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`               -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                   -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`             -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`          -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`               -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`               -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:scale_factor`              -> Scale factor.
       + `:redshift`                  -> Redshift.
       + `:physical_time`             -> Physical time since the Big Bang.
@@ -685,7 +686,11 @@ Compute an integrated quantity for the whole system in `data_dict`.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function integrateQty(data_dict::Dict, quantity::Symbol)::Number
+function integrateQty(
+    data_dict::Dict,
+    quantity::Symbol;
+    agg_function::Function=median,
+)::Number
 
     if quantity == :stellar_mass
 
@@ -731,9 +736,20 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
 
         integrated_qty = sum(computeMass(data_dict, :stellar); init=0.0u"Msun")
 
-    elseif quantity == :metals_gas_mass
+    elseif quantity == :ode_metal_mass
 
         integrated_qty = sum(computeMass(data_dict, :metals); init=0.0u"Msun")
+
+    elseif quantity == :ode_metallicity
+
+        metal_mass = computeMass(data_dict, :metals)
+        gas_mass = computeMass(data_dict, :gas)
+
+        if isempty(metal_mass) || isempty(gas_mass)
+            integrated_qty = NaN
+        else
+            integrated_qty = (sum(metal_mass) / sum(gas_mass)) / SOLAR_METALLICITY
+        end
 
     elseif quantity == :dust_mass
 
@@ -839,7 +855,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(density)
             integrated_qty = 0.0u"Msun * kpc^-3"
         else
-            integrated_qty = mean(density)
+            integrated_qty = agg_function(density)
         end
 
     elseif quantity == :stellar_gas_fraction
@@ -917,7 +933,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(td)
             integrated_qty = NaN
         else
-            integrated_qty = mean(td)
+            integrated_qty = agg_function(td)
         end
 
     elseif quantity == :molecular_td
@@ -928,7 +944,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(td)
             integrated_qty = NaN
         else
-            integrated_qty = mean(td)
+            integrated_qty = agg_function(td)
         end
 
     elseif quantity == :br_molecular_td
@@ -939,7 +955,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(td)
             integrated_qty = NaN
         else
-            integrated_qty = mean(td)
+            integrated_qty = agg_function(td)
         end
 
     elseif quantity == :atomic_td
@@ -950,7 +966,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(td)
             integrated_qty = NaN
         else
-            integrated_qty = mean(td)
+            integrated_qty = agg_function(td)
         end
 
     elseif quantity == :ionized_td
@@ -961,7 +977,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(td)
             integrated_qty = NaN
         else
-            integrated_qty = mean(td)
+            integrated_qty = agg_function(td)
         end
 
     elseif quantity == :neutral_td
@@ -972,7 +988,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(td)
             integrated_qty = NaN
         else
-            integrated_qty = mean(td)
+            integrated_qty = agg_function(td)
         end
 
     elseif quantity == :gas_metallicity
@@ -1125,7 +1141,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵffs)
+            integrated_qty = agg_function(ϵffs)
         end
 
     elseif quantity == :gas_eff
@@ -1140,7 +1156,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵffs)
+            integrated_qty = agg_function(ϵffs)
         end
 
     elseif quantity == :molecular_eff
@@ -1155,7 +1171,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵffs)
+            integrated_qty = agg_function(ϵffs)
         end
 
     elseif quantity == :br_molecular_eff
@@ -1170,7 +1186,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵffs)
+            integrated_qty = agg_function(ϵffs)
         end
 
     elseif quantity == :atomic_eff
@@ -1185,7 +1201,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵffs)
+            integrated_qty = agg_function(ϵffs)
         end
 
     elseif quantity == :ionized_eff
@@ -1200,7 +1216,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵffs)
+            integrated_qty = agg_function(ϵffs)
         end
 
     elseif quantity == :neutral_eff
@@ -1215,7 +1231,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ϵffs)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ϵffs)
+            integrated_qty = agg_function(ϵffs)
         end
 
     elseif quantity == :scale_factor
@@ -1242,7 +1258,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(odit)
             integrated_qty = NaN
         else
-            integrated_qty = mean(odit)
+            integrated_qty = agg_function(odit)
         end
 
     elseif quantity == :ode_gas_tau_s
@@ -1253,7 +1269,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(τS)
             integrated_qty = NaN
         else
-            integrated_qty = mean(τS)
+            integrated_qty = agg_function(τS)
         end
 
     elseif quantity == :ode_gas_eta_d
@@ -1264,7 +1280,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ηd)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ηd)
+            integrated_qty = agg_function(ηd)
         end
 
     elseif quantity == :ode_gas_eta_i
@@ -1275,7 +1291,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ηi)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ηi)
+            integrated_qty = agg_function(ηi)
         end
 
     elseif quantity == :ode_gas_r
@@ -1286,7 +1302,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(R)
             integrated_qty = NaN
         else
-            integrated_qty = mean(R)
+            integrated_qty = agg_function(R)
         end
 
     elseif quantity == :ode_gas_cold_mf
@@ -1312,7 +1328,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(odit)
             integrated_qty = NaN
         else
-            integrated_qty = mean(odit)
+            integrated_qty = agg_function(odit)
         end
 
     elseif quantity == :ode_stellar_tau_s
@@ -1323,7 +1339,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(τS)
             integrated_qty = NaN
         else
-            integrated_qty = mean(τS)
+            integrated_qty = agg_function(τS)
         end
 
     elseif quantity == :ode_stellar_eta_d
@@ -1334,7 +1350,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ηd)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ηd)
+            integrated_qty = agg_function(ηd)
         end
 
     elseif quantity == :ode_stellar_eta_i
@@ -1345,7 +1361,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ηi)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ηi)
+            integrated_qty = agg_function(ηi)
         end
 
     elseif quantity == :ode_stellar_r
@@ -1356,7 +1372,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(R)
             integrated_qty = NaN
         else
-            integrated_qty = mean(R)
+            integrated_qty = agg_function(R)
         end
 
     elseif quantity == :ode_stellar_cold_mf
@@ -1382,7 +1398,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(ρ)
             integrated_qty = NaN
         else
-            integrated_qty = mean(ρ .* u"mp")
+            integrated_qty = agg_function(ρ .* u"mp")
         end
 
     elseif quantity == :ode_stellar_gas_Z
@@ -1397,7 +1413,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
             integrated_qty = NaN
         else
             metal_mass = Z .* gas_mass
-            integrated_qty = (sum(metal_mass) ./ sum(gas_mass)) ./ SOLAR_METALLICITY
+            integrated_qty = (sum(metal_mass) / sum(gas_mass)) / SOLAR_METALLICITY
         end
 
     elseif quantity == :ode_stellar_gas_mass
@@ -1408,7 +1424,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(gm)
             integrated_qty = NaN
         else
-            integrated_qty = sum(gm)
+            integrated_qty = agg_function(gm)
         end
 
     elseif quantity == :ode_stellar_gas_sfr
@@ -1419,7 +1435,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(gsfr)
             integrated_qty = NaN
         else
-            integrated_qty = sum(gsfr)
+            integrated_qty = agg_function(gsfr)
         end
 
     elseif quantity == :ode_stellar_gas_P
@@ -1430,7 +1446,7 @@ function integrateQty(data_dict::Dict, quantity::Symbol)::Number
         if isempty(P)
             integrated_qty = NaN
         else
-            integrated_qty = mean(P)
+            integrated_qty = agg_function(P)
         end
 
     else
@@ -1476,7 +1492,8 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:ionized_mass`                -> Ionized hydrogen (``\\mathrm{HII}``) mass.
       + `:neutral_mass`                -> Neutral hydrogen (``\\mathrm{HI + H_2}``) mass.
       + `:stellar_gas_mass`            -> Stellar gas mass (according to our SF model).
-      + `:metals_gas_mass`             -> Metal mass (according to our SF model).
+      + `:ode_metal_mass`              -> Metal mass (according to our SF model).
+      + `:ode_metallicity`             -> Metallicity (according to our SF model).
       + `:dust_mass`                   -> Dust mass.
       + `:molecular_fraction`          -> Gas mass fraction of molecular hydrogen.
       + `:br_molecular_fraction`       -> Gas mass fraction of molecular hydrogen, computed using the pressure relation in Blitz et al. (2006).
@@ -1521,17 +1538,17 @@ Compute a quantity for each cell/particle in `data_dict`.
       + `:stellar_vtangential`         -> Stellar tangential speed.
       + `:stellar_vzstar`              -> Stellar speed in the z direction, computed as ``v_z \\, \\mathrm{sign}(z)``.
       + `:stellar_age`                 -> Stellar age.
-      + `:sfr`                         -> The star formation rate.
+      + `:sfr`                         -> Star formation rate.
       + `:ssfr`                        -> The specific star formation rate.
-      + `:observational_sfr`           -> The star formation rate of the last `AGE_RESOLUTION`.
+      + `:observational_sfr`           -> Star formation rate of the last `AGE_RESOLUTION`.
       + `:observational_ssfr`          -> The specific star formation rate of the last `AGE_RESOLUTION`.
-      + `:stellar_eff`                 -> The star formation efficiency per free-fall time for the gas that has turn into stars.
-      + `:gas_eff`                     -> The star formation efficiency per free-fall time for the gas.
-      + `:molecular_eff`               -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
-      + `:br_molecular_eff`            -> The star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
-      + `:atomic_eff`                  -> The star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
-      + `:ionized_eff`                 -> The star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
-      + `:neutral_eff`                 -> The star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
+      + `:stellar_eff`                 -> Star formation efficiency per free-fall time for the gas that has turn into stars.
+      + `:gas_eff`                     -> Star formation efficiency per free-fall time for the gas.
+      + `:molecular_eff`               -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas.
+      + `:br_molecular_eff`            -> Star formation efficiency per free-fall time for the molecular hydrogen (``\\mathrm{H_2}``) gas, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_eff`                  -> Star formation efficiency per free-fall time for the atomic hydrogen (``\\mathrm{HI}``) gas.
+      + `:ionized_eff`                 -> Star formation efficiency per free-fall time for the ionized hydrogen (``\\mathrm{HII}``) gas.
+      + `:neutral_eff`                 -> Star formation efficiency per free-fall time for the neutral hydrogen (``\\mathrm{HI + H_2}``) gas.
       + `:temperature`                 -> Gas temperature, as ``\\log_{10}(T \\, / \\, \\mathrm{K})``.
       + `:pressure`                    -> Gas pressure.
       + `:ode_gas_it`                  -> Integration time.
@@ -1606,9 +1623,20 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         scatter_qty = computeMass(data_dict, :stellar)
 
-    elseif quantity == :metals_gas_mass
+    elseif quantity == :ode_metal_mass
 
         scatter_qty = computeMass(data_dict, :metals)
+
+    elseif quantity == :ode_metallicity
+
+        metal_mass = computeMass(data_dict, :metals)
+        gas_mass = computeMass(data_dict, :gas)
+
+        if isempty(metal_mass) || isempty(gas_mass)
+            scatter_qty = []
+        else
+            scatter_qty = (metal_mass ./ gas_mass) ./ SOLAR_METALLICITY
+        end
 
     elseif quantity == :dust_mass
 
