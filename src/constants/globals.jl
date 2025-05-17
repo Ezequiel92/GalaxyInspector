@@ -907,7 +907,7 @@ struct InternalUnits
         # Derived units
         ################
 
-        # Temperature conversion factors
+        # Time conversion factors
         t_cgs = x_cgs / v_cgs
         t_cosmo = t_cgs |> u"Myr"
 

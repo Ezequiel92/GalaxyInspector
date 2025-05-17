@@ -987,103 +987,103 @@ function filterByQuantity(
 
 end
 
-"""
-    filterByEquilibrium(
-        data_dict::Dict;
-        <keyword arguments>
-    )::Dict{Symbol,IndexType}
+# """
+#     filterByEquilibrium(
+#         data_dict::Dict;
+#         <keyword arguments>
+#     )::Dict{Symbol,IndexType}
 
-Filter out gas cells that have the molecular or ionized equation in or out of equilibrium, according to `equation` and `filtered_phase`.
+# Filter out gas cells that have the molecular or ionized equation in or out of equilibrium, according to `equation` and `filtered_phase`.
 
-# Arguments
+# # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
+#   - `data_dict::Dict`: A dictionary with the following shape:
 
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `limit::Float64=1.0e-2`: Allowed deviation from equilibrium, as the fraction |RS - LS| / LS.
-  - `equation::Symbol=:molecular`: Which equilibrium equation will be used. The options are :molecular and :ionized.
-  - `filtered_phase::Symbol=:non_eq`: Which phase will be filtered out, the equilibrium phase (:eq) or the non-equilibrium phase (:non_eq).
+#       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+#       + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+#       + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+#       + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + ...
+#       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+#       + ...
+#   - `limit::Float64=1.0e-2`: Allowed deviation from equilibrium, as the fraction |RS - LS| / LS.
+#   - `equation::Symbol=:molecular`: Which equilibrium equation will be used. The options are :molecular and :ionized.
+#   - `filtered_phase::Symbol=:non_eq`: Which phase will be filtered out, the equilibrium phase (:eq) or the non-equilibrium phase (:non_eq).
 
-# Returns
+# # Returns
 
-  - A dictionary with the following shape:
+#   - A dictionary with the following shape:
 
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterByEquilibrium(
-    data_dict::Dict;
-    limit::Float64=1.0e-2,
-    equation::Symbol=:molecular,
-    filtered_phase::Symbol=:non_eq,
-)::Dict{Symbol,IndexType}
+#       + `cell/particle type` -> idxs::IndexType
+#       + `cell/particle type` -> idxs::IndexType
+#       + `cell/particle type` -> idxs::IndexType
+#       + ...
+# """
+# function filterByEquilibrium(
+#     data_dict::Dict;
+#     limit::Float64=1.0e-2,
+#     equation::Symbol=:molecular,
+#     filtered_phase::Symbol=:non_eq,
+# )::Dict{Symbol,IndexType}
 
-    if equation == :molecular
+#     if equation == :molecular
 
-        eq_quotient = GalaxyInspector.scatterQty(data_dict, :mol_eq_quotient)
+#         eq_quotient = GalaxyInspector.scatterQty(data_dict, :mol_eq_quotient)
 
-    elseif equation == :ionized
+#     elseif equation == :ionized
 
-        eq_quotient = GalaxyInspector.scatterQty(data_dict, :ion_eq_quotient)
+#         eq_quotient = GalaxyInspector.scatterQty(data_dict, :ion_eq_quotient)
 
-    else
+#     else
 
-        throw(ArgumentError("filterByEquilibrium: `equation` can only be :molecular or :ionized, \
-        but I got :$(equation)"))
+#         throw(ArgumentError("filterByEquilibrium: `equation` can only be :molecular or :ionized, \
+#         but I got :$(equation)"))
 
-    end
+#     end
 
-    (
-        0.0 <= limit ||
-        throw(ArgumentError("filterByEquilibrium: `limit` must be > 0, but I got :$(limit)"))
-    )
+#     (
+#         0.0 <= limit ||
+#         throw(ArgumentError("filterByEquilibrium: `limit` must be > 0, but I got :$(limit)"))
+#     )
 
-    # Compute |RS - LS| / LS
-    eq_values = abs.(exp10.(-eq_quotient) .- 1.0)
+#     # Compute |RS - LS| / LS
+#     eq_values = abs.(exp10.(-eq_quotient) .- 1.0)
 
-    if filtered_phase == :non_eq
+#     if filtered_phase == :non_eq
 
-        idxs = map(x -> x < limit, eq_values)
+#         idxs = map(x -> x < limit, eq_values)
 
-    elseif filtered_phase == :eq
+#     elseif filtered_phase == :eq
 
-        idxs = map(x -> limit < x, eq_values)
+#         idxs = map(x -> limit < x, eq_values)
 
-    else
+#     else
 
-        throw(ArgumentError("filterByEquilibrium: `filtered_phase` can only be :non_eq or :eq, \
-        but I got :$(filtered_phase)"))
+#         throw(ArgumentError("filterByEquilibrium: `filtered_phase` can only be :non_eq or :eq, \
+#         but I got :$(filtered_phase)"))
 
-    end
+#     end
 
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
+#     # Allocate memory
+#     indices = Dict{Symbol,IndexType}()
 
-    for component in snapshotTypes(data_dict)
+#     for component in snapshotTypes(data_dict)
 
-        if component == :gas
-            indices[component] = idxs
-        else
-            indices[component] = (:)
-        end
+#         if component == :gas
+#             indices[component] = idxs
+#         else
+#             indices[component] = (:)
+#         end
 
-    end
+#     end
 
-    return indices
+#     return indices
 
-end
+# end
 
 """
     filterByELSFR(data_dict::Dict)::Dict{Symbol,IndexType}

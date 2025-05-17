@@ -2473,17 +2473,26 @@ function energyIntegrand(a::Real, header::SnapshotHeader)::Float64
 
 end
 
-@doc raw"""
-Time factor for the SF model, without the fraction factors.
+# @doc raw"""
+# Time factor for the SF model, without the fraction factors.
 
-τ_star(ρ_cell)    $\equiv \tau_\mathrm{star}$
-τ_rec(ρ_cell)     $\equiv \tau_\mathrm{rec} \, f_i$
-τ_cond(ρ_cell, Z) $\equiv \tau_\mathrm{cond} \, (1 - f_s)$
+# τ\_star(ρ\_cell) $\equiv \tau_\mathrm{star}$
+# """
+# τ_star(ρ_cell) = C_star / sqrt(ρ_cell)
 
-"""
-τ_star(ρ_cell) = C_star / sqrt(ρ_cell)
-τ_rec(ρ_cell) = C_rec / ρ_cell
-τ_cond(ρ_cell, Z) = C_cond / (ρ_cell * (Z + Zeff))
+# @doc raw"""
+# Time factor for the SF model, without the fraction factors.
+
+# τ\_rec(ρ\_cell) $\equiv \tau_\mathrm{rec} \, f_i$
+# """
+# τ_rec(ρ_cell) = C_rec / ρ_cell
+
+# @doc raw"""
+# Time factor for the SF model, without the fraction factors.
+
+# τ\_cond(ρ\_cell, Z) $\equiv \tau_\mathrm{cond} \, (1 - f_s)$
+# """
+# τ_cond(ρ_cell, Z) = C_cond / (ρ_cell * (Z + Zeff))
 
 """
     flattenGrid(cubic_grid::CubicGrid)::SquareGrid
@@ -3540,19 +3549,19 @@ function plotParams(quantity::Symbol)::PlotParams
             var_name = L"f_\mathrm{d}",
         )
 
-    elseif quantity == :mol_eq_quotient
+    # elseif quantity == :mol_eq_quotient
 
-        plot_params = PlotParams(;
-            request  = Dict(:gas => ["ETAD", "FRAC", "RHO ", "PARZ"]),
-            var_name = L"\log_{10} \, \mathrm{LS^{H_2} / RS^{H_2}}",
-        )
+    #     plot_params = PlotParams(;
+    #         request  = Dict(:gas => ["ETAD", "FRAC", "RHO ", "PARZ"]),
+    #         var_name = L"\log_{10} \, \mathrm{LS^{H_2} / RS^{H_2}}",
+    #     )
 
-    elseif quantity == :ion_eq_quotient
+    # elseif quantity == :ion_eq_quotient
 
-        plot_params = PlotParams(;
-            request  = Dict(:gas => ["ETAI", "PARR", "FRAC", "RHO "]),
-            var_name = L"\log_{10} \, \mathrm{LS^{HII} / RS^{HII}}",
-        )
+    #     plot_params = PlotParams(;
+    #         request  = Dict(:gas => ["ETAI", "PARR", "FRAC", "RHO "]),
+    #         var_name = L"\log_{10} \, \mathrm{LS^{HII} / RS^{HII}}",
+    #     )
 
     elseif quantity == :generic_fraction
 
