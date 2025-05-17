@@ -103,23 +103,23 @@ const MORPHOLOGICAL_COMPONENTS = Dict(
 # Constants of the SF model
 ############################
 
-# Star formation efficiency
-const ϵff  = 1.0
-# Recombination coefficient
-const αH   = 2.6e-13u"cm^3 * s^-1"
-# Formation rate coefficient of H₂ on dust grain (at solar metallicity)
-const Rsun = 3.5e-17u"cm^3 * s^-1"
-# Solar metallicity
-const Zsun = 0.0127
-# Effective metallicity
-const Zeff = 1e-3 * Zsun
-# Clumping factor
-const Cρ   = 100.0
+# # Star formation efficiency
+# const ϵff  = 1.0
+# # Recombination coefficient
+# const αH   = 2.6e-13u"cm^3 * s^-1"
+# # Formation rate coefficient of H₂ on dust grain (at solar metallicity)
+# const Rsun = 3.5e-17u"cm^3 * s^-1"
+# # Solar metallicity
+# const Zsun = 0.0127
+# # Effective metallicity
+# const Zeff = 1e-3 * Zsun
+# # Clumping factor
+# const Cρ   = 100.0
 
-const C_xd   = 0.28359533
-const C_star = sqrt(3π / 32u"G") / ϵff
-const C_rec  = u"mp" / αH
-const C_cond = (u"mp" * Zsun) / (2 * Rsun * Cρ)
+const C_xd = 0.28359533
+# const C_star = sqrt(3π / 32u"G") / ϵff
+# const C_rec  = u"mp" / αH
+# const C_cond = (u"mp" * Zsun) / (2 * Rsun * Cρ)
 
 #######################################
 # Reference values from the literature
