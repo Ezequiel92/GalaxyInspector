@@ -108,6 +108,8 @@ const QUANTITIES = Dict(
     "TEMP" => Qty("Temperature", Unitful.𝚯, u"K"),
     "U   " => Qty("InternalEnergy", Unitful.𝐋^2 * Unitful.𝐓^-2, :internal),
     "VEL " => Qty("Velocities", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
+    "TSTP" => Qty("TimeStep", Unitful.𝐓, :internal),
+    "POT " => Qty("Potential", Unitful.𝐋^2 * Unitful.𝐓^-2, :pot),
 
     #####################
     # sfr.txt quantities
