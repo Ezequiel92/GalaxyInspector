@@ -525,6 +525,9 @@ const ReducedIndexType = Union{
 # Dimensions of angular momentum
 @derived_dimension AngularMomentum Unitful.𝐌 * Unitful.𝐋^2 * Unitful.𝐓^-1 true
 
+# Dimensions of rotational inertia
+@derived_dimension RotationalInertia Unitful.𝐌 * Unitful.𝐋^2 true
+
 # Dimensions of number density
 @derived_dimension NumberDensity Unitful.𝐋^-3 true
 

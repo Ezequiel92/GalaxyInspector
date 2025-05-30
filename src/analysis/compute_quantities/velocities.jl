@@ -529,7 +529,11 @@ function computeAngularMomentum(
 )::Vector{Vector{<:AngularMomentum}}
 
     # Check for missing data
-    !any(isempty, [positions, velocities, masses]) || return [0.0, 0.0, 1.0]
+    (
+        isempty(positions) || isempty(velocities) || isempty(masses) &&
+        throw(ArgumentError("computeAngularMomentum: The angular momentum of an empty dataset \
+        is not defined"))
+    )
 
     iterator = zip(masses, eachcol(positions), eachcol(velocities))
 
@@ -566,14 +570,14 @@ function computeTotalAngularMomentum(
 )::Vector{<:Number}
 
     # Check for missing data
-    !any(isempty, [positions, velocities, masses]) || return [0.0, 0.0, 1.0]
+    isempty(positions) || isempty(velocities) || isempty(masses) && return [0.0, 0.0, 1.0]
 
     iterator = zip(masses, eachcol(positions), eachcol(velocities))
 
     # Compute the total angular momentum
     L = mapreduce(x -> x[1] .* cross(x[2], x[3]), +, iterator)
 
-    return normal ? normalize!(ustrip.(L)) : L
+    return normal ? normalize(ustrip.(L)) : L
 
 end
 
@@ -615,7 +619,7 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
     masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
     # Check for missing data
-    !any(isempty, [positions, velocities, masses]) || return [0.0, 0.0, 1.0]
+    isempty(positions) || isempty(velocities) || isempty(masses) && return [0.0, 0.0, 1.0]
 
     (
         !logging[] ||

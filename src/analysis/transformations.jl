@@ -3,41 +3,36 @@
 ####################################################################################################
 
 """
-    translatePoints(
-        positions::Matrix{<:Number},
-        new_origin::Vector{<:Number},
-    )::Matrix{<:Number}
+    function translatePoints!(positions::Matrix{<:Number}, new_origin::Vector{<:Number})::Nothing
 
-Translate a system of points, moving `new_origin` to the origin.
+Translates each column of `positions` in-place by subtracting the `new_origin` vector.
+
+Assumes that `positions` is a 2D array where each column represents a point in space, and `new_origin` is a vector of the same dimension representing the origin shift.
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Points to be translated. Each column is a point and each row a dimension.
-  - `new_origin::Vector{<:Number}`: Target origin.
+  - `positions::AbstractMatrix{T}`: A matrix of size `(3, N)` where each column is a point in D-dimensional space.
+  - `new_origin::AbstractVector{T}`: A vector of length `D` representing the new origin.
 
-# Returns
-
-  - Matrix with the translated points.
 """
-function translatePoints(
-    positions::Matrix{<:Number},
-    new_origin::Vector{<:Number},
-)::Matrix{<:Number}
+function translatePoints!(positions::Matrix{<:Number}, new_origin::Vector{<:Number})::Nothing
 
-    !all(iszero, new_origin) || return positions
+    isempty(positions) || all(iszero, new_origin) && return nothing
 
-    return positions .- new_origin
+    @assert size(positions, 1) == 3 "translatePoints!: `positions` must be 3×N"
+
+    @simd for i in axes(positions, 2)
+        @views positions[:, i] .-= new_origin
+    end
+
+    return nothing
 
 end
 
 """
     translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int},Int})::Nothing
 
-Translate the positions of the cells/particles in `data_dict`.
-
-!!! note
-
-    The velocities will be boosted to the stellar center of mass of the system. If there are no stars, no transformation is applied to the velocities.
+Translate the positions and velocities of the cells/particles in `data_dict`.
 
 # Arguments
 
@@ -68,20 +63,16 @@ function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}
     translation != :zero || return nothing
 
     new_origin = computeCenter(data_dict, translation)
-    stellar_vcm = computeVcm(data_dict, translation)
+    new_vcm = computeVcm(data_dict, translation)
 
     for component in snapshotTypes(data_dict)
 
-        for (block, values) in data_dict[component]
+        data = data_dict[component]
 
-            if !isempty(values)
-                if block == "POS "
-                    data_dict[component]["POS "] = translatePoints(values, new_origin)
-                elseif block == "VEL "
-                    data_dict[component]["VEL "] = translatePoints(values, stellar_vcm)
-                end
-            end
-
+        if haskey(data, "POS ")
+            translatePoints!(data["POS "], new_origin)
+        elseif haskey(data, "VEL ")
+            translatePoints!(data["VEL "], new_vcm)
         end
 
     end
@@ -120,64 +111,65 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
 """
 function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
-    # Compute the rotation matrix
-    if rotation == :zero
+    rotation === :zero && return nothing
 
-        return nothing
+    # Choose how to compute the 3×3 rotation matrix
+    rotation_matrix = begin
 
-    elseif rotation == :global_am
+        if rotation === :global_am
 
-        rotation_matrix = computeGlobalAMRotationMatrix(data_dict)
+            computeGlobalAMRotationMatrix(data_dict)
 
-    elseif rotation == :stellar_am
+        elseif rotation === :stellar_am
 
-        !isempty(data_dict[:stars]["MASS"]) || return nothing
+            isempty(data_dict[:stars]["MASS"]) && return nothing
 
-        rotation_matrix = computeAMRotationMatrix(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["VEL "],
-            data_dict[:stars]["MASS"],
-        )
+            computeAMRotationMatrix(
+                data_dict[:stars]["POS "],
+                data_dict[:stars]["VEL "],
+                data_dict[:stars]["MASS"],
+            )
 
-    elseif rotation == :stellar_pa
+        elseif rotation === :stellar_pa
 
-        !isempty(data_dict[:stars]["MASS"]) || return nothing
+            isempty(data_dict[:stars]["MASS"]) && return nothing
 
-        rotation_matrix = computePARotationMatrix(
-            data_dict[:stars]["POS "],
-            data_dict[:stars]["VEL "],
-            data_dict[:stars]["MASS"],
-        )
+            computePARotationMatrix(
+                data_dict[:stars]["POS "],
+                data_dict[:stars]["VEL "],
+                data_dict[:stars]["MASS"],
+            )
 
-    elseif rotation == :stellar_subhalo_pa
+        elseif rotation === :stellar_subhalo_pa
 
-        star_data = deepcopy(data_dict)
+            idxs = filterBySubhalo(data_dict; halo_idx=1, subhalo_rel_idx=1)[:stars]
 
-        filterData!(
-            star_data,
-            filter_function=dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=1),
-        )
+            isempty(idxs) && return nothing
 
-        !isempty(star_data[:stars]["MASS"]) || return nothing
+            pos_view = @view data_dict[:stars]["POS "][:, idxs]
+            vel_view = @view data_dict[:stars]["VEL "][:, idxs]
+            mass_view = @view data_dict[:stars]["MASS"][idxs]
 
-        rotation_matrix = computePARotationMatrix(
-            star_data[:stars]["POS "],
-            star_data[:stars]["VEL "],
-            star_data[:stars]["MASS"],
-        )
+            computePARotationMatrix(pos_view, vel_view, mass_view)
 
-    else
+        else
 
-        throw(ArgumentError("rotateData!: I don't recognize the rotation :$(rotation)"))
+            throw(ArgumentError("rotateData!: I don't recognize the rotation :$(rotation)"))
+
+        end
 
     end
 
     for component in snapshotTypes(data_dict)
 
-        for (block, values) in data_dict[component]
+        blocks = data_dict[component]
 
-            if block ∈ ["POS ", "VEL "] && !isempty(values)
-                data_dict[component][block] = rotation_matrix * values
+        for key in ("POS ", "VEL ")
+
+            mat = get(blocks, key, nothing)
+
+            if mat !== nothing && !isempty(mat)
+                mul!(mat, rotation_matrix, mat)
             end
 
         end
@@ -189,7 +181,7 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 end
 
 """
-    rotateData!(data_dict::Dict, axis_type::NTuple{2,Int})::Nothing
+    rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
 
 Rotate the positions and velocities of the cells/particles in `data_dict`.
 
@@ -215,28 +207,26 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
 """
 function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
 
-    # Compute the rotation matrix
-    star_data = deepcopy(data_dict)
+    idxs = filterBySubhalo(data_dict; halo_idx=rotation[1], subhalo_rel_idx=rotation[2])[:stars]
 
-    filterData!(
-        star_data,
-        filter_function=dd -> filterBySubhalo(dd; halo_idx=rotation[1], subhalo_rel_idx=rotation[2]),
-    )
+    isempty(idxs) && return nothing
 
-    !isempty(star_data[:stars]["MASS"]) || return nothing
+    pos_view = @view data_dict[:stars]["POS "][:, idxs]
+    vel_view = @view data_dict[:stars]["VEL "][:, idxs]
+    mass_view = @view data_dict[:stars]["MASS"][idxs]
 
-    rotation_matrix = computePARotationMatrix(
-        star_data[:stars]["POS "],
-        star_data[:stars]["VEL "],
-        star_data[:stars]["MASS"],
-    )
+    rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
 
     for component in snapshotTypes(data_dict)
 
-        for (block, values) in data_dict[component]
+        blocks = data_dict[component]
 
-            if block ∈ ["POS ", "VEL "] && !isempty(values)
-                data_dict[component][block] = rotation_matrix * values
+        for key in ("POS ", "VEL ")
+
+            mat = get(blocks, key, nothing)
+
+            if mat !== nothing && !isempty(mat)
+                mul!(mat, rotation_matrix, mat)
             end
 
         end
@@ -248,7 +238,7 @@ function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
 end
 
 """
-    rotateData!(data_dict::Dict, axis_type::Int)::Nothing
+    rotateData!(data_dict::Dict, rotation::Int)::Nothing
 
 Rotate the positions and velocities of the cells/particles in `data_dict`.
 
@@ -271,28 +261,26 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
 """
 function rotateData!(data_dict::Dict, rotation::Int)::Nothing
 
-    # Compute the rotation matrix
-    star_data = deepcopy(data_dict)
+    idxs = filterBySubhalo(data_dict, rotation)[:stars]
 
-    filterData!(
-        star_data,
-        filter_function=dd -> filterBySubhalo(dd, rotation),
-    )
+    isempty(idxs) && return nothing
 
-    !isempty(star_data[:stars]["MASS"]) || return nothing
+    pos_view = @view data_dict[:stars]["POS "][:, idxs]
+    vel_view = @view data_dict[:stars]["VEL "][:, idxs]
+    mass_view = @view data_dict[:stars]["MASS"][idxs]
 
-    rotation_matrix = computePARotationMatrix(
-        star_data[:stars]["POS "],
-        star_data[:stars]["VEL "],
-        star_data[:stars]["MASS"],
-    )
+    rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
 
     for component in snapshotTypes(data_dict)
 
-        for (block, values) in data_dict[component]
+        blocks = data_dict[component]
 
-            if block ∈ ["POS ", "VEL "] && !isempty(values)
-                data_dict[component][block] = rotation_matrix * values
+        for key in ("POS ", "VEL ")
+
+            mat = get(blocks, key, nothing)
+
+            if mat !== nothing && !isempty(mat)
+                mul!(mat, rotation_matrix, mat)
             end
 
         end
@@ -300,61 +288,6 @@ function rotateData!(data_dict::Dict, rotation::Int)::Nothing
     end
 
     return nothing
-
-end
-
-"""
-    computeInertiaTensor(
-        positions::Matrix{<:Unitful.Length},
-        masses::Vector{<:Unitful.Mass},
-    )::Matrix{Float64}
-
-Compute the inertia tensor of a group of cells/particles.
-
-# Arguments
-
-  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `masses::Vector{<:Unitful.Mass}`: Masses of the cells/particles.
-
-# Returns
-
-  - The inertia tensor.
-"""
-function computeInertiaTensor(
-    positions::Matrix{<:Unitful.Length},
-    masses::Vector{<:Unitful.Mass},
-)::Matrix{Float64}
-
-    # Check for missing data
-    (
-        !any(isempty, [positions, masses])  ||
-        throw(ArgumentError("computeInertiaTensor: The inertia tensor is not defined for an \
-        empty system"))
-    )
-
-    # Allocate memory
-    J = zeros(Float64, (3, 3))
-
-    # Compute the inertia tensor
-    for (r, m) in zip(eachcol(positions), masses)
-
-        x, y, z = r
-
-        J[1, 1] += m * (y * y + z * z)
-        J[2, 2] += m * (x * x + z * z)
-        J[3, 3] += m * (x * x + y * y)
-
-        J[1, 2] -= m * x * y
-        J[1, 3] -= m * x * z
-        J[2, 3] -= m * y * z
-
-    end
-
-    J[2, 1] = J[1, 2]
-    J[3, 1] = J[1, 3]
-    J[3, 2] = J[2, 3]
-
-    return J
 
 end
 
@@ -384,7 +317,7 @@ function computeAMRotationMatrix(
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
     # Check for missing data
-    !any(isempty, [positions, velocities, masses]) || return I
+    isempty(positions) || isempty(velocities) || isempty(masses) && return I
 
     # Compute the total angular momentum
     L = computeTotalAngularMomentum(positions, velocities, masses)
@@ -425,7 +358,7 @@ function computePARotationMatrix(
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
     # Check for missing data
-    !isempty(positions) || return I
+    isempty(positions) && return I
 
     # Center the data (subtract the mean of each row)
     mean_point = mean(positions, dims=2)
@@ -458,7 +391,7 @@ function computePARotationMatrix(
         # this as a rotation, the z axis will be flipped. So, in this case we swap the x and y
         # axis to get a right-handed Cartesian reference system (x × y = z) and generate the
         # correct rotation
-        rotation_matrix[1, :], rotation_matrix[2, :] = rotation_matrix[2, :], rotation_matrix[1, :]
+        rotation_matrix[[1, 2], :] = rotation_matrix[[2, 1], :]
     end
 
     return Matrix{Float64}(rotation_matrix)
@@ -502,7 +435,7 @@ function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},U
     masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
     # Check for missing data
-    !any(isempty, [positions, velocities, masses]) || return I
+    isempty(positions) || isempty(velocities) || isempty(masses) && return I
 
     (
         !logging[] ||
