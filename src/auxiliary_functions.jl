@@ -2466,7 +2466,7 @@ function energyIntegrand(a::Real, header::SnapshotHeader)::Float64
     E = header.omega_0 / (a * a * a) + omega_K / (a * a) + header.omega_l
 
     # Compute the hubble constant in Gyr^-1
-    H = header.h0 * HUBBLE_CONSTANT * a
+    H = header.h * HUBBLE_CONSTANT * a
 
     # Return the integrand, in Gyr
     return 1.0 / (H * sqrt(E))

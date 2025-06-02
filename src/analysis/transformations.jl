@@ -5,24 +5,23 @@
 """
     function translatePoints!(positions::Matrix{<:Number}, new_origin::Vector{<:Number})::Nothing
 
-Translates each column of `positions` in-place by subtracting the `new_origin` vector.
-
-Assumes that `positions` is a 2D array where each column represents a point in space, and `new_origin` is a vector of the same dimension representing the origin shift.
+Translate a system of points, moving `new_origin` to the origin.
 
 # Arguments
 
-  - `positions::AbstractMatrix{T}`: A matrix of size `(3, N)` where each column is a point in D-dimensional space.
-  - `new_origin::AbstractVector{T}`: A vector of length `D` representing the new origin.
+  - `positions::Matrix{<:Number}`: Points to be translated. Each column is a point and each row a dimension.
+  - `new_origin::Vector{<:Number}`: Target origin.
 
+# Returns
+
+  - Matrix with the translated points.
 """
 function translatePoints!(positions::Matrix{<:Number}, new_origin::Vector{<:Number})::Nothing
 
-    isempty(positions) || all(iszero, new_origin) && return nothing
+    all(iszero, new_origin) && return nothing
 
-    @assert size(positions, 1) == 3 "translatePoints!: `positions` must be 3×N"
-
-    @simd for i in axes(positions, 2)
-        @views positions[:, i] .-= new_origin
+    for i in axes(positions, 2)
+        positions[:, i] .-= new_origin
     end
 
     return nothing
@@ -60,7 +59,7 @@ Translate the positions and velocities of the cells/particles in `data_dict`.
 """
 function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int},Int})::Nothing
 
-    translation != :zero || return nothing
+    translation === :zero && return nothing
 
     new_origin = computeCenter(data_dict, translation)
     new_vcm = computeVcm(data_dict, translation)
@@ -69,9 +68,11 @@ function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int}
 
         data = data_dict[component]
 
-        if haskey(data, "POS ")
+        if haskey(data, "POS ") && !isempty(data["POS "])
             translatePoints!(data["POS "], new_origin)
-        elseif haskey(data, "VEL ")
+        end
+
+        if haskey(data, "VEL ") && !isempty(data["VEL "])
             translatePoints!(data["VEL "], new_vcm)
         end
 
@@ -146,9 +147,9 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
             isempty(idxs) && return nothing
 
-            pos_view = @view data_dict[:stars]["POS "][:, idxs]
-            vel_view = @view data_dict[:stars]["VEL "][:, idxs]
-            mass_view = @view data_dict[:stars]["MASS"][idxs]
+            pos_view = data_dict[:stars]["POS "][:, idxs]
+            vel_view = data_dict[:stars]["VEL "][:, idxs]
+            mass_view = data_dict[:stars]["MASS"][idxs]
 
             computePARotationMatrix(pos_view, vel_view, mass_view)
 
@@ -162,16 +163,14 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
     for component in snapshotTypes(data_dict)
 
-        blocks = data_dict[component]
+        data = data_dict[component]
 
-        for key in ("POS ", "VEL ")
+        if haskey(data, "POS ") && !isempty(data["POS "])
+            data["POS "] = rotation_matrix * data["POS "]
+        end
 
-            mat = get(blocks, key, nothing)
-
-            if mat !== nothing && !isempty(mat)
-                mul!(mat, rotation_matrix, mat)
-            end
-
+        if haskey(data, "VEL ") && !isempty(data["VEL "])
+            data["VEL "] = rotation_matrix * data["VEL "]
         end
 
     end
@@ -211,24 +210,22 @@ function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
 
     isempty(idxs) && return nothing
 
-    pos_view = @view data_dict[:stars]["POS "][:, idxs]
-    vel_view = @view data_dict[:stars]["VEL "][:, idxs]
-    mass_view = @view data_dict[:stars]["MASS"][idxs]
+    pos_view = data_dict[:stars]["POS "][:, idxs]
+    vel_view = data_dict[:stars]["VEL "][:, idxs]
+    mass_view = data_dict[:stars]["MASS"][idxs]
 
     rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
 
     for component in snapshotTypes(data_dict)
 
-        blocks = data_dict[component]
+        data = data_dict[component]
 
-        for key in ("POS ", "VEL ")
+        if haskey(data, "POS ") && !isempty(data["POS "])
+            data["POS "] = rotation_matrix * data["POS "]
+        end
 
-            mat = get(blocks, key, nothing)
-
-            if mat !== nothing && !isempty(mat)
-                mul!(mat, rotation_matrix, mat)
-            end
-
+        if haskey(data, "VEL ") && !isempty(data["VEL "])
+            data["VEL "] = rotation_matrix * data["VEL "]
         end
 
     end
@@ -265,24 +262,22 @@ function rotateData!(data_dict::Dict, rotation::Int)::Nothing
 
     isempty(idxs) && return nothing
 
-    pos_view = @view data_dict[:stars]["POS "][:, idxs]
-    vel_view = @view data_dict[:stars]["VEL "][:, idxs]
-    mass_view = @view data_dict[:stars]["MASS"][idxs]
+    pos_view = data_dict[:stars]["POS "][:, idxs]
+    vel_view = data_dict[:stars]["VEL "][:, idxs]
+    mass_view = data_dict[:stars]["MASS"][idxs]
 
     rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
 
     for component in snapshotTypes(data_dict)
 
-        blocks = data_dict[component]
+        data = data_dict[component]
 
-        for key in ("POS ", "VEL ")
+        if haskey(data, "POS ") && !isempty(data["POS "])
+            data["POS "] = rotation_matrix * data["POS "]
+        end
 
-            mat = get(blocks, key, nothing)
-
-            if mat !== nothing && !isempty(mat)
-                mul!(mat, rotation_matrix, mat)
-            end
-
+        if haskey(data, "VEL ") && !isempty(data["VEL "])
+            data["VEL "] = rotation_matrix * data["VEL "]
         end
 
     end

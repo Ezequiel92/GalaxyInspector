@@ -57,9 +57,9 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     header = h5open(file_path, "r") do gc_file
 
-        h = gc_file["Header"]
+        head = gc_file["Header"]
 
-        attrs_present = keys(HDF5.attrs(h))
+        attrs_present = keys(HDF5.attrs(head))
 
         missing_attrs = setdiff(
             [
@@ -85,17 +85,17 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
         )
 
         GroupCatHeader(
-            box_size          = read_attribute(h, "BoxSize"),
-            h0                = read_attribute(h, "HubbleParam"),
-            n_groups_part     = read_attribute(h, "Ngroups_ThisFile"),
-            n_groups_total    = read_attribute(h, "Ngroups_Total"),
-            n_subgroups_part  = read_attribute(h, "Nsubgroups_ThisFile"),
-            n_subgroups_total = read_attribute(h, "Nsubgroups_Total"),
-            num_files         = read_attribute(h, "NumFiles"),
-            omega_0           = read_attribute(h, "Omega0"),
-            omega_l           = read_attribute(h, "OmegaLambda"),
-            redshift          = read_attribute(h, "Redshift"),
-            time              = read_attribute(h, "Time"),
+            box_size          = read_attribute(head, "BoxSize"),
+            h                 = read_attribute(head, "HubbleParam"),
+            n_groups_part     = read_attribute(head, "Ngroups_ThisFile"),
+            n_groups_total    = read_attribute(head, "Ngroups_Total"),
+            n_subgroups_part  = read_attribute(head, "Nsubgroups_ThisFile"),
+            n_subgroups_total = read_attribute(head, "Nsubgroups_Total"),
+            num_files         = read_attribute(head, "NumFiles"),
+            omega_0           = read_attribute(head, "Omega0"),
+            omega_l           = read_attribute(head, "OmegaLambda"),
+            redshift          = read_attribute(head, "Redshift"),
+            time              = read_attribute(head, "Time"),
         )
 
     end
@@ -161,9 +161,9 @@ function readSnapHeader(path::String)::SnapshotHeader
 
     header = h5open(file_path, "r") do snap_file
 
-        h = snap_file["Header"]
+        head = snap_file["Header"]
 
-        attrs_present = keys(HDF5.attrs(h))
+        attrs_present = keys(HDF5.attrs(head))
 
         missing_attrs = setdiff(
             [
@@ -188,43 +188,43 @@ function readSnapHeader(path::String)::SnapshotHeader
         )
 
         # Only for the stars edit the number in the header, to exclude wind particles
-        num_part = read_attribute(h, "NumPart_ThisFile")
+        num_part = read_attribute(head, "NumPart_ThisFile")
         num_part[PARTICLE_INDEX[:stars] + 1] = num_part_stars
-        num_total = read_attribute(h, "NumPart_Total")
+        num_total = read_attribute(head, "NumPart_Total")
         num_total[PARTICLE_INDEX[:stars] + 1] = num_total_stars
 
         # Check if the length units are in the header, otherwise use the IllustrisTNG values
         if "UnitLength_in_cm" ∈ attrs_present
-            l_unit = read_attribute(h, "UnitLength_in_cm") * u"cm"
+            l_unit = read_attribute(head, "UnitLength_in_cm") * u"cm"
         else
             l_unit = ILLUSTRIS_L_UNIT
         end
 
         # Check if the mass units are in the header, otherwise use the IllustrisTNG values
         if "UnitMass_in_g" ∈ attrs_present
-            m_unit = read_attribute(h, "UnitMass_in_g") * u"g"
+            m_unit = read_attribute(head, "UnitMass_in_g") * u"g"
         else
             m_unit = ILLUSTRIS_M_UNIT
         end
 
         # Check if the velocity units are in the header, otherwise use the IllustrisTNG values
         if "UnitVelocity_in_cm_per_s" ∈ attrs_present
-            v_unit = read_attribute(h, "UnitVelocity_in_cm_per_s") * u"cm*s^-1"
+            v_unit = read_attribute(head, "UnitVelocity_in_cm_per_s") * u"cm*s^-1"
         else
             v_unit = ILLUSTRIS_V_UNIT
         end
 
         SnapshotHeader(
-            box_size   = read_attribute(h, "BoxSize"),
-            h0         = read_attribute(h, "HubbleParam"),
-            mass_table = read_attribute(h, "MassTable"),
-            num_files  = read_attribute(h, "NumFilesPerSnapshot"),
+            box_size   = read_attribute(head, "BoxSize"),
+            h          = read_attribute(head, "HubbleParam"),
+            mass_table = read_attribute(head, "MassTable"),
+            num_files  = read_attribute(head, "NumFilesPerSnapshot"),
             num_part   = num_part,
             num_total  = num_total,
-            omega_0    = read_attribute(h, "Omega0"),
-            omega_l    = read_attribute(h, "OmegaLambda"),
-            redshift   = read_attribute(h, "Redshift"),
-            time       = read_attribute(h, "Time"),
+            omega_0    = read_attribute(head, "Omega0"),
+            omega_l    = read_attribute(head, "OmegaLambda"),
+            redshift   = read_attribute(head, "Redshift"),
+            time       = read_attribute(head, "Time"),
             l_unit     = l_unit,
             m_unit     = m_unit,
             v_unit     = v_unit,

@@ -265,7 +265,7 @@ function daKennicuttSchmidtLaw(
     deleteat!(x_axis, delete_idxs)
     deleteat!(y_axis, delete_idxs)
 
-    !any(isempty, [x_axis, y_axis]) || return nothing
+    isempty(x_axis) || isempty(y_axis) && return nothing
 
     return x_axis, y_axis .- log10Δt
 
@@ -440,7 +440,7 @@ function daMolla2015(
     end
 
     # Return `nothing` if any of the necessary quantities are missing
-    !any(isempty, [positions, masses]) || return nothing
+    isempty(positions) || isempty(masses) && return nothing
 
     density_profile = f(
         computeParticleProfile(positions, masses, grid; norm_values, total=true, density),
@@ -643,7 +643,7 @@ function daProfile(
     )
 
     # Return `nothing` if any of the necessary quantities are missing
-    !any(iszero, [n_pos, n_val]) || return nothing
+    iszero(n_pos) || iszero(n_val) && return nothing
 
     if fractions
 
@@ -884,7 +884,7 @@ function daBandProfile(
     )
 
     # Return `nothing` if any of the necessary quantities are missing
-    !any(iszero, [n_pos, n_val]) || return nothing
+    iszero(n_pos) || iszero(n_val) && return nothing
 
     mean, std = computeParticleBandProfile(positions, values, grid; flat)
 
@@ -1422,7 +1422,7 @@ function daDensity2DProjection(
     masses = scatterQty(filtered_dd, quantity)
 
     # If any of the necessary quantities are missing return an empty density field
-    if any(isempty, [masses, positions])
+    if isempty(masses) || isempty(positions)
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
@@ -1680,7 +1680,7 @@ function daGasSFR2DProjection(
     sfrs = filtered_dd[:gas]["SFR "]
 
     # If any of the necessary quantities are missing return an empty SFR field
-    if any(isempty, [positions, sfrs])
+    if isempty(positions) || isempty(sfrs)
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
@@ -2242,7 +2242,7 @@ function daTemperature2DProjection(
     positions = filtered_dd[:gas]["POS "]
 
     # If any of the necessary quantities are missing return an empty temperature field
-    if any(isempty, [temperatures, positions])
+    if isempty(temperatures) || isempty(positions)
         return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
@@ -2676,7 +2676,7 @@ function daScatterDensity(
     y_values = scatterQty(filtered_dd, y_quantity)
 
     # If any of the necessary quantities are missing return an empty histogram
-    if any(isempty, [x_values, y_values])
+    if isempty(x_values) || isempty(y_values)
         return 1:n_bins, 1:n_bins, fill(NaN, (n_bins, n_bins))
     end
 
@@ -3098,7 +3098,7 @@ function daScatterWeightedDensity(
     z_values = scatterQty(filtered_dd, z_quantity)
 
     # If any of the necessary quantities are missing return an empty histogram
-    if any(isempty, [x_values, y_values, z_values])
+    if isempty(x_values) || isempty(y_values) || isempty(z_values)
         return collect(1:n_bins), collect(1:n_bins), fill(NaN, (n_bins, n_bins))
     end
 
@@ -3290,7 +3290,7 @@ function daVelocityField(
     velocities = filtered_dd[component]["VEL "]
 
     # If any of the necessary quantities are missing return an empty velocity field
-    if any(isempty, [positions, velocities])
+    if isempty(positions) || isempty(velocities)
         return grid.x_ticks, grid.y_ticks, zeros(size(grid.grid)), zeros(size(grid.grid))
     end
 

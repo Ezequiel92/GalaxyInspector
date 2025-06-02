@@ -577,7 +577,7 @@ function computeTotalAngularMomentum(
     # Compute the total angular momentum
     L = mapreduce(x -> x[1] .* cross(x[2], x[3]), +, iterator)
 
-    return normal ? normalize(ustrip.(L)) : L
+    return normal ? normalize!(ustrip.(L)) : L
 
 end
 

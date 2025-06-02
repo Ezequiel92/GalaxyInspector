@@ -525,9 +525,6 @@ const ReducedIndexType = Union{
 # Dimensions of angular momentum
 @derived_dimension AngularMomentum Unitful.𝐌 * Unitful.𝐋^2 * Unitful.𝐓^-1 true
 
-# Dimensions of rotational inertia
-@derived_dimension RotationalInertia Unitful.𝐌 * Unitful.𝐋^2 true
-
 # Dimensions of number density
 @derived_dimension NumberDensity Unitful.𝐋^-3 true
 
@@ -696,7 +693,7 @@ Data in the "Header" group of a HDF5 snapshot file.
 # Fields
 
   - `box_size::Float64`: Total size of the simulation box.
-  - `h0::Float64`: Hubble parameter.
+  - `h::Float64`: Hubble parameter.
   - `mass_table::Vector{Float64}`: Masses of particle types which have a constant mass.
   - `num_files::Int32`: Number of file chunks per snapshot.
   - `num_part::Vector{Int32}`: Number of particles (of each type) included in this file chunk.
@@ -711,7 +708,7 @@ Data in the "Header" group of a HDF5 snapshot file.
 """
 @kwdef mutable struct SnapshotHeader
     box_size::Float64
-    h0::Float64
+    h::Float64
     mass_table::Vector{Float64}
     num_files::Int32
     num_part::Vector{Int32}
@@ -733,7 +730,7 @@ Default values are for when there are no group catalog files.
 # Fields
 
   - `box_size::Float64 = NaN`: Total size of the simulation box.
-  - `h0::Float64 = NaN`: Hubble parameter.
+  - `h::Float64 = NaN`: Hubble parameter.
   - `n_groups_part::Int32 = -1`: Number of halos (FoF groups) in this file chunk.
   - `n_groups_total::Int32 = -1`: Total number of halos (FoF groups) in this snapshot.
   - `n_subgroups_part::Int32 = -1`: Number of subhalos (subfind) in this file chunk.
@@ -746,7 +743,7 @@ Default values are for when there are no group catalog files.
 """
 @kwdef mutable struct GroupCatHeader
     box_size::Float64 = NaN
-    h0::Float64 = NaN
+    h::Float64 = NaN
     n_groups_part::Int32 = -1
     n_groups_total::Int32 = -1
     n_subgroups_part::Int32 = -1
@@ -878,15 +875,15 @@ struct InternalUnits
       - `l_unit::Unitful.Length=ILLUSTRIS_L_UNIT`: Code parameter `UnitLength_in_cm`.
       - `m_unit::Unitful.Mass=ILLUSTRIS_M_UNIT`: Code parameter `UnitMass_in_g`.
       - `v_unit::Unitful.Velocity=ILLUSTRIS_V_UNIT`: Code parameter `UnitVelocity_in_cm_per_s`.
-      - `a0::Float64=1.0`: Cosmological scale factor of the simulation.
-      - `h0::Float64=1.0`: Hubble constant as "little h".
+      - `a::Float64=1.0`: Cosmological scale factor of the simulation.
+      - `h::Float64=1.0`: Hubble constant as "little h".
     """
     function InternalUnits(;
         l_unit::Unitful.Length=ILLUSTRIS_L_UNIT,
         m_unit::Unitful.Mass=ILLUSTRIS_M_UNIT,
         v_unit::Unitful.Velocity=ILLUSTRIS_V_UNIT,
-        a0::Float64=1.0,
-        h0::Float64=1.0,
+        a::Float64=1.0,
+        h::Float64=1.0,
     )
 
         #############
@@ -894,16 +891,16 @@ struct InternalUnits
         #############
 
         # Length conversion factors
-        x_cgs = l_unit * a0 / h0
+        x_cgs = l_unit * a / h
         x_cosmo = x_cgs |> u"kpc"
-        x_comoving = l_unit / h0 |> u"kpc"
+        x_comoving = l_unit / h |> u"kpc"
 
         # Velocity conversion factors
-        v_cgs = v_unit * sqrt(a0)
+        v_cgs = v_unit * sqrt(a)
         v_cosmo = v_cgs |> u"km*s^-1"
 
         # Mass conversion factors
-        m_cgs = m_unit / h0
+        m_cgs = m_unit / h
         m_cosmo = m_cgs |> u"Msun"
 
         ################
