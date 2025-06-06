@@ -312,7 +312,7 @@ function computeAMRotationMatrix(
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
     # Check for missing data
-    isempty(positions) || isempty(velocities) || isempty(masses) && return I
+    size(positions, 2) < 2 && return I
 
     # Compute the total angular momentum
     L = computeTotalAngularMomentum(positions, velocities, masses)
@@ -353,7 +353,7 @@ function computePARotationMatrix(
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
     # Check for missing data
-    isempty(positions) && return I
+    size(positions, 2) < 2 && return I
 
     # Center the data (subtract the mean of each row)
     mean_point = mean(positions, dims=2)
@@ -430,7 +430,7 @@ function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},U
     masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
     # Check for missing data
-    isempty(positions) || isempty(velocities) || isempty(masses) && return I
+    size(positions, 2) < 2 && return I
 
     (
         !logging[] ||

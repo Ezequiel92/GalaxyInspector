@@ -501,8 +501,6 @@ Compute a profile.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -744,8 +742,6 @@ Compute the profile of a mean quantity with error bars or bands.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -1080,8 +1076,6 @@ Compute a 1D histogram of a given `quantity`, normalized to the maximum number o
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -2462,8 +2456,6 @@ Turn a scatter plot into a 2D histogram.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -2551,8 +2543,6 @@ Turn a scatter plot into a 2D histogram.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -2789,8 +2779,6 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -2878,8 +2866,6 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -2967,8 +2953,6 @@ Turn a scatter plot into a 2D histogram, weighted by `z_quantity`.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -3633,8 +3617,6 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -3722,8 +3704,6 @@ Compute two quantities for every cell/particle in the simulation.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -3929,8 +3909,6 @@ Compute the values for a bar plot of the gas fractions, where the bins are a giv
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -5668,5 +5646,144 @@ function daClumpingFactorProfile(
     end
 
     return grid.grid, Cρ
+
+end
+
+"""
+    daTrajectory(
+        simulation_path::String,
+        target_ids::Vector{UInt64};
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the trajectory of a set of cells/particles, given their IDs.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `target_ids::Vector{UInt64}`: IDs of the cells/particles whose trajectory will be computed.
+  - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted. The options are:
+
+      + `:all`             -> Consider every cell/particle within the simulation box.
+      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
+      + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
+      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
+      + A dictionary with three entries:
+
+          + `:filter_function` -> The filter function.
+          + `:translation`     -> Translation for the simulation box. The possibilities are:
+
+              + `:zero`                       -> No translation is applied.
+              + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
+              + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
+              + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
+          + `:rotation`        -> Rotation for the simulation box. The possibilities are:
+
+              + `:zero`                       -> No rotation is applied.
+              + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
+              + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
+              + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
+              + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+              + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
+              + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
+              + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `component::Symbol`: Type of cell/particle. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `target_id::UInt64` -> A matrix with the trajectory of the cell/particle with ID `target_id`. The matrix has 7 rows, where:
+
+          * Row 1: Physical time.
+          * Rows 2-4: Position [x, y, z].
+          * Rows 5-7: Velocity [vx, vy, vz].
+
+      If the target ID is not found at a given physical time the position and velocity are NaN.
+"""
+function daTrajectory(
+    simulation_path::String,
+    target_ids::Vector{UInt64};
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    component::Symbol=:stars,
+)::Dict{Int64,Matrix{Quantity}}
+
+    simulation_table = makeSimulationTable(simulation_path)
+
+    # Delete missing snapshots
+    filter!(row -> !ismissing(row[:snapshot_paths]), simulation_table)
+
+    (
+        isempty(simulation_table) &&
+        throw(ArgumentError("daTrajectory: There are no two snapshots in $(simulation_path)"))
+    )
+
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        Dict(component=> ["ID  ", "POS ", "VEL "]),
+    )
+
+    # NaN values for position and velocity
+    nan_pos = NaN * u"kpc"
+    nan_vel = NaN * u"km * s^-1"
+
+    # Allocate memory
+    trajectories = Dict{UInt64, Matrix{Quantity}}()
+    for target_id in target_ids
+
+        trajectory_matrix = Matrix{Quantity}(undef, 7, nrow(simulation_table))
+
+        trajectory_matrix[1, :]   .= simulation_table[!, :physical_times]
+        trajectory_matrix[2:4, :] .= nan_pos
+        trajectory_matrix[5:7, :] .= nan_vel
+
+        trajectories[target_id] = trajectory_matrix
+
+    end
+
+    ################################################################################################
+    # Iteration over the snapshots
+    ################################################################################################
+
+    for idx_row in 1:nrow(simulation_table)
+
+        # Read the data in the snapshot
+        data_dict = makeDataDict(simulation_path, idx_row, request, simulation_table)
+
+        # Filter the data
+        filterData!(data_dict; filter_function)
+
+        # Translate the data
+        translateData!(data_dict, translation)
+
+        # Rotate the data
+        rotateData!(data_dict, rotation)
+
+        for target_id in target_ids
+
+            id = data_dict[component]["ID  "]
+
+            (target_id ∉ id) && continue
+
+            r = data_dict[component]["POS "]
+            v = data_dict[component]["VEL "]
+
+            index = findfirst(isequal(target_id), id)
+
+            target_r = r[:, index]
+            target_v = v[:, index]
+
+            trajectories[target_id][2:4, idx_row] = target_r
+            trajectories[target_id][5:7, idx_row] = target_v
+
+        end
+
+    end
+
+    return trajectories
 
 end

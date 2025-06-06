@@ -3467,8 +3467,6 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -3556,8 +3554,6 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -3848,8 +3844,6 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -3937,8 +3931,6 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -4026,8 +4018,6 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -4564,8 +4554,6 @@ Only for gas cells that have entered our routine.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.
@@ -6384,8 +6372,6 @@ Plot a histogram of `quantity`.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
       + `:gas_number_density`          -> Gas number density.

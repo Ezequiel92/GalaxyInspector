@@ -1372,7 +1372,102 @@ function makeDataDict(
         :snap_data => Snapshot(
             snapshot_path,
             slice_n,
+            1,
+            snapshot_row[:physical_times],
+            snapshot_row[:lookback_times],
+            snapshot_row[:scale_factors],
+            snapshot_row[:redshifts],
+            readSnapHeader(snapshot_path),
+        ),
+
+        :gc_data => GroupCatalog(
+            groupcat_path,
+            readGroupCatHeader(groupcat_path),
+        ),
+    )
+
+    return merge(
+        metadata,
+        readSnapshot(snapshot_path, request),
+        readGroupCatalog(groupcat_path, snapshot_path, request),
+    )
+
+end
+
+"""
+    makeDataDict(
+        simulation_path::String,
+        slice_n::Int,
+        request::Dict{Symbol,Vector{String}},
+        simulation_table::DataFrame,
+    )::Dict
+
+Construct a data dictionary for a single snapshot.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = (number in filename) + 1.
+  - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref).
+  - `simulation_table::DataFrame`: Dataframe with the path, time stamps, and number of each snapshot and group catalog file in `simulation_path`. It must have the same shape as the one returned by [`makeSimulationTable`](@ref).
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+"""
+function makeDataDict(
+    simulation_path::String,
+    slice_n::Int,
+    request::Dict{Symbol,Vector{String}},
+    simulation_table::DataFrame,
+)::Dict
+
+    snapshot_numbers = simulation_table[!, :numbers]
+
+    (
+        length(snapshot_numbers) >= slice_n ||
+        throw(ArgumentError("makeDataDict: The snapshot number $(slice_n) does not exists in  \
+        $(simulation_path). There are only $(length(snapshot_numbers)) snapshots. \
+        The full simulation table is:\n\n$(simulation_table)"))
+    )
+
+    # Select the target snapshot
+    snapshot_row = simulation_table[slice_n, :]
+
+    ################################################################################################
+    # Compute the metadata for the current snapshot and simulation
+    ################################################################################################
+
+    # Get the snapshot file path
+    snapshot_path = snapshot_row[:snapshot_paths]
+    # Get the group catalog file path
+    groupcat_path = snapshot_row[:groupcat_paths]
+
+    # Store the metadata of the current snapshot and simulation
+    metadata = Dict(
+        :sim_data => Simulation(
+            simulation_path,
+            1,
             slice_n,
+            isCosmological(snapshot_path),
+            simulation_table,
+        ),
+        :snap_data => Snapshot(
+            snapshot_path,
+            slice_n,
+            1,
             snapshot_row[:physical_times],
             snapshot_row[:lookback_times],
             snapshot_row[:scale_factors],

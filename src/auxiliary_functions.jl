@@ -3210,8 +3210,6 @@ Select the plotting parameters for a given `quantity`.
       + `:stellar_gas_fraction`        -> Stellar gas fraction (according to our SF model).
       + `:metal_gas_fraction`          -> Metallicity (according to our SF model).
       + `:dust_fraction`               -> Dust mass fraction.
-      + `:mol_eq_quotient`             -> Equilibrium quotient for the molecular fraction equation of the SF model.
-      + `:ion_eq_quotient`             -> Equilibrium quotient for the ionized fraction equation of the SF model.
       + `:generic_fraction`            -> Parameters for plots with several different fraction.
       + `:gas_mass_density`            -> Gas mass density.
       + `:hydrogen_mass_density`       -> Hydrogen mass density.
