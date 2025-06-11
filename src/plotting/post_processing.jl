@@ -226,7 +226,7 @@ function ppArrows!(
         color = ring(colors, i)
 
         # Draw the arrows
-        arrows!(figure.current_axis.x, [x], [y], [u], [v]; color)
+        arrows2d!(figure.current_axis.x, [x], [y], [u], [v]; color)
 
     end
 

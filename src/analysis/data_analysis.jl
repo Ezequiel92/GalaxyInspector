@@ -3310,7 +3310,7 @@ function daVelocityField(
 
     end
 
-    # The transpose and reverse operation are used to conform to the way arrows! expect the matrix to be structured
+    # The transpose and reverse operation are used to conform to the way arrows2d! expect the matrix to be structured
     vx = collect(reverse!(transpose(vx), dims=2))
     vy = collect(reverse!(transpose(vy), dims=2))
 

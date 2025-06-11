@@ -35,7 +35,7 @@ Some of the features are:
       + `scatterlines!` -> Scatter plot with lines between the markers.
       + `hist!`         -> Histogram.
       + `heatmap!`      -> Heatmap.
-      + `arrows!`       -> Vector field.
+      + `arrows2d!`       -> Vector field.
       + `barplot!`      -> Bar plots.
       + `band!`         -> Band plots.
       + `errorbars!`    -> Error bars.
@@ -436,7 +436,7 @@ function plotSnapshot(
                     error("plotSnapshot: For heatmaps and bands `data_analysis` should return \
                     three data vectors, and currently is returning $(data_length)")
                 )
-            elseif plot_function isa Union{typeof(arrows!), typeof(errorbars!)}
+            elseif plot_function isa Union{typeof(arrows2d!), typeof(errorbars!)}
                 (
                     data_length == 4 ||
                     error("plotSnapshot: For vector field plots or error bars `data_analysis` \
@@ -479,7 +479,7 @@ function plotSnapshot(
                     ustrip.(y_unit, da_output[3]),
                 ]
 
-            elseif plot_function isa typeof(arrows!)
+            elseif plot_function isa typeof(arrows2d!)
 
                 axis_data = VecOrMat{<:Number}[
                     ustrip.(x_unit, da_output[1]),

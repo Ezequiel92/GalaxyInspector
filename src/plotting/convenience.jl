@@ -2966,7 +2966,7 @@ function densityMapVelField(
                 plotSnapshot(
                     [simulation_path, simulation_path],
                     request,
-                    [heatmap!, arrows!];
+                    [heatmap!, arrows2d!];
                     pf_kwargs,
                     # `plotSnapshot` configuration
                     output_path,
