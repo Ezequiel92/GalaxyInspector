@@ -7241,12 +7241,22 @@ function kennicuttSchmidtLaw(
 
     if reduce_grid == :square
 
-        # Compute the number of bins for the low resolution grids
-        lr_n_bins = round(Int, uconvert(Unitful.NoUnits, grid_size / bin_size))
+        if grid_size != bin_size
 
-        # Compute the interger factor between the high resolution grids (`hr_n_bins`px)
-        # and the low resolution grids (`lr_n_bins`px)
-        reduce_factor = hr_n_bins ÷ lr_n_bins
+            # Compute the number of bins for the low resolution grids
+            lr_n_bins = round(Int, uconvert(Unitful.NoUnits, grid_size / bin_size))
+
+            # Compute the interger factor between the high resolution grids (`hr_n_bins`px)
+            # and the low resolution grids (`lr_n_bins`px)
+            reduce_factor = hr_n_bins ÷ lr_n_bins
+
+        else
+
+            # If the grid size is equal to the bin size, there is no need to reduce the grid
+            lr_n_bins     = hr_n_bins
+            reduce_factor = 1
+
+        end
 
         stellar_grid = CubicGrid(grid_size, reduce_factor * lr_n_bins)
         gas_grid     = CubicGrid(grid_size, reduce_factor * lr_n_bins)
