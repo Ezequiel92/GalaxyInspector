@@ -1082,6 +1082,7 @@ function ppSun2023!(
         tdep = @. log10(ustrip(u"Gyr", Σh2 ./ Σsfr))
 
         # Filter galaxies with tdep outside the range [-2.0, 2.0]
+        # to reproduce Fig. 1 of Sun et al. (2023)
         tdep_filter = x -> isnan(x) || isinf(x) || x < -2.0 || x > 2.0
 
         idxs = idxs ∪ map(tdep_filter, tdep)
