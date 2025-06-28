@@ -719,12 +719,7 @@ function plotSnapshot(
 
             if !any(isempty, [legend_elements, legend_labels])
                 # Add a legend to the plot
-                Makie.Legend(
-                    figure[1, 1],
-                    legend_elements,
-                    legend_labels,
-                    [""],
-                )
+                Makie.Legend(figure[1, 1], legend_elements, legend_labels)
             end
 
         end
@@ -1109,12 +1104,7 @@ function plotTimeSeries(
 
         if !any(isempty, [legend_elements, legend_labels])
             # Add a legend to the plot
-            Makie.Legend(
-                figure[1, 1],
-                legend_elements,
-                legend_labels,
-                [""],
-            )
+            Makie.Legend(figure[1, 1], legend_elements, legend_labels)
         end
 
         # Save the figure
