@@ -6896,7 +6896,7 @@ Plot the Kennicutt-Schmidt law.
       + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations.
   - `grid_size::Unitful.Length=BOX_L`: Physical side length of the cubic and square grids, and diameter of the circular grid (if `reduce_grid` = :circular). As a reference, Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2). This limits which cells/particles will be consider.
   - `bin_size::Unitful.Length=BIGIEL_PX_SIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`. For the cubic grids a default value of 200 pc is always used.
-  - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends, experimental measurements or several simulations at once.
+  - `plot_type::Symbol=:scatter`: If the plot will be a :scatter plot or a :heatmap. Heatmaps will not show legends or several simulations at once.
   - `integrated::Bool=false`: If the integrated (one point per galaxy) or resolved (several point per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = :scatter. The central value is the weighted median and the error bars are the median absolute deviations.
   - `sfr_density::Bool=true`: If the quantity for the y axis will be the SFR surface density or, if set to false, the stellar mass surface density.
   - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = :scatter, each point (a bin in the 2D grid) can be weighted by a gas quantity. If `integrated` = true, the median will be computed with these weights in mind. If `integrated` = false, each point will have a color given by the weight. The posible weights are:
@@ -6905,13 +6905,9 @@ Plot the Kennicutt-Schmidt law.
       + `:gas_sfr`          -> The total gas SFR of the column associated with each bin. See the documentation for the function [`daGasSFR2DProjection`](@ref).
       + `:gas_metallicity`  -> The total metallicity of the column associated with each bin. See the documentation for the function [`daMetallicity2DProjection`](@ref).
       + `:temperature`      -> The median gas temperature of the column associated with each bin. See the documentation for the function [`daTemperature2DProjection`](@ref).
-  - `measurements::Bool=true`: If the experimental measurements from Kennicutt (1998), Bigiel et al. (2008) or Bigiel et al. (2010) will be plotted alongside the simulation results.
-  - `measurement_type::Union{String,Symbol}=:fits`: Type of measurement to plot, only valid if `measurement` = true. The option are:
-
-      + `:fits`: Fits from Bigiel et al. (2008) and/or Kennicutt (1998) depending on the quantity in the x axis. The fits will be plotted as lines with uncertanty bands.
-      + `"NGC XXX"`: Plot the resolved data of the given galaxy as a scatter plot. Uses the data from Sun et al. (2023). See the documentation of [`ppSun2023!`](@ref) for options.
-      + `:main`: Plot the data of the main galaxy distribution in Sun et al. (2023), as a scatter plot.
-      + `:all`: Plot the data of every galaxy in Sun et al. (2023), as a scatter plot.
+  - `post_processing::Function=getNothing`: Post processing function. See the required signature and examples in `./src/plotting/post_processing.jl`.
+  - `pp_args::Tuple=()`: Positional arguments for the post processing function.
+  - `pp_kwargs::NamedTuple=(;)`: Keyword arguments for the post processing function.
   - `fit::Bool=false`: If the simulation data law will be fitted with a power law. The fit will be plotted as a line. This option is only valid if `integrated` = false and `plot_type` = :scatter, otherwise it will be ignored.
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the heatmap grid. If set to `nothing`, the extrema of the x values will be used. Only relevant if `plot_type` = :heatmap.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the y values will be used. Only relevant if `plot_type` = :heatmap.
@@ -6972,8 +6968,9 @@ function kennicuttSchmidtLaw(
     integrated::Bool=false,
     sfr_density::Bool=true,
     gas_weights::Union{Symbol,Nothing}=nothing,
-    measurements::Bool=true,
-    measurement_type::Union{String,Symbol}=:fits,
+    post_processing::Function=getNothing,
+    pp_args::Tuple=(),
+    pp_kwargs::NamedTuple=(;),
     fit::Bool=false,
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
@@ -6992,8 +6989,8 @@ function kennicuttSchmidtLaw(
     # Default values
     ################################################################################################
 
-    # Default voxel side length
-    voxel_size = 200.0u"pc"
+    # Default high resolution voxel side length
+    voxel_size = 150.0u"pc"
 
     # Default units for the gas surface density
     Σg_m_unit = u"Msun"
@@ -7112,54 +7109,6 @@ function kennicuttSchmidtLaw(
 
     end
 
-    if measurements
-
-        if !sfr_density
-
-            (
-                !logging[] ||
-                @warn("kennicuttSchmidtLaw: `sfr_density` is set to false, so \
-                `measurements` = true will be ignored and default to false. The experimental \
-                measurements are only for the SFR surface density")
-            )
-
-            measurements = false
-
-        end
-
-        if quantity == :gas_mass && logging[]
-
-            @warn("kennicuttSchmidtLaw: The measurements (fits or otherwise) are only available \
-            for molecular and neutral gas. For `quantity` = :gas_mass the neutral gas measurements \
-            will be used, even though this is technically not correct")
-
-        end
-
-        if isa(measurement_type, String) && integrated && logging[]
-
-            @warn("kennicuttSchmidtLaw: `integrated` is set to true but you have set \
-            `measurement_type` to plot the resolved measurements of galaxy $(measurement_type). \
-            Are you sure you want this?")
-
-        end
-
-        if measurement_type ∈ [:all, :main] && integrated && logging[]
-
-            @warn("kennicuttSchmidtLaw: `integrated` is set to true but you have set \
-            `measurement_type` to plot the resolved measurements of several galaxies in \
-            Sun et al. (2023). Are you sure you want this?")
-
-        end
-
-        if measurement_type ∈ [:all, :main] && quantity ∈ [:gas_mass, :neutral_mass] && logging[]
-
-            @warn("kennicuttSchmidtLaw: The measurements from Sun et al. (2023) are only for \
-            molecular gas, but the selected quantity is :$(quantity). Are you sure you want this?")
-
-        end
-
-    end
-
     if plot_type == :heatmap
 
         if !isnothing(gas_weights)
@@ -7183,18 +7132,6 @@ function kennicuttSchmidtLaw(
             )
 
             fit = false
-
-        end
-
-        if measurements
-
-            (
-                !logging[] ||
-                @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap, so \
-                `measurements` = true will be ignored and default to false")
-            )
-
-            measurements = false
 
         end
 
@@ -7229,6 +7166,19 @@ function kennicuttSchmidtLaw(
         )
 
         colorbar = false
+
+    end
+
+    if post_processing ∉ [getNothing, ppBigiel2008!, ppBigiel2010!, ppKennicutt1998!, ppSun2023!]
+
+         (
+            !logging[] ||
+            @warn("kennicuttSchmidtLaw: `post_processing` can only be getNothing, ppBigiel2008!, \
+            ppBigiel2010!, ppKennicutt1998! or ppSun2023!, but I got $(post_processing) \
+            which will be ignored and default to getNothing")
+        )
+
+        post_processing = getNothing
 
     end
 
@@ -7483,15 +7433,15 @@ function kennicuttSchmidtLaw(
 
     with_theme(current_theme) do
 
-        f = Figure()
+        figure = Figure()
 
         ax = CairoMakie.Axis(
-            f[1, 1];
+            figure[1, 1];
             xlabel=L"$\log_{10}$ %$(x_label)",
             ylabel=L"$\log_{10}$ %$(y_label)",
         )
 
-        colors = [:gray15, current_theme[:palette][:color][][2:ns]...]
+        colors = [:gray15, current_theme[:palette][:color][][1:(ns - 1)]...]
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
@@ -7655,12 +7605,12 @@ function kennicuttSchmidtLaw(
                                 ax,
                                 x_data,
                                 y_data;
-                                color=(colors[sim_idx], 0.8),
+                                color=colors[sim_idx],
                             )
 
                             if fit
                                 ppFitLine!(
-                                    f;
+                                    figure;
                                     text_position=(0.97, 0.99),
                                     text_handle=:right,
                                     color=Makie.wong_colors()[1],
@@ -7679,7 +7629,7 @@ function kennicuttSchmidtLaw(
 
                             if fit
                                 ppFitLine!(
-                                    f;
+                                    figure;
                                     text_position=(0.97, 0.99),
                                     text_handle=:right,
                                     wts=exp10.(z_data),
@@ -7782,7 +7732,7 @@ function kennicuttSchmidtLaw(
         end
 
         ############################################################################################
-        # Plot the experimental fits and the legend
+        # Apply the post processing function
         ############################################################################################
 
         if !isnothing(sim_labels) && plot_type == :scatter
@@ -7790,7 +7740,7 @@ function kennicuttSchmidtLaw(
             if !isnothing(gas_weights) && !integrated
 
                 markers = [
-                    MarkerElement(; color=(colors[1], 0.8), marker=:circle, markersize=20) for
+                    MarkerElement(; color=colors[1], marker=:circle, markersize=20) for
                     _ in eachindex(sim_labels)
                 ]
 
@@ -7804,58 +7754,19 @@ function kennicuttSchmidtLaw(
 
         end
 
-        if measurements
+        pp_legend = post_processing(
+            figure,
+            pp_args...;
+            x_unit=Σg_m_unit * Σg_l_unit^-2,
+            y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
+            pp_kwargs...
+        )
 
-            if measurement_type == :fits
-
-                if quantity ∈ [:molecular_mass, :br_molecular_mass]
-
-                    pp_legend = ppBigiel2008!(
-                        f,
-                        true;
-                        x_unit=Σg_m_unit * Σg_l_unit^-2,
-                        y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
-                        colors=[Makie.wong_colors()[1], Makie.wong_colors()[2]],
-                    )
-
-                else
-
-                    legend_bigiel = ppBigiel2008!(
-                        f,
-                        false;
-                        x_unit=Σg_m_unit * Σg_l_unit^-2,
-                        y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
-                        colors=[Makie.wong_colors()[1], Makie.wong_colors()[2]],
-                    )
-
-                    legend_kennicut = ppKennicutt1998!(
-                        f;
-                        x_unit=Σg_m_unit * Σg_l_unit^-2,
-                        y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
-                        colors=[Makie.wong_colors()[3], Makie.wong_colors()[4]],
-                    )
-
-                    pp_legend = (
-                        vcat(legend_bigiel[1], legend_kennicut[1]),
-                        vcat(legend_bigiel[2], legend_kennicut[2]),
-                    )
-
-                end
-
-            else
-
-                pp_legend = ppSun2023!(
-                    f;
-                    galaxy=measurement_type,
-                    x_unit=Σg_m_unit * Σg_l_unit^-2,
-                    y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
-                )
-
-            end
+       if !isnothing(pp_legend)
 
             if !isnothing(sim_labels) && plot_type == :scatter
 
-                Makie.Legend(f[1, 1], vcat(markers, pp_legend[1]), vcat(sim_labels, pp_legend[2]))
+                Makie.Legend(figure[1, 1], vcat(markers, pp_legend[1]), vcat(sim_labels, pp_legend[2]))
 
             end
 
@@ -7863,7 +7774,7 @@ function kennicuttSchmidtLaw(
 
             if !isnothing(sim_labels) && plot_type == :scatter
 
-                Makie.Legend(f[1, 1], markers, sim_labels)
+                Makie.Legend(figure[1, 1], markers, sim_labels)
 
             end
 
@@ -7871,7 +7782,7 @@ function kennicuttSchmidtLaw(
 
         if !isnothing(sim_labels) && plot_type == :heatmap
 
-            ppAnnotation!(f, sim_labels[1]; color=:white, fontsize=30)
+            ppAnnotation!(figure, sim_labels[1]; color=:white, fontsize=30)
 
         end
 
@@ -7882,12 +7793,12 @@ function kennicuttSchmidtLaw(
         if colorbar
 
             if plot_type == :heatmap
-                Colorbar(f[1, 2], f.content[1].scene.plots[1]; label=L"\mathrm{Counts}")
+                Colorbar(figure[1, 2], figure.content[1].scene.plots[1]; label=L"\mathrm{Counts}")
             else
-                Colorbar(f[1, 2], f.content[1].scene.plots[1]; label=c_label)
+                Colorbar(figure[1, 2], figure.content[1].scene.plots[1]; label=c_label)
             end
 
-            rowsize!(f.layout, 1, Makie.Fixed(pixelarea(ax.scene)[].widths[2]))
+            rowsize!(figure.layout, 1, Makie.Fixed(pixelarea(ax.scene)[].widths[2]))
 
         end
 
@@ -7895,7 +7806,7 @@ function kennicuttSchmidtLaw(
         # Save the plot
         ############################################################################################
 
-        Makie.save(output_file, f)
+        Makie.save(output_file, figure)
 
     end
 

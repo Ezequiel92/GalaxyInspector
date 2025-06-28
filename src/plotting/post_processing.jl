@@ -947,7 +947,7 @@ function ppBigiel2010!(
 	# Plot the galactic data
 	################################################################################################
 
-	scatter!(
+	sp = scatter!(
         figure.current_axis.x,
         Σg,
         Σsfr;
@@ -955,6 +955,9 @@ function ppBigiel2010!(
         marker=:star4,
         markersize=10,
     )
+
+    # Put the post processing elements at the back of the plot
+    translate!(Accum, sp, 0, 0, -10)
 
     if galaxy == :all
         label = "Bigiel et al. 2010"
@@ -1095,7 +1098,7 @@ function ppSun2023!(
 	# Plot the galactic data
 	################################################################################################
 
-	scatter!(
+	sp = scatter!(
         figure.current_axis.x,
         x_data,
         y_data;
@@ -1103,6 +1106,9 @@ function ppSun2023!(
         marker=:star4,
         markersize=10,
     )
+
+    # Put the post processing elements at the back of the plot
+    translate!(Accum, sp, 0, 0, -10)
 
     if isa(galaxy, String)
         label = "$(galaxy) - Sun et al. 2023"
