@@ -132,16 +132,20 @@ const QUANTITIES = Dict(
     # EL_SFR quantities
     ####################
 
-    # Integration time, in gas cells and stellar particles
+    # Integration time, for gas cells and stellar particles
     "ODIT" => Qty("ODE_IntegrationTime", Unitful.𝐓, u"Myr"),
-    # Scale factor, in gas cells and stellar particles
+    # Scale factor, for gas cells and stellar particles
     "PARA" => Qty("ODE_ParameterA", Unitful.NoDims, Unitful.NoUnits),
-    # Star formation time parameter, in gas cells and stellar particles
+    # UVB photoionization rate, for gas cells and stellar particles
+    "PARU" => Qty("ODE_ParameterUVB", Unitful.𝐓^-1, u"Myr^-1"),
+    # Star formation time parameter, for gas cells and stellar particles
     "TAUS" => Qty("ODE_TauS", Unitful.𝐓, u"Myr"),
     # Gas density, for gas cells and stellar particles
     "RHOC" => Qty("ODE_ParameterCellDensity", Unitful.𝐋^-3, u"cm^-3"),
     # Gas metallicity, for gas cells and stellar particles
     "PARZ" => Qty("ODE_ParameterMetallicity", Unitful.NoDims, Unitful.NoUnits),
+    # Column height, for gas cells and stellar particles
+    "PARH" => Qty("ODE_ParameterColumnHeight", Unitful.𝐋, u"cm"),
     # Photodissociation parameter, for gas cells and stellar particles
     "ETAD" => Qty("ODE_ParameterEtaD", Unitful.NoDims, Unitful.NoUnits),
     # Photoionization parameter, for gas cells and stellar particles
@@ -166,12 +170,6 @@ const QUANTITIES = Dict(
     "GPOS" => Qty("ODE_GasPosition", Unitful.𝐋, :internal),
     # Parent velocity (at the moment of star formation), for stellar particles
     "GVEL" => Qty("ODE_GasVelocity", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
-
-    # Legacy quantities
-    "ACIT" => Qty("ODE_AccumulatedIntegrationTime", Unitful.𝐓, u"Myr"),
-    "CTIM" => Qty("ODE_CurrentTime", Unitful.𝐓, u"Myr"),
-    "DTIM" => Qty("ODE_DeltaTime", Unitful.𝐓, u"Myr"),
-    "FSPR" => Qty("ODE_f_star_prev", Unitful.NoDims, Unitful.NoUnits),
 
     ##############################
     # Halo (FoF group) quantities
