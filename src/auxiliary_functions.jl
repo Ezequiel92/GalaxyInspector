@@ -3958,7 +3958,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
-            var_name = L"SFR",
+            var_name = L"\mathrm{SFR}",
             unit     = u"Msun*yr^-1",
         )
 
@@ -3966,7 +3966,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
-            var_name = L"sSFR",
+            var_name = L"\mathrm{sSFR}",
             unit     = u"yr^-1",
         )
 
@@ -3974,7 +3974,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
-            var_name = L"SFR",
+            var_name = L"\mathrm{SFR}",
             unit     = u"Msun*yr^-1",
         )
 
@@ -3982,7 +3982,7 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
-            var_name = L"sSFR",
+            var_name = L"\mathrm{sSFR}",
             unit     = u"yr^-1",
         )
 
