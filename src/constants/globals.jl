@@ -618,15 +618,15 @@ const DEFAULT_THEME = Theme(
         linewidth=5,
         markersize=28,
         patchsize=(50, 50),
-        linepoints=[Point2f(0.0, 0.5), Point2f(0.9, 0.5)],
+        linepoints=[Makie.Point2f(0.0, 0.5), Makie.Point2f(0.9, 0.5)],
         ###############################################
         # Vertices, relative to the default 1x1 square
         ###############################################
         polypoints=[
-            Point2f(0.15, 0.15),
-            Point2f(0.85, 0.15),
-            Point2f(0.85, 0.85),
-            Point2f(0.15, 0.85),
+            Makie.Point2f(0.15, 0.15),
+            Makie.Point2f(0.85, 0.15),
+            Makie.Point2f(0.85, 0.85),
+            Makie.Point2f(0.15, 0.85),
         ],
     ),
     Lines=(linewidth=5, cycle=CYCLE),
