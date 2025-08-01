@@ -8,7 +8,7 @@ defaults:
   run:
     shell: bash
 jobs:
-  update_each_manifest:
+  update_manifest:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -46,7 +46,7 @@ jobs:
           path: Manifest.toml
           if-no-files-found: error
   make_single_pr:
-    needs: update_each_manifest
+    needs: update_manifest
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
