@@ -103,8 +103,10 @@ const MORPHOLOGICAL_COMPONENTS = Dict(
 # Constants of the SF model
 ############################
 
-#TODO
-const C_xd = 0.28359533
+"""
+Constant for the initial condition of dust and metals.
+"""
+const C_xd = 0.2835953313674557
 
 #######################################
 # Reference values from the literature
