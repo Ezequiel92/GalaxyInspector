@@ -958,7 +958,7 @@ function readSfrFile(
     isfile(file_path) || throw(ArgumentError("readSfrFile: $(file_path) does not exists as a file"))
 
     # Load the data from the `sfr.txt` file
-    file_data = readdlm(file_path, Float64)
+    file_data = CSV.read(file_path, DataFrame; header=false, delim=' ', ignorerepeated=true)
     n_cols = size(file_data, 2)
 
     # Check that the data in the file has the correct size

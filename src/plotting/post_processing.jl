@@ -785,7 +785,15 @@ function ppBigiel2010!(
 	# Load table 2 from Bigiel et al. 2010
 	################################################################################################
 
-	raw_data_2 = readdlm(BIGIEL2010_TABLE_2, '\t', skipstart=48, header=true)[1]
+    raw_data_2 = CSV.read(
+		BIGIEL2010_TABLE_2,
+		DataFrame;
+		delim='\t',
+		skipto=50,
+		header=false,
+		ignorerepeated=true,
+		silencewarnings=true,
+	)
 
 	table_2 = DataFrame(
 		gtype=String[],
@@ -815,7 +823,15 @@ function ppBigiel2010!(
 	# Load table 3 from Bigiel et al. 2010
 	################################################################################################
 
-	raw_data_3 = readdlm(BIGIEL2010_TABLE_3, '\t', skipstart=46, header=true)[1]
+    raw_data_3 = CSV.read(
+		BIGIEL2010_TABLE_3,
+		DataFrame;
+		delim='\t',
+		skipto=48,
+		header=false,
+		ignorerepeated=true,
+		silencewarnings=true,
+	)
 
 	table_3 = DataFrame(
 		gtype=String[],
@@ -1021,9 +1037,18 @@ function ppSun2023!(
 	# Load table A1 from Sun et al. 2023
 	################################################################################################
 
-	raw_data = readdlm(SUN2023_TABLE, skipstart=57, header=false)
+    raw_data = CSV.read(
+        SUN2023_TABLE,
+        DataFrame;
+        delim=' ',
+        skipto=58,
+        header=false,
+        ignorerepeated=true,
+        silencewarnings=true,
+    )
 
-    clean_data = DataFrame(replace(raw_data, "" => Inf), :auto)
+    # clean_data = DataFrame(replace(raw_data, "" => Inf), :auto)
+    clean_data = ifelse.(raw_data .=== missing, Inf, raw_data)
 
     # Shift in the column indices correspondig to each SFR calibration
     sfr_calibrations = Dict(:Halpha => 0, :FUV => 2, :AV_corrected_Halpha => 4)
@@ -1045,7 +1070,7 @@ function ppSun2023!(
             throw(ArgumentError("ppSun2023!: `galaxy` = $(galaxy) is not a valid galaxy"))
         )
 
-        data = filter(:x1 => isequal(galaxy), clean_data)
+        data = filter(:Column1 => isequal(galaxy), clean_data)
 
     else
 
@@ -1641,7 +1666,7 @@ function ppAgertz2021!(
             translate!(Accum, sp, 0, 0, -10)
 
             legend_elements[i] = MarkerElement(; color, marker=:circle)
-            labels[i] = "Leroy et al. (2008)"
+            labels[i] = "Agertz et al. (2021) - All"
 
         else
 
@@ -1664,7 +1689,7 @@ function ppAgertz2021!(
             translate!(Accum, lp, 0, 0, -9)
 
             legend_elements[i] = LineElement(; color, linestyle, linewidth)
-            labels[i] = "$(galaxy)"
+            labels[i] = "Agertz et al. (2021) - $(galaxy)"
 
         end
 
