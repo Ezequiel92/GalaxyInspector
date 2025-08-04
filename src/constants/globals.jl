@@ -103,23 +103,8 @@ const MORPHOLOGICAL_COMPONENTS = Dict(
 # Constants of the SF model
 ############################
 
-# # Star formation efficiency
-# const ϵff  = 1.0
-# # Recombination coefficient
-# const αH   = 2.6e-13u"cm^3 * s^-1"
-# # Formation rate coefficient of H₂ on dust grain (at solar metallicity)
-# const Rsun = 3.5e-17u"cm^3 * s^-1"
-# # Solar metallicity
-# const Zsun = 0.0127
-# # Effective metallicity
-# const Zeff = 1e-3 * Zsun
-# # Clumping factor
-# const Cρ   = 100.0
-
+#TODO
 const C_xd = 0.28359533
-# const C_star = sqrt(3π / 32u"G") / ϵff
-# const C_rec  = u"mp" / αH
-# const C_cond = (u"mp" * Zsun) / (2 * Rsun * Cρ)
 
 #######################################
 # Reference values from the literature
@@ -618,6 +603,7 @@ const DEFAULT_THEME = Theme(
         linewidth=5,
         markersize=28,
         patchsize=(50, 50),
+        #TODO
         linepoints=[Makie.Point2f(0.0, 0.5), Makie.Point2f(0.9, 0.5)],
         ###############################################
         # Vertices, relative to the default 1x1 square

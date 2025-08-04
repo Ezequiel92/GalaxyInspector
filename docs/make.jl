@@ -33,6 +33,7 @@ makedocs(
             "api/analysis/compute_quantities/velocities.md",
             "api/analysis/compute_quantities/masses.md",
             "api/analysis/compute_quantities/other.md",
+            "api/analysis/compute_quantities/aggregators.md",
             "api/auxiliary_functions.md",
             "api/analysis/filters.md",
             "api/analysis/tracers.md",
