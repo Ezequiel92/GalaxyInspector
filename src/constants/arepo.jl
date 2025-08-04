@@ -138,6 +138,8 @@ const QUANTITIES = Dict(
     "PARA" => Qty("ODE_ParameterA", Unitful.NoDims, Unitful.NoUnits),
     # UVB photoionization rate, for gas cells and stellar particles
     "PARU" => Qty("ODE_ParameterUVB", Unitful.𝐓^-1, u"Myr^-1"),
+    # LWB photodissociationn rate, for gas cells and stellar particles
+    "PARL" => Qty("ODE_ParameterLWB", Unitful.𝐓^-1, u"Myr^-1"),
     # Star formation time parameter, for gas cells and stellar particles
     "TAUS" => Qty("ODE_TauS", Unitful.𝐓, u"Myr"),
     # Gas density, for gas cells and stellar particles
