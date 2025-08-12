@@ -798,9 +798,9 @@ function ppBigiel2010!(
 	table_2 = DataFrame(
 		gtype=String[],
 		name=String[],
-		logHI=Union{Float64,Missing}[],
-		logH2=Union{Float64,Missing}[],
-		logSFR=Union{Float64,Missing}[],
+		HI=Union{Quantity,Missing}[],
+		H2=Union{Quantity,Missing}[],
+		SFR=Union{Quantity,Missing}[],
 	)
 
 	for row in eachrow(raw_data_2)
@@ -809,11 +809,11 @@ function ppBigiel2010!(
 
 		gtype  = strip(data[1:13])
 		name   = strip(data[14:24])
-		logHI  = parserWS(data[26:29])
-		logH2  = parserWS(data[36:39])
-		logSFR = parserWS(data[46:50])
+		HI  = exp10(parserWS(data[26:29])) * u"Msun * pc^-2"
+		H2  = exp10(parserWS(data[36:39])) * u"Msun * pc^-2"
+		SFR = exp10(parserWS(data[46:50])) * u"Msun * yr^-1 * kpc^-2"
 
-		push!(table_2, [gtype name logHI logH2 logSFR])
+		push!(table_2, [gtype name HI H2 SFR])
 
 	end
 
@@ -836,8 +836,8 @@ function ppBigiel2010!(
 	table_3 = DataFrame(
 		gtype=String[],
 		name=String[],
-		logHI=Union{Float64,Missing}[],
-		SFR=Union{Float64,Missing}[],
+		HI=Union{Quantity,Missing}[],
+		SFR=Union{Quantity,Missing}[],
 	)
 
 	for row in eachrow(raw_data_3)
@@ -846,10 +846,10 @@ function ppBigiel2010!(
 
 		gtype = strip(data[1:8])
 		name  = strip(data[9:19])
-		logHI = parserWS(data[21:25])
-		SFR   = parserWS(data[32:37]) .* exp10(-5.0)
+		HI    = exp10(parserWS(data[21:25])) * u"Msun * pc^-2"
+		SFR   = parserWS(data[32:37]) * exp10(-5.0) * u"Msun * yr^-1 * kpc^-2"
 
-		push!(table_3, [gtype name logHI SFR])
+		push!(table_3, [gtype name HI SFR])
 
 	end
 
@@ -874,8 +874,8 @@ function ppBigiel2010!(
 
 		end
 
-		Σg   = exp10.(target_galaxy[!, :logH2]) .* u"Msun * pc^-2"
-		Σsfr = exp10.(target_galaxy[!, :logSFR]) .* u"Msun * yr^-1 * kpc^-2"
+		Σg   = target_galaxy[!, :H2]
+		Σsfr = target_galaxy[!, :SFR]
 
     elseif quantity == :neutral
 
@@ -892,11 +892,11 @@ function ppBigiel2010!(
 
 		end
 
-        ΣH2   = exp10.(target_galaxy[!, :logH2]) .* u"Msun * pc^-2"
-        ΣHI   = exp10.(target_galaxy[!, :logHI]) .* u"Msun * pc^-2"
+        ΣH2   = target_galaxy[!, :H2]
+        ΣHI   = target_galaxy[!, :HI]
 
 		Σg   = ΣH2 .+ ΣHI
-		Σsfr = exp10.(target_galaxy[!, :logSFR]) .* u"Msun * yr^-1 * kpc^-2"
+		Σsfr = target_galaxy[!, :SFR]
 
 	elseif quantity == :atomic
 
@@ -907,8 +907,8 @@ function ppBigiel2010!(
 
             # Join the data in table 2 and table 3, ignoring repeated galaxies
             target_galaxy = vcat(
-                spirals_2[!, [:logHI, :SFR]],
-                filter(:name => in(galaxies_t3), spirals_3)[!, [:logHI, :SFR]],
+                spirals_2[!, [:HI, :SFR]],
+                filter(:name => in(galaxies_t3), spirals_3)[!, [:HI, :SFR]],
             )
 
         else
@@ -930,8 +930,8 @@ function ppBigiel2010!(
 
 		end
 
-		Σg   = exp10.(target_galaxy[!, :logHI]) .* u"Msun * pc^-2"
-		Σsfr = target_galaxy[!, :SFR] .* u"Msun * yr^-1 * kpc^-2"
+		Σg   = target_galaxy[!, :HI]
+		Σsfr = target_galaxy[!, :SFR]
 
 	else
 
@@ -1136,11 +1136,9 @@ function ppSun2023!(
     translate!(Accum, sp, 0, 0, -10)
 
     if isa(galaxy, String)
-        label = "$(galaxy) - Sun et al. 2023"
-    elseif galaxy == :all
-        label = "Sun et al. 2023 (all galaxies)"
+        label = "$(galaxy) - Sun et al. (2023)"
     else
-        label = "Sun et al. 2023"
+        label = "Sun et al. (2023)"
     end
 
     return ([MarkerElement(; color, marker=:star4)], [label])
@@ -1647,7 +1645,7 @@ function ppAgertz2021!(
             x_data = @. ustrip(x_unit, r)
         end
 
-        # Set the correct scale and units for the x axis
+        # Set the correct scale and units for the y axis
         if y_log
             y_data = @. Measurements.value(log10(ustrip(y_unit, Σs)))
             y_error = @. Measurements.uncertainty(log10(ustrip(y_unit, Σs)))
@@ -1666,7 +1664,7 @@ function ppAgertz2021!(
             translate!(Accum, sp, 0, 0, -10)
 
             legend_elements[i] = MarkerElement(; color, marker=:circle)
-            labels[i] = "Agertz et al. (2021) - All"
+            labels[i] = "Agertz et al. (2021)"
 
         else
 
@@ -1689,12 +1687,178 @@ function ppAgertz2021!(
             translate!(Accum, lp, 0, 0, -9)
 
             legend_elements[i] = LineElement(; color, linestyle, linewidth)
-            labels[i] = "Agertz et al. (2021) - $(galaxy)"
+            labels[i] = "$(galaxy) - Agertz et al. (2021)"
 
         end
 
     end
 
     return legend_elements, labels
+
+end
+
+"""
+    ppLeroy2008!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+Draw a scatter plot using the experimental data from Leroy et al. (2008).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure to be drawn over.
+  - `quantity::Symbol=:molecular`: Quantity for the y axis. The options are:
+
+      + `:molecular`: Molecular hydrogen (``\\mathrm{H_2}``) mass surface density.
+      + `:atomic`: Atomic hydrogen (``\\mathrm{HI}``) mass surface density.
+      + `:neutral`: Neutral gas mass surface density, computed as the sum of the molecular and atomic hydrogen mass surface densities.
+  - `galaxies::Vector=["MW"]`: Target galaxies. The options are:
+
+      + One of the 23 galaxies in Leroy et al. (2008), e.g. "DDO154", "HOI", "HOII", "IC2574", "NGC0628", "NGC0925", etc. For a full list see the reference below.
+      + :all: All 23 galaxies in the dataset of Leroy et al. (2008).
+  - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the x axis.
+  - `y_unit::Unitful.Units=u"Msun * kpc^-2 * yr^-1"`: Unit for the y axis.
+  - `x_log::Bool=true`: If the x axis will be plotted as the log10 of the gas surface density.
+  - `y_log::Bool=true`: If the y axis will be plotted as the log10 of the sfr surface density.
+  - `error_bars::Bool=false`: If error bars will be plotted.
+  - `color::ColorType=Makie.wong_colors()[2],`: Color for the markers.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A vector of `LineElement`.
+      + A vector of labels.
+
+# References
+
+A. K. Leroy et al. (2008). *THE STAR FORMATION EFFICIENCY IN NEARBY GALAXIES: MEASURING WHERE GAS FORMS STARS EFFECTIVELY*. The Astronomical Journal **136(6)**, 2782–2845. [doi:10.1088/0004-6256/136/6/2782](https://doi.org/10.1088/0004-6256/136/6/2782)
+"""
+function ppLeroy2008!(
+    figure::Makie.Figure;
+    quantity::Symbol=:molecular,
+    galaxies::Vector{<:Union{Symbol,String}}=[:all],
+    x_unit::Unitful.Units=u"Msun * pc^-2",
+    y_unit::Unitful.Units=u"Msun * kpc^-2 * yr^-1",
+    x_log::Bool=true,
+    y_log::Bool=true,
+    error_bars::Bool=false,
+    color::ColorType=Makie.wong_colors()[2],
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+    ################################################################################################
+	# Load the data from Leroy et al. (2008)
+	################################################################################################
+
+    leroy2008 = load(LEROY2008_DATA_PATH)["dataframe"]
+
+    # List of available galaxies in Leroy et al. (2008)
+    leroy_galaxies = unique(leroy2008[!, "Name"])
+
+	################################################################################################
+	# Find the target galaxies and read its values
+	################################################################################################
+
+    legend_elements = Vector{LegendElement}(undef, length(galaxies))
+    labels = Vector{String}(undef, length(galaxies))
+
+    for galaxy in galaxies
+
+        if galaxy ∈ leroy_galaxies
+
+            leroy_data = filter(:Name => isequal(galaxy), leroy2008)
+
+        elseif galaxy == :all
+
+            leroy_data = leroy2008
+
+        else
+
+            throw(ArgumentError("ppLeroy2008!: $(galaxy) is not a valid argument for a galaxy"))
+
+        end
+
+        Σsfr = leroy_data[!, "FUV+24"] .± leroy_data[!, "e_FUV+24"]
+        ΣH2  = leroy_data[!, "SigmaH2"] .± leroy_data[!, "e_SigmaH2"]
+        ΣHI  = leroy_data[!, "SigmaHI"] .± leroy_data[!, "e_SigmaHI"]
+
+        if quantity == :molecular
+
+            Σgas = ΣH2
+
+        elseif quantity == :atomic
+
+            Σgas = ΣHI
+
+        elseif quantity == :neutral
+
+            Σgas = ΣH2 .+ ΣHI
+
+        else
+
+            throw(ArgumentError("ppLeroy2008!: `quantity` can only be :molecular, :atomic, or \
+            :neutral, but I got :$(quantity)"))
+
+        end
+
+        # Set the correct scale and units for the x axis
+        if x_log
+            x_data = @. Measurements.value(log10(ustrip(x_unit, Σgas)))
+            x_error = @. Measurements.uncertainty(log10(ustrip(x_unit, Σgas)))
+        else
+            x_data = @. Measurements.value(ustrip(x_unit, Σgas))
+            x_error = @. Measurements.uncertainty(ustrip(x_unit, Σgas))
+        end
+
+        # Set the correct scale and units for the y axis
+        if y_log
+            y_data = @. Measurements.value(log10(ustrip(y_unit, Σsfr)))
+            y_error = @. Measurements.uncertainty(log10(ustrip(y_unit, Σsfr)))
+        else
+            y_data = @. Measurements.value(ustrip(y_unit, Σsfr))
+            y_error = @. Measurements.uncertainty(ustrip(y_unit, Σsfr))
+        end
+
+        sp = scatter!(
+            figure.current_axis.x,
+            x_data,
+            y_data;
+            color=(color, 0.7),
+            marker=:star4,
+            markersize=10,
+        )
+
+        # Put the post processing elements at the back of the plot
+        translate!(Accum, sp, 0, 0, -10)
+
+        if error_bars
+
+            xerr = errorbars!(
+                figure.current_axis.x,
+                x_data,
+                y_data,
+                x_error,
+                direction=:x;
+                color=(color, 0.7),
+            )
+
+            yerr = errorbars!(
+                figure.current_axis.x,
+                x_data,
+                y_data,
+                y_error;
+                color=(color, 0.7),
+            )
+
+            # Put the post processing elements at the back of the plot
+            translate!(Accum, xerr, 0, 0, -10)
+            translate!(Accum, yerr, 0, 0, -10)
+
+        end
+
+    end
+
+    return [MarkerElement(; color, marker=:star4)], ["Leroy et al. (2008)"]
 
 end

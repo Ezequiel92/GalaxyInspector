@@ -6886,9 +6886,10 @@ Plot the Kennicutt-Schmidt law.
   - `quantity::Symbol=:molecular_mass`: Quantity for the x axis. The options are:
 
       + `:gas_mass`          -> Total gas mass surface density.
-      + `:molecular_mass`    -> Molecular mass surface density. This one can be plotted with the results of Bigiel et al. (2008) and Sun et al. (2023).
-      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006). This one can be plotted with the results of Bigiel et al. (2008) and Sun et al. (2023).
-      + `:neutral_mass`      -> Neutral mass surface density. This one can be plotted with the results of Bigiel et al. (2008), and Kennicutt (1998).
+      + `:molecular_mass`    -> Molecular mass surface density.
+      + `:br_molecular_mass` -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006).
+      + `:atomic_mass`       -> Atomic mass surface density.
+      + `:neutral_mass`      -> Neutral mass surface density.
   - `gas_type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in :particles or in Voronoi :cells.
   - `reduce_grid::Symbol=:square`: Grid for the density projection. The options are:
 
@@ -7024,9 +7025,9 @@ function kennicuttSchmidtLaw(
     ################################################################################################
 
     (
-        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :neutral_mass] ||
+        quantity ∈ [:gas_mass, :molecular_mass, :br_molecular_mass, :atomic_mass, :neutral_mass] ||
         throw(ArgumentError("kennicuttSchmidtLaw: `quantity` can only be :gas_mass, \
-        :molecular_mass, :br_molecular_mass or :neutral_mass, but I got :$(quantity)"))
+        :molecular_mass, :br_molecular_mass, :atomic_mass or :neutral_mass, but I got :$(quantity)"))
     )
 
     (
@@ -7169,13 +7170,20 @@ function kennicuttSchmidtLaw(
 
     end
 
-    if post_processing ∉ [getNothing, ppBigiel2008!, ppBigiel2010!, ppKennicutt1998!, ppSun2023!]
+    if post_processing ∉ [
+        getNothing,
+        ppBigiel2008!,
+        ppBigiel2010!,
+        ppKennicutt1998!,
+        ppSun2023!,
+        ppLeroy2008!,
+    ]
 
          (
             !logging[] ||
             @warn("kennicuttSchmidtLaw: `post_processing` can only be getNothing, ppBigiel2008!, \
-            ppBigiel2010!, ppKennicutt1998! or ppSun2023!, but I got $(post_processing) \
-            which will be ignored and default to getNothing")
+            ppBigiel2010!, ppKennicutt1998!, ppSun2023! or ppLeroy2008!, but I got \
+            $(post_processing) which will be ignored and default to getNothing")
         )
 
         post_processing = getNothing
@@ -7378,6 +7386,10 @@ function kennicuttSchmidtLaw(
         x_label = getLabel(
             plotParams(:br_molecular_area_density).var_name, 0, Σg_m_unit * Σg_l_unit^-2,
         )
+
+    elseif quantity == :atomic_mass
+
+        x_label = getLabel(plotParams(:atomic_area_density).var_name, 0, Σg_m_unit * Σg_l_unit^-2)
 
     elseif quantity == :neutral_mass
 
@@ -7766,7 +7778,11 @@ function kennicuttSchmidtLaw(
 
             if !isnothing(sim_labels) && plot_type == :scatter
 
-                Makie.Legend(figure[1, 1], vcat(markers, pp_legend[1]), vcat(sim_labels, pp_legend[2]))
+                Makie.Legend(
+                    figure[1, 1],
+                    vcat(markers, pp_legend[1]),
+                    vcat(sim_labels, pp_legend[2]),
+                )
 
             end
 
