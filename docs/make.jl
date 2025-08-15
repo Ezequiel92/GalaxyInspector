@@ -19,8 +19,8 @@ makedocs(
     ),
     modules=[GalaxyInspector],
     pages=[
-        "Introduction" => "intro.md",
-        "Index" => "index.md",
+        "Introduction" => "index.md",
+        "Function Index" => "function_index.md",
         "API" => Any[
             "api/plotting/pipelines.md",
             "api/plotting/convenience.md",

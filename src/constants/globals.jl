@@ -341,7 +341,7 @@ F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISK
 """
 const BIGIEL2010_TABLE_2 = joinpath(
     @__DIR__,
-    "../../experimental_data/bigiel_2010/aj351668t2_mrt.txt",
+    "../../experimental_data/bigiel_2010/table_02.txt",
 )
 
 """
@@ -353,7 +353,7 @@ F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISK
 """
 const BIGIEL2010_TABLE_3 = joinpath(
     @__DIR__,
-    "../../experimental_data/bigiel_2010/aj351668t3_mrt.txt",
+    "../../experimental_data/bigiel_2010/table_03.txt",
 )
 
 """
@@ -365,7 +365,7 @@ J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Gal
 """
 const SUN2023_TABLE = joinpath(
     @__DIR__,
-    "../../experimental_data/sun_2023/apjlacbd9ct3_mrt.txt",
+    "../../experimental_data/sun_2023.txt",
 )
 
 @doc raw"""
