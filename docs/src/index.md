@@ -2,21 +2,11 @@
 
 **GalaxyInspector** is a Julia module for the analysis and visualization of galaxy simulation data, with a focus on snapshots produced by the [Arepo](https://arepo-code.org/) code in HDF5 format.
 
-This module provides a collection of scripts and functions to streamline the workflow of reading, filtering, analyzing, and plotting simulation outputs. It is designed for flexibility and extensibility, allowing users to adapt it to their own simulation setups and scientific needs.
+This module provides a collection of scripts and functions for reading, filtering, analyzing, and plotting simulation outputs. It is designed for flexibility and extensibility, allowing users to adapt it to their own simulation setups and scientific needs.
 
-## Features
+> ⚠️ **Caution:** This code is written for my personal use and is a work in progress, thus it may break at any moment. Use it at your own risk.
 
-- **Data Acquisition:** Functions to read snapshots, group catalogs, and auxiliary files into convenient Julia data structures.
-- **Analysis Pipelines:** Tools for computing physical quantities, filtering data, and transforming simulation outputs for scientific analysis.
-- **Plotting:** Ready-to-use and customizable plotting pipelines using [CairoMakie](https://docs.makie.org/stable/) for high-quality figures and animations.
-- **Convenience Functions:** Pre-made recipes for common plots and reports, serving as both utilities and usage examples.
-- **Extensive Documentation:** API references and usage guides to help users get started and customize their analysis.
-
-## Intended Audience
-
-GalaxyInspector is intended for researchers and students working with galaxy simulations who want a Julia-based, scriptable environment for data analysis and visualization. While it is tailored for Arepo outputs, its modular design allows adaptation to other codes with similar data formats.
-
-> **Note:** This module is a work in progress and was originally developed as a personal learning project. It may lack some advanced features found in other tools (see [links](https://github.com/Ezequiel92/GalaxyInspector#-links)), but aims to provide a clear and hackable codebase for custom workflows.
+> ℹ️ **Note:** There are other tools to analyze/plot simulations (you can see [here](https://github.com/Ezequiel92/GalaxyInspector#-links)). This module was written not only as a basic plotting tool, but as an exercise to learn [Julia](https://julialang.org/) and software development in general.
 
 ## License
 
