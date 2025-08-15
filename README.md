@@ -18,7 +18,7 @@ A Julia module for the data analysis of galaxy simulations.
 
 > ℹ️ **NOTE**
 >
-> There are more advanced tools to analyze/plot simulation results (you can see some [below](https://github.com/Ezequiel92/GalaxyInspector#-links)). This module was written not only as a basic plotting tool, but as an exercise to learn [Julia](https://julialang.org/) and software development in general.
+> There are other tools to analyze/plot simulations (you can see some [below](https://github.com/Ezequiel92/GalaxyInspector#-links)). This module was written not only as a basic plotting tool, but as an exercise to learn [Julia](https://julialang.org/) and software development in general.
 
 ## ⚙️ Characteristics
 
