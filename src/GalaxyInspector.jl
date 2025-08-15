@@ -49,8 +49,11 @@ using CSV,
 ####################################################################################################
 
 include("constants/globals.jl")
-
-include("auxiliary_functions.jl")
+#TODO
+include("auxiliary_functions/histograms.jl")
+include("auxiliary_functions/grid.jl")
+include("auxiliary_functions/plotting.jl")
+include("auxiliary_functions/other.jl")
 
 include("analysis/data_acquisition.jl")
 include("analysis/compute_quantities/positions.jl")

@@ -1267,16 +1267,6 @@ Internal code name (data group in the HDF5 output) corresponding to each type of
 """
 const PARTICLE_CODE_NAME = Dict(symbol => "PartType$n" for (symbol, n) in PARTICLE_INDEX)
 
-"""
-Default filter dictionary that does not exclude any cells/particles.
-"""
-const PASS_ALL = Dict(key => (:) for key in keys(PARTICLE_INDEX))
-
-"""
-Filter that excludes every cell/particle.
-"""
-const PASS_NONE = Dict(key => Int[] for key in keys(PARTICLE_INDEX))
-
 ###################
 # Tracked elements
 ###################

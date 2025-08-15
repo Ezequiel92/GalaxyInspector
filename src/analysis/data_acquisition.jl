@@ -2120,3 +2120,59 @@ function groupcatTypes(path::String)::Vector{Symbol}
     return groupcat_types
 
 end
+
+"""
+    findClosestSnapshot(simulation_path::String, times::Vector{<:Unitful.Time})::Vector{Int}
+
+Find the global index, in the context of the simulation, of the snapshot with a physical time closest to each of the ones given in `times`.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `times::Vector{<:Unitful.Time}`: Target physical times.
+
+# Returns
+
+  - The indices of the snapshots with physical times closest to `times`.
+"""
+function findClosestSnapshot(simulation_path::String, times::Vector{<:Unitful.Time})::Vector{Int}
+
+    # Make a simulation table
+    sim_table = makeSimulationTable(simulation_path)
+
+    # Read the physical time associated to each snapshot
+    snap_times = sim_table[!, :physical_times]
+
+    # Allocate memory
+    slices = similar(times, Int)
+
+    # Find the closest snapshot to each of the `times`
+    for (i, time) in pairs(times)
+
+        slices[i] = argmin(abs.(snap_times .- time))
+
+    end
+
+    return slices
+
+end
+
+"""
+    findClosestSnapshot(simulation_path::String, time::Unitful.Time)::Int
+
+Find the global index, in the context of the simulation, of the snapshot with a physical time closest to `time`.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `time::Unitful.Time`: Target physical time.
+
+# Returns
+
+  - The index of the snapshot with a physical time closest to `time`.
+"""
+function findClosestSnapshot(simulation_path::String, time::Unitful.Time)::Int
+
+    return findClosestSnapshot(simulation_path, [time])[1]
+
+end

@@ -3,6 +3,16 @@
 ####################################################################################################
 
 """
+Default filter dictionary that does not exclude any cells/particles.
+"""
+const PASS_ALL = Dict(key => (:) for key in keys(PARTICLE_INDEX))
+
+"""
+Filter that excludes every cell/particle.
+"""
+const PASS_NONE = Dict(key => Int[] for key in keys(PARTICLE_INDEX))
+
+"""
     filterData!(data_dict::Dict; <keyword arguments>)::Nothing
 
 Filter `data_dict` using the indices provided by `filter_function`.
