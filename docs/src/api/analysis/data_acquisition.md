@@ -1,10 +1,10 @@
 # Data acquisition functions
 
-These functions are used internally and none are exported. 
+These functions are used internally and some are exported. 
 
-These functions depend on the particulars of the simulation code (e.g. units).
+They may depend on the particulars of the simulation code (e.g. internal units).
 
-These function read the different output files from the simulation (snapshots, FoF catalogs, sfr.txt, etc.), and load the data into memory as dictionaries.
+These function read the different output files from the simulation (snapshots, FoF catalogs, `sfr.txt`, etc.), and load the data into memory as dictionaries.
 
 ---
 

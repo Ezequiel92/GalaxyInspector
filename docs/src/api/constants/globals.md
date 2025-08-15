@@ -2,7 +2,7 @@
 
 This is a list of constant and types used in GalaxyInspector.
 
-None of these constants and types are exported.
+None of these are exported.
 
 ---
 

@@ -2,7 +2,7 @@
 
 This is a list of constant and types used in GalaxyInspector, specific for the Arepo codebase.
 
-None of these constants and types are exported.
+None of these are exported.
 
 ---
 

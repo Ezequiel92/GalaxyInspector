@@ -1,6 +1,6 @@
 # Pipeline functions
 
-These functions are a full plotting pipeline, from reading the data to generating figures and animations.
+These functions provide a full plotting pipeline, from reading the data to generating figures and animations.
 
 They have many optional arguments allowing to configure most aspects of the plots.
 
