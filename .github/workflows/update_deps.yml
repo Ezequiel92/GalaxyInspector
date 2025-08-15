@@ -45,7 +45,7 @@ jobs:
           name: manifest_files
           path: Manifest.toml
           if-no-files-found: error
-  make_single_pr:
+  make_pr:
     needs: update_manifest
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -68,7 +68,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           delete-branch: true
-          branch: 'update_manifests/single_pr/all_manifests'
+          branch: 'update_manifest/'
           commit-message: '🤖 Update manifest file'
           title: '🤖 Update manifest file'
           body: ''
