@@ -1,5 +1,5 @@
 ####################################################################################################
-# Constants and data structures
+# Constants and data structures for Arepo simulations
 ####################################################################################################
 
 #################
@@ -35,9 +35,148 @@ M. Asplund et al. (2006). *The new solar abundances - Part I: the observations*.
 """
 const SOLAR_METALLICITY = 0.0127
 
+"""
+Constant for the initial condition of dust and metals.
+"""
+const C_xd = 0.2835953313674557
+
+"""
+Cosmological threshold density above which the gas cells/particles can turn into stars.
+
+This value corresponds to `CritOverDensity` ``= 57.7 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used only in cosmological simulations). Which is converted to internal units within the code using `OverDensThresh` = `CritOverDensity` * `OmegaBaryon` * 3 * `Hubble` * `Hubble` / (8 * `M_PI` * `G`)`. Then, to go to physical units again one has to do: `OverDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
+
+Using the unit factors,
+
+`UnitLength_in_cm`         = ``3.085678 \\times 10^{24}``
+
+`UnitMass_in_g`            = ``1.989 \\times 10^{43}``
+
+`UnitVelocity_in_cm_per_s` = ``100000``
+
+The derived units,
+
+`UnitTime_in_s`      = `UnitLength_in_cm` * `UnitVelocity_in_cm_per_s`^-1 = ``3.08568 \\times 10^{19}``
+
+`UnitDensity_in_cgs` = `UnitMass_in_g` * `UnitLength_in_cm^-3`            = ``6.76991 \\times 10^{-31}``
+
+The parameters,
+
+`OmegaBaryon`       = ``0.048``
+
+`HubbleParam`       = ``0.6777``
+
+`PROTONMASS`        = ``1.67262178 \\times 10^{-24}``
+
+`HYDROGEN_MASSFRAC` = ``0.76``
+
+`GRAVITY`           = ``6.6738 \\times 10^{-8}``
+
+`HUBBLE`            = ``3.2407789 \\times 10^{-18}``
+
+And the derived parameters,
+
+Hubble = `HUBBLE` * `UnitTime_in_s`                                              = ``100``
+
+G      = `GRAVITY` * `UnitLength_in_cm`^-3 * `UnitMass_in_g` * `UnitTime_in_s`^2 = ``43.0187``
+
+One gets,
+
+`OverDensThresh` = 76.8495 [internal units of density]
+
+And, for a cosmological simulation at redshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``1.42857 \\times 10^{-5} \\, [\\mathrm{cm^{-3}}]``, or, adding the proton mass, a value of
+
+``\\log_{10} \\rho \\ [\\mathrm{M_\\odot \\, kpc^{-3}}] = 2.548``
+
+"""
+const COSMO_THRESHOLD_DENSITY = 353.059u"Msun*kpc^-3"
+
+"""
+Threshold density above which the gas cells/particles can turn into stars.
+
+This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used in cosmological and non-cosmological simulations). Which is converted to internal units within the code using `PhysDensThresh` = `CritPhysDensity` * `PROTONMASS` / `HYDROGEN_MASSFRAC` / `UnitDensity_in_cgs`. Then, to go to physical units again one has to do: `PhysDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
+
+`PhysDensThresh` = ``1.03378 \\times 10^{6}`` [internal units of density]
+
+For a cosmological simulation at redshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or, adding the proton mass, a value of
+
+``\\log_{10} \\rho \\, [\\mathrm{M_\\odot \\, kpc^{-3}}] = 6.677``
+"""
+const THRESHOLD_DENSITY = 4.749326e6u"Msun*kpc^-3"
+
+@doc raw"""
+Hubble constant in $\mathrm{Gyr^{-1}}$.
+
+This value corresponds to $H_0 = 0.102201 \, \mathrm{Gyr}^{-1} = 100 \, \mathrm{km} \, \mathrm{s}^{-1} \, \mathrm{Mpc}^{-1}$.
+"""
+const HUBBLE_CONSTANT = 0.102201
+
+######################
+# Output files paths
+######################
+
+"""
+Relative path, within the simulation directory, of `sfr.txt`.
+"""
+const SFR_REL_PATH = "output/sfr.txt"
+
+"""
+Relative path, within the simulation directory, of `cpu.txt`.
+"""
+const CPU_REL_PATH = "output/cpu.txt"
+
 ######################
 # Cell/particle types
 ######################
+
+"""
+Code index for each type of cell/particle.
+
+# References
+
+See for example Gadget2 [User's Guide](https://wwwmpa.mpa-garching.mpg.de/gadget/users-guide.pdf), or Gadget4 [documentation](https://wwwmpa.mpa-garching.mpg.de/gadget4/).
+"""
+const LONG_PARTICLE_INDEX = Dict(
+    :gas        => 0,
+    :halo       => 1,
+    :disk       => 2,
+    :bulge      => 3,
+    :stars      => 4,
+    :black_hole => 5,
+    :tracer     => 6,
+)
+
+"""
+Human readable name for each type of cell/particle.
+"""
+const LONG_PARTICLE_NAMES = Dict(
+    :gas        => "Gas cells",
+    :halo       => "HR DM particles",
+    :disk       => "IR DM particles",
+    :bulge      => "LR DM particles",
+    :stars      => "Stellar particles",
+    :black_hole => "Black hole particles",
+    :tracer     => "Tracer particles",
+)
+
+"""
+Human readable name for each type of cell/particle.
+"""
+const ISOLATED_PARTICLE_NAMES = Dict(
+    :gas   => "Gas cells",
+    :halo  => "DM particles",
+    :disk  => "Stellar disk",
+    :bulge => "Stellar bulge",
+)
+
+"""
+Human readable name for each morphological component.
+"""
+const MORPHOLOGICAL_COMPONENTS = Dict(
+    :disk       => "Disk",
+    :bulge      => "Bulge",
+    :thin_disk  => "Thin disk",
+    :thick_disk => "Thick disk",
+)
 
 """
 Current cell/particle index in use.
@@ -79,7 +218,7 @@ const METAL_LIST = [3, 4, 5, 6, 7, 8, 9, 10]
 #############################################################
 
 """
-Dictionary of dimensional properties for the quantities in the code.
+Dimensional properties for the quantities in the code.
 """
 const QUANTITIES = Dict(
 
@@ -103,7 +242,7 @@ const QUANTITIES = Dict(
     "POS " => Qty("Coordinates", Unitful.𝐋, :internal),
     "PRES" => Qty("Pressure", Unitful.𝐌 * Unitful.𝐋^-1 * Unitful.𝐓^-2, :internal),
     "RHO " => Qty("Density", Unitful.𝐌 * Unitful.𝐋^-3, :internal),
-    "SFR " => Qty("StarFormationRate", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    "SFR " => Qty("StarFormationRate", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun * yr^-1"),
     "SOFT" => Qty("Softenings", Unitful.𝐋, :internal),
     "TEMP" => Qty("Temperature", Unitful.𝚯, u"K"),
     "U   " => Qty("InternalEnergy", Unitful.𝐋^2 * Unitful.𝐓^-2, :internal),
@@ -120,9 +259,9 @@ const QUANTITIES = Dict(
     # Total stellar mass to be formed prior to stochastic sampling
     "SFC2" => Qty("", Unitful.𝐌, :internal),
     # Instantaneous star formation rate of all cells
-    "SFC3" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    "SFC3" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun * yr^-1"),
     # Instantaneous star formation rate of active cells
-    "SFC4" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    "SFC4" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun * yr^-1"),
     # Total mass in stars formed after stochastic sampling
     "SFC5" => Qty("", Unitful.𝐌, :internal),
     # Cumulative stellar mass formed
@@ -165,7 +304,7 @@ const QUANTITIES = Dict(
     # Parent gas mass (at the moment of star formation), for stellar particles
     "GMAS" => Qty("ODE_GasMass", Unitful.𝐌, :internal),
     # Parent SFR (at the moment of star formation), for stellar particles
-    "GSFR" => Qty("ODE_GasSFR", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun*yr^-1"),
+    "GSFR" => Qty("ODE_GasSFR", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun * yr^-1"),
     # Parent gas pressure (at the moment of star formation), for stellar particles
     "GPRE" => Qty("ODE_GasPressure", Unitful.𝐌 * Unitful.𝐋^-1 * Unitful.𝐓^-2, :internal),
     # Parent position (at the moment of star formation), for stellar particles
@@ -197,5 +336,5 @@ const QUANTITIES = Dict(
     "S_Mass"        => Qty("SubhaloMass", Unitful.𝐌, :internal),
     "S_MassType"    => Qty("SubhaloMassType", Unitful.𝐌, :internal),
     "S_Pos"         => Qty("SubhaloPos", Unitful.𝐋, :internal),
-    "S_Vel"         => Qty("SubhaloVel", Unitful.𝐋 * Unitful.𝐓^-1, u"km*s^-1"),
+    "S_Vel"         => Qty("SubhaloVel", Unitful.𝐋 * Unitful.𝐓^-1, u"km * s^-1"),
 )

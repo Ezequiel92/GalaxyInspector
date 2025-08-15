@@ -733,13 +733,13 @@ function listHistogram1D(
     n_bins = length(grid.grid)
 
     if grid.log
-        l_u = unit(first(grid.ticks))
+        l_u = unit(first(grid.edges))
         positions = log10.(ustrip.(l_u, positions))
-        p_min = log10(ustrip(grid.ticks[1]))
-        p_max = log10(ustrip(l_u, grid.ticks[end]))
+        p_min = log10(ustrip(grid.edges[1]))
+        p_max = log10(ustrip(l_u, grid.edges[end]))
     else
-        p_min = grid.ticks[1]
-        p_max = grid.ticks[end]
+        p_min = grid.edges[1]
+        p_max = grid.edges[end]
     end
 
     # Compute the bin width
@@ -854,9 +854,9 @@ function listHistogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Ve
     h_bin_width = grid.bin_width * 0.5
 
     # Compute the physical position of the grid borders
-    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
-    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
-    z_borders = (grid.z_ticks[1] - h_bin_width, grid.z_ticks[end] + h_bin_width)
+    x_borders = (grid.x_edges[1] - h_bin_width, grid.x_edges[end] + h_bin_width)
+    y_borders = (grid.y_edges[1] - h_bin_width, grid.y_edges[end] + h_bin_width)
+    z_borders = (grid.z_edges[1] - h_bin_width, grid.z_edges[end] + h_bin_width)
 
     # Allocate memory
     histogram = Array{Vector{Int}}(undef, size(grid.grid))
@@ -948,13 +948,13 @@ function histogram1D(
     n_bins = length(grid.grid)
 
     if grid.log
-        l_u = unit(first(grid.ticks))
+        l_u = unit(first(grid.edges))
         positions = log10.(ustrip.(l_u, positions))
-        p_min = log10(ustrip(grid.ticks[1]))
-        p_max = log10(ustrip(l_u, grid.ticks[end]))
+        p_min = log10(ustrip(grid.edges[1]))
+        p_max = log10(ustrip(l_u, grid.edges[end]))
     else
-        p_min = grid.ticks[1]
-        p_max = grid.ticks[end]
+        p_min = grid.edges[1]
+        p_max = grid.edges[end]
     end
 
     # Compute the bin width
@@ -1123,13 +1123,13 @@ function histogram1D(
     n_bins = length(grid.grid)
 
     if grid.log
-        l_u = unit(first(grid.ticks))
+        l_u = unit(first(grid.edges))
         positions = log10.(ustrip.(l_u, positions))
-        p_min = log10(ustrip(grid.ticks[1]))
-        p_max = log10(ustrip(l_u, grid.ticks[end]))
+        p_min = log10(ustrip(grid.edges[1]))
+        p_max = log10(ustrip(l_u, grid.edges[end]))
     else
-        p_min = grid.ticks[1]
-        p_max = grid.ticks[end]
+        p_min = grid.edges[1]
+        p_max = grid.edges[end]
     end
 
     # Compute the bin width
@@ -1249,8 +1249,8 @@ function histogram2D(
     h_bin_width = grid.bin_width * 0.5
 
     # Compute the physical position of the grid borders
-    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
-    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
+    x_borders = (grid.x_edges[1] - h_bin_width, grid.x_edges[end] + h_bin_width)
+    y_borders = (grid.y_edges[1] - h_bin_width, grid.y_edges[end] + h_bin_width)
 
     # Allocate memory
     histogram = zeros(eltype(values), size(grid.grid))
@@ -1437,8 +1437,8 @@ function histogram2D(positions::Matrix{<:Number}, grid::SquareGrid)::Matrix{Int}
     h_bin_width = grid.bin_width * 0.5
 
     # Compute the physical position of the grid borders
-    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
-    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
+    x_borders = (grid.x_edges[1] - h_bin_width, grid.x_edges[end] + h_bin_width)
+    y_borders = (grid.y_edges[1] - h_bin_width, grid.y_edges[end] + h_bin_width)
 
     # Allocate memory
     histogram = zeros(Int, size(grid.grid))
@@ -1585,9 +1585,9 @@ function histogram3D(
     h_bin_width = grid.bin_width * 0.5
 
     # Compute the physical position of the grid borders
-    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
-    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
-    z_borders = (grid.z_ticks[1] - h_bin_width, grid.z_ticks[end] + h_bin_width)
+    x_borders = (grid.x_edges[1] - h_bin_width, grid.x_edges[end] + h_bin_width)
+    y_borders = (grid.y_edges[1] - h_bin_width, grid.y_edges[end] + h_bin_width)
+    z_borders = (grid.z_edges[1] - h_bin_width, grid.z_edges[end] + h_bin_width)
 
     # Allocate memory
     histogram = zeros(eltype(values), size(grid.grid))
@@ -1679,9 +1679,9 @@ function histogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Int,3}
     h_bin_width = grid.bin_width * 0.5
 
     # Compute the physical position of the grid borders
-    x_borders = (grid.x_ticks[1] - h_bin_width, grid.x_ticks[end] + h_bin_width)
-    y_borders = (grid.y_ticks[1] - h_bin_width, grid.y_ticks[end] + h_bin_width)
-    z_borders = (grid.z_ticks[1] - h_bin_width, grid.z_ticks[end] + h_bin_width)
+    x_borders = (grid.x_edges[1] - h_bin_width, grid.x_edges[end] + h_bin_width)
+    y_borders = (grid.y_edges[1] - h_bin_width, grid.y_edges[end] + h_bin_width)
+    z_borders = (grid.z_edges[1] - h_bin_width, grid.z_edges[end] + h_bin_width)
 
     # Allocate memory
     histogram = zeros(Int, size(grid.grid))
@@ -2509,15 +2509,15 @@ Using a `CubicGrid` construct a `SquareGrid` with the same center, number of bin
 """
 function flattenGrid(cubic_grid::CubicGrid)::SquareGrid
 
-    physical_size = cubic_grid.physical_size
+    grid_size = cubic_grid.grid_size
     n_bins = cubic_grid.n_bins
 
-    bin_width  = physical_size / n_bins
-    shift = 0.5 * (physical_size - bin_width)
+    bin_width  = grid_size / n_bins
+    shift = 0.5 * (grid_size - bin_width)
 
-    center = [cubic_grid.x_ticks[1], cubic_grid.y_ticks[1], cubic_grid.z_ticks[1]] .+ shift
+    center = [cubic_grid.x_edges[1], cubic_grid.y_edges[1], cubic_grid.z_edges[1]] .+ shift
 
-    return SquareGrid(physical_size, n_bins; center)
+    return SquareGrid(grid_size, n_bins; center)
 
 end
 

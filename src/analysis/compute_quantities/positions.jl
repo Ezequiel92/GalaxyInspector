@@ -558,7 +558,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     end
 
     # Read the time stamp of each snapshot
-    times = data_dict[:sim_data].table[!, :physical_times]
+    times = data_dict[:sim_data].snapshot_table[!, :physical_times]
 
     (
         length(times) >= 2 ||

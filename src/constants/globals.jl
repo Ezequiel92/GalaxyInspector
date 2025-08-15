@@ -12,16 +12,6 @@ If physical units (lengths) will be used, instead of comoving units (lengths).
 PHYSICAL_UNITS = false
 
 """
-Relative path, within the simulation directory, of the `sfr.txt` file.
-"""
-const SFR_REL_PATH = "output/sfr.txt"
-
-"""
-Relative path, within the simulation directory, of the `cpu.txt` file.
-"""
-const CPU_REL_PATH = "output/cpu.txt"
-
-"""
 If logging messages will be printed out.
 """
 const logging = Ref(false)
@@ -45,160 +35,24 @@ Characteristic stellar age limit for the SFR and sSFR.
 """
 const AGE_RESOLUTION = 200.0u"Myr"
 
-######################
-# Cell/particle types
-######################
-
-"""
-Code index for each type of cell/particle.
-
-# References
-
-See for example Gadget2 [User's Guide](https://wwwmpa.mpa-garching.mpg.de/gadget/users-guide.pdf), or Gadget4 [documentation](https://wwwmpa.mpa-garching.mpg.de/gadget4/).
-"""
-const LONG_PARTICLE_INDEX = Dict(
-    :gas        => 0,
-    :halo       => 1,
-    :disk       => 2,
-    :bulge      => 3,
-    :stars      => 4,
-    :black_hole => 5,
-    :tracer     => 6,
-)
-
-"""
-Human readable name for each type of cell/particle.
-"""
-const LONG_PARTICLE_NAMES = Dict(
-    :gas        => "Gas cells",
-    :halo       => "HR DM particles",
-    :disk       => "IR DM particles",
-    :bulge      => "LR DM particles",
-    :stars      => "Stellar particles",
-    :black_hole => "Black hole particles",
-    :tracer     => "Tracer particles",
-)
-
-"""
-Human readable name for each type of cell/particle.
-"""
-const ISOLATED_PARTICLE_NAMES = Dict(
-    :gas   => "Gas cells",
-    :halo  => "DM particles",
-    :disk  => "Stellar disk",
-    :bulge => "Stellar bulge",
-)
-
-"""
-Human readable name for each morphological component.
-"""
-const MORPHOLOGICAL_COMPONENTS = Dict(
-    :disk       => "Disk",
-    :bulge      => "Bulge",
-    :thin_disk  => "Thin disk",
-    :thick_disk => "Thick disk",
-)
-
-############################
-# Constants of the SF model
-############################
-
-"""
-Constant for the initial condition of dust and metals.
-"""
-const C_xd = 0.2835953313674557
-
 #######################################
 # Reference values from the literature
 #######################################
 
 """
-Internal unit of length used in IllustrisTNG, equivalent to ``1.0  \\, \\mathrm{kpc}``.
-See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
+Internal unit of length used in [IllustrisTNG](https://www.tng-project.org/data/docs/specifications/), equal to ``1.0  \\, \\mathrm{kpc}``.
 """
 const ILLUSTRIS_L_UNIT = 3.085678e21u"cm"
 
 """
-Internal unit of mass used in IllustrisTNG, equivalent to ``10^{10} \\, \\mathrm{M_\\odot}``.
-See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
+Internal unit of mass used in [IllustrisTNG](https://www.tng-project.org/data/docs/specifications/), equal to ``10^{10} \\, \\mathrm{M_\\odot}``.
 """
 const ILLUSTRIS_M_UNIT = 1.989e43u"g"
 
 """
-Internal unit of velocity used in IllustrisTNG, equivalent to ``1.0 \\, \\mathrm{km \\, s^{-1}}``.
-See the documentation [here](https://www.tng-project.org/data/docs/specifications/)
+Internal unit of velocity used in [IllustrisTNG](https://www.tng-project.org/data/docs/specifications/), equal to ``1.0 \\, \\mathrm{km \\, s^{-1}}``.
 """
-const ILLUSTRIS_V_UNIT = 1.0e5u"cm*s^-1"
-
-"""
-Cosmological threshold density above which the gas cells/particles can turn into stars.
-
-This value corresponds to `CritOverDensity` ``= 57.7 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used only in cosmological simulations). Which is converted to internal units within the code using `OverDensThresh` = `CritOverDensity` * `OmegaBaryon` * 3 * `Hubble` * `Hubble` / (8 * `M_PI` * `G`)`. Then, to go to physical units again one has to do: `OverDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
-
-Using the unit factors,
-
-`UnitLength_in_cm`         = ``3.085678 \\times 10^{24}``
-
-`UnitMass_in_g`            = ``1.989 \\times 10^{43}``
-
-`UnitVelocity_in_cm_per_s` = ``100000``
-
-The derived units,
-
-`UnitTime_in_s`      = `UnitLength_in_cm` * `UnitVelocity_in_cm_per_s`^-1 = ``3.08568 \\times 10^{19}``
-
-`UnitDensity_in_cgs` = `UnitMass_in_g` * `UnitLength_in_cm^-3`            = ``6.76991 \\times 10^{-31}``
-
-The parameters,
-
-`OmegaBaryon`       = ``0.048``
-
-`HubbleParam`       = ``0.6777``
-
-`PROTONMASS`        = ``1.67262178 \\times 10^{-24}``
-
-`HYDROGEN_MASSFRAC` = ``0.76``
-
-`GRAVITY`           = ``6.6738 \\times 10^{-8}``
-
-`HUBBLE`            = ``3.2407789 \\times 10^{-18}``
-
-And the derived parameters,
-
-Hubble = `HUBBLE` * `UnitTime_in_s`                                              = ``100``
-
-G      = `GRAVITY` * `UnitLength_in_cm`^-3 * `UnitMass_in_g` * `UnitTime_in_s`^2 = ``43.0187``
-
-One gets,
-
-`OverDensThresh` = 76.8495 [internal units of density]
-
-And, for a cosmological simulation at redshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``1.42857 \\times 10^{-5} \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
-
-``\\log_{10} \\rho \\ [\\mathrm{M_\\odot \\, kpc^{-3}}] = 2.548``
-
-"""
-const COSMO_THRESHOLD_DENSITY = 353.059u"Msun*kpc^-3"
-
-"""
-Threshold density above which the gas cells/particles can turn into stars.
-
-This value corresponds to `CritPhysDensity` ``= 0.318 \\, [\\mathrm{cm^{-3}}]`` in the `param.txt` file (used in cosmological and non-cosmological simulations). Which is converted to internal units within the code using `PhysDensThresh` = `CritPhysDensity` * `PROTONMASS` / `HYDROGEN_MASSFRAC` / `UnitDensity_in_cgs`. Then, to go to physical units again one has to do: `PhysDensThresh` * `UnitDensity_in_cgs` * `cf_a3inv` * `HubbleParam` * `HubbleParam`.
-
-`PhysDensThresh` = ``1.03378 \\times 10^{6}`` [internal units of density]
-
-For a cosmological simulation at redshift 0 (`cf_a3inv` = 1), this result in a physical density threshold of ``0.192 \\, [\\mathrm{cm^{-3}}]``, or adding the proton mass a value of:
-
-``\\log_{10} \\rho \\, [\\mathrm{M_\\odot \\, kpc^{-3}}] = 6.677``
-"""
-const THRESHOLD_DENSITY = 4.749326e6u"Msun*kpc^-3"
-
-@doc raw"""
-Hubble constant in $\mathrm{Gyr^{-1}}$.
-
-This value corresponds to $H_0 = 0.102201 \, \mathrm{Gyr}^{-1} = 100 \, \mathrm{km} \, \mathrm{s}^{-1} \, \mathrm{Mpc}^{-1}$.
-"""
-const HUBBLE_CONSTANT = 0.102201
+const ILLUSTRIS_V_UNIT = 1.0e5u"cm * s^-1"
 
 """
 Subhalo numbers for the MW and M31 in Hestia simulations.
@@ -296,92 +150,6 @@ F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC S
 const A_BIGIEL2008_BF_MOLECULAR = −2.1 ± 0.2
 const N_BIGIEL2008_BF_MOLECULAR = 1.0 ± 0.2
 
-"""
-Spatial resolution used in Bigiel et al. (2008).
-
-# References
-
-F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
-"""
-const BIGIEL_PX_SIZE = 750.0u"pc"
-
-"""
-Spatial resolution used in Sun et al. (2023).
-
-# References
-
-J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
-"""
-const SUN_PX_SIZE = 1.5u"kpc"
-
-@doc raw"""
-Range of values for
-
-```math
-\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
-```
-in the seven spiral in Table 1 of Bigiel et al. (2008), with associated molecular data.
-
-The actual values for the SFR density are taken from Table 2 in Bigiel et al. (2010), using only the ones with associated molecular data.
-
-# References
-
-F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
-
-F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
-"""
-const BIGIEL2008_SFR_RANGE = exp10.([-2.99, -0.33]) .* u"Msun * yr^-1 * kpc^-2"
-
-"""
-Path to the file with Table 2 from Bigiel et al. (2010).
-
-# References
-
-F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
-"""
-const BIGIEL2010_TABLE_2 = joinpath(
-    @__DIR__,
-    "../../experimental_data/bigiel_2010/table_02.txt",
-)
-
-"""
-Path to the file with Table 3 from Bigiel et al. (2010).
-
-# References
-
-F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
-"""
-const BIGIEL2010_TABLE_3 = joinpath(
-    @__DIR__,
-    "../../experimental_data/bigiel_2010/table_03.txt",
-)
-
-"""
-Path to the file with Table A1 from Sun et al. (2023).
-
-# References
-
-J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
-"""
-const SUN2023_TABLE = joinpath(
-    @__DIR__,
-    "../../experimental_data/sun_2023.txt",
-)
-
-@doc raw"""
-Range of values for
-
-```math
-\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
-```
-from the combine data (Table 1 and 2) in Kennicutt (1998).
-
-# References
-
-R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
-"""
-const KS98_SFR_RANGE = exp10.([-3.55, 2.98]) .* u"Msun * yr^-1 * kpc^-2"
-
 @doc raw"""
 Slope of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Equation 4).
 
@@ -409,13 +177,90 @@ R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The A
 const a_KS98 = 2.5e-4 ± 0.7e-4
 
 """
+Spatial resolution used in Bigiel et al. (2008).
+
+# References
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+"""
+const BIGIEL_PX_SIZE = 750.0u"pc"
+
+"""
+Spatial resolution used in Sun et al. (2023).
+
+# References
+
+J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
+"""
+const SUN_PX_SIZE = 1.5u"kpc"
+
+@doc raw"""
+Range of values for
+
+```math
+\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
+```
+in the seven spirals in Table 1 of Bigiel et al. (2008), with associated molecular data.
+
+The actual values for the SFR density are taken from Table 2 in Bigiel et al. (2010), using only the ones with associated molecular data.
+
+# References
+
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2008_SFR_RANGE = exp10.([-2.99, -0.33]) .* u"Msun * yr^-1 * kpc^-2"
+
+@doc raw"""
+Range of values for
+
+```math
+\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
+```
+from the combine data (Table 1 and 2) in Kennicutt (1998).
+
+# References
+
+R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
+"""
+const KS98_SFR_RANGE = exp10.([-3.55, 2.98]) .* u"Msun * yr^-1 * kpc^-2"
+
+"""
+Path to Table 2 from Bigiel et al. (2010).
+
+# References
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2010_TABLE_2 = joinpath(@__DIR__, "../../experimental_data/bigiel_2010/table_02.txt")
+
+"""
+Path to Table 3 from Bigiel et al. (2010).
+
+# References
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2010_TABLE_3 = joinpath(@__DIR__, "../../experimental_data/bigiel_2010/table_03.txt")
+
+"""
+Path to Table A1 from Sun et al. (2023).
+
+# References
+
+J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
+"""
+const SUN2023_TABLE = joinpath(@__DIR__, "../../experimental_data/sun_2023.txt")
+
+"""
 Path to the file with the Milky Way profiles from Mollá et al. (2015).
 
 # References
 
 M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the initial mass function*. Monthly Notices of the Royal Astronomical Society **451(4)**, 3693–3708. [doi:10.1093/mnras/stv1102](https://doi.org/10.1093/mnras/stv1102)
 """
-const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/mollá_2015.csv")
+const MOLLA2015_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/molla_2015.csv")
 
 """
 Path to the file with the global galactic properties from Feldmann (2020).
@@ -427,7 +272,7 @@ R. Feldmann (2020). *The link between star formation and gas in nearby galaxies*
 const FELDMANN2020_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/feldmann_2020.csv")
 
 """
-Path to the file with the data from Leroy et al. (2008).
+Path to the file with the profiles from Leroy et al. (2008).
 
 # References
 
@@ -446,7 +291,7 @@ P. J. McMillan (2011). *Mass models of the Milky Way*. Monthly Notices of the Ro
 const MCMILLAN2011_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/mcmillan_2011.jld2")
 
 """
-Reference pressure for the molecular fraction-pressure relation, taken from Blitz et al. (2006) (Table 2, "Mean" row, Third column).
+Reference pressure for the molecular fraction-pressure relation, from Blitz et al. (2006) (Table 2, "Mean" row, Third column).
 
 # References
 
@@ -455,7 +300,7 @@ L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressu
 const P0 = 3.5e4u"K*cm^-3" * Unitful.k
 
 """
-Reference exponent for the molecular fraction-pressure relation, taken from Blitz et al. (2006) (Table 2, "Mean" row, Second column).
+Reference exponent for the molecular fraction-pressure relation, from Blitz et al. (2006) (Table 2, "Mean" row, Second column).
 
 We use -α here.
 
@@ -645,9 +490,9 @@ const DEFAULT_THEME = Theme(
     Hist=(strokecolor=:black, strokewidth=1),
 )
 
-#############
-# Structures
-#############
+#########
+# Strucs
+#########
 
 """
 Dimensional information about a physical quantity.
@@ -669,21 +514,21 @@ Data in the "Header" group of a HDF5 snapshot file.
 
 # Fields
 
-  - `box_size::Float64`: Total size of the simulation box.
-  - `h::Float64`: Hubble parameter.
-  - `mass_table::Vector{Float64}`: Masses of particle types which have a constant mass.
+  - `box_size::Float64`: Total size of the simulation box, in internal units of length.
+  - `h::Float64`: Dimensionless Hubble parameter, "little h".
+  - `mass_table::Vector{Float64}`: Masses of particle/cell types which have a constant mass, in internal units of mass.
   - `num_files::Int32`: Number of file chunks per snapshot.
-  - `num_part::Vector{Int32}`: Number of particles (of each type) included in this file chunk.
-  - `num_total::Vector{UInt32}`: Total number of particles (of each type) for this snapshot.
+  - `num_part::Vector{Int32}`: Number of particles/cells (of each type) included in this file chunk.
+  - `num_total::Vector{UInt32}`: Total number of particles/cells (of each type) for this snapshot.
   - `omega_0::Float64`: The cosmological density parameter for matter.
   - `omega_l::Float64`: The cosmological density parameter for the cosmological constant.
   - `redshift::Float64`: The redshift.
-  - `time::Float64`: The physical time/scale factor.
+  - `time::Float64`: The physical time or the scale factor, depending on the type of simulation.
   - `l_unit::Unitful.Length`: Conversion factor from internal units of length to centimeters.
   - `m_unit::Unitful.Mass`: Conversion factor from internal units of mass to grams.
   - `v_unit::Unitful.Velocity`: Conversion factor from internal units of velocity to centimeters per second.
 """
-@kwdef mutable struct SnapshotHeader
+@kwdef struct SnapshotHeader
     box_size::Float64
     h::Float64
     mass_table::Vector{Float64}
@@ -702,12 +547,12 @@ end
 """
 Data in the "Header" group of a HDF5 group catalog file.
 
-Default values are for when there are no group catalog files.
+The default values are for when there are no group catalog files.
 
 # Fields
 
-  - `box_size::Float64 = NaN`: Total size of the simulation box.
-  - `h::Float64 = NaN`: Hubble parameter.
+  - `box_size::Float64 = NaN`: Total size of the simulation box, in internal units of length.
+  - `h::Float64 = NaN`: Dimensionless Hubble parameter, "little h".
   - `n_groups_part::Int32 = -1`: Number of halos (FoF groups) in this file chunk.
   - `n_groups_total::Int32 = -1`: Total number of halos (FoF groups) in this snapshot.
   - `n_subgroups_part::Int32 = -1`: Number of subhalos (subfind) in this file chunk.
@@ -716,9 +561,9 @@ Default values are for when there are no group catalog files.
   - `omega_0::Float64 = NaN`: The cosmological density parameter for matter.
   - `omega_l::Float64 = NaN`: The cosmological density parameter for the cosmological constant.
   - `redshift::Float64 = NaN`: The redshift.
-  - `time::Float64 = NaN`: The physical time/scale factor.
+  - `time::Float64 = NaN`: The physical time or the scale factor, depending on the type of simulation.
 """
-@kwdef mutable struct GroupCatHeader
+@kwdef struct GroupCatHeader
     box_size::Float64 = NaN
     h::Float64 = NaN
     n_groups_part::Int32 = -1
@@ -744,12 +589,12 @@ Metadata for a simulation.
 
       + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0).
       + `true`  -> Cosmological simulation (`ComovingIntegrationOn` = 1).
-  - `table::DataFrame`: A dataframe where each row is a snapshot, and the following 8 colums:
+  - `snapshot_table::DataFrame`: A dataframe where each row is a snapshot, and the colums are
 
-      + `:ids`            -> Dataframe index of each snapshot, i.e. if there are 10 snapshots in total it runs from 1 to 10.
-      + `:numbers`        -> Number in the file name of each snapshot.
-      + `:scale_factors`  -> Scale factor of each snapshot.
-      + `:redshifts`      -> Redshift of each snapshot.
+      + `:ids`            -> Dataframe index, i.e. if there are 10 snapshots in total it runs from 1 to 10.
+      + `:numbers`        -> Number in the file name.
+      + `:scale_factors`  -> Scale factor.
+      + `:redshifts`      -> Redshift.
       + `:physical_times` -> Physical time since the Big Bang.
       + `:lookback_times` -> Physical time left to reach the last snapshot.
       + `:snapshot_paths` -> Full path to each snapshots.
@@ -760,7 +605,7 @@ struct Simulation
     index::Int
     slice::IndexType
     cosmological::Bool
-    table::DataFrame
+    snapshot_table::DataFrame
 end
 
 """
@@ -770,12 +615,12 @@ Metadata for a snapshot.
 
   - `path::String`: Full path to the snapshot.
   - `global_index::Int`: Index of the snapshot in the context of the whole simulation.
-  - `slice_index::Int`: Index of the snapshot in the context of the slice.
+  - `slice_index::Int`: Index of the snapshot in the context of the simulation slice.
   - `physical_time::Unitful.Time`: Physical time since the Big Bang.
   - `lookback_time::Unitful.Time`: Physical time left to reach the last snapshot.
-  - `scale_factor::Float64`: Scale factor of the snapshot.
-  - `redshift::Float64`: Redshift of the snapshot.
-  - `header::SnapshotHeader`: Header of the snapshot.
+  - `scale_factor::Float64`: Scale factor.
+  - `redshift::Float64`: Redshift.
+  - `header::SnapshotHeader`: Header.
 """
 struct Snapshot
     path::String
@@ -794,7 +639,7 @@ Metadata for a group catalog file.
 # Fields
 
   - `path::Union{String,Missing}`: Full path to the group catalog file.
-  - `header::GroupCatHeader`: Header of the group catalog.
+  - `header::GroupCatHeader`: Header.
 """
 struct GroupCatalog
     path::Union{String,Missing}
@@ -806,46 +651,46 @@ Unit conversion factors.
 
 # Fields
 
-  - `x_cgs::Unitful.Length`: Length, from internal units to ``\\mathrm{cm}``.
-  - `x_cosmo::Unitful.Length`: Length, from internal units to ``\\mathrm{kpc}``.
-  - `x_comoving::Unitful.Length`: Length, from internal units to ``\\mathrm{ckpc}``.
-  - `v_cgs::Unitful.Velocity`: Velocity, from internal units to ``\\mathrm{cm \\, s^{-1}}``.
-  - `v_cosmo::Unitful.Velocity`: Velocity, from internal units to ``\\mathrm{km \\, s^{-1}}``.
-  - `m_cgs::Unitful.Mass`: Mass, from internal units to ``\\mathrm{g}``.
-  - `m_cosmo::Unitful.Mass`: Mass, from internal units to ``\\mathrm{M_\\odot}``.
-  - `t_cgs::Unitful.Time`: Time, from internal units to ``\\mathrm{s}``.
-  - `t_cosmo::Unitful.Time`: Time, from internal units to ``\\mathrm{Myr}``.
-  - `U_cgs::Unitful.Energy`: Specific energy, from internal units to ``\\mathrm{erg \\, g^{-1}}``.
-  - `rho_cgs::Unitful.Density`: Density, from internal units to ``\\mathrm{g \\, cm^{-3}}``.
-  - `P_Pa::Unitful.Pressure`: Pressure, from internal units to ``\\mathrm{Pa}``.
+  - `x_cgs::Unitful.Length`: From internal units of length to ``\\mathrm{cm}``.
+  - `x_cosmo::Unitful.Length`: From internal units of length to ``\\mathrm{kpc}``.
+  - `x_comoving::Unitful.Length`: From internal units of length to ``\\mathrm{ckpc}``.
+  - `v_cgs::Unitful.Velocity`: From internal units of velocity to ``\\mathrm{cm \\, s^{-1}}``.
+  - `v_cosmo::Unitful.Velocity`: From internal units of velocity to ``\\mathrm{km \\, s^{-1}}``.
+  - `m_cgs::Unitful.Mass`: From internal units of mass to ``\\mathrm{g}``.
+  - `m_cosmo::Unitful.Mass`: From internal units of mass to ``\\mathrm{M_\\odot}``.
+  - `t_cgs::Unitful.Time`: From internal units of time to ``\\mathrm{s}``.
+  - `t_cosmo::Unitful.Time`: From internal units of time to ``\\mathrm{Myr}``.
+  - `U_cgs::Unitful.Energy`: From internal units of specific energy to ``\\mathrm{erg \\, g^{-1}}``.
+  - `rho_cgs::Unitful.Density`: From internal units of density to ``\\mathrm{g \\, cm^{-3}}``.
+  - `P_Pa::Unitful.Pressure`: From internal units of pressure to ``\\mathrm{Pa}``.
 """
 struct InternalUnits
 
-    x_cgs::Unitful.Length      # Length, from internal units to cm
-    x_cosmo::Unitful.Length    # Length, from internal units to kpc
-    x_comoving::Unitful.Length # Length, from internal units to ckpc
+    x_cgs::Unitful.Length      # From internal units of length to cm
+    x_cosmo::Unitful.Length    # From internal units of length to kpc
+    x_comoving::Unitful.Length # From internal units of length to ckpc
 
-    v_cgs::Unitful.Velocity    # Velocity, from internal units to cm * s^-1
-    v_cosmo::Unitful.Velocity  # Velocity, from internal units to km * s^-1
+    v_cgs::Unitful.Velocity    # From internal units of velocity to cm * s^-1
+    v_cosmo::Unitful.Velocity  # From internal units of velocity to km * s^-1
 
-    m_cgs::Unitful.Mass        # Mass, from internal units to g
-    m_cosmo::Unitful.Mass      # Mass, from internal units to M⊙
+    m_cgs::Unitful.Mass        # From internal units of mass to g
+    m_cosmo::Unitful.Mass      # From internal units of mass to M⊙
 
-    t_cgs::Unitful.Time        # Time, from internal units to s
-    t_cosmo::Unitful.Time      # Time, from internal units to Myr
+    t_cgs::Unitful.Time        # From internal units of time to s
+    t_cosmo::Unitful.Time      # From internal units of time to Myr
 
-    U_cgs::SpecificEnergy      # Specific energy, from internal units to erg * g^-1
+    U_cgs::SpecificEnergy      # From internal units of specific energy to erg * g^-1
 
-    rho_cgs::Unitful.Density   # Density, from internal units to g * cm^-3
+    rho_cgs::Unitful.Density   # From internal units of density to g * cm^-3
 
-    P_Pa::Unitful.Pressure     # Pressure, from internal units to Pa
+    P_Pa::Unitful.Pressure     # From internal units of pressure to Pa
 
     """
         InternalUnits(; <keyword arguments>)
 
     Constructor for `InternalUnits`.
 
-    For cosmological simulations, and when appropriate, the conversion factors turn comoving units into physical ones.
+    For cosmological simulations, and when appropriate, the conversion factors turn comoving units into physical units.
 
     # Arguments
 
@@ -853,7 +698,7 @@ struct InternalUnits
       - `m_unit::Unitful.Mass=ILLUSTRIS_M_UNIT`: Code parameter `UnitMass_in_g`.
       - `v_unit::Unitful.Velocity=ILLUSTRIS_V_UNIT`: Code parameter `UnitVelocity_in_cm_per_s`.
       - `a::Float64=1.0`: Cosmological scale factor of the simulation.
-      - `h::Float64=1.0`: Hubble constant as "little h".
+      - `h::Float64=1.0`: Dimensionless Hubble parameter, "little h".
     """
     function InternalUnits(;
         l_unit::Unitful.Length=ILLUSTRIS_L_UNIT,
@@ -874,7 +719,7 @@ struct InternalUnits
 
         # Velocity conversion factors
         v_cgs = v_unit * sqrt(a)
-        v_cosmo = v_cgs |> u"km*s^-1"
+        v_cosmo = v_cgs |> u"km * s^-1"
 
         # Mass conversion factors
         m_cgs = m_unit / h
@@ -889,7 +734,7 @@ struct InternalUnits
         t_cosmo = t_cgs |> u"Myr"
 
         # Specific energy conversion factor
-        U_cgs = v_unit^2 |> u"erg*g^-1"
+        U_cgs = v_unit^2 |> u"erg * g^-1"
 
         # Density conversion factor
         rho_cgs = m_cgs * x_cgs^-3
@@ -922,14 +767,14 @@ Linear grid (1D).
 
 # Fields
 
-  - `grid::Vector{<:Number}`: Vector with the central value of each bin.
-  - `ticks::Vector{<:Number}`: Vector with the edges of the bins.
+  - `grid::Vector{<:Number}`: Position of (the center of) each bin.
+  - `edges::Vector{<:Number}`: Edges of the bins.
   - `bin_widths::Vector{<:Number}`: Widths of the bins.
   - `log::Bool`: If the grid is logarithmic.
 """
 struct LinearGrid
     grid::Vector{<:Number}
-    ticks::Vector{<:Number}
+    edges::Vector{<:Number}
     bin_widths::Vector{<:Number}
     log::Bool
 
@@ -940,8 +785,8 @@ struct LinearGrid
 
     # Arguments
 
-      - `start::Number`: Initial value of the grid.
-      - `stop::Number`: Final value of the grid.
+      - `start::Number`: Left most edge of the grid.
+      - `stop::Number`: Right most edge of the grid.
       - `n_bins::Int`: Number of bins.
       - `log::Bool=false`: If the bins will be logarithmic.
     """
@@ -954,7 +799,7 @@ struct LinearGrid
         # +-----------------------------+-----------------------------+-----------------------------+
         #
         # +-----------------------------+-----------------------------+-----------------------------+
-        # |<-- tick[1] (= `start`)      |<-- tick[2]       tick[3] -->|       tick[4] (= `stop`) -->|
+        # |<-- edges[1] (= `start`)     |<-- edges[2]     edges[3] -->|      edges[4] (= `stop`) -->|
         # +-----------------------------+-----------------------------+-----------------------------+
 
         (
@@ -968,7 +813,7 @@ struct LinearGrid
             (
                 isPositive(start) ||
                 throw(ArgumentError("LinearGrid: For a logarithmic grid you need a strictly \
-                positive `start`, but I got `start` = $(start)"))
+                positive `start`, but I got `start` = $(start) <= 0"))
             )
 
             # Unit of length
@@ -979,19 +824,19 @@ struct LinearGrid
 
             width      = (log_stop - log_start) / n_bins
             grid       = [exp10((i - 0.5) * width + log_start) * u_l for i in 1:n_bins]
-            ticks      = [exp10(i * width + log_start) * u_l for i in 0:n_bins]
-            bin_widths = [ticks[i + 1] - ticks[i] for i in 1:n_bins]
+            edges      = [exp10(i * width + log_start) * u_l for i in 0:n_bins]
+            bin_widths = [edges[i + 1] - edges[i] for i in 1:n_bins]
 
         else
 
             width      = (stop - start) / n_bins
             grid       = [(i - 0.5) * width + start for i in 1:n_bins]
-            ticks      = [i * width + start for i in 0:n_bins]
+            edges      = [i * width + start for i in 0:n_bins]
             bin_widths = [width for _ in 1:n_bins]
 
         end
 
-        new(grid, ticks, bin_widths, log)
+        new(grid, edges, bin_widths, log)
 
     end
 end
@@ -1001,26 +846,26 @@ Square grid (2D).
 
 # Fields
 
-  - `grid::Matrix{NTuple{2,<:Number}}`: Matrix with the physical coordinates of each pixel in the grid.
-  - `x_ticks::Vector{<:Number}`: Full set of possible values for the x coordinate.
-  - `y_ticks::Vector{<:Number}`: Full set of possible values for the y coordinate.
-  - `physical_size::Number`: Side length of the square grid.
-  - `n_bins::Int`: Number of bins per side of the grid.
+  - `grid::Matrix{NTuple{2,<:Number}}`: Matrix with the coordinates of (the center of) each bin.
+  - `x_edges::Vector{<:Number}`: x coordinates of the edges of the bins.
+  - `y_edges::Vector{<:Number}`: y coordinates of the edges of the bins.
+  - `grid_size::Number`: Side length of the grid.
+  - `n_bins::Int`: Number of bins per side.
   - `bin_width::Number`: Side length of each bin.
   - `bin_area::Number`: Area of each bin.
 """
 struct SquareGrid
     grid::Matrix{NTuple{2,<:Number}}
-    x_ticks::Vector{<:Number}
-    y_ticks::Vector{<:Number}
-    physical_size::Number
+    x_edges::Vector{<:Number}
+    y_edges::Vector{<:Number}
+    grid_size::Number
     n_bins::Int
     bin_width::Number
     bin_area::Number
 
     """
         SquareGrid(
-            physical_size::Number,
+            grid_size::Number,
             n_bins::Int;
             <keyword arguments>
         )
@@ -1029,23 +874,23 @@ struct SquareGrid
 
     # Arguments
 
-      - `physical_size::Number`: Side length of the square grid.
-      - `n_bins::Int`: Number of bins per dimension of the grid.
-      - `center::Vector{<:Number}=zeros(typeof(physical_size),3)`: 3D location of the center of the grid. The z axis is taken as the normal vector of the grid.
+      - `grid_size::Number`: Side length of the grid.
+      - `n_bins::Int`: Number of bins per side.
+      - `center::Vector{<:Number}=zeros(typeof(grid_size), 3)`: 3D location of the center of the grid. The z axis is taken as the normal vector of the grid.
     """
     function SquareGrid(
-        physical_size::Number,
+        grid_size::Number,
         n_bins::Int;
-        center::Vector{<:Number}=zeros(typeof(physical_size), 3),
+        center::Vector{<:Number}=zeros(typeof(grid_size), 3),
     )
 
         # Example of a 3x3 grid:
         #
-        # x_ticks       = [0, 1, 2]
-        # y_ticks       = [0, 1, 2]
-        # n_bins        = 3
-        # physical_size = 3
-        # center        = [1, 1, 1]
+        # x_edges   = [0, 1, 2]
+        # y_edges   = [0, 1, 2]
+        # n_bins    = 3
+        # grid_size = 3
+        # center    = [1, 1, 1]
         #
         # Reference system:
         #
@@ -1057,24 +902,36 @@ struct SquareGrid
         #    -------→ x
         #
         # +------------------+------------------+------------------+
+        # |                  |                  |                  |
+        # |                  |                  |                  |
         # |      i = 1       |      i = 4       |      i = 7       |
         # | grid[1] = (0, 2) | grid[4] = (1, 2) | grid[7] = (2, 2) |
+        # |                  |                  |                  |
+        # |                  |                  |                  |
         # +------------------+------------------+------------------+
+        # |                  |                  |                  |
+        # |                  |                  |                  |
         # |      i = 2       |      i = 5       |      i = 8       |
         # | grid[2] = (0, 1) | grid[5] = (1, 1) | grid[8] = (2, 1) |
+        # |                  |                  |                  |
+        # |                  |                  |                  |
         # +------------------+------------------+------------------+
+        # |                  |                  |                  |
+        # |                  |                  |                  |
         # |      i = 3       |      i = 6       |      i = 9       |
         # | grid[3] = (0, 0) | grid[6] = (1, 0) | grid[9] = (2, 0) |
+        # |                  |                  |                  |
+        # |                  |                  |                  |
         # +------------------+------------------+------------------+
 
         # Compute the bin dimensions
-        bin_width = physical_size / n_bins
+        bin_width = grid_size / n_bins
         bin_area  = bin_width * bin_width
 
-        # Compute the x and y coordinates of each square bin
-        shift   = 0.5 * (physical_size - bin_width)
-        x_ticks = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
-        y_ticks = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
+        # Compute the x and y coordinates of each bin
+        shift   = 0.5 * (grid_size - bin_width)
+        x_edges = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
+        y_edges = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
 
         # Allocate memory
         grid = Matrix{NTuple{2,<:Number}}(undef, n_bins, n_bins)
@@ -1089,11 +946,11 @@ struct SquareGrid
 
             # The coordinates are cartesian, so `y` goes from bottom to top and `x` goes from left to right,
             # starting at the bottom left of the grid
-            grid[i] = (x_ticks[i_x], y_ticks[end - i_y])
+            grid[i] = (x_edges[i_x], y_edges[end - i_y])
 
         end
 
-        new(grid, x_ticks, y_ticks, physical_size, n_bins, bin_width, bin_area)
+        new(grid, x_edges, y_edges, grid_size, n_bins, bin_width, bin_area)
 
     end
 end
@@ -1103,22 +960,22 @@ Cubic grid (3D).
 
 # Fields
 
-  - `grid::Array{NTuple{3,<:Number},3}`: Matrix with the physical coordinates of each voxel in the grid.
-  - `x_ticks::Vector{<:Number}`: Full set of possible values for the x coordinate.
-  - `y_ticks::Vector{<:Number}`: Full set of possible values for the y coordinate.
-  - `z_ticks::Vector{<:Number}`: Full set of possible values for the z coordinate.
-  - `physical_size::Number`: Side length of the cubic grid.
-  - `n_bins::Int`: Number of bins per side of the grid.
+  - `grid::Array{NTuple{3,<:Number},3}`: Matrix with the coordinates of (the center of) each bin.
+  - `x_edges::Vector{<:Number}`: x coordinates of the edges of the bins.
+  - `y_edges::Vector{<:Number}`: y coordinates of the edges of the bins.
+  - `z_edges::Vector{<:Number}`: z coordinates of the edges of the bins.
+  - `grid_size::Number`: Side length of the grid.
+  - `n_bins::Int`: Number of bins per side.
   - `bin_width::Number`: Side length of each bin.
   - `bin_area::Number`: Face area of each bin.
   - `bin_volume::Number`: Volume of each bin.
 """
 struct CubicGrid
     grid::Array{NTuple{3,<:Number},3}
-    x_ticks::Vector{<:Number}
-    y_ticks::Vector{<:Number}
-    z_ticks::Vector{<:Number}
-    physical_size::Number
+    x_edges::Vector{<:Number}
+    y_edges::Vector{<:Number}
+    z_edges::Vector{<:Number}
+    grid_size::Number
     n_bins::Int
     bin_width::Number
     bin_area::Number
@@ -1126,7 +983,7 @@ struct CubicGrid
 
     """
         CubicGrid(
-            physical_size::Number,
+            grid_size::Number,
             n_bins::Int;
             <keyword arguments>
         )
@@ -1135,24 +992,24 @@ struct CubicGrid
 
     # Arguments
 
-      - `physical_size::Number`: Side length of the cubic grid.
-      - `n_bins::Int`: Number of bins per dimension of the grid.
-      - `center::Vector{<:Number}=zeros(typeof(physical_size),3)`: 3D location of the center of the grid.
+      - `grid_size::Number`: Side length of the grid.
+      - `n_bins::Int`: Number of bins per dimension.
+      - `center::Vector{<:Number}=zeros(typeof(grid_size), 3)`: 3D location of the center of the grid.
     """
     function CubicGrid(
-        physical_size::Number,
+        grid_size::Number,
         n_bins::Int;
-        center::Vector{<:Number}=zeros(typeof(physical_size),3),
+        center::Vector{<:Number}=zeros(typeof(grid_size), 3),
     )
 
         # Example of a 3x3x3 grid:
         #
-        # x_ticks       = [0, 1, 2]
-        # y_ticks       = [0, 1, 2]
-        # z_ticks       = [0, 1, 2]
-        # n_bins        = 3
-        # physical_size = 3
-        # center        = [1, 1, 1]
+        # x_edges   = [0, 1, 2]
+        # y_edges   = [0, 1, 2]
+        # z_edges   = [0, 1, 2]
+        # n_bins    = 3
+        # grid_size = 3
+        # center    = [1, 1, 1]
         #
         # Reference system:
         #
@@ -1163,49 +1020,88 @@ struct CubicGrid
         #   | z
         #   +------→ x
         #
+        # z = 0
         # +----------------------+----------------------+----------------------+
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # |        i = 1         |        i = 4         |        i = 7         |
         # |  grid[1] = (0, 2, 0) |  grid[4] = (1, 2, 0) |  grid[7] = (2, 2, 0) |
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # +----------------------+----------------------+----------------------+
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # |        i = 2         |        i = 5         |        i = 8         |
         # |  grid[2] = (0, 1, 0) |  grid[5] = (1, 1, 0) |  grid[8] = (2, 1, 0) |
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # +----------------------+----------------------+----------------------+
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # |        i = 3         |        i = 6         |        i = 9         |
         # |  grid[3] = (0, 0, 0) |  grid[6] = (1, 0, 0) |  grid[9] = (2, 0, 0) |
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # +----------------------+----------------------+----------------------+
         #
+        # z = 1
         # +----------------------+----------------------+----------------------+
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # |        i = 10        |          i = 13      |          i = 16      |
         # | grid[10] = (0, 2, 1) | grid[13] = (1, 2, 1) | grid[16] = (2, 2, 1) |
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # +----------------------+----------------------+----------------------+
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # |        i = 11        |        i = 14        |        i = 17        |
         # | grid[11] = (0, 1, 1) | grid[14] = (1, 1, 1) | grid[17] = (2, 1, 1) |
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # +----------------------+----------------------+----------------------+
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # |        i = 12        |        i = 15        |        i = 18        |
         # | grid[12] = (0, 0, 1) | grid[15] = (1, 0, 1) | grid[18] = (2, 0, 1) |
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # +----------------------+----------------------+----------------------+
         #
+        # z = 2
         # +----------------------+----------------------+----------------------+
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # |        i = 19        |        i = 22        |        i = 25        |
         # | grid[19] = (0, 2, 2) | grid[22] = (1, 2, 2) | grid[25] = (2, 2, 2) |
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # +----------------------+----------------------+----------------------+
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # |        i = 22        |        i = 23        |        i = 26        |
         # | grid[20] = (0, 1, 2) | grid[23] = (1, 1, 2) | grid[26] = (2, 1, 2) |
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # +----------------------+----------------------+----------------------+
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # |        i = 21        |        i = 24        |        i = 27        |
         # | grid[21] = (0, 0, 2) | grid[24] = (1, 0, 2) | grid[27] = (2, 0, 2) |
+        # |                      |                      |                      |
+        # |                      |                      |                      |
         # +----------------------+----------------------+----------------------+
 
         # Compute the bin dimensions
-        bin_width  = physical_size / n_bins
+        bin_width  = grid_size / n_bins
         bin_area   = bin_width * bin_width
         bin_volume = bin_area * bin_width
 
-        # Compute the x, y, and z coordinates of each cubic bin
-        shift   = 0.5 * (physical_size - bin_width)
-        x_ticks = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
-        y_ticks = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
-        z_ticks = [(i - 1) * bin_width - shift + center[3] for i in 1:n_bins]
+        # Compute the x, y, and z coordinates of each bin
+        shift   = 0.5 * (grid_size - bin_width)
+        x_edges = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
+        y_edges = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
+        z_edges = [(i - 1) * bin_width - shift + center[3] for i in 1:n_bins]
 
         # Allocate memory
         grid = Array{NTuple{3,<:Number},3}(undef, n_bins, n_bins, n_bins)
@@ -1219,11 +1115,11 @@ struct CubicGrid
             i_y = mod1(flat_idx, n_bins) - 1
             i_z = ceil(Int, i / (n_bins * n_bins))
 
-            grid[i] = (x_ticks[i_x], y_ticks[end - i_y], z_ticks[i_z])
+            grid[i] = (x_edges[i_x], y_edges[end - i_y], z_edges[i_z])
 
         end
 
-        new(grid, x_ticks, y_ticks, z_ticks, physical_size, n_bins, bin_width, bin_area, bin_volume)
+        new(grid, x_edges, y_edges, z_edges, grid_size, n_bins, bin_width, bin_area, bin_volume)
 
     end
 end
@@ -1235,8 +1131,8 @@ Series of concentric rings or spherical shells.
 
 # Fields
 
-  - `grid::Vector{<:Number}`: Vector with the distance of each bin to the center of the grid.
-  - `ticks::Vector{<:Number}`: Vector with the edges of the bins.
+  - `grid::Vector{<:Number}`: Distance of (the center of) each bin to the center of the grid.
+  - `edges::Vector{<:Number}`: Distance of the edges of the bins to the center of the grid.
   - `center::Vector{<:Number}`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
   - `bin_area::Vector{<:Number}`: Area of each ring.
   - `bin_volumes::Vector{<:Number}`: Volume of each spherical shell.
@@ -1244,7 +1140,7 @@ Series of concentric rings or spherical shells.
 """
 struct CircularGrid
     grid::Vector{<:Number}
-    ticks::Vector{<:Number}
+    edges::Vector{<:Number}
     center::Vector{<:Number}
     bin_areas::Vector{<:Number}
     bin_volumes::Vector{<:Number}
@@ -1261,11 +1157,11 @@ struct CircularGrid
 
     # Arguments
 
-      - `radius::Number`: Radius of the grid (equal to the last bin tick).
+      - `radius::Number`: Radius of the grid (equal to the last bin edge).
       - `n_bins::Int`: Number of bins.
       - `center::Vector{<:Number}=zeros(typeof(radius), 3)`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
       - `log::Bool=false`: If the bins will be logarithmic.
-      - `shift::Number=zero(radius)`: Distance of the first bin tick to the center.
+      - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
     """
     function CircularGrid(
         radius::Number,
@@ -1284,13 +1180,13 @@ struct CircularGrid
         # +-----------+-------------------------+-------------------------+-------------------------+
         #
         # +-----------+-------------------------+-------------------------+-------------------------+
-        # |<--shift-->|<-- tick[1]   tick[2] -->|              tick[3] -->|              tick[4] -->|
+        # |<--shift-->|<-- edges[1] edges[2] -->|             edges[3] -->|             edges[4] -->|
         # +-----------+-------------------------+-------------------------+-------------------------+
 
         (
             isPositive(radius) ||
             throw(ArgumentError("CircularGrid: `radius` must be strictly positive, \
-            but I got `radius` = $(radius)"))
+            but I got `radius` = $(radius) <= 0"))
         )
 
         if log
@@ -1298,10 +1194,10 @@ struct CircularGrid
             (
                 isPositive(shift) ||
                 throw(ArgumentError("CircularGrid: For a logarithmic grid you need a \
-                strictly positive `shift`, but I got `shift` = $(shift)"))
+                strictly positive `shift`, but I got `shift` = $(shift) <= 0"))
             )
 
-            # Length unit
+            # Unit of lenght
             u_l = unit(radius)
 
             log_shift  = log10(ustrip(u_l, shift))
@@ -1309,20 +1205,20 @@ struct CircularGrid
 
             width = (log_radius - log_shift) / n_bins
             grid  = [exp10((i - 0.5) * width + log_shift) * u_l for i in 1:n_bins]
-            ticks = [exp10(i * width + log_shift) * u_l for i in 0:n_bins]
+            edges = [exp10(i * width + log_shift) * u_l for i in 0:n_bins]
 
         else
 
             width = (radius - shift) / n_bins
             grid  = [(i - 0.5) * width + shift for i in 1:n_bins]
-            ticks = [i * width + shift for i in 0:n_bins]
+            edges = [i * width + shift for i in 0:n_bins]
 
         end
 
-        bin_areas   = [area(ticks[i + 1]) - area(ticks[i]) for i in 1:n_bins]
-        bin_volumes = [volume(ticks[i + 1]) - volume(ticks[i]) for i in 1:n_bins]
+        bin_areas   = [area(edges[i + 1]) - area(edges[i]) for i in 1:n_bins]
+        bin_volumes = [volume(edges[i + 1]) - volume(edges[i]) for i in 1:n_bins]
 
-        new(grid, ticks, center, bin_areas, bin_volumes, log)
+        new(grid, edges, center, bin_areas, bin_volumes, log)
 
     end
 end
@@ -1332,13 +1228,13 @@ Plotting parameters for a quantity.
 
 # Fields
 
-  - `request::Dict{Symbol,Vector{String}} = Dict{Symbol,Vector{String}}()`: Data request for [`readSnapshot`](@ref). It must have the shape `cell/particle type` -> [`block`, `block`, `block`, ...].
-  - `var_name::AbstractString = ""`: Name of the quantity for the plot axis. It should not include units or scaling factors.
-  - `exp_factor::Int = 0`: Numerical exponent to scale down the axis, e.g. if `x_exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
+  - `request::Dict{Symbol,Vector{String}} = Dict{Symbol,Vector{String}}()`: Data request for [`readSnapshot`](@ref). It must have the shape `cell/particle type` -> [`block name`, `block name`, `block name`, ...].
+  - `var_name::AbstractString = ""`: Name of the quantity for the axis label. It should not include units or scaling factors.
+  - `exp_factor::Int = 0`: Numerical exponent to scale down the axis, e.g. if `exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
   - `unit::Unitful.Units = Unitful.NoUnits`: Target unit for the axis.
   - `axis_label::AbstractString = "auto_label"`: Label for the axis. It can contain the string `auto_label`, which will be replaced by the default label: `var_name` / 10^`exp_factor` `unit`.
 """
-@kwdef mutable struct PlotParams
+@kwdef struct PlotParams
     request::Dict{Symbol,Vector{String}} = Dict{Symbol,Vector{String}}()
     var_name::AbstractString = ""
     exp_factor::Int = 0

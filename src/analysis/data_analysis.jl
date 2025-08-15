@@ -1417,7 +1417,7 @@ function daDensity2DProjection(
 
     # If any of the necessary quantities are missing return an empty density field
     if isempty(masses) || isempty(positions)
-        return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
+        return grid.x_edges, grid.y_edges, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
     if field_type == :cells
@@ -1504,8 +1504,8 @@ function daDensity2DProjection(
         # Reduce the resolution of the result into a new square grid
         # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
         density = reduceResolution(density ./ physical_factor, reduce_factor)
-        x_axis  = reduceTicks(grid.x_ticks, reduce_factor)
-        y_axis  = reduceTicks(grid.y_ticks, reduce_factor)
+        x_axis  = reduceTicks(grid.x_edges, reduce_factor)
+        y_axis  = reduceTicks(grid.y_edges, reduce_factor)
 
         # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
@@ -1522,7 +1522,7 @@ function daDensity2DProjection(
         # Reduce the resolution of the result into a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
         density = projectIntoCircularGrid(density ./ physical_factor, reduce_factor)
-        x_axis  = [grid.physical_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        x_axis  = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis  = x_axis
 
     else
@@ -1675,7 +1675,7 @@ function daGasSFR2DProjection(
 
     # If any of the necessary quantities are missing return an empty SFR field
     if isempty(positions) || isempty(sfrs)
-        return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
+        return grid.x_edges, grid.y_edges, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
     if field_type == :cells
@@ -1761,8 +1761,8 @@ function daGasSFR2DProjection(
         # Reduce the resolution of the result into a new square grid
         # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
         sfr = reduceResolution(sfr, reduce_factor; total=true)
-        x_axis  = reduceTicks(grid.x_ticks, reduce_factor)
-        y_axis  = reduceTicks(grid.y_ticks, reduce_factor)
+        x_axis  = reduceTicks(grid.x_edges, reduce_factor)
+        y_axis  = reduceTicks(grid.y_edges, reduce_factor)
 
         # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
@@ -1779,7 +1779,7 @@ function daGasSFR2DProjection(
         # Reduce the resolution of the result into a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
         sfr = projectIntoCircularGrid(sfr, reduce_factor; total=true)
-        x_axis  = [grid.physical_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        x_axis  = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis  = x_axis
 
     else
@@ -1940,7 +1940,7 @@ function daMetallicity2DProjection(
 
     # If the necessary quantities are missing return an empty metallicity field
     if isempty(positions)
-        return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
+        return grid.x_edges, grid.y_edges, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
     if field_type == :cells
@@ -2060,8 +2060,8 @@ function daMetallicity2DProjection(
         metal_mass = reduceResolution(metal_mass, reduce_factor; total=true)
         norm_mass  = reduceResolution(norm_mass, reduce_factor; total=true)
 
-        x_axis = reduceTicks(grid.x_ticks, reduce_factor)
-        y_axis = reduceTicks(grid.y_ticks, reduce_factor)
+        x_axis = reduceTicks(grid.x_edges, reduce_factor)
+        y_axis = reduceTicks(grid.y_edges, reduce_factor)
 
         # Compute the metallicity in each bin
         metallicity = uconvert.(Unitful.NoUnits, metal_mass ./ norm_mass)
@@ -2083,7 +2083,7 @@ function daMetallicity2DProjection(
         metal_mass = projectIntoCircularGrid(metal_mass, reduce_factor; total=true)
         norm_mass  = projectIntoCircularGrid(norm_mass, reduce_factor; total=true)
 
-        x_axis = [grid.physical_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        x_axis = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis = x_axis
 
         # Compute the metallicity in each bin
@@ -2237,7 +2237,7 @@ function daTemperature2DProjection(
 
     # If any of the necessary quantities are missing return an empty temperature field
     if isempty(temperatures) || isempty(positions)
-        return grid.x_ticks, grid.y_ticks, fill(NaN, (grid.n_bins, grid.n_bins))
+        return grid.x_edges, grid.y_edges, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
     # Set the units
@@ -2333,8 +2333,8 @@ function daTemperature2DProjection(
         # Reduce the resolution of the result into a new square grid
         # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
         temperature = reduceResolution(temperature, reduce_factor)
-        x_axis  = reduceTicks(grid.x_ticks, reduce_factor)
-        y_axis  = reduceTicks(grid.y_ticks, reduce_factor)
+        x_axis  = reduceTicks(grid.x_edges, reduce_factor)
+        y_axis  = reduceTicks(grid.y_edges, reduce_factor)
 
         # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
@@ -2351,7 +2351,7 @@ function daTemperature2DProjection(
         # Reduce the resolution of the result into a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
         temperature = projectIntoCircularGrid(temperature, reduce_factor)
-        x_axis  = [grid.physical_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        x_axis  = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis  = x_axis
 
     else
@@ -3275,7 +3275,7 @@ function daVelocityField(
 
     # If any of the necessary quantities are missing return an empty velocity field
     if isempty(positions) || isempty(velocities)
-        return grid.x_ticks, grid.y_ticks, zeros(size(grid.grid)), zeros(size(grid.grid))
+        return grid.x_edges, grid.y_edges, zeros(size(grid.grid)), zeros(size(grid.grid))
     end
 
     # Project the cells/particles to the chosen plane
@@ -3319,7 +3319,7 @@ function daVelocityField(
         vy = ustrip.(u"km*s^-1", vy)
     end
 
-    return grid.x_ticks, grid.y_ticks, vx, vy
+    return grid.x_edges, grid.y_edges, vx, vy
 
 end
 
@@ -4411,7 +4411,7 @@ function daEvolution(
     )
 
     # Iterate over each snapshot in the slice
-    iterator = eachrow(DataFrame(sim_data.table[sim_data.slice, :]))
+    iterator = eachrow(DataFrame(sim_data.snapshot_table[sim_data.slice, :]))
 
     # Allocate memory
     x_axis = Vector{Number}(fill(NaN, length(iterator)))
@@ -4566,7 +4566,7 @@ function daVirialAccretion(
     )
 
     # Read the metadata table for the simulation
-    simulation_dataframe = DataFrame(sim_data.table[sim_data.slice, :])
+    simulation_dataframe = DataFrame(sim_data.snapshot_table[sim_data.slice, :])
 
     # Delete missing snapshots
     filter!(row -> !ismissing(row[:snapshot_paths]), simulation_dataframe)
@@ -4579,7 +4579,7 @@ function daVirialAccretion(
         length(iterator) >= 2 ||
         throw(ArgumentError("daVirialAccretion: The given slice, $(sim_data.slice), selected for \
         less than two snapshots. I need at least two snapshots to compute the a time series of \
-        gas accretion. The full simulation table is:\n$(sim_data.table)"))
+        gas accretion. The full simulation table is:\n$(sim_data.snapshot_table)"))
     )
 
     ################################################################################################
@@ -4707,7 +4707,7 @@ function daVirialAccretion(
     end
 
     # Compure the time ticks
-    t  = sim_data.table[sim_data.slice, :physical_times]
+    t  = sim_data.snapshot_table[sim_data.slice, :physical_times]
 
     # Compure the time axis
     Δt = deltas(t)[2:end]
@@ -4790,7 +4790,7 @@ function daDiscAccretion(
     )
 
     # Read the metadata table for the simulation
-    simulation_dataframe = DataFrame(sim_data.table[sim_data.slice, :])
+    simulation_dataframe = DataFrame(sim_data.snapshot_table[sim_data.slice, :])
 
     # Delete missing snapshots
     filter!(row -> !ismissing(row[:snapshot_paths]), simulation_dataframe)
@@ -4803,7 +4803,7 @@ function daDiscAccretion(
         length(iterator) >= 2 ||
         throw(ArgumentError("daDiscAccretion: The given slice, $(sim_data.slice), selected for \
         less than two snapshots. I need at least two snapshots to compute the a time series of \
-        gas accretion. The full simulation table is:\n$(sim_data.table)"))
+        gas accretion. The full simulation table is:\n$(sim_data.snapshot_table)"))
     )
 
     ################################################################################################
@@ -4915,7 +4915,7 @@ function daDiscAccretion(
     end
 
     # Compure the time ticks
-    t  = sim_data.table[sim_data.slice, :physical_times]
+    t  = sim_data.snapshot_table[sim_data.slice, :physical_times]
 
     # Compure the time axis
     Δt = deltas(t)[2:end]
@@ -4967,7 +4967,7 @@ function daSFRtxt(
     smooth::Int=0,
 )::NTuple{2,Vector{<:Number}}
 
-    snapshot_paths = filter(!ismissing, sim_data.table[!, 7])
+    snapshot_paths = filter(!ismissing, sim_data.snapshot_table[!, 7])
 
     (
         !isempty(snapshot_paths) ||
@@ -5110,7 +5110,7 @@ function daCPUtxt(
     smooth::Int=0,
 )::NTuple{2,Vector{<:Number}}
 
-    snapshot_paths = filter(!ismissing, sim_data.table[!, 7])
+    snapshot_paths = filter(!ismissing, sim_data.snapshot_table[!, 7])
 
     (
         !isempty(snapshot_paths) ||

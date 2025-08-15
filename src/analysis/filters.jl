@@ -1092,7 +1092,7 @@ function filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
         end
 
         # Get the physical times
-        times = data_dict[:sim_data].table[:, 5]
+        times = data_dict[:sim_data].snapshot_table[:, 5]
 
         new_stars_idxs = map(t -> t > times[present_idx - 1], birth_times)
 

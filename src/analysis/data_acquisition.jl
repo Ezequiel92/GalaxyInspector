@@ -1915,7 +1915,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
                 @warn(
                     "internalUnits: You have set the unit system to use comoving lengths \
                     (`PHYSICAL_UNITS` = $(PHYSICAL_UNITS)), but the simulation is not \
-                    cosmological. The function will keep the lengths physical. \
+                    cosmological. internalUnits will keep the lengths physical. \
                     Check `PHYSICAL_UNITS` in `constants/globals.jl`",
                     maxlog=1,
                 )
