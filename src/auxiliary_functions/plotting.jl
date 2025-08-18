@@ -1,5 +1,5 @@
 ####################################################################################################
-# Makie.jl and plotting utilities
+# Plotting utilities
 ####################################################################################################
 
 """
@@ -37,7 +37,7 @@ yscale(plot::Makie.FigureAxisPlot)::Function = yscale(plot.axis)
 yscale(fig::Makie.Figure)::Function = yscale(fig.current_axis.x)
 
 """
-Extract all the data points in a [Makie](https://docs.makie.org/stable/) plot, axis, or figure. In the case of a figure, it will only take the data from the current axis object. It only works for scatter, line and scatterline plots.
+Extract all the data points in a [Makie](https://docs.makie.org/stable/) plot, axis, or figure. In the case of a figure, it will only take the data from the current axis object. It only works for scatter, line, and scatterline plots.
 """
 function pointData(axis::Makie.Axis)::Vector{Point{2,Float32}}
 
@@ -180,7 +180,7 @@ Construct the unit part of an axis label.
 
   - `factor::Int`: Exponential factor to scale down the units. If different from 0, a term of the form 10^`factor` will be added to the label.
   - `unit::Unitful.Units`: Unit of the axis.
-  - `latex::Bool=true`: If the output will be a `LaTeXString`, or a plain `String`.
+  - `latex::Bool=true`: If the output will be a `LaTeXString` or a plain `String`.
 
 # Returns
 
@@ -251,7 +251,7 @@ Construct an axis label.
   - `label::AbstractString`: Variable name.
   - `factor::Int`: Exponential factor to scale down the units. If different from 0, a term of the form 10^`factor` will be added to the label.
   - `unit::Unitful.Units`: Unit of the axis.
-  - `latex::Bool=true`: If the output will be a `LaTeXString`, or a plain `String`.
+  - `latex::Bool=true`: If the output will be a `LaTeXString` or a plain `String`.
 
 # Returns
 
@@ -319,11 +319,78 @@ Method for compatibility with the barplot! function of [Makie](https://docs.maki
 barPlotLabelFormater(x::LaTeXString)::LaTeXString = x
 
 """
+    reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
+
+Reduce the length of a given list of axis ticks, while keeping the total length of the axis the same.
+
+# Arguments
+
+  - `hr_ticks::Vector{<:Number}`: Original "high resolution" list of ticks. It has to be regularly spaced
+  - `factor::Int`: Factor by which the number of values will be reduced. It has to divide the size of `hr_ticks` exactly.
+
+# Returns
+
+  - The new shorter list of ticks.
+"""
+function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
+
+    !isone(factor) || return hr_ticks
+
+    l = length(hr_ticks)
+
+    (
+        l % factor == 0 ||
+        throw(ArgumentError("reduceTicks: `factor` must divide the size of `hr_ticks` \
+        exactly, but I got length of `hr_ticks` / `factor` = $(l / factor)"))
+    )
+
+    (
+        factor >= 1 ||
+        throw(ArgumentError("reduceTicks: `factor` must be >= 1, but I got `factor` = $(factor)"))
+    )
+
+    # Compute the size of the new vector
+    new_size = l ÷ factor
+
+    # Allocate memory
+    lr_ticks = similar(hr_ticks, new_size)
+
+    if iseven(factor)
+
+        shift = factor ÷ 2
+
+        for i in eachindex(lr_ticks)
+
+            idx = (i - 1) * factor + shift
+
+            lr_ticks[i] = (hr_ticks[idx] + hr_ticks[idx + 1]) / 2.0
+
+        end
+
+    else
+
+        shift = ceil(Int, factor / 2)
+
+        for i in eachindex(lr_ticks)
+
+            idx = (i - 1) * factor + shift
+
+            lr_ticks[i] = hr_ticks[idx]
+
+        end
+
+    end
+
+    return lr_ticks
+
+end
+
+"""
     formatError(q_mean::Number, q_error::Number)::NTuple{2,<:Number}
 
 Nicely format a magnitude with uncertainty.
 
-It follows the traditional rules for error presentation: the error has only one significant digit, unless such digit is a one, in which case two significant digits are used. The median will have as many digits as to match the last significant position of the error. An error equal to 0 will leave the mean unchanged.
+It follows the traditional rules for error presentation: the error has only one significant digit, unless such digit is a one, in which case two significant digits are used. The mean will have as many digits as to match the last significant position of the error. An error equal to 0 will leave the mean unchanged.
 
 # Arguments
 

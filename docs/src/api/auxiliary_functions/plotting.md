@@ -1,4 +1,4 @@
-# Makie.jl and plotting utilities
+# Plotting utilities
 
 These functions are used internally and none are exported. 
 

@@ -847,8 +847,9 @@ Square grid (2D).
 # Fields
 
   - `grid::Matrix{NTuple{2,<:Number}}`: Matrix with the coordinates of (the center of) each bin.
-  - `x_edges::Vector{<:Number}`: x coordinates of the edges of the bins.
-  - `y_edges::Vector{<:Number}`: y coordinates of the edges of the bins.
+  - `x_bins::Vector{<:Number}`: x coordinates of the bins.
+  - `y_bins::Vector{<:Number}`: y coordinates of the bins.
+  - `center::Vector{<:Number}`: 3D location of the center of the grid. The z axis is taken as the normal vector of the grid.
   - `grid_size::Number`: Side length of the grid.
   - `n_bins::Int`: Number of bins per side.
   - `bin_width::Number`: Side length of each bin.
@@ -856,8 +857,9 @@ Square grid (2D).
 """
 struct SquareGrid
     grid::Matrix{NTuple{2,<:Number}}
-    x_edges::Vector{<:Number}
-    y_edges::Vector{<:Number}
+    x_bins::Vector{<:Number}
+    y_bins::Vector{<:Number}
+    center::Vector{<:Number}
     grid_size::Number
     n_bins::Int
     bin_width::Number
@@ -886,8 +888,8 @@ struct SquareGrid
 
         # Example of a 3x3 grid:
         #
-        # x_edges   = [0, 1, 2]
-        # y_edges   = [0, 1, 2]
+        # x_bins    = [0, 1, 2]
+        # y_bins    = [0, 1, 2]
         # n_bins    = 3
         # grid_size = 3
         # center    = [1, 1, 1]
@@ -929,9 +931,9 @@ struct SquareGrid
         bin_area  = bin_width * bin_width
 
         # Compute the x and y coordinates of each bin
-        shift   = 0.5 * (grid_size - bin_width)
-        x_edges = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
-        y_edges = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
+        shift  = 0.5 * (grid_size - bin_width)
+        x_bins = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
+        y_bins = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
 
         # Allocate memory
         grid = Matrix{NTuple{2,<:Number}}(undef, n_bins, n_bins)
@@ -946,11 +948,11 @@ struct SquareGrid
 
             # The coordinates are cartesian, so `y` goes from bottom to top and `x` goes from left to right,
             # starting at the bottom left of the grid
-            grid[i] = (x_edges[i_x], y_edges[end - i_y])
+            grid[i] = (x_bins[i_x], y_bins[end - i_y])
 
         end
 
-        new(grid, x_edges, y_edges, grid_size, n_bins, bin_width, bin_area)
+        new(grid, x_bins, y_bins, center, grid_size, n_bins, bin_width, bin_area)
 
     end
 end
@@ -961,9 +963,10 @@ Cubic grid (3D).
 # Fields
 
   - `grid::Array{NTuple{3,<:Number},3}`: Matrix with the coordinates of (the center of) each bin.
-  - `x_edges::Vector{<:Number}`: x coordinates of the edges of the bins.
-  - `y_edges::Vector{<:Number}`: y coordinates of the edges of the bins.
-  - `z_edges::Vector{<:Number}`: z coordinates of the edges of the bins.
+  - `x_bins::Vector{<:Number}`: x coordinates of the bins.
+  - `y_bins::Vector{<:Number}`: y coordinates of the bins.
+  - `z_bins::Vector{<:Number}`: z coordinates of the bins.
+  - `center::Vector{<:Number}`: 3D location of the center of the grid.
   - `grid_size::Number`: Side length of the grid.
   - `n_bins::Int`: Number of bins per side.
   - `bin_width::Number`: Side length of each bin.
@@ -972,9 +975,10 @@ Cubic grid (3D).
 """
 struct CubicGrid
     grid::Array{NTuple{3,<:Number},3}
-    x_edges::Vector{<:Number}
-    y_edges::Vector{<:Number}
-    z_edges::Vector{<:Number}
+    x_bins::Vector{<:Number}
+    y_bins::Vector{<:Number}
+    z_bins::Vector{<:Number}
+    center::Vector{<:Number}
     grid_size::Number
     n_bins::Int
     bin_width::Number
@@ -1004,9 +1008,9 @@ struct CubicGrid
 
         # Example of a 3x3x3 grid:
         #
-        # x_edges   = [0, 1, 2]
-        # y_edges   = [0, 1, 2]
-        # z_edges   = [0, 1, 2]
+        # x_bins    = [0, 1, 2]
+        # y_bins    = [0, 1, 2]
+        # z_bins    = [0, 1, 2]
         # n_bins    = 3
         # grid_size = 3
         # center    = [1, 1, 1]
@@ -1098,10 +1102,10 @@ struct CubicGrid
         bin_volume = bin_area * bin_width
 
         # Compute the x, y, and z coordinates of each bin
-        shift   = 0.5 * (grid_size - bin_width)
-        x_edges = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
-        y_edges = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
-        z_edges = [(i - 1) * bin_width - shift + center[3] for i in 1:n_bins]
+        shift  = 0.5 * (grid_size - bin_width)
+        x_bins = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
+        y_bins = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
+        z_bins = [(i - 1) * bin_width - shift + center[3] for i in 1:n_bins]
 
         # Allocate memory
         grid = Array{NTuple{3,<:Number},3}(undef, n_bins, n_bins, n_bins)
@@ -1115,11 +1119,22 @@ struct CubicGrid
             i_y = mod1(flat_idx, n_bins) - 1
             i_z = ceil(Int, i / (n_bins * n_bins))
 
-            grid[i] = (x_edges[i_x], y_edges[end - i_y], z_edges[i_z])
+            grid[i] = (x_bins[i_x], y_bins[end - i_y], z_bins[i_z])
 
         end
 
-        new(grid, x_edges, y_edges, z_edges, grid_size, n_bins, bin_width, bin_area, bin_volume)
+        new(
+            grid,
+            x_bins,
+            y_bins,
+            z_bins,
+            center,
+            grid_size,
+            n_bins,
+            bin_width,
+            bin_area,
+            bin_volume,
+        )
 
     end
 end

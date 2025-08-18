@@ -1417,7 +1417,7 @@ function daDensity2DProjection(
 
     # If any of the necessary quantities are missing return an empty density field
     if isempty(masses) || isempty(positions)
-        return grid.x_edges, grid.y_edges, fill(NaN, (grid.n_bins, grid.n_bins))
+        return grid.x_bins, grid.y_bins, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
     if field_type == :cells
@@ -1503,9 +1503,9 @@ function daDensity2DProjection(
 
         # Reduce the resolution of the result into a new square grid
         # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
-        density = reduceResolution(density ./ physical_factor, reduce_factor)
-        x_axis  = reduceTicks(grid.x_edges, reduce_factor)
-        y_axis  = reduceTicks(grid.y_edges, reduce_factor)
+        density = reduceMatrix(density ./ physical_factor, reduce_factor)
+        x_axis  = reduceTicks(grid.x_bins, reduce_factor)
+        y_axis  = reduceTicks(grid.y_bins, reduce_factor)
 
         # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
@@ -1675,7 +1675,7 @@ function daGasSFR2DProjection(
 
     # If any of the necessary quantities are missing return an empty SFR field
     if isempty(positions) || isempty(sfrs)
-        return grid.x_edges, grid.y_edges, fill(NaN, (grid.n_bins, grid.n_bins))
+        return grid.x_bins, grid.y_bins, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
     if field_type == :cells
@@ -1760,9 +1760,9 @@ function daGasSFR2DProjection(
 
         # Reduce the resolution of the result into a new square grid
         # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
-        sfr = reduceResolution(sfr, reduce_factor; total=true)
-        x_axis  = reduceTicks(grid.x_edges, reduce_factor)
-        y_axis  = reduceTicks(grid.y_edges, reduce_factor)
+        sfr = reduceMatrix(sfr, reduce_factor; total=true)
+        x_axis  = reduceTicks(grid.x_bins, reduce_factor)
+        y_axis  = reduceTicks(grid.y_bins, reduce_factor)
 
         # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
@@ -1940,7 +1940,7 @@ function daMetallicity2DProjection(
 
     # If the necessary quantities are missing return an empty metallicity field
     if isempty(positions)
-        return grid.x_edges, grid.y_edges, fill(NaN, (grid.n_bins, grid.n_bins))
+        return grid.x_bins, grid.y_bins, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
     if field_type == :cells
@@ -2057,11 +2057,11 @@ function daMetallicity2DProjection(
 
         # Reduce the resolution of the result into a new square grid
         # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
-        metal_mass = reduceResolution(metal_mass, reduce_factor; total=true)
-        norm_mass  = reduceResolution(norm_mass, reduce_factor; total=true)
+        metal_mass = reduceMatrix(metal_mass, reduce_factor; total=true)
+        norm_mass  = reduceMatrix(norm_mass, reduce_factor; total=true)
 
-        x_axis = reduceTicks(grid.x_edges, reduce_factor)
-        y_axis = reduceTicks(grid.y_edges, reduce_factor)
+        x_axis = reduceTicks(grid.x_bins, reduce_factor)
+        y_axis = reduceTicks(grid.y_bins, reduce_factor)
 
         # Compute the metallicity in each bin
         metallicity = uconvert.(Unitful.NoUnits, metal_mass ./ norm_mass)
@@ -2237,7 +2237,7 @@ function daTemperature2DProjection(
 
     # If any of the necessary quantities are missing return an empty temperature field
     if isempty(temperatures) || isempty(positions)
-        return grid.x_edges, grid.y_edges, fill(NaN, (grid.n_bins, grid.n_bins))
+        return grid.x_bins, grid.y_bins, fill(NaN, (grid.n_bins, grid.n_bins))
     end
 
     # Set the units
@@ -2332,9 +2332,9 @@ function daTemperature2DProjection(
 
         # Reduce the resolution of the result into a new square grid
         # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
-        temperature = reduceResolution(temperature, reduce_factor)
-        x_axis  = reduceTicks(grid.x_edges, reduce_factor)
-        y_axis  = reduceTicks(grid.y_edges, reduce_factor)
+        temperature = reduceMatrix(temperature, reduce_factor)
+        x_axis  = reduceTicks(grid.x_bins, reduce_factor)
+        y_axis  = reduceTicks(grid.y_bins, reduce_factor)
 
         # The transpose and reverse operation are used to conform to
         # the way `heatmap!` expect the matrix to be structured
@@ -3275,7 +3275,7 @@ function daVelocityField(
 
     # If any of the necessary quantities are missing return an empty velocity field
     if isempty(positions) || isempty(velocities)
-        return grid.x_edges, grid.y_edges, zeros(size(grid.grid)), zeros(size(grid.grid))
+        return grid.x_bins, grid.y_bins, zeros(size(grid.grid)), zeros(size(grid.grid))
     end
 
     # Project the cells/particles to the chosen plane
@@ -3319,7 +3319,7 @@ function daVelocityField(
         vy = ustrip.(u"km*s^-1", vy)
     end
 
-    return grid.x_edges, grid.y_edges, vx, vy
+    return grid.x_bins, grid.y_bins, vx, vy
 
 end
 

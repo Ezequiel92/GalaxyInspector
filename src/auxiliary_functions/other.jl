@@ -3,11 +3,87 @@
 ####################################################################################################
 
 """
+Return a copy of `list` with every negative value set to 0.
+"""
+setPositive(list::VecOrMat{<:Number}) = replace(x -> x >= zero(x) ? x : zero(x), list)
+setPositive(x::Number) = x >= zero(x) ? x : zero(x)
+
+"""
+Test for strict positivity.
+"""
+isPositive(x::Number)::Bool = x > zero(x)
+isPositive(x::AbstractArray)::Bool = all(isPositive, x)
+isPositive(x...)::Bool = all(isPositive, x)
+
+"""
+New method for `Base.iszero` to compare [`IndexType`](@ref) with 0.
+"""
+Base.iszero(x::IndexType)::Bool = x == 0
+
+"""
+New method for `Base.isempty` to check for empty [LaTeXStrings](https://github.com/JuliaStrings/LaTeXStrings.jl).
+"""
+Base.isempty(l_str::LaTeXString)::Bool = l_str == L""
+
+"""
+New methods for `Base.intersect` to use with the `Colon` type.
+"""
+Base.intersect(a1::Colon, a2::IndexType)::IndexType = a2
+Base.intersect(a1::IndexType, a2::Colon)::IndexType = a1
+Base.intersect(a1::Colon, a2::Colon)::Colon = (:)
+
+"""
+New methods for `Base.intersect` to use with the `Vector{Bool}` type.
+"""
+Base.intersect(a1::Vector{Bool}, a2::ReducedIndexType)::Vector{Int} = findall(a1) ∩ a2
+Base.intersect(a1::ReducedIndexType, a2::Vector{Bool})::Vector{Int} = a1 ∩ findall(a2)
+Base.intersect(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .&& a2)
+
+"""
+New methods for `Base.union` to use with the `Vector{Bool}` type.
+"""
+Base.union(a1::Vector{Bool}, a2::ReducedIndexType)::Vector{Int} = findall(a1) ∪ a2
+Base.union(a1::ReducedIndexType, a2::Vector{Bool})::Vector{Int} = a1 ∪ findall(a2)
+Base.union(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .|| a2)
+
+"""
+Area of a circle with radius `r`.
+"""
+function area(r::Number)::Number
+
+    x = setPositive(r)
+
+    return π * x^2
+
+end
+
+"""
+Volume of a sphere with radius `r`.
+"""
+function volume(r::Number)::Number
+
+    x = setPositive(r)
+
+    return π * x^3 * 4.0 / 3.0
+
+end
+
+"""
+Always returns `nothing`, for any type and number of arguments.
+"""
+getNothing(x...; y...)::Nothing = nothing
+
+"""
+Always returns an empty vector, for any type and number of arguments.
+"""
+getEmpty(x...; y...)::Vector = []
+
+"""
     metaFormatter(level::LogLevel, _module, group, id, file, line)
 
 Formatter for loggers.
 
-See the documentation for [ConsoleLogger](https://docs.julialang.org/en/v1/stdlib/Logging/#Base.CoreLogging.ConsoleLogger)
+See the documentation of [ConsoleLogger](https://docs.julialang.org/en/v1/stdlib/Logging/#Base.CoreLogging.ConsoleLogger)
 """
 function metaFormatter(level::LogLevel, _module, group, id, file, line)
 
@@ -35,20 +111,20 @@ function metaFormatter(level::LogLevel, _module, group, id, file, line)
 end
 
 """
-    setLogging!(verb::Bool; <keyword arguments>)::Nothing
+    setLogging!(log::Bool; <keyword arguments>)::Nothing
 
 Set if logging messages will be printed out. By default no logs are printed.
 
 # Arguments
 
-  - `verb::Bool`: If logs will be printed out using the default logger.
+  - `log::Bool`: If logs will be printed out using the default logger.
   - `stream::IO=stdout`: Where to print the logs. It can be a file.
 """
-function setLogging!(verb::Bool; stream::IO=stdout)::Nothing
+function setLogging!(log::Bool; stream::IO=stdout)::Nothing
 
-    logging[] = verb
+    logging[] = log
 
-    verb && global_logger(ConsoleLogger(stream; meta_formatter=metaFormatter))
+    log && global_logger(ConsoleLogger(stream; meta_formatter=metaFormatter))
 
     return nothing
 
@@ -57,7 +133,7 @@ end
 """
     ring(vec::Vector, index::Integer)::Vector
 
-Make the indexing operation `vec[index]` work using modular arithmetic for the indices.
+Make the indexing operation `vec[index]` work with modular arithmetic for the indices.
 
 # Arguments
 
@@ -84,32 +160,32 @@ julia> ring([1, 2, 3], -5)
 ring(vec::Vector, index::Integer) = vec[mod1(index, length(vec))]
 
 """
-    parserWS(data::AbstractString)::Union{Float64,Missing}
+    parserWS(value::AbstractString)::Union{Float64,Missing}
 
 Parse a string as a Float64, ignoring white spaces. If the string is empty return missing.
 
 # Arguments
 
-  - `data::AbstractString`: String to be parsed.
+  - `value::AbstractString`: String to be parsed.
 
 # Returns
 
   - Number in the string as a Float64.
 """
-function parserWS(data::AbstractString)::Union{Float64,Missing}
+function parserWS(value::AbstractString)::Union{Float64,Missing}
 
-    clean_data = strip(data)
+    clean_value = strip(value)
 
-    !isempty(clean_data) || return missing
+    !isempty(clean_value) || return missing
 
-    return parse(Float64, clean_data)
+    return parse(Float64, clean_value)
 
 end
 
 """
     safeSelect(vec::Vector, index::IndexType)
 
-Make the indexing operation `vec[index]` ignoring indices that are out of bounds.
+Do the indexing operation `vec[index]` while ignoring indices that are out of bounds.
 
 # Arguments
 
@@ -170,105 +246,29 @@ function safeSelect(vec::Vector, index::IndexType)
 end
 
 """
-Create a copy of `list` with every negative value set to 0.
-"""
-setPositive(list::VecOrMat{<:Number}) = replace(x -> x >= zero(x) ? x : zero(x), list)
-setPositive(x::Number) = x >= zero(x) ? x : zero(x)
+    evaluateNormal(values::Vector{<:Number})::Vector{<:Number}
 
-"""
-Test for strict positivity.
-"""
-isPositive(x::Number)::Bool = x > zero(x)
-isPositive(x::AbstractArray)::Bool = all(isPositive, x)
-isPositive(x...)::Bool = all(isPositive, x)
+Evaluate a normal distribution at `values`.
 
-"""
-New method for `Base.iszero` to compare [`IndexType`](@ref) with 0 as an integer.
-"""
-Base.iszero(x::IndexType)::Bool = x == 0
-
-"""
-New method for `Base.isempty` to check for empty [LaTeXStrings](https://github.com/JuliaStrings/LaTeXStrings.jl).
-"""
-Base.isempty(l_str::LaTeXString)::Bool = l_str == L""
-
-"""
-New methods for `Base.intersect` to use with the `Colon` type.
-"""
-Base.intersect(a1::Colon, a2::IndexType)::IndexType = a2
-Base.intersect(a1::IndexType, a2::Colon)::IndexType = a1
-Base.intersect(a1::Colon, a2::Colon)::Colon = (:)
-
-"""
-New methods for `Base.intersect` to use with the `Vector{Bool}` type.
-"""
-Base.intersect(a1::Vector{Bool}, a2::ReducedIndexType)::Vector{Int} = findall(a1) ∩ a2
-Base.intersect(a1::ReducedIndexType, a2::Vector{Bool})::Vector{Int} = a1 ∩ findall(a2)
-Base.intersect(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .&& a2)
-
-"""
-New methods for `Base.union` to use with the `Vector{Bool}` type.
-"""
-Base.union(a1::Vector{Bool}, a2::ReducedIndexType)::Vector{Int} = findall(a1) ∪ a2
-Base.union(a1::ReducedIndexType, a2::Vector{Bool})::Vector{Int} = a1 ∪ findall(a2)
-Base.union(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .|| a2)
-
-"""
-Area of a circle with radius `r`.
-"""
-function area(r::Number)::Number
-
-    x = setPositive(r)
-
-    return π * x^2
-
-end
-
-"""
-Volume of a sphere with radius `r`.
-"""
-function volume(r::Number)::Number
-
-    x = setPositive(r)
-
-    return π * x^3 * 4.0 / 3.0
-
-end
-
-"""
-    evaluateNormal(data::Vector{<:Number})::Vector{<:Number}
-
-Evaluate a normal distribution at the values in `data`.
-
-The median and standard deviation of the distribution are the ones from `data` itself.
+The median and standard deviation for the distribution are the ones of `values`.
 
 # Arguments
 
-  - `data::Vector{<:Number}`: Data vector used to compute the mean and standard deviation of the normal distribution.
+  - `values::Vector{<:Number}`: Vector used to compute the mean and standard deviation of the normal distribution.
 
 # Returns
 
-  - The normal distribution evaluated at the values in `data`.
+  - The normal distribution evaluated at `values`.
 """
-function evaluateNormal(data::Vector{<:Number})::Vector{<:Number}
+function evaluateNormal(values::Vector{<:Number})::Vector{<:Number}
 
-    μ  = mean(data)
-    σ2 = 2.0 * std(data; mean=μ)^2
-    d2 = @. (data - μ)^2
+    μ  = mean(values)
+    σ2 = 2.0 * std(values; mean=μ)^2
+    d2 = @. (values - μ)^2
 
     return @. (1.0 / sqrt(σ2 * π)) * exp(-d2 / σ2)
 
 end
-
-"""
-Always returns `nothing`, for any type and number of arguments.
-"""
-getNothing(x...; y...)::Nothing = nothing
-
-"""
-Always returns an empty vector, for any type and number of arguments.
-"""
-getEmpty(x...; y...)::Vector = []
 
 """
     hvcatImages(
@@ -279,7 +279,7 @@ getEmpty(x...; y...)::Vector = []
 
 Join several images vertically and horizontally.
 
-The elements will fill the rows and columns starting at the top left, going from left to right and from top to bottom (row-major order).
+The images in `paths` will fill the rows and columns starting at the top left, going from left to right and from top to bottom (row-major order).
 
 # Arguments
 
@@ -527,7 +527,7 @@ By default, no transformation is done.
 
 !!! note
 
-    The datasets must have the same length, and any operation that deletes an element, will delete the corresponding element (i.e. with the same index) in the other dataset, so that the dataset will remain of equal length.
+    The datasets must have the same length, and any operation that deletes an element, will delete the corresponding element (i.e. with the same index) in the other dataset, so that the datasets will remain of equal length.
 
 # Arguments
 
@@ -543,10 +543,10 @@ By default, no transformation is done.
 
   - A tuple with four flags:
 
-      + If `x_data` was successfully modified to fit within the domain of `func_domain[1]`.
-      + If `y_data` was successfully modified to fit within the domain of `func_domain[2]`.
-      + If `x_data` was successfully modified to fit within `range[1]`.
-      + If `y_data` was successfully modified to fit within `range[2]`.
+      + If `x_data` was mutated to fit within the domain of `func_domain[1]`.
+      + If `y_data` was mutated to fit within the domain of `func_domain[2]`.
+      + If `x_data` was mutated to fit within `range[1]`.
+      + If `y_data` was mutated to fit within `range[2]`.
 """
 function sanitizeData!(
     x_data::Vector{<:Number},
@@ -687,47 +687,5 @@ function smoothWindow(
 
     # Remove empty bins
     return filter!(!isnan, smooth_x_data), filter!(!isnan, smooth_y_data)
-
-end
-
-"""
-    cubicSplineKernel(q::Real, h::Number)::Number
-
-2D cubic spline kernel.
-
-# Arguments
-
-  - `q::Real`: Relative distance to the neighbor, ``|r - r'| / h``.
-  - `h::Number`: Smoothing length.
-
-# Returns
-
-  - The kernel function evaluated at a separation `q` * `h`, and with a smoothing length `h`.
-
-# References
-
-[PySPH documentation](https://pysph.readthedocs.io/en/latest/reference/kernels.html)
-
-J. J. Monaghan (1992). *Smoothed Particle Hydrodynamics*. Annual Review of Astronomy and Astrophysics, **30**, 543-574. [doi:10.1146/annurev.aa.30.090192.002551](https://doi.org/10.1146/annurev.aa.30.090192.002551)
-
-M.B. Liu et al. (2010). *Smoothed Particle Hydrodynamics (SPH): an Overview and Recent Developments*. Archives of Computational Methods in Engineering, **17**, 25–76. [doi:10.1007/s11831-010-9040-7](https://doi.org/10.1007/s11831-010-9040-7)
-"""
-function cubicSplineKernel(q::Real, h::Number)::Number
-
-    (
-        isPositive(q, h) ||
-        throw(DomainError("cubicSplineKernel: `q` and `h` must be positive, \
-        but I got `q` = $q and `h` = $h"))
-    )
-
-    σ3 = 10.0 / (7.0 * area(h))
-
-    if 0 <= q <= 1
-        return σ3 * (1.0 - 1.5 * q * q * (1.0 - q * 0.5))
-    elseif 1 < q <= 2
-        return (σ3 * 0.25) * (2.0 - q)^3.0
-    else
-        return zero(σ3)
-    end
 
 end

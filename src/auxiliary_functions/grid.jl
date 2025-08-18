@@ -9,7 +9,7 @@
         <keyword arguments>
     )::Vector{Float64}
 
-Compute a set of bin edges, to encompass a given list of values.
+Compute a set of bin edges, that will encompass a given list of values.
 
 # Arguments
 
@@ -58,37 +58,37 @@ function scaledBins(
 end
 
 """
-    deltas(data::Vector{<:Number})::Vector{<:Number}
+    deltas(values::Vector{<:Number})::Vector{<:Number}
 
-Compute the difference between each consecutive pair of elements in `data`.
+Compute the difference between each consecutive pair of elements in `values`.
 
 # Arguments
 
-  - `data::Vector{<:Number}`: Data vector. It has to have at least 2 elements.
+  - `values::Vector{<:Number}`: It should have at least 2 elements.
 
 # Returns
 
-  - A vector with the difference between each consecutive pair of elements in `data`, the first element is 0 by convention.
+  - A vector with the difference between each consecutive pair of elements in `values`, the first element is 0 by convention.
 """
-function deltas(data::Vector{<:Number})::Vector{<:Number}
+function deltas(values::Vector{<:Number})::Vector{<:Number}
 
     # Allocate memory
-    Δd = similar(data)
+    Δd = similar(values)
 
-    # Get the number of elements in `data`
-    nd = length(data)
+    # Get the number of elements in `values`
+    nd = length(values)
 
-    # Check that `data` has a valid length
+    # Check that `values` has a valid length
     (
         nd >= 2 ||
-        throw(ArgumentError("deltas: `data` must have at least 2 elements, but it has $(nd)"))
+        throw(ArgumentError("deltas: `values` must have at least 2 elements, but it has $(nd)"))
     )
 
-    # Set the first value to 0, by convention
-    Δd[1] = zero(data[1])
+    # Set the first value to 0
+    Δd[1] = zero(first(values))
 
     for i in 2:nd
-        Δd[i] = data[i] - data[i - 1]
+        Δd[i] = values[i] - values[i - 1]
     end
 
     return Δd
@@ -96,48 +96,44 @@ function deltas(data::Vector{<:Number})::Vector{<:Number}
 end
 
 """
-    reduceResolution(
+    reduceMatrix(
         hr_matrix::Matrix{<:Number},
         factor::Int;
         <keyword arguments>
     )::Matrix{<:Number}
 
-Reduce the number of rows and columns of `hr_matrix` by `factor`, averaging or adding up its values.
+Reduce the number of rows and columns of a given square matrix by `factor`, averaging or adding up its values.
 
 # Arguments
 
   - `hr_matrix::Matrix{<:Number}`: Original "high resolution" matrix. It has to be a square matrix.
   - `factor::Int`: Factor by which the number of rows and columns will be reduced. It has to divide the size of `hr_matrix` exactly.
-  - `total::Bool=false`: If the sum (`total` = true) or the mean (`total` = false) of the values in each of the old pixels will be used for the new pixels.
+  - `total::Bool=false`: If the sum (`total` = true) or the mean (`total` = false) of the high resolution values will be used for the new matrix.
 
 # Returns
 
-  - The new smaller matrix, with the average values.
+  - The new smaller matrix.
 """
-function reduceResolution(
-    hr_matrix::Matrix{<:Number},
-    factor::Int;
-    total::Bool=false,
-)::Matrix{<:Number}
+function reduceMatrix(hr_matrix::Matrix{<:Number}, factor::Int; total::Bool=false)::Matrix{<:Number}
 
     !isone(factor) || return hr_matrix
 
     r, c = size(hr_matrix)
+
     (
         r == c ||
-        throw(ArgumentError("reduceResolution: `hr_matrix` has to be a square matrix, but it has \
+        throw(ArgumentError("reduceMatrix: `hr_matrix` has to be a square matrix, but it has \
         $(c) columns and $(r) rows"))
     )
 
     (
         factor >= 1 ||
-        throw(ArgumentError("reduceResolution: `factor` must be >= 1, \
-        but I got `factor` = $(factor)"))
+        throw(ArgumentError("reduceMatrix: `factor` must be >= 1, but I got `factor` = $(factor)"))
     )
 
     (
         r % factor == 0 ||
-        throw(ArgumentError("reduceResolution: `factor` must divide the size of `hr_matrix` \
+        throw(ArgumentError("reduceMatrix: `factor` must divide the size of `hr_matrix` \
         exactly, but I got number of rows / `factor` = $(r / factor)"))
     )
 
@@ -147,12 +143,12 @@ function reduceResolution(
     # Allocate memory
     lr_matrix = zeros(eltype(hr_matrix), new_size, new_size)
 
-    # Compute the number of old pixels per new pixel
+    # Compute the number of values in `hr_matrix` per position in the new matrix
     old_n_pixels = factor * factor
 
     for i in eachindex(lr_matrix)
 
-        # Compute the row and column of the new matrix corresponding to index i
+        # Compute the row and column index corresponding to global index i in the new matrix
         row = mod1(i, new_size)
         col = ceil(Int, i / new_size)
 
@@ -173,90 +169,24 @@ function reduceResolution(
 end
 
 """
-    reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
-
-Reduce the number of ticks in `hr_ticks` by `factor` keeping the total length of the axis the same and assuming `hr_ticks` are regularly spaced.
-
-# Arguments
-
-  - `hr_ticks::Vector{<:Number}`: Original "high resolution" list of ticks.
-  - `factor::Int`: Factor by which the number of ticks will be reduced. It has to divide the size of `hr_ticks` exactly.
-
-# Returns
-
-  - The new shorter tick list.
-"""
-function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
-
-    !isone(factor) || return hr_ticks
-
-    l = length(hr_ticks)
-    (
-        l % factor == 0 ||
-        throw(ArgumentError("reduceTicks: `factor` must divide the size of `hr_ticks` \
-        exactly, but I got length(`hr_ticks`) / `factor` = $(l / factor)"))
-    )
-
-    (
-        factor >= 1 ||
-        throw(ArgumentError("reduceTicks: `factor` must be >= 1, but I got `factor` = $(factor)"))
-    )
-
-    # Compute the size of the new vector
-    new_size = l ÷ factor
-
-    # Allocate memory
-    lr_ticks = similar(hr_ticks, new_size)
-
-    if iseven(factor)
-
-        shift = factor ÷ 2
-
-        for i in eachindex(lr_ticks)
-
-            idx = (i - 1) * factor + shift
-
-            lr_ticks[i] = (hr_ticks[idx] + hr_ticks[idx + 1]) / 2.0
-
-        end
-
-    else
-
-        shift = ceil(Int, factor / 2)
-
-        for i in eachindex(lr_ticks)
-
-            idx = (i - 1) * factor + shift
-
-            lr_ticks[i] = hr_ticks[idx]
-
-        end
-
-    end
-
-    return lr_ticks
-
-end
-
-"""
     projectIntoCircularGrid(
         image::Matrix{<:Number},
         n_bins::Int;
         <keyword arguments>
     )::Vector{<:Number}
 
-Project `image` into a circular grid, averaging the values in each concentric ring.
+Project a given matrix into a circular grid, averaging or adding up the values in each concentric ring.
 
 # Arguments
 
   - `image::Matrix{<:Number}`: Original matrix. It has to be a square matrix.
   - `n_bins::Int`: Number of bins for the circular grid.
   - `inscribed::Bool=true`: If the circular grid will be inscribed in `image` when doing the projection. If set to false, the matrix will be inscribed into the circular grid instead.
-  - `total::Bool=false`: If the sum (`total` = true) or the mean (`total` = false) of the values in each of the old pixels that fall within each ring will be used.
+  - `total::Bool=false`: If the sum (`total` = true) or the mean (`total` = false) of the values in `image`, that fall within each ring, will be used.
 
 # Returns
 
-  - A vector with the averages of the values in each concentric ring.
+  - A vector with the average or sum of the values that fall within each concentric ring.
 """
 function projectIntoCircularGrid(
     image::Matrix{<:Number},
@@ -273,16 +203,20 @@ function projectIntoCircularGrid(
         but it has $(c) columns and $(r) rows"))
     )
 
-    # Construct a square grid center in (0, 0)
+    (
+        n_bins >= 1 ||
+        throw(ArgumentError("projectIntoCircularGrid: `n_bins` must be >= 1, \
+        but I got `n_bins` = $(n_bins)"))
+    )
+
+    # Construct a square grid centered at (0, 0)
     square_grid = SquareGrid(1.0, r)
 
-    # Construct a circular grid center in (0, 0)
+    # Construct a circular grid centered at (0, 0)
     circular_grid = CircularGrid(inscribed ? 0.5 : sqrt(0.5), n_bins)
 
-    # Compute the radial distance to the origin of each pixel in the square grid
+    # Compute the radial distance of each pixel in the square grid to the origin
     positions = norm.(vec(square_grid.grid))
-
-    non_nan_idxs = findall(!isnan, vec(image))
 
     profile = histogram1D(positions, vec(image), circular_grid; total, empty_nan=false)
 
@@ -293,7 +227,7 @@ end
 """
     flattenGrid(cubic_grid::CubicGrid)::SquareGrid
 
-Using a `CubicGrid` construct a `SquareGrid` with the same center, number of bins, and physical side length.
+From a `CubicGrid` construct a `SquareGrid` with the same center, number of bins, and physical side length.
 
 # Arguments
 
@@ -305,14 +239,6 @@ Using a `CubicGrid` construct a `SquareGrid` with the same center, number of bin
 """
 function flattenGrid(cubic_grid::CubicGrid)::SquareGrid
 
-    grid_size = cubic_grid.grid_size
-    n_bins = cubic_grid.n_bins
-
-    bin_width = grid_size / n_bins
-    shift = 0.5 * (grid_size - bin_width)
-
-    center = [cubic_grid.x_edges[1], cubic_grid.y_edges[1], cubic_grid.z_edges[1]] .+ shift
-
-    return SquareGrid(grid_size, n_bins; center)
+    return SquareGrid(cubic_grid.grid_size, cubic_grid.n_bins; center=cubic_grid.center)
 
 end
