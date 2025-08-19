@@ -468,15 +468,6 @@ function formatError(q_mean::Number, q_error::Number)::NTuple{2,<:Number}
 
 end
 
-
-
-
-
-
-
-
-
-
 #TODO
 function massPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
@@ -488,14 +479,6 @@ function massPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
         c_label = "\\text{gas}"
 
-    elseif component == :hydrogen
-
-        c_label = "\\text{H}"
-
-    elseif component == :helium
-
-        c_label = "\\text{He}"
-
     elseif component == :dark_matter
 
         c_label = "\\text{DM}"
@@ -504,21 +487,21 @@ function massPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
         c_label = "\\text{BH}"
 
-    elseif component == :ode_molecular
-
-        c_label = "\\text{m}"
-
     elseif component == :ode_ionized
 
         c_label = "\\text{i}"
 
-    elseif component == :ode_neutral
-
-        c_label = "\\mathrm{a + m}"
-
     elseif component == :ode_atomic
 
         c_label = "\\text{a}"
+
+    elseif component == :ode_molecular
+
+        c_label = "\\text{m}"
+
+    elseif component == :ode_stellar
+
+        c_label = "\\text{s}"
 
     elseif component == :ode_metals
 
@@ -528,13 +511,21 @@ function massPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
         c_label = "\\text{d}"
 
-    elseif component == :ode_stellar
+    elseif component == :ode_neutral
 
-        c_label = "\\text{s}"
+        c_label = "\\mathrm{a + m}"
 
     elseif component == :br_molecular
 
         c_label = "\\text{BR H2}"
+
+    elseif component == :hydrogen
+
+        c_label = "\\text{H}"
+
+    elseif component == :helium
+
+        c_label = "\\text{He}"
 
     elseif component == :neutral
 
@@ -572,34 +563,6 @@ function massPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         exp_factor = 10
 
         unit = u"Msun"
-
-    elseif magnitude == :number
-
-        if isempty(c_label)
-            var_name = L"N"
-        else
-            var_name = L"N_%$(c_label)"
-        end
-
-        exp_factor = 0
-
-        unit = Unitful.NoUnits
-
-    elseif magnitude == :fraction
-
-        request = Dict(
-            :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "GZ  "],
-        )
-
-        if isempty(c_label)
-            var_name = L"f"
-        else
-            var_name = L"f_{\,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = Unitful.NoUnits
 
     elseif magnitude == :mass_density
 
@@ -641,6 +604,34 @@ function massPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         exp_factor = 0
 
         unit = u"Msun * pc^-2"
+
+    elseif magnitude == :number
+
+        if isempty(c_label)
+            var_name = L"N"
+        else
+            var_name = L"N_%$(c_label)"
+        end
+
+        exp_factor = 0
+
+        unit = Unitful.NoUnits
+
+    elseif magnitude == :fraction
+
+        request = Dict(
+            :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "GZ  "],
+        )
+
+        if isempty(c_label)
+            var_name = L"f"
+        else
+            var_name = L"f_{\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = Unitful.NoUnits
 
     elseif magnitude == :depletion_time
 
