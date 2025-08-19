@@ -337,3 +337,90 @@ const QUANTITIES = Dict(
     "S_Pos"         => Qty("SubhaloPos", Unitful.𝐋, :internal),
     "S_Vel"         => Qty("SubhaloVel", Unitful.𝐋 * Unitful.𝐓^-1, u"km * s^-1"),
 )
+
+####################
+# EL_SFR quantities
+####################
+
+"""
+Symbol list for every EL_SFR quantity associated with stellar particles.
+"""
+const EL_SFR_STELLAR_QUANTITIES = [
+    Symbol(:ode_stellar_, quantity) for
+    quantity in [
+        :integration_time,
+        :parameter_a,
+        :parameter_uvb,
+        :parameter_lwb,
+        :tau_s,
+        :parameter_cell_density,
+        :parameter_metallicity,
+        :parameter_column_height,
+        :parameter_eta_d,
+        :parameter_eta_i,
+        :parameter_r,
+        :parameter_zsn,
+        :fractions,
+        :cold_mass_frac,
+        :gas_mass,
+        :gas_sfr,
+        :gas_pressure,
+        :gas_position,
+        :gas_velocity,
+    ]
+]
+
+"""
+Symbol list for every EL_SFR quantity associated with gas cells.
+"""
+const EL_SFR_GAS_QUANTITIES = [
+    Symbol(:ode_gas_, quantity) for
+    quantity in [
+        :integration_time,
+        :parameter_a,
+        :parameter_uvb,
+        :parameter_lwb,
+        :tau_s,
+        :parameter_cell_density,
+        :parameter_metallicity,
+        :parameter_column_height,
+        :parameter_eta_d,
+        :parameter_eta_i,
+        :parameter_r,
+        :parameter_zsn,
+        :fractions,
+        :sf_flag,
+        :cold_mass_frac,
+    ]
+]
+
+"""
+Symbol list for every EL_SFR quantity.
+"""
+const EL_SFR_QUANTITIES = vcat(EL_SFR_STELLAR_QUANTITIES, EL_SFR_GAS_QUANTITIES)
+
+"""
+[`QUANTITIES`](@ref) keys for every EL_SFR quantity symbol.
+"""
+const EL_SFR_KEYS = Dict(
+    :integration_time        => "ODIT",
+    :parameter_a             => "PARA",
+    :parameter_uvb           => "PARU",
+    :parameter_lwb           => "PARL",
+    :tau_s                   => "TAUS",
+    :parameter_cell_density  => "RHOC",
+    :parameter_metallicity   => "PARZ",
+    :parameter_column_height => "PARH",
+    :parameter_eta_d         => "ETAD",
+    :parameter_eta_i         => "ETAI",
+    :parameter_r             => "PARR",
+    :parameter_zsn           => "PAZN",
+    :fractions               => "FRAC",
+    :sf_flag                 => "SFFL",
+    :cold_mass_frac          => "COLF",
+    :gas_mass                => "GMAS",
+    :gas_sfr                 => "GSFR",
+    :gas_pressure            => "GPRE",
+    :gas_position            => "GPOS",
+    :gas_velocity            => "GVEL",
+)

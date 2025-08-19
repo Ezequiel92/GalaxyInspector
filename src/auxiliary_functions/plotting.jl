@@ -468,10 +468,535 @@ function formatError(q_mean::Number, q_error::Number)::NTuple{2,<:Number}
 
 end
 
+
+
+
+
+
+
+
+
+
+
+function massPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
+
+    if component == :stellar
+
+        c_label = "\\star"
+
+    elseif component == :gas
+
+        c_label = "\\text{gas}"
+
+    elseif component == :hydrogen
+
+        c_label = "\\text{H}"
+
+    elseif component == :helium
+
+        c_label = "\\text{He}"
+
+    elseif component == :dark_matter
+
+        c_label = "\\text{DM}"
+
+    elseif component == :black_holes
+
+        c_label = "\\text{BH}"
+
+    elseif component == :ode_molecular
+
+        c_label = "\\text{m}"
+
+    elseif component == :ode_ionized
+
+        c_label = "\\text{i}"
+
+    elseif component == :ode_neutral
+
+        c_label = "\\mathrm{a + m}"
+
+    elseif component == :ode_atomic
+
+        c_label = "\\text{a}"
+
+    elseif component == :ode_metals
+
+        c_label = "\\text{Z}"
+
+    elseif component == :ode_dust
+
+        c_label = "\\text{d}"
+
+    elseif component == :ode_stellar
+
+        c_label = "\\text{s}"
+
+    elseif component == :br_molecular
+
+        c_label = "\\text{BR H2}"
+
+    elseif component == :neutral
+
+        c_label = "\\mathrm{HI + H2}"
+
+    elseif component == :ionized
+
+        c_label = "\\text{HII}"
+
+    elseif component == :generic
+
+        c_label = ""
+
+    else
+
+        throw(ArgumentError("quantityLabel: I don't recognize the component :$(component)"))
+
+    end
+
+    if magnitude == :mass
+
+         request = Dict(
+            :stars      => ["MASS", "POS "],
+            :gas        => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "GZ  "],
+            :halo       => ["MASS", "POS "],
+            :black_hole => ["MASS", "POS "],
+        )
+
+        if isempty(c_label)
+            var_name = L"M"
+        else
+            var_name = L"M_%$(c_label)"
+        end
+
+        exp_factor = 10
+
+        unit = u"Msun"
+
+    elseif magnitude == :number
+
+        if isempty(c_label)
+            var_name = L"N"
+        else
+            var_name = L"N_%$(c_label)"
+        end
+
+        exp_factor = 0
+
+        unit = Unitful.NoUnits
+
+    elseif magnitude == :fraction
+
+        request = Dict(
+            :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "GZ  "],
+        )
+
+        if isempty(c_label)
+            var_name = L"f"
+        else
+            var_name = L"f_{\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = Unitful.NoUnits
+
+    elseif magnitude == :mass_density
+
+        if isempty(c_label)
+            var_name = L"\rho"
+        else
+            var_name = L"\rho_%$(c_label)"
+        end
+
+        exp_factor = 0
+
+        unit = u"Msun * kpc^-3"
+
+    elseif magnitude == :number_density
+
+        if isempty(c_label)
+            var_name = L"n"
+        else
+            var_name = L"n_{\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = u"cm^-3"
+
+    elseif magnitude == :area_density
+
+        request  = Dict(
+            :stars => ["MASS", "POS ", "GAGE"],
+            :gas   => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "PRES", "GZ  "],
+        )
+
+        if isempty(c_label)
+            var_name = L"\Sigma"
+        else
+            var_name = L"\Sigma_%$(c_label)"
+        end
+
+        exp_factor = 0
+
+        unit = u"Msun * pc^-2"
+
+    elseif magnitude == :depletion_time
+
+        if isempty(c_label)
+            var_name = L"\tau_\text{dep}"
+        else
+            var_name = L"\tau_{\text{dep}, \,\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = u"Gyr"
+
+    elseif magnitude == :xy_distance
+
+        if isempty(c_label)
+            var_name = L"d_{xy}"
+        else
+            var_name = L"d_{xy, \,\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = u"kpc"
+
+    elseif magnitude == :radial_distance
+
+        if isempty(c_label)
+            var_name = L"r"
+        else
+            var_name = L"r_{\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = u"kpc"
+
+    elseif magnitude == :specific_angular_momentum
+
+        if isempty(c_label)
+            var_name = L"j"
+        else
+            var_name = L"j_{\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = u"kpc^2 * s^-1"
+
+    elseif magnitude == :eff
+
+        if isempty(c_label)
+            var_name = L"\epsilon_\text{ff}"
+        else
+            var_name = L"\epsilon_{\text{ff}, \,\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = Unitful.NoUnits
+
+    elseif magnitude == :circularity
+
+        if isempty(c_label)
+            var_name = L"\epsilon"
+        else
+            var_name = L"\epsilon_{\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = Unitful.NoUnits
+
+    elseif magnitude == :circular_velocity
+
+        if isempty(c_label)
+            var_name = L"v_\text{circ}"
+        else
+            var_name = L"v_{\text{circ}, \,\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = u"km * s^-1"
+
+    elseif magnitude == :radial_velocity
+
+        if isempty(c_label)
+            var_name = L"v_r"
+        else
+            var_name = L"v_{r, \,\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = u"km * s^-1"
+
+    elseif magnitude == :tangential_velocity
+
+        if isempty(c_label)
+            var_name = L"v_\theta"
+        else
+            var_name = L"v_{\theta, \,\,%$(c_label)}"
+        end
+
+        exp_factor = 0
+
+        unit = u"km * s^-1"
+
+    elseif magnitude == :zstar_velocity
+
+        if isempty(c_label)
+            var_name = L"v_z \,\, \mathrm{sign}(z)"
+        else
+            var_name = L"v_{z, \,\,%$(c_label)} \,\, \mathrm{sign}(z)"
+        end
+
+        exp_factor = 0
+
+        unit = u"km * s^-1"
+
+    else
+
+        throw(ArgumentError("quantityLabel: I don't recognize the magnitude :$(magnitude)"))
+
+    end
+
+    plot_params = PlotParams(;
+        request,
+        var_name,
+        exp_factor,
+        unit,
+    )
+
+    return plot_params
+
+end
+
+function plotParams2(quantity::Symbol)::PlotParams
+
+
+    if quantity == :ode_metallicity
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "GZ  "]),
+            var_name = L"Z_\mathrm{gas}^\star \, [\mathrm{Z_\odot}]",
+        )
+
+    elseif quantity == :molecular_neutral_fraction
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "GZ  "],
+            ),
+            var_name = L"f_\mathrm{H_2} \, / f_\mathrm{n}",
+        )
+
+    elseif quantity == :ionized_neutral_fraction
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :gas => ["RHO ", "MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "GZ  "],
+            ),
+            var_name = L"f_\mathrm{HII} \, / f_\mathrm{n}",
+        )
+
+    elseif quantity == :sfr_area_density
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
+            var_name = L"\Sigma_\mathrm{SFR}",
+            unit     = u"Msun * yr^-1 * kpc^-2",
+        )
+
+    elseif quantity == :gas_metallicity
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["MASS", "POS ", "GMET", "GZ  "]),
+            var_name = L"Z_\mathrm{gas} \, [\mathrm{Z_\odot}]",
+        )
+
+    elseif quantity == :stellar_metallicity
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["MASS", "POS ", "GME2", "GZ2 "]),
+            var_name = L"Z_\star \, [\mathrm{Z_\odot}]",
+        )
+
+    elseif quantity == :gas_sfr
+
+        plot_params = PlotParams(;
+            request  = Dict(:gas => ["SFR "]),
+            var_name = L"\mathrm{SFR_{gas}}",
+            unit     = u"Msun * yr^-1",
+        )
+
+    elseif quantity == :mass_accretion
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :gas        => ["ID  ", "MASS"],
+                :stars      => ["ID  ", "MASS"],
+                :black_hole => ["ID  ", "MASS"],
+                :group      => ["G_R_Crit200", "G_M_Crit200"],
+                :tracer     => ["PAID", "TRID"],
+            ),
+            var_name = "Mass accretion",
+            unit     = u"Msun * yr^-1",
+        )
+
+    elseif quantity == :stellar_age
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["GAGE"]),
+            var_name = L"\mathrm{Stellar \,\, age}",
+            unit     = u"Gyr",
+        )
+
+    elseif quantity == :sfr
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
+            var_name = L"\mathrm{SFR}",
+            unit     = u"Msun * yr^-1",
+        )
+
+    elseif quantity == :ssfr
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
+            var_name = L"\mathrm{sSFR}",
+            unit     = u"yr^-1",
+        )
+
+    elseif quantity == :observational_sfr
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
+            var_name = L"\mathrm{SFR}",
+            unit     = u"Msun * yr^-1",
+        )
+
+    elseif quantity == :observational_ssfr
+
+        plot_params = PlotParams(;
+            request  = Dict(:stars => ["MASS", "POS ", "GAGE"]),
+            var_name = L"\mathrm{sSFR}",
+            unit     = u"yr^-1",
+        )
+
+    elseif quantity == :temperature
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "POS ", "TEMP"]),
+            axis_label = L"\log_{10} \, T \, [\mathrm{K}]",
+        )
+
+    elseif quantity == :pressure
+
+        plot_params = PlotParams(; request = Dict(:gas => ["PRES"]), var_name = L"P", unit = u"Pa")
+
+    elseif quantity == :scale_factor
+
+        plot_params = PlotParams(; var_name=L"a")
+
+    elseif quantity == :redshift
+
+        plot_params = PlotParams(; var_name=L"z")
+
+    elseif quantity == :physical_time
+
+        plot_params = PlotParams(; var_name=L"t", unit=u"Gyr")
+
+    elseif quantity == :lookback_time
+
+        plot_params = PlotParams(; var_name = L"\mathrm{Lookback \,\, time}", unit = u"Gyr")
+
+    elseif quantity == :time_step
+
+        plot_params = PlotParams(; var_name=L"\mathrm{Number \,\, of \,\, time \,\, steps}")
+
+    elseif quantity == :clock_time_s
+
+        plot_params = PlotParams(; var_name = L"\mathrm{Wallclock \,\, time}", unit = u"s")
+
+    elseif quantity == :clock_time_percent
+
+        plot_params = PlotParams(; axis_label=L"\mathrm{Wallclock \,\, time \, [\%]}")
+
+    elseif quantity == :tot_clock_time_s
+
+        plot_params =
+            PlotParams(; var_name = L"\mathrm{Cumulative \,\, wallclock \,\, time}", unit = u"s")
+
+    elseif quantity == :tot_clock_time_percent
+
+        plot_params = PlotParams(; axis_label=L"\mathrm{Cumulative \,\, wallclock \,\, time \, [\%]}")
+
+    elseif quantity ∈ GAS_ABUNDANCE
+
+        element = get(GAS_ABUNDANCE_SPLITS, quantity)
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "POS ", "GMET"]),
+            axis_label = L"12 + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})",
+        )
+
+    elseif quantity ∈ STELLAR_ABUNDANCE
+
+        element = get(STELLAR_ABUNDANCE_SPLITS, quantity)
+
+        plot_params = PlotParams(;
+            request    = Dict(:stars => ["MASS", "POS ", "GME2"]),
+            axis_label = L"12 + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})",
+        )
+
+     elseif quantity ∈ MASS_QUANTITIES
+
+        magnitude, component = splitMassQuantity(quantity)
+
+        plot_params = massPlotParams(magnitude, component)
+
+    else
+
+        throw(ArgumentError("plotParams: I don't recognize the quantity :$(quantity)"))
+
+    end
+
+    return plot_params
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 """
     plotParams(quantity::Symbol)::PlotParams
 
-Select the plotting parameters for a given `quantity`.
+Return the plotting parameters for a given `quantity`.
 
 # Arguments
 
@@ -729,10 +1254,10 @@ function plotParams(quantity::Symbol)::PlotParams
 
         plot_params = PlotParams(;
             request    = Dict(
-                :stars   => ["MASS", "POS "],
-                :gas     => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "GZ  "],
-                :dm_mass => ["MASS", "POS "],
-                :bh_mass => ["MASS", "POS "],
+                :stars      => ["MASS", "POS "],
+                :gas        => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "PRES", "RHO ", "GZ  "],
+                :halo       => ["MASS", "POS "],
+                :black_hole => ["MASS", "POS "],
             ),
             var_name   = L"M",
             exp_factor = 10,

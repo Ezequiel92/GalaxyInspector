@@ -1257,6 +1257,77 @@ Plotting parameters for a quantity.
     axis_label::AbstractString = "auto_label"
 end
 
+#######################
+# Mass-like quantities
+#######################
+
+"""
+Symbol list for the conmponents in a simulation.
+"""
+const COMPONENTS = [
+    :stellar,
+    :gas,
+    :dark_matter,
+    :black_holes,
+    :ode_ionized,
+    :ode_atomic,
+    :ode_molecular,
+    :ode_stellar,
+    :ode_metals,
+    :ode_dust,
+    :ode_neutral,
+    :br_molecular,
+    :hydrogen,
+    :helium,
+    :neutral,
+    :ionized,
+    :generic,
+]
+
+"""
+Symbol list for physical magnitudes in a simulation.
+"""
+const MAGNITUDES = [
+    :mass,
+    :mass_density,
+    :number_density,
+    :area_density,
+    :number,
+    :fraction,
+    :depletion_time,
+    :xy_distance,
+    :radial_distance,
+    :specific_angular_momentum,
+    :eff,
+    :circularity,
+    :circular_velocity,
+    :radial_velocity,
+    :tangential_velocity,
+    :zstar_velocity,
+]
+
+"""
+Symbol list for all mass-like quantities in a simulation.
+"""
+const MASS_QUANTITIES = [
+    Symbol(component, "_", magnitude) for component in COMPONENTS for magnitude in MAGNITUDES
+]
+
+"""
+Dictionary mapping each mass-like quantity to its component and magnitude.
+"""
+const MASS_SPLITS = Dict(
+    Symbol(component, "_", magnitude) => (magnitude, component)
+    for component in COMPONENTS, magnitude in MAGNITUDES
+)
+
+"""
+Get the magnitude and component of a mass-like quantity.
+"""
+splitMassQuantity(quantity::Symbol) = get(MASS_SPLITS, quantity) do
+    error("splitMassQuantity: I don't recognize the quantity :$(quantity)")
+end
+
 ##########################
 # Code specific constants
 ##########################
@@ -1292,6 +1363,20 @@ Symbol list for the gas abundance quantities.
 const GAS_ABUNDANCE = [Symbol(element, "_gas_abundance") for element in keys(ELEMENT_INDEX)]
 
 """
+Dictionary mapping each gas abundance quantity to its element.
+"""
+const GAS_ABUNDANCE_SPLITS = Dict(
+    Symbol(element, "_gas_abundance") => element for element in keys(ELEMENT_INDEX)
+)
+
+"""
 Symbol list for the stellar abundance quantities.
 """
 const STELLAR_ABUNDANCE = [Symbol(element, "_stellar_abundance") for element in keys(ELEMENT_INDEX)]
+
+"""
+Dictionary mapping each stellar abundance quantity to its element.
+"""
+const STELLAR_ABUNDANCE_SPLITS = Dict(
+    Symbol(element, "_stellar_abundance") => element for element in keys(ELEMENT_INDEX)
+)
