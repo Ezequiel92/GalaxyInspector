@@ -5,7 +5,7 @@
 """
     readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
-Read the header of a group catalog in the HDF5 format.
+Read the header of a group catalog file in the HDF5 format.
 
 !!! note
 
@@ -107,7 +107,7 @@ end
 """
     readSnapHeader(path::String)::SnapshotHeader
 
-Read the header of a snapshot in the HDF5 format.
+Read the header of a snapshot file in the HDF5 format.
 
 !!! note
 
@@ -133,7 +133,7 @@ function readSnapHeader(path::String)::SnapshotHeader
 
         file_path = path
 
-        # Count the number of stellar particles, excluding wind particles
+        # Count the number of real stellar particles (ignores wind particles)
         num_part_stars = countStars(file_path)
         num_total_stars = num_part_stars
 
@@ -149,7 +149,7 @@ function readSnapHeader(path::String)::SnapshotHeader
 
         file_path = minimum(sub_files)
 
-        # Count the number of stellar particles, excluding wind particles
+        # Count the number of real stellar particles (ignores wind particles)
         num_part_stars = countStars(file_path)
         num_total_stars = sum(countStars, sub_files)
 
@@ -193,25 +193,25 @@ function readSnapHeader(path::String)::SnapshotHeader
         num_total = read_attribute(head, "NumPart_Total")
         num_total[PARTICLE_INDEX[:stars] + 1] = num_total_stars
 
-        # Check if the length units are in the header, otherwise use the IllustrisTNG values
+        # Check if the length units are in the header, otherwise use the default values
         if "UnitLength_in_cm" ∈ attrs_present
             l_unit = read_attribute(head, "UnitLength_in_cm") * u"cm"
         else
-            l_unit = ILLUSTRIS_L_UNIT
+            l_unit = DEFAULT_L_UNIT
         end
 
-        # Check if the mass units are in the header, otherwise use the IllustrisTNG values
+        # Check if the mass units are in the header, otherwise use the default values
         if "UnitMass_in_g" ∈ attrs_present
             m_unit = read_attribute(head, "UnitMass_in_g") * u"g"
         else
-            m_unit = ILLUSTRIS_M_UNIT
+            m_unit = DEFAULT_M_UNIT
         end
 
-        # Check if the velocity units are in the header, otherwise use the IllustrisTNG values
+        # Check if the velocity units are in the header, otherwise use the default values
         if "UnitVelocity_in_cm_per_s" ∈ attrs_present
-            v_unit = read_attribute(head, "UnitVelocity_in_cm_per_s") * u"cm*s^-1"
+            v_unit = read_attribute(head, "UnitVelocity_in_cm_per_s") * u"cm * s^-1"
         else
-            v_unit = ILLUSTRIS_V_UNIT
+            v_unit = DEFAULT_V_UNIT
         end
 
         SnapshotHeader(
@@ -255,7 +255,7 @@ function isBlockPresent(block::String, group::HDF5.Group)::Bool
     (
         block ∈ keys(QUANTITIES) ||
         throw(ArgumentError("isBlockPresent: `block` should be a key of `QUANTITIES`, \
-        but I got $(block), see the options in `./src/constants/globals.jl`"))
+        but I got $(block), see the options in `./src/constants/arepo.jl`"))
     )
 
     return QUANTITIES[block].hdf5_name ∈ keys(group)
@@ -269,7 +269,7 @@ Checks if a given block exists in a snapshot.
 
 !!! note
 
-    If each snapshot is made of multiple files, the function will only check the first chunk.
+    If each snapshot is made of multiple files, the function will only check the first file.
 
 # Arguments
 
@@ -334,7 +334,7 @@ Read the "Time" field in the header of a snapshot file.
 
 !!! note
 
-    If each snapshot is made of multiple files, the function will read the header of the first chunk.
+    If each snapshot is made of multiple files, the function will only read the first file.
 
 # Arguments
 
@@ -483,7 +483,7 @@ function readGoupCatBlocks(
     h5open(file_path, "r") do gc_file
 
         # Read from the request only the group catalog types
-        for component in groupcatTypes(request)
+        for component in groupCatTypes(request)
 
             blocks = copy(request[component])
 
@@ -639,7 +639,7 @@ function readSnapBlocks(
 
                 else
 
-                    # For the stellar particles, exclude wind particles
+                    # For the stars, exclude wind particles
                     if component == :stars
                         idxs = findRealStars(file_path)
                     else
@@ -781,9 +781,7 @@ function readGroupCatalog(
         sort!(sub_files)
 
         # Read the data in each sub file
-        data_in_files = [
-            readGoupCatBlocks(file, snapshot_path, request) for file in sub_files
-        ]
+        data_in_files = [readGoupCatBlocks(file, snapshot_path, request) for file in sub_files]
 
         # Allocate memory
         output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
@@ -950,10 +948,7 @@ Read the `sfr.txt` file.
       + `5` -> Total mass in stars formed after stochastic sampling (internal units).
       + `6` -> Cumulative stellar mass formed (internal units).
 """
-function readSfrFile(
-    file_path::String,
-    snap_path::String,
-)::Dict{Int32,VecOrMat{<:Number}}
+function readSfrFile(file_path::String, snap_path::String)::Dict{Int32,VecOrMat{<:Number}}
 
     isfile(file_path) || throw(ArgumentError("readSfrFile: $(file_path) does not exists as a file"))
 
@@ -1225,7 +1220,7 @@ end
 """
     makeSimulationTable(simulation_path::String)::DataFrame
 
-Construct a dataframe with the path, time stamps and number of each snapshot and group catalog file in `simulation_path`.
+Construct a dataframe with the path, time stamps, and number of each snapshot and group catalog file in `simulation_path`.
 
 # Arguments
 
@@ -1294,120 +1289,21 @@ end
 """
     makeDataDict(
         simulation_path::String,
-        slice_n::Int,
-        request::Dict{Symbol,Vector{String}},
-    )::Dict
-
-Construct a data dictionary for a single snapshot.
-
-# Arguments
-
-  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = (number in filename) + 1.
-  - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref).
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-"""
-function makeDataDict(
-    simulation_path::String,
-    slice_n::Int,
-    request::Dict{Symbol,Vector{String}},
-)::Dict
-
-    # Make a dataframe for every simulation, with the following columns:
-    #   - 1. DataFrame index
-    #   - 2. Number in the file name
-    #   - 3. Scale factor
-    #   - 4. Redshift
-    #   - 5. Physical time
-    #   - 6. Lookback time
-    #   - 7. Snapshot path
-    #   - 8. Group catalog path
-    simulation_table = makeSimulationTable(simulation_path)
-
-    snapshot_numbers = simulation_table[!, :numbers]
-
-    (
-        length(snapshot_numbers) >= slice_n ||
-        throw(ArgumentError("makeDataDict: The snapshot number $(slice_n) does not exists in  \
-        $(simulation_path). There are only $(length(snapshot_numbers)) snapshots. \
-        The full simulation table is:\n\n$(simulation_table)"))
-    )
-
-    # Select the target snapshot
-    snapshot_row = simulation_table[slice_n, :]
-
-    ################################################################################################
-    # Compute the metadata for the current snapshot and simulation
-    ################################################################################################
-
-    # Get the snapshot file path
-    snapshot_path = snapshot_row[:snapshot_paths]
-    # Get the group catalog file path
-    groupcat_path = snapshot_row[:groupcat_paths]
-
-    # Store the metadata of the current snapshot and simulation
-    metadata = Dict(
-        :sim_data => Simulation(
-            simulation_path,
-            1,
-            slice_n,
-            isCosmological(snapshot_path),
-            simulation_table,
-        ),
-        :snap_data => Snapshot(
-            snapshot_path,
-            slice_n,
-            1,
-            snapshot_row[:physical_times],
-            snapshot_row[:lookback_times],
-            snapshot_row[:scale_factors],
-            snapshot_row[:redshifts],
-            readSnapHeader(snapshot_path),
-        ),
-
-        :gc_data => GroupCatalog(
-            groupcat_path,
-            readGroupCatHeader(groupcat_path),
-        ),
-    )
-
-    return merge(
-        metadata,
-        readSnapshot(snapshot_path, request),
-        readGroupCatalog(groupcat_path, snapshot_path, request),
-    )
-
-end
-
-"""
-    makeDataDict(
-        simulation_path::String,
-        slice_n::Int,
+        snapshot_n::Int,
         request::Dict{Symbol,Vector{String}},
         simulation_table::DataFrame,
     )::Dict
 
 Construct a data dictionary for a single snapshot.
 
+!!! note
+
+    This methods uses a precomputed simulation table, made with [`makeSimulationTable`](@ref).
+
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = (number in filename) + 1.
+  - `snapshot_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `snapshot_n` = (number in filename) + 1.
   - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref).
   - `simulation_table::DataFrame`: Dataframe with the path, time stamps, and number of each snapshot and group catalog file in `simulation_path`. It must have the same shape as the one returned by [`makeSimulationTable`](@ref).
 
@@ -1429,7 +1325,7 @@ Construct a data dictionary for a single snapshot.
 """
 function makeDataDict(
     simulation_path::String,
-    slice_n::Int,
+    snapshot_n::Int,
     request::Dict{Symbol,Vector{String}},
     simulation_table::DataFrame,
 )::Dict
@@ -1437,14 +1333,14 @@ function makeDataDict(
     snapshot_numbers = simulation_table[!, :numbers]
 
     (
-        length(snapshot_numbers) >= slice_n ||
-        throw(ArgumentError("makeDataDict: The snapshot number $(slice_n) does not exists in  \
+        length(snapshot_numbers) >= snapshot_n ||
+        throw(ArgumentError("makeDataDict: The snapshot number $(snapshot_n) does not exists in  \
         $(simulation_path). There are only $(length(snapshot_numbers)) snapshots. \
         The full simulation table is:\n\n$(simulation_table)"))
     )
 
     # Select the target snapshot
-    snapshot_row = simulation_table[slice_n, :]
+    snapshot_row = simulation_table[snapshot_n, :]
 
     ################################################################################################
     # Compute the metadata for the current snapshot and simulation
@@ -1460,13 +1356,13 @@ function makeDataDict(
         :sim_data => Simulation(
             simulation_path,
             1,
-            slice_n,
+            snapshot_n,
             isCosmological(snapshot_path),
             simulation_table,
         ),
         :snap_data => Snapshot(
             snapshot_path,
-            slice_n,
+            snapshot_n,
             1,
             snapshot_row[:physical_times],
             snapshot_row[:lookback_times],
@@ -1474,11 +1370,7 @@ function makeDataDict(
             snapshot_row[:redshifts],
             readSnapHeader(snapshot_path),
         ),
-
-        :gc_data => GroupCatalog(
-            groupcat_path,
-            readGroupCatHeader(groupcat_path),
-        ),
+        :gc_data => GroupCatalog(groupcat_path, readGroupCatHeader(groupcat_path)),
     )
 
     return merge(
@@ -1490,13 +1382,70 @@ function makeDataDict(
 end
 
 """
+    makeDataDict(
+        simulation_path::String,
+        snapshot_n::Int,
+        request::Dict{Symbol,Vector{String}},
+    )::Dict
+
+Construct a data dictionary for a single snapshot.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `snapshot_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `snapshot_n` = (number in filename) + 1.
+  - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref).
+
+# Returns
+
+  - A dictionary with the following shape:
+
+      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
+      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
+      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
+      + ...
+"""
+function makeDataDict(
+    simulation_path::String,
+    snapshot_n::Int,
+    request::Dict{Symbol,Vector{String}},
+)::Dict
+
+    # Make a dataframe for every simulation, with the following columns:
+    #   - 1. DataFrame index
+    #   - 2. Number in the file name
+    #   - 3. Scale factor
+    #   - 4. Redshift
+    #   - 5. Physical time
+    #   - 6. Lookback time
+    #   - 7. Snapshot path
+    #   - 8. Group catalog path
+    simulation_table = makeSimulationTable(simulation_path)
+
+    return makeDataDict(
+        simulation_path,
+        snapshot_n,
+        request,
+        simulation_table,
+    )
+
+end
+
+"""
     countSnapshot(simulation_path::String)::Int
 
 Count the number of snapshots in `simulation_path`.
 
 !!! note
 
-    This function count the number of snapshots, no the number of snapshot files. So if each snapshot is made of more than one files, the count will not change.
+    This function counts the number of snapshots, not the number of snapshot files. So if each snapshot is made of more than one files, the count will not change.
 
 # Arguments
 
@@ -1595,7 +1544,7 @@ end
 """
     isSubfindActive(path::String)::Bool
 
-Check if there is information about the halos and subhalos in the group catalog file.
+Check if the group catalog file has information or is empty.
 
 # Arguments
 
@@ -1719,18 +1668,18 @@ countStars(path::String)::Int = count(findRealStars(path))
 """
     findQtyExtrema(
         simulation_path::String,
-        slice_n::Int,
+        snapshot_n::Int,
         component::Symbol,
         block::String;
         <keyword arguments>
     )::NTuple{2,<:Number}
 
-Compute the minimum and maximum values of `block`.
+Compute the minimum and maximum values of `block` in a snapshot or simulation.
 
 # Arguments
 
   - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
-  - `slice_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice_n` = (number in filename) + 1. If set to a negative number, the values in the whole simulation will be compared.
+  - `snapshot_n::Int`: Selects which snapshot to plot, starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `snapshot_n` = (number in filename) + 1. If set to a negative number, the values in the whole simulation will be compared.
   - `component::Symbol`: Cell/particle type. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `f::Function=identity`: A function with the signature:
@@ -1748,7 +1697,7 @@ Compute the minimum and maximum values of `block`.
 """
 function findQtyExtrema(
     simulation_path::String,
-    slice_n::Int,
+    snapshot_n::Int,
     component::Symbol,
     block::String;
     f::Function=identity,
@@ -1759,29 +1708,37 @@ function findQtyExtrema(
         throw(ArgumentError("findQtyExtrema: $(simulation_path) does not exists as a directory"))
     )
 
+    # Make a dataframe for every simulation, with the following columns:
+    #   - 1. DataFrame index
+    #   - 2. Number in the file name
+    #   - 3. Scale factor
+    #   - 4. Redshift
+    #   - 5. Physical time
+    #   - 6. Lookback time
+    #   - 7. Snapshot path
+    #   - 8. Group catalog path
     simulation_table = makeSimulationTable(simulation_path)
 
-    if slice_n > 0
+    if snapshot_n > 0
 
         # Get the number in the filename
-        snap_n = safeSelect(simulation_table[!, :numbers], slice_n)
+        file_number = safeSelect(simulation_table[!, :numbers], snapshot_n)
 
         # Check that after slicing there is one snapshot left
         (
-            !isempty(snap_n) ||
-            throw(ArgumentError("findQtyExtrema: There are no snapshots with `slice_n` = \
-            $(slice_n), the contents of $(simulation_path) are: \n$(simulation_table)"))
+            !isempty(file_number) ||
+            throw(ArgumentError("findQtyExtrema: There are no snapshots with `snapshot_n` = \
+            $(snapshot_n), the contents of $(simulation_path) are: \n$(simulation_table)"))
         )
 
         # Find the target row and snapshot path
-        snapshot_row = filter(:numbers => ==(lpad(snap_n, 3, "0")), simulation_table)
+        snapshot_row = filter(:numbers => ==(lpad(file_number, 3, "0")), simulation_table)
         snapshot_path = snapshot_row[1, :snapshot_paths]
 
         (
             !ismissing(snapshot_path) ||
-            throw(ArgumentError("findQtyExtrema: The snapshot number $(slice_n) seems \
+            throw(ArgumentError("findQtyExtrema: The snapshot number $(snapshot_n) seems \
             to be missing"))
-
         )
 
         values = f(getBlock(snapshot_path, component, block))
@@ -1810,7 +1767,7 @@ Check if the snapshot in `path` comes from a cosmological simulation.
 
 !!! note
 
-    If each snapshot is made of multiple files, the function will read the first chunk to check if the simulation is cosmological.
+    If each snapshot is made of multiple files, the function will only read the first file.
 
 # Arguments
 
@@ -1856,7 +1813,7 @@ function isCosmological(path::String)::Bool
     cosmological = h5open(file_path, "r") do snapshot
 
         if "Parameters" ∈ keys(snapshot)
-            # If the param.txt is saved in the snapshot metadata, read `ComovingIntegrationOn`
+            # If the `param.txt` file is saved in the snapshot metadata, read `ComovingIntegrationOn`
             read_attribute(snapshot["Parameters"], "ComovingIntegrationOn")
         else
             # Otherwise, use the redshift in the header
@@ -1917,7 +1874,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
                     (`PHYSICAL_UNITS` = $(PHYSICAL_UNITS)), but the simulation is not \
                     cosmological. internalUnits will keep the lengths physical. \
                     Check `PHYSICAL_UNITS` in `constants/globals.jl`",
-                    maxlog=1,
+                    maxlog = 1,
                 )
             end
 
@@ -1967,7 +1924,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
         # See the TNG documentation https://www.tng-project.org/data/docs/specifications/
         return IU.v_cosmo / a^1.5
 
-     elseif unit == :pot
+    elseif unit == :pot
 
         # Special case for "Potential" (gravitational potential)
         # See the TNG documentation https://www.tng-project.org/data/docs/specifications/
@@ -2003,7 +1960,7 @@ Find which cell/particle types are part of the snapshot in `path`.
 
 !!! note
 
-    If each snapshot is made of multiple files, the function will check the first chunk.
+    If each snapshot is made of multiple files, the function will only check the first file.
 
 # Arguments
 
@@ -2052,7 +2009,7 @@ function snapshotTypes(path::String)::Vector{Symbol}
 end
 
 """
-    groupcatTypes(data_dict::Dict)::Vector{Symbol}
+    groupCatTypes(data_dict::Dict)::Vector{Symbol}
 
 Find which group catalog data types are part of the keys of `data_dict`.
 
@@ -2064,16 +2021,16 @@ Find which group catalog data types are part of the keys of `data_dict`.
 
   - A vector with the group catalog data types.
 """
-groupcatTypes(data_dict::Dict)::Vector{Symbol} = [:group, :subhalo] ∩ keys(data_dict)
+groupCatTypes(data_dict::Dict)::Vector{Symbol} = [:group, :subhalo] ∩ keys(data_dict)
 
 """
-    groupcatTypes(path::String)::Vector{Symbol}
+    groupCatTypes(path::String)::Vector{Symbol}
 
 Find which group catalog data types are part of the snapshot in `path`.
 
 !!! note
 
-    If each snapshot is made of multiple files, the function will check the first chunk.
+    If each snapshot is made of multiple files, the function will only check the first file.
 
 # Arguments
 
@@ -2083,13 +2040,13 @@ Find which group catalog data types are part of the snapshot in `path`.
 
   - A vector with the group catalog data types.
 """
-function groupcatTypes(path::String)::Vector{Symbol}
+function groupCatTypes(path::String)::Vector{Symbol}
 
     if isfile(path)
 
         (
             HDF5.ishdf5(path) ||
-            throw(ArgumentError("groupcatTypes: The file $(path) is not in the HDF5 format, \
+            throw(ArgumentError("groupCatTypes: The file $(path) is not in the HDF5 format, \
             I don't know how to read it"))
         )
 
@@ -2101,7 +2058,7 @@ function groupcatTypes(path::String)::Vector{Symbol}
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
-            throw(ArgumentError("groupcatTypes: The directory $(path) does not contain \
+            throw(ArgumentError("groupCatTypes: The directory $(path) does not contain \
             snapshot sub-files in the HDF5 format"))
         )
 
@@ -2109,7 +2066,7 @@ function groupcatTypes(path::String)::Vector{Symbol}
 
     else
 
-        throw(ArgumentError("groupcatTypes: $(path) does not exists as a file or folder"))
+        throw(ArgumentError("groupCatTypes: $(path) does not exists as a file or folder"))
 
     end
 
@@ -2118,6 +2075,47 @@ function groupcatTypes(path::String)::Vector{Symbol}
     end
 
     return groupcat_types
+
+end
+
+"""
+    findClosestSnapshot(
+        simulation_table::DataFrame,
+        times::Vector{<:Unitful.Time},
+    )::Vector{Int}
+
+Find the global index, in the context of the simulation, of the snapshot with a physical time closest to each of the ones given in `times`.
+
+!!! note
+
+    This methods uses a precomputed simulation table, made with [`makeSimulationTable`](@ref).
+
+# Arguments
+
+  - `simulation_table::DataFrame`: Dataframe with the path, time stamps, and number of each snapshot and group catalog file in `simulation_path`. It must have the same shape as the one returned by [`makeSimulationTable`](@ref).
+  - `times::Vector{<:Unitful.Time}`: Target physical times.
+
+# Returns
+
+  - The indices of the snapshots with physical times closest to `times`.
+"""
+function findClosestSnapshot(
+    simulation_table::DataFrame,
+    times::Vector{<:Unitful.Time},
+)::Vector{Int}
+
+    # Read the physical time associated to each snapshot
+    snap_times = simulation_table[!, :physical_times]
+
+    # Allocate memory
+    slices = similar(times, Int)
+
+    # Find the closest snapshot to each of the `times`
+    for (i, time) in pairs(times)
+        slices[i] = argmin(abs.(snap_times .- time))
+    end
+
+    return slices
 
 end
 
@@ -2137,23 +2135,45 @@ Find the global index, in the context of the simulation, of the snapshot with a 
 """
 function findClosestSnapshot(simulation_path::String, times::Vector{<:Unitful.Time})::Vector{Int}
 
-    # Make a simulation table
-    sim_table = makeSimulationTable(simulation_path)
+    # Make a dataframe for every simulation, with the following columns:
+    #   - 1. DataFrame index
+    #   - 2. Number in the file name
+    #   - 3. Scale factor
+    #   - 4. Redshift
+    #   - 5. Physical time
+    #   - 6. Lookback time
+    #   - 7. Snapshot path
+    #   - 8. Group catalog path
+    simulation_table = makeSimulationTable(simulation_path)
 
-    # Read the physical time associated to each snapshot
-    snap_times = sim_table[!, :physical_times]
+    return findClosestSnapshot(
+        simulation_table,
+        times,
+    )
 
-    # Allocate memory
-    slices = similar(times, Int)
+end
 
-    # Find the closest snapshot to each of the `times`
-    for (i, time) in pairs(times)
+"""
+    findClosestSnapshot(simulation_table::DataFrame, time::Unitful.Time)::Int
 
-        slices[i] = argmin(abs.(snap_times .- time))
+Find the global index, in the context of the simulation, of the snapshot with a physical time closest to `time`.
 
-    end
+!!! note
 
-    return slices
+    This methods uses a precomputed simulation table, made with [`makeSimulationTable`](@ref).
+
+# Arguments
+
+  - `simulation_table::DataFrame`: Dataframe with the path, time stamps, and number of each snapshot and group catalog file in `simulation_path`. It must have the same shape as the one returned by [`makeSimulationTable`](@ref).
+  - `time::Unitful.Time`: Target physical time.
+
+# Returns
+
+  - The index of the snapshot with a physical time closest to `time`.
+"""
+function findClosestSnapshot(simulation_table::DataFrame, time::Unitful.Time)::Int
+
+    return findClosestSnapshot(simulation_table, [time])[1]
 
 end
 

@@ -694,16 +694,16 @@ struct InternalUnits
 
     # Arguments
 
-      - `l_unit::Unitful.Length=ILLUSTRIS_L_UNIT`: Code parameter `UnitLength_in_cm`.
-      - `m_unit::Unitful.Mass=ILLUSTRIS_M_UNIT`: Code parameter `UnitMass_in_g`.
-      - `v_unit::Unitful.Velocity=ILLUSTRIS_V_UNIT`: Code parameter `UnitVelocity_in_cm_per_s`.
+      - `l_unit::Unitful.Length=DEFAULT_L_UNIT`: Code parameter `UnitLength_in_cm`.
+      - `m_unit::Unitful.Mass=DEFAULT_M_UNIT`: Code parameter `UnitMass_in_g`.
+      - `v_unit::Unitful.Velocity=DEFAULT_V_UNIT`: Code parameter `UnitVelocity_in_cm_per_s`.
       - `a::Float64=1.0`: Cosmological scale factor of the simulation.
       - `h::Float64=1.0`: Dimensionless Hubble parameter, "little h".
     """
     function InternalUnits(;
-        l_unit::Unitful.Length=ILLUSTRIS_L_UNIT,
-        m_unit::Unitful.Mass=ILLUSTRIS_M_UNIT,
-        v_unit::Unitful.Velocity=ILLUSTRIS_V_UNIT,
+        l_unit::Unitful.Length=DEFAULT_L_UNIT,
+        m_unit::Unitful.Mass=DEFAULT_M_UNIT,
+        v_unit::Unitful.Velocity=DEFAULT_V_UNIT,
         a::Float64=1.0,
         h::Float64=1.0,
     )

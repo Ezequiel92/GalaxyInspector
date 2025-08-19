@@ -123,6 +123,25 @@ Relative path, within the simulation directory, of `cpu.txt`.
 """
 const CPU_REL_PATH = "output/cpu.txt"
 
+################
+# Default units
+################
+
+"""
+Default internal unit of length.
+"""
+const DEFAULT_L_UNIT = ILLUSTRIS_L_UNIT
+
+"""
+Default internal unit of mass.
+"""
+const DEFAULT_M_UNIT = ILLUSTRIS_M_UNIT
+
+"""
+Default internal unit of velocity.
+"""
+const DEFAULT_V_UNIT = ILLUSTRIS_V_UNIT
+
 ######################
 # Cell/particle types
 ######################
