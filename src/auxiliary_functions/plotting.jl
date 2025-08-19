@@ -477,7 +477,7 @@ end
 
 
 
-
+#TODO
 function massPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
     if component == :stellar
@@ -779,6 +779,7 @@ function massPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
 end
 
+#TODO
 function plotParams2(quantity::Symbol)::PlotParams
 
 
