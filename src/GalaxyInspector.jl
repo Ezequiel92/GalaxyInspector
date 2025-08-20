@@ -50,10 +50,10 @@ using CSV,
 
 include("constants/globals.jl")
 
-#TODO
 include("auxiliary_functions/grid.jl")
 include("auxiliary_functions/histograms.jl")
 include("auxiliary_functions/other.jl")
+#TODO
 include("auxiliary_functions/plotting.jl")
 
 include("analysis/data_acquisition.jl")

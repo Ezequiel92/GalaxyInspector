@@ -1262,7 +1262,7 @@ end
 #######################
 
 """
-Symbol list for the conmponents in a simulation.
+List of symbols for the physical components of a simulation.
 """
 const COMPONENTS = [
     :stellar,
@@ -1285,7 +1285,7 @@ const COMPONENTS = [
 ]
 
 """
-Symbol list for physical magnitudes in a simulation.
+List of symbols for the physical magnitudes of a simulation.
 """
 const MAGNITUDES = [
     :mass,
@@ -1307,7 +1307,7 @@ const MAGNITUDES = [
 ]
 
 """
-Symbol list for all mass-like quantities in a simulation.
+List of symbols for all mass-like quantities in a simulation.
 """
 const MASS_QUANTITIES = [
     Symbol(component, "_", magnitude) for component in COMPONENTS for magnitude in MAGNITUDES
@@ -1358,7 +1358,7 @@ const PARTICLE_CODE_NAME = Dict(symbol => "PartType$n" for (symbol, n) in PARTIC
 ###################
 
 """
-Symbol list for the gas abundance quantities.
+List of symbols for the gas abundance quantities.
 """
 const GAS_ABUNDANCE = [Symbol(element, "_gas_abundance") for element in keys(ELEMENT_INDEX)]
 
@@ -1370,7 +1370,7 @@ const GAS_ABUNDANCE_SPLITS = Dict(
 )
 
 """
-Symbol list for the stellar abundance quantities.
+List of symbols for the stellar abundance quantities.
 """
 const STELLAR_ABUNDANCE = [Symbol(element, "_stellar_abundance") for element in keys(ELEMENT_INDEX)]
 

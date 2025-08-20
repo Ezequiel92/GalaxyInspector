@@ -362,7 +362,7 @@ const QUANTITIES = Dict(
 ####################
 
 """
-Symbol list for every EL_SFR quantity associated with stellar particles.
+List of symbols for every EL_SFR quantity associated with the stellar particles.
 """
 const EL_SFR_STELLAR_QUANTITIES = [
     Symbol(:ode_stellar_, quantity) for
@@ -390,7 +390,7 @@ const EL_SFR_STELLAR_QUANTITIES = [
 ]
 
 """
-Symbol list for every EL_SFR quantity associated with gas cells.
+List of symbols for every EL_SFR quantity associated with the gas cells.
 """
 const EL_SFR_GAS_QUANTITIES = [
     Symbol(:ode_gas_, quantity) for
@@ -414,12 +414,12 @@ const EL_SFR_GAS_QUANTITIES = [
 ]
 
 """
-Symbol list for every EL_SFR quantity.
+List of symbols for every EL_SFR quantity.
 """
 const EL_SFR_QUANTITIES = vcat(EL_SFR_STELLAR_QUANTITIES, EL_SFR_GAS_QUANTITIES)
 
 """
-[`QUANTITIES`](@ref) keys for every EL_SFR quantity symbol.
+Dictionary mapping each EL_SFR quantity symbol with its [`QUANTITIES`](@ref) key.
 """
 const EL_SFR_KEYS = Dict(
     :integration_time        => "ODIT",
