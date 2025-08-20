@@ -106,7 +106,7 @@ function daRotationCurve(
     # Only leave the data within a sphere of radius `R`
     rangeCut!(r, vcirc, (0.0u"kpc", R))
 
-    # Sort the arrays radialy
+    # Sort the arrays radially
     idx = sortperm(r)
 
     return r[idx], vcirc[idx]

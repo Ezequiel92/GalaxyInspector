@@ -9,33 +9,29 @@ Read the velocity of the center of mass of a given halo or subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present:
 
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+      + `:group`   => ["G_Nsubs", "G_Vel"]
+      + `:subhalo` => ["S_Vel"]
   - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, the potential minimum of the halo with index `halo_idx` is returned.
+      + Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If set to `0`, the halo velocity is returned.
 
 # Returns
 
-  - The specified velocity.
+  - The velocity of the center of mass.
 """
 function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Velocity}
 
-    # If there are no subfind data, return the origin
-    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
-        return zeros(typeof(1.0u"km*s^-1"), 3)
+    # If there are no subfind data, return 0s
+    if ismissing(data_dict[:gc_data].path) || !isSubfindActive(data_dict[:gc_data].path)
+
+        !logging[] || @info("computeVcm: There is no subfind data, so I will return 0s")
+
+        return zeros(typeof(1.0u"km * s^-1"), 3)
+
     end
 
     halo_idx, subhalo_rel_idx = subfind_idx
@@ -50,7 +46,7 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
 
     (
         !iszero(n_halos) && !any(isempty, [n_subhalos_in_halo, g_vel, s_vel]) ||
-        return zeros(typeof(1.0u"km*s^-1"), 3)
+        return zeros(typeof(1.0u"km * s^-1"), 3)
     )
 
     (
@@ -106,30 +102,25 @@ Read the velocity of the center of mass of a given subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present:
 
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+      + `:subhalo` => ["S_Vel"]
   - `subhalo_abs_idx::Int`: Absolute index of the target subhalo (subfind). Starts at 1.
 
 # Returns
 
-  - The specified velocity.
+  - The velocity of the center of mass.
 """
 function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Velocity}
 
-    # If there are no subfind data, return the origin
-    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
-        return zeros(typeof(1.0u"km*s^-1"), 3)
+    # If there are no subfind data, return 0s
+    if ismissing(data_dict[:gc_data].path) || !isSubfindActive(data_dict[:gc_data].path)
+
+        !logging[] || @info("computeVcm: There is no subfind data, so I will return 0s")
+
+        return zeros(typeof(1.0u"km * s^-1"), 3)
+
     end
 
     s_vel = data_dict[:subhalo]["S_Vel"]
@@ -137,11 +128,11 @@ function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Vel
     # Check that the requested subhalo index is within bounds
     n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
 
-    !iszero(n_subgroups_total) && !isempty(s_vel) || return zeros(typeof(1.0u"km*s^-1"), 3)
+    !iszero(n_subgroups_total) && !isempty(s_vel) || return zeros(typeof(1.0u"km * s^-1"), 3)
 
     (
         0 < subhalo_abs_idx <= n_subgroups_total ||
-        throw(ArgumentError("computeCenter: There is only $(n_subgroups_total) subhalos in \
+        throw(ArgumentError("computeVcm: There is only $(n_subgroups_total) subhalos in \
         $(data_dict[:gc_data].path), so `subhalo_abs_idx` = $(subhalo_abs_idx) is out of bounds"))
     )
 
@@ -151,76 +142,16 @@ function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Vel
 end
 
 """
-    computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
-
-Compute the velocity of a characteristic center of the system.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `cm_type::Symbol`: It can be:
-
-      + `:global_cm`   -> Center of mass of the whole system.
-      + `:{component}` -> Center of mass of the given component (e.g. :stars, :gas, :halo, etc). It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-      + `:zero`        -> Origin.
-
-# Returns
-
-  - The specified velocity.
-"""
-function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
-
-    if cm_type == :global_cm
-
-        return computeGlobalVcm(data_dict)
-
-    elseif cm_type ∈ keys(PARTICLE_INDEX)
-
-        return computeComponentVcm(data_dict, cm_type)
-
-    elseif cm_type == :zero
-
-        return zeros(typeof(1.0u"km*s^-1"), 3)
-
-    end
-
-    throw(ArgumentError("computeVcm: `cm_type` can only be :global_cm, :zero or one of the keys of \
-    `PARTICLE_INDEX` but I got :$(cm_type)"))
-
-end
-
-"""
     computeComponentVcm(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Velocity}
 
-Compute the velocity of the given component center of mass.
+Compute the velocity of the center of mass of a given component.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present:
 
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+      + `component` => ["VEL ", "MASS"].
   - `component::Symbol`: Target component, it can be any of the keys of [`PARTICLE_INDEX`](@ref).
 
 # Returns
@@ -234,7 +165,14 @@ function computeComponentVcm(data_dict::Dict, component::Symbol)::Vector{<:Unitf
     masses     = data_dict[component]["MASS"]
 
     # Check for missing data
-    !any(isempty, [velocities, masses]) || return zeros(typeof(1.0u"km*s^-1"), 3)
+    if any(isempty, [velocities, masses])
+        (
+            !logging[] ||
+            @info("computeComponentVcm: The velocities or masses of the component \
+            `$(component)` are empty, so I will return 0s")
+        )
+        return zeros(typeof(1.0u"km * s^-1"), 3)
+    end
 
     # Compute the total mass
     M = sum(masses)
@@ -249,40 +187,30 @@ end
 """
     computeGlobalVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
 
-Compute the velocity of the global center of mass.
+Compute the velocity of the center of mass of the whole system.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+      + `cell/particle type` => ["VEL ", "MASS"]
 
 # Returns
 
-  - The velocity of the global center of mass.
+  - The velocity.
 """
 function computeGlobalVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
 
     components = snapshotTypes(data_dict)
 
+    # Remove components with no velocity or mass data
     filter!(ts -> !isempty(data_dict[ts]["VEL "]), components)
+    filter!(ts -> !isempty(data_dict[ts]["MASS"]), components)
 
-    # Load the necessary data
+    # Concatenate the velocities and masses of all the cells and particles in the system
     velocities = hcat([data_dict[component]["VEL "] for component in components]...)
     masses     = vcat([data_dict[component]["MASS"] for component in components]...)
-
-    # Check for missing data
-    !any(isempty, [velocities, masses]) || return zeros(typeof(1.0u"km*s^-1"), 3)
 
     # Compute the total mass
     M = sum(masses)
@@ -294,15 +222,63 @@ function computeGlobalVcm(data_dict::Dict)::Vector{<:Unitful.Velocity}
 
 end
 
+"""
+    computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
+
+Compute a characteristic velocity of the system.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present, depending on the value of `cm_type`:
+
+      + If `cm_type == :global_cm`:
+          - ["VEL ", "MASS"] for every cell/particle type in the snapshot (see [`computeGlobalVcm`](@ref)).
+      + If `cm_type ∈ keys(PARTICLE_INDEX)`:
+          - `cm_type` => ["VEL ", "MASS"].
+      + If `cm_type == :zero`:
+          - No blocks are required.
+  - `cm_type::Symbol`: It can be:
+
+      + `:global_cm`   -> Velocity of the center of mass of the whole system.
+      + `:{component}` -> Velocity of the center of mass of the given component (e.g. :stars, :gas, :halo, etc). It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+      + `:zero`        -> 0 velocity.
+
+# Returns
+
+  - The velocity.
+"""
+function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
+
+    if cm_type == :global_cm
+
+        return computeGlobalVcm(data_dict)
+
+    elseif cm_type ∈ keys(PARTICLE_INDEX)
+
+        return computeComponentVcm(data_dict, cm_type)
+
+    elseif cm_type == :zero
+
+        return zeros(typeof(1.0u"km * s^-1"), 3)
+
+    end
+
+    throw(ArgumentError("computeVcm: `cm_type` can only be :global_cm, :zero or one of the keys of \
+    `PARTICLE_INDEX` but I got :$(cm_type)"))
+
+end
+
+#TODO
 @doc raw"""
     computeVcirc(
         data_dict::Dict;
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
-Compute the circular velocity of each particle of the given type, with respect to the origin.
+Compute the circular velocity of each cell/particle of the given type, with respect to the origin.
 
-The circular velocity of a particle is,
+The circular velocity of a cell/particle is,
 
 ```math
 v_\mathrm{circ} = \sqrt{\frac{\mathrm{G} \, M(r)}{r}} \, ,
@@ -345,10 +321,7 @@ function computeVcirc(
     # Check for missing data
     !isempty(rs) || return rs, Unitful.Velocity[]
 
-    components = filter!(
-        ts -> !isempty(data_dict[ts]["POS "]),
-        [:stars, :gas, :halo, :black_hole],
-    )
+    components = filter!(ts -> !isempty(data_dict[ts]["POS "]), [:stars, :gas, :halo, :black_hole])
 
     # Concatenate the position and masses of all the cells and particles in the system
     distances = vcat([computeDistance(data_dict[component]["POS "]) for component in components]...)
@@ -530,7 +503,9 @@ function computeAngularMomentum(
 
     # Check for missing data
     (
-        isempty(positions) || isempty(velocities) || isempty(masses) &&
+        isempty(positions) ||
+        isempty(velocities) ||
+        isempty(masses) &&
         throw(ArgumentError("computeAngularMomentum: The angular momentum of an empty dataset \
         is not defined"))
     )
@@ -601,6 +576,7 @@ Compute the total angular momentum with respect to the origin of the whole syste
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `normal::Bool=true`: If the result will be normalized.
 
 # Returns
@@ -731,7 +707,7 @@ function computeSpinParameter(
             velocities[:, idx],
             masses[idx];
             normal=false,
-        )
+        ),
     )
 
     return uconvert(Unitful.NoUnits, J / sqrt(2.0 * R * Unitful.G * M^3))
@@ -758,6 +734,7 @@ Compute the spin parameter of the whole system.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `R::Unitful.Length=DISK_R`: Radius.
 
 # Returns
@@ -776,8 +753,9 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R)::
     masses     = vcat([data_dict[component]["MASS"] for component in components]...)
 
     (
-        !logging[] ||
-        @info("computeGlobalSpinParameter: The spin parameter will be computed using $(components)")
+        !logging[] || @info(
+            "computeGlobalSpinParameter: The spin parameter will be computed using $(components)"
+        )
     )
 
     # Compute the total spin parameter
