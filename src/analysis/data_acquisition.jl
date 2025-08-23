@@ -189,9 +189,9 @@ function readSnapHeader(path::String)::SnapshotHeader
 
         # Only for the stars edit the number in the header, to exclude wind particles
         num_part = read_attribute(head, "NumPart_ThisFile")
-        num_part[PARTICLE_INDEX[:stars] + 1] = num_part_stars
+        num_part[PARTICLE_INDEX[:stellar] + 1] = num_part_stars
         num_total = read_attribute(head, "NumPart_Total")
-        num_total[PARTICLE_INDEX[:stars] + 1] = num_total_stars
+        num_total[PARTICLE_INDEX[:stellar] + 1] = num_total_stars
 
         # Check if the length units are in the header, otherwise use the default values
         if "UnitLength_in_cm" ∈ attrs_present
@@ -640,7 +640,7 @@ function readSnapBlocks(
                 else
 
                     # For the stars, exclude wind particles
-                    if component == :stars
+                    if component == :stellar
                         idxs = findRealStars(file_path)
                     else
                         idxs = (:)
@@ -1621,10 +1621,10 @@ function findRealStars(path::String)::Vector{Bool}
         )
 
         time_of_birth = h5open(path, "r") do snapshot
-            if PARTICLE_CODE_NAME[:stars] ∉ keys(snapshot)
+            if PARTICLE_CODE_NAME[:stellar] ∉ keys(snapshot)
                 Float64[]
             else
-                read(snapshot[PARTICLE_CODE_NAME[:stars]], QUANTITIES["GAGE"].hdf5_name)
+                read(snapshot[PARTICLE_CODE_NAME[:stellar]], QUANTITIES["GAGE"].hdf5_name)
             end
         end
 

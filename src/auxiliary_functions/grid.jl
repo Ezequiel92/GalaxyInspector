@@ -58,44 +58,6 @@ function scaledBins(
 end
 
 """
-    deltas(values::Vector{<:Number})::Vector{<:Number}
-
-Compute the difference between each consecutive pair of elements in `values`.
-
-# Arguments
-
-  - `values::Vector{<:Number}`: It should have at least 2 elements.
-
-# Returns
-
-  - A vector with the difference between each consecutive pair of elements in `values`, the first element is 0 by convention.
-"""
-function deltas(values::Vector{<:Number})::Vector{<:Number}
-
-    # Allocate memory
-    Δd = similar(values)
-
-    # Get the number of elements in `values`
-    nd = length(values)
-
-    # Check that `values` has a valid length
-    (
-        nd >= 2 ||
-        throw(ArgumentError("deltas: `values` must have at least 2 elements, but it has $(nd)"))
-    )
-
-    # Set the first value to 0
-    Δd[1] = zero(first(values))
-
-    for i in 2:nd
-        Δd[i] = values[i] - values[i - 1]
-    end
-
-    return Δd
-
-end
-
-"""
     reduceMatrix(
         hr_matrix::Matrix{<:Number},
         factor::Int;

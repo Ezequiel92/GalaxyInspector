@@ -124,7 +124,7 @@ function integrateQty(
 
     if quantity == :stellar_mass
 
-        integrated_qty = sum(computeMass(data_dict, :stars); init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :stellar); init=0.0u"Msun")
 
     elseif quantity == :gas_mass
 
@@ -140,7 +140,7 @@ function integrateQty(
 
     elseif quantity == :bh_mass
 
-        integrated_qty = sum(computeMass(data_dict, :black_holes); init=0.0u"Msun")
+        integrated_qty = sum(computeMass(data_dict, :black_hole); init=0.0u"Msun")
 
     elseif quantity == :molecular_mass
 
@@ -187,7 +187,7 @@ function integrateQty(
 
     elseif quantity == :stellar_number
 
-        integrated_qty = length(data_dict[:stars]["MASS"])
+        integrated_qty = length(data_dict[:stellar]["MASS"])
 
     elseif quantity == :gas_number
 
@@ -195,7 +195,7 @@ function integrateQty(
 
     elseif quantity == :dm_number
 
-        integrated_qty = length(data_dict[:halo]["MASS"])
+        integrated_qty = length(data_dict[:dark_matter]["MASS"])
 
     elseif quantity == :bh_number
 
@@ -323,7 +323,7 @@ function integrateQty(
 
     elseif quantity == :stellar_area_density
 
-        integrated_qty = sum(computeMass(data_dict, :stars); init=0.0u"Msun") / area(DISK_R)
+        integrated_qty = sum(computeMass(data_dict, :stellar); init=0.0u"Msun") / area(DISK_R)
 
     elseif quantity == :gas_area_density
 
@@ -434,8 +434,8 @@ function integrateQty(
 
     elseif quantity == :stellar_metallicity
 
-        metal_mass = sum(computeMetalMass(data_dict, :stars); init=0.0u"Msun")
-        stellar_mass = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
+        metal_mass = sum(computeMetalMass(data_dict, :stellar); init=0.0u"Msun")
+        stellar_mass = sum(data_dict[:stellar]["MASS"]; init=0.0u"Msun")
 
         if iszero(stellar_mass)
             integrated_qty = NaN
@@ -454,14 +454,14 @@ function integrateQty(
 
         element_symbol = Symbol(first(split(string(quantity), "_")))
 
-        abundance = 12 + log10(computeGlobalAbundance(data_dict, :stars, element_symbol))
+        abundance = 12 + log10(computeGlobalAbundance(data_dict, :stellar, element_symbol))
         integrated_qty = isinf(abundance) ? NaN : abundance
 
     elseif quantity == :stellar_specific_am
 
-        positions = data_dict[:stars]["POS "]
-        velocities = data_dict[:stars]["VEL "]
-        masses = data_dict[:stars]["MASS"]
+        positions = data_dict[:stellar]["POS "]
+        velocities = data_dict[:stellar]["VEL "]
+        masses = data_dict[:stellar]["MASS"]
 
         if any(isempty, [positions, velocities, masses])
             integrated_qty = NaN
@@ -485,9 +485,9 @@ function integrateQty(
 
     elseif quantity == :dm_specific_am
 
-        positions = data_dict[:halo]["POS "]
-        velocities = data_dict[:halo]["VEL "]
-        masses = data_dict[:halo]["MASS"]
+        positions = data_dict[:dark_matter]["POS "]
+        velocities = data_dict[:dark_matter]["VEL "]
+        masses = data_dict[:dark_matter]["MASS"]
 
         if any(isempty, [positions, velocities, masses])
             integrated_qty = NaN
@@ -522,7 +522,7 @@ function integrateQty(
         present_idx = data_dict[:snap_data].global_index
 
         # Compute the total stellar mass
-        stellar_mass = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
+        stellar_mass = sum(data_dict[:stellar]["MASS"]; init=0.0u"Msun")
 
         if present_idx == 1 || iszero(stellar_mass)
 
@@ -549,7 +549,7 @@ function integrateQty(
     elseif quantity == :observational_ssfr
 
         sfr = sum(computeSFR(data_dict; age_resol=AGE_RESOLUTION); init=0.0u"Msun*yr^-1")
-        stellar_mass = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
+        stellar_mass = sum(data_dict[:stellar]["MASS"]; init=0.0u"Msun")
 
         if iszero(stellar_mass)
             integrated_qty = 0.0u"yr^-1"
@@ -560,9 +560,9 @@ function integrateQty(
     elseif quantity == :stellar_eff
 
         ϵffs = computeEfficiencyFF(
-            data_dict[:stars]["RHOC"] .* u"mp",
-            data_dict[:stars]["GMAS"],
-            data_dict[:stars]["GSFR"],
+            data_dict[:stellar]["RHOC"] .* u"mp",
+            data_dict[:stellar]["GMAS"],
+            data_dict[:stellar]["GSFR"],
         )
 
         # Filter out zeros and NaNs
@@ -752,7 +752,7 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_it
 
-        odit = data_dict[:stars]["ODIT"]
+        odit = data_dict[:stellar]["ODIT"]
         filter!(!isnan, odit)
 
         if isempty(odit)
@@ -763,7 +763,7 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_tau_s
 
-        τS = data_dict[:stars]["TAUS"]
+        τS = data_dict[:stellar]["TAUS"]
         filter!(!isnan, τS)
 
         if isempty(τS)
@@ -774,7 +774,7 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_eta_d
 
-        ηd = data_dict[:stars]["ETAD"]
+        ηd = data_dict[:stellar]["ETAD"]
         filter!(!isnan, ηd)
 
         if isempty(ηd)
@@ -785,7 +785,7 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_eta_i
 
-        ηi = data_dict[:stars]["ETAI"]
+        ηi = data_dict[:stellar]["ETAI"]
         filter!(!isnan, ηi)
 
         if isempty(ηi)
@@ -796,7 +796,7 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_r
 
-        R = data_dict[:stars]["PARR"]
+        R = data_dict[:stellar]["PARR"]
         filter!(!isnan, R)
 
         if isempty(R)
@@ -807,8 +807,8 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_cold_mf
 
-        cold_fraction = data_dict[:stars]["COLF"]
-        gas_mass = data_dict[:stars]["GMAS"]
+        cold_fraction = data_dict[:stellar]["COLF"]
+        gas_mass = data_dict[:stellar]["GMAS"]
 
         filter!(!isnan, cold_fraction)
         filter!(!isnan, gas_mass)
@@ -822,7 +822,7 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_gas_rho
 
-        ρ = data_dict[:stars]["RHOC"]
+        ρ = data_dict[:stellar]["RHOC"]
         filter!(!isnan, ρ)
 
         if isempty(ρ)
@@ -833,8 +833,8 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_gas_Z
 
-        Z = data_dict[:stars]["PARZ"]
-        gas_mass = data_dict[:stars]["GMAS"]
+        Z = data_dict[:stellar]["PARZ"]
+        gas_mass = data_dict[:stellar]["GMAS"]
 
         filter!(!isnan, Z)
         filter!(!isnan, gas_mass)
@@ -848,7 +848,7 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_gas_mass
 
-        gm = data_dict[:stars]["GMAS"]
+        gm = data_dict[:stellar]["GMAS"]
         filter!(!isnan, gm)
 
         if isempty(gm)
@@ -859,7 +859,7 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_gas_sfr
 
-        gsfr = data_dict[:stars]["GSFR"]
+        gsfr = data_dict[:stellar]["GSFR"]
         filter!(!isnan, gsfr)
 
         if isempty(gsfr)
@@ -870,7 +870,7 @@ function integrateQty(
 
     elseif quantity == :ode_stellar_gas_P
 
-        P = data_dict[:stars]["GPRE"]
+        P = data_dict[:stellar]["GPRE"]
         filter!(!isnan, P)
 
         if isempty(P)
@@ -1009,7 +1009,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     if quantity == :stellar_mass
 
-        scatter_qty = computeMass(data_dict, :stars)
+        scatter_qty = computeMass(data_dict, :stellar)
 
     elseif quantity == :gas_mass
 
@@ -1025,7 +1025,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :bh_mass
 
-        scatter_qty = computeMass(data_dict, :black_holes)
+        scatter_qty = computeMass(data_dict, :black_hole)
 
     elseif quantity == :molecular_mass
 
@@ -1201,7 +1201,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :stellar_metallicity
 
-        scatter_qty = setPositive(data_dict[:stars]["GZ2 "]) ./ SOLAR_METALLICITY
+        scatter_qty = setPositive(data_dict[:stellar]["GZ2 "]) ./ SOLAR_METALLICITY
 
     elseif quantity ∈ GAS_ABUNDANCE
 
@@ -1227,7 +1227,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         abundances = computeAbundance(
             data_dict,
-            :stars,
+            :stellar,
             element_symbol;
             solar=false,
         )
@@ -1241,7 +1241,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :stellar_radial_distance
 
-        scatter_qty = computeDistance(data_dict[:stars]["POS "])
+        scatter_qty = computeDistance(data_dict[:stellar]["POS "])
 
     elseif quantity == :gas_radial_distance
 
@@ -1249,14 +1249,14 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :dm_radial_distance
 
-        scatter_qty = computeDistance(data_dict[:halo]["POS "])
+        scatter_qty = computeDistance(data_dict[:dark_matter]["POS "])
 
     elseif quantity == :stellar_xy_distance
 
-        if isempty(data_dict[:stars]["POS "])
-            scatter_qty = eltype(data_dict[:stars]["POS "])[]
+        if isempty(data_dict[:stellar]["POS "])
+            scatter_qty = eltype(data_dict[:stellar]["POS "])[]
         else
-            scatter_qty = computeDistance(data_dict[:stars]["POS "][1:2, :])
+            scatter_qty = computeDistance(data_dict[:stellar]["POS "][1:2, :])
         end
 
     elseif quantity == :gas_xy_distance
@@ -1269,10 +1269,10 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :dm_xy_distance
 
-        if isempty(data_dict[:halo]["POS "])
-            scatter_qty = eltype(data_dict[:halo]["POS "])[]
+        if isempty(data_dict[:dark_matter]["POS "])
+            scatter_qty = eltype(data_dict[:dark_matter]["POS "])[]
         else
-            scatter_qty = computeDistance(data_dict[:halo]["POS "][1:2, :])
+            scatter_qty = computeDistance(data_dict[:dark_matter]["POS "][1:2, :])
         end
 
     elseif quantity == :gas_sfr
@@ -1287,7 +1287,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
             all cells/particles. So, after filtering, the result for a given star will change")
         )
 
-        scatter_qty = computeCircularity(data_dict)
+        scatter_qty = computeCircularity(data_dict, :stellar)
 
     elseif quantity == :stellar_vcirc
 
@@ -1298,19 +1298,19 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
             will change")
        )
 
-        _, scatter_qty = computeVcirc(data_dict)
+        _, scatter_qty = computeVcirc(data_dict, :stellar)
 
     elseif quantity == :stellar_vradial
 
-        scatter_qty = computeVpolar(data_dict, :radial)
+        scatter_qty = computeVpolar(data_dict, :stellar, :radial)
 
     elseif quantity == :stellar_vtangential
 
-        scatter_qty = computeVpolar(data_dict, :tangential)
+        scatter_qty = computeVpolar(data_dict, :stellar, :tangential)
 
     elseif quantity == :stellar_vzstar
 
-        scatter_qty = computeVpolar(data_dict, :zstar)
+        scatter_qty = computeVpolar(data_dict, :stellar, :zstar)
 
     elseif quantity == :stellar_age
 
@@ -1323,7 +1323,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         if present_idx == 1
 
-            scatter_qty = zeros(typeof(1.0u"Msun*yr^-1"), length(data_dict[:stars]["MASS"]))
+            scatter_qty = zeros(typeof(1.0u"Msun*yr^-1"), length(data_dict[:stellar]["MASS"]))
 
         else
 
@@ -1342,7 +1342,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         present_idx = data_dict[:snap_data].global_index
 
         # Load the stellar masses
-        stellar_masses = data_dict[:stars]["MASS"]
+        stellar_masses = data_dict[:stellar]["MASS"]
 
         if present_idx == 1 || isempty(stellar_masses)
 
@@ -1366,16 +1366,16 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
     elseif quantity == :observational_ssfr
 
         sfr = computeSFR(data_dict; age_resol=AGE_RESOLUTION)
-        stellar_masses = data_dict[:stars]["MASS"]
+        stellar_masses = data_dict[:stellar]["MASS"]
 
         scatter_qty = sfr ./ stellar_masses
 
     elseif quantity == :stellar_eff
 
         scatter_qty = computeEfficiencyFF(
-            data_dict[:stars]["RHOC"] .* u"mp",
-            data_dict[:stars]["GMAS"],
-            data_dict[:stars]["GSFR"],
+            data_dict[:stellar]["RHOC"] .* u"mp",
+            data_dict[:stellar]["GMAS"],
+            data_dict[:stellar]["GSFR"],
         )
 
     elseif quantity == :gas_eff
@@ -1449,47 +1449,47 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :ode_stellar_it
 
-        scatter_qty = data_dict[:stars]["ODIT"]
+        scatter_qty = data_dict[:stellar]["ODIT"]
 
     elseif quantity == :ode_stellar_tau_s
 
-        scatter_qty = data_dict[:stars]["TAUS"]
+        scatter_qty = data_dict[:stellar]["TAUS"]
 
     elseif quantity == :ode_stellar_eta_d
 
-        scatter_qty = data_dict[:stars]["ETAD"]
+        scatter_qty = data_dict[:stellar]["ETAD"]
 
     elseif quantity == :ode_stellar_eta_i
 
-        scatter_qty = data_dict[:stars]["ETAI"]
+        scatter_qty = data_dict[:stellar]["ETAI"]
 
     elseif quantity == :ode_stellar_r
 
-        scatter_qty = data_dict[:stars]["PARR"]
+        scatter_qty = data_dict[:stellar]["PARR"]
 
     elseif quantity == :ode_stellar_cold_mf
 
-        scatter_qty = data_dict[:stars]["COLF"]
+        scatter_qty = data_dict[:stellar]["COLF"]
 
     elseif quantity == :ode_stellar_gas_rho
 
-        scatter_qty = data_dict[:stars]["RHOC"] .* u"mp"
+        scatter_qty = data_dict[:stellar]["RHOC"] .* u"mp"
 
     elseif quantity == :ode_stellar_gas_Z
 
-        scatter_qty = data_dict[:stars]["PARZ"] ./ SOLAR_METALLICITY
+        scatter_qty = data_dict[:stellar]["PARZ"] ./ SOLAR_METALLICITY
 
     elseif quantity == :ode_stellar_gas_mass
 
-        scatter_qty = data_dict[:stars]["GMAS"]
+        scatter_qty = data_dict[:stellar]["GMAS"]
 
     elseif quantity == :ode_stellar_gas_sfr
 
-        scatter_qty = data_dict[:stars]["GSFR"]
+        scatter_qty = data_dict[:stellar]["GSFR"]
 
     elseif quantity == :ode_stellar_gas_P
 
-        scatter_qty = data_dict[:stars]["GPRE"]
+        scatter_qty = data_dict[:stellar]["GPRE"]
 
     else
 

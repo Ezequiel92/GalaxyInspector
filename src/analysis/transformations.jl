@@ -52,7 +52,7 @@ Translate the positions and velocities of the cells/particles in `data_dict`.
 
       + `:zero`                       -> No translation is applied.
       + `:global_cm`                  -> Sets the center of mass of the whole system as the new origin.
-      + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+      + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
       + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
       + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
       + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -123,33 +123,33 @@ function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
 
         elseif rotation === :stellar_am
 
-            isempty(data_dict[:stars]["MASS"]) && return nothing
+            isempty(data_dict[:stellar]["MASS"]) && return nothing
 
             computeAMRotationMatrix(
-                data_dict[:stars]["POS "],
-                data_dict[:stars]["VEL "],
-                data_dict[:stars]["MASS"],
+                data_dict[:stellar]["POS "],
+                data_dict[:stellar]["VEL "],
+                data_dict[:stellar]["MASS"],
             )
 
         elseif rotation === :stellar_pa
 
-            isempty(data_dict[:stars]["MASS"]) && return nothing
+            isempty(data_dict[:stellar]["MASS"]) && return nothing
 
             computePARotationMatrix(
-                data_dict[:stars]["POS "],
-                data_dict[:stars]["VEL "],
-                data_dict[:stars]["MASS"],
+                data_dict[:stellar]["POS "],
+                data_dict[:stellar]["VEL "],
+                data_dict[:stellar]["MASS"],
             )
 
         elseif rotation === :stellar_subhalo_pa
 
-            idxs = filterBySubhalo(data_dict; halo_idx=1, subhalo_rel_idx=1)[:stars]
+            idxs = filterBySubhalo(data_dict; halo_idx=1, subhalo_rel_idx=1)[:stellar]
 
             isempty(idxs) && return nothing
 
-            pos_view = data_dict[:stars]["POS "][:, idxs]
-            vel_view = data_dict[:stars]["VEL "][:, idxs]
-            mass_view = data_dict[:stars]["MASS"][idxs]
+            pos_view = data_dict[:stellar]["POS "][:, idxs]
+            vel_view = data_dict[:stellar]["VEL "][:, idxs]
+            mass_view = data_dict[:stellar]["MASS"][idxs]
 
             computePARotationMatrix(pos_view, vel_view, mass_view)
 
@@ -206,13 +206,13 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
 """
 function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
 
-    idxs = filterBySubhalo(data_dict; halo_idx=rotation[1], subhalo_rel_idx=rotation[2])[:stars]
+    idxs = filterBySubhalo(data_dict; halo_idx=rotation[1], subhalo_rel_idx=rotation[2])[:stellar]
 
     isempty(idxs) && return nothing
 
-    pos_view = data_dict[:stars]["POS "][:, idxs]
-    vel_view = data_dict[:stars]["VEL "][:, idxs]
-    mass_view = data_dict[:stars]["MASS"][idxs]
+    pos_view = data_dict[:stellar]["POS "][:, idxs]
+    vel_view = data_dict[:stellar]["VEL "][:, idxs]
+    mass_view = data_dict[:stellar]["MASS"][idxs]
 
     rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
 
@@ -258,13 +258,13 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
 """
 function rotateData!(data_dict::Dict, rotation::Int)::Nothing
 
-    idxs = filterBySubhalo(data_dict, rotation)[:stars]
+    idxs = filterBySubhalo(data_dict, rotation)[:stellar]
 
     isempty(idxs) && return nothing
 
-    pos_view = data_dict[:stars]["POS "][:, idxs]
-    vel_view = data_dict[:stars]["VEL "][:, idxs]
-    mass_view = data_dict[:stars]["MASS"][idxs]
+    pos_view = data_dict[:stellar]["POS "][:, idxs]
+    vel_view = data_dict[:stellar]["VEL "][:, idxs]
+    mass_view = data_dict[:stellar]["MASS"][idxs]
 
     rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
 

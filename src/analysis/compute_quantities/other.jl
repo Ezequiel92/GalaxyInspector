@@ -203,7 +203,7 @@ Compute the age of the stars.
 """
 function computeStellarAge(data_dict::Dict)::Vector{<:Unitful.Time}
 
-    birth_ticks = data_dict[:stars]["GAGE"]
+    birth_ticks = data_dict[:stellar]["GAGE"]
 
     !isempty(birth_ticks) || return Unitful.Time[]
 
@@ -266,7 +266,7 @@ function computeSFR(
     idxs = map(x -> x <= age_resol, ages)
 
     # Compute the SFR
-    sfr[idxs] .= data_dict[:stars]["MASS"][idxs] ./ age_resol
+    sfr[idxs] .= data_dict[:stellar]["MASS"][idxs] ./ age_resol
 
     return sfr
 
@@ -655,9 +655,9 @@ function density3DProjection(
     ]
         component = :gas
     elseif quantity == :stellar_mass
-        component = :stars
+        component = :stellar
     elseif quantity == :dm_mass
-        component = :halo
+        component = :dark_matter
     elseif quantity == :bh_mass
         component = :black_hole
     else

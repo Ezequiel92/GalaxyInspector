@@ -2,6 +2,10 @@
 # Compute characteristic positions
 ####################################################################################################
 
+#################
+# Base functions
+#################
+
 """
     computeDistance(
         positions::Matrix{<:Number};
@@ -50,7 +54,7 @@ end
 """
     computeCenterOfMass(
         positions::Matrix{<:Unitful.Length},
-        mass::Vector{<:Unitful.Mass},
+        masses::Vector{<:Unitful.Mass},
     )::Vector{<:Unitful.Length}
 
 Compute the center of mass of a group of cells/particles.
@@ -89,6 +93,10 @@ function computeCenterOfMass(
 
 end
 
+###################
+# Derive functions
+###################
+
 """
     computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
 
@@ -107,26 +115,26 @@ Compute the center of mass of the whole system.
 """
 function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
 
-    components = snapshotTypes(data_dict)
+    snap_types = snapshotTypes(data_dict)
 
     # Remove components with no position or mass data
-    filter!(ts -> !isempty(data_dict[ts]["POS "]), components)
-    filter!(ts -> !isempty(data_dict[ts]["MASS"]), components)
+    filter!(st -> !isempty(data_dict[st]["POS "]), snap_types)
+    filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
     # Concatenate the position and masses of all the cells and particles in the system
-    positions = hcat([data_dict[component]["POS "] for component in components]...)
-    masses    = vcat([data_dict[component]["MASS"] for component in components]...)
+    positions = hcat([data_dict[st]["POS "] for st in snap_types]...)
+    masses    = vcat([data_dict[st]["MASS"] for st in snap_types]...)
 
     (
         !logging[] ||
-        @info("computeGlobalCenterOfMass: The center of mass will be computed using $(components)")
+        @info("computeGlobalCenterOfMass: The center of mass will be computed using $(snap_types)")
     )
 
     return computeCenterOfMass(positions, masses)
 
 end
 
-"""
+@doc raw"""
     computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
 
 Return the 3D position of the potential minimum for a halo or subhalo.
@@ -136,8 +144,8 @@ Return the 3D position of the potential minimum for a halo or subhalo.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present:
 
-      + `:group`   => ["G_Nsubs", "G_Pos"]
-      + `:subhalo` => ["S_Pos"]
+      + `:group`   => ["G\_Nsubs", "G\_Pos"]
+      + `:subhalo` => ["S\_Pos"]
   - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
 
       + Index of the target halo (FoF group). Starts at 1.
@@ -168,10 +176,14 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
     # Check that the requested halo index is within bounds
     n_halos = data_dict[:gc_data].header.n_groups_total
 
-    (
-        !iszero(n_halos) && !any(isempty, [n_subhalos_in_halo, g_pos, s_pos]) ||
+    if iszero(n_halos) || any(isempty, [n_subhalos_in_halo, g_pos, s_pos])
+        (
+            !logging[] ||
+            @info("computeCenter: There are no halos in $(data_dict[:gc_data].path), \
+            so I will return the origin")
+        )
         return zeros(typeof(1.0u"kpc"), 3)
-    )
+    end
 
     (
         0 < halo_idx <= n_halos ||
@@ -219,7 +231,7 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
 
 end
 
-"""
+@doc raw"""
     computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Length}
 
 Return the 3D position of the potential minimum for a given subhalo.
@@ -229,7 +241,7 @@ Return the 3D position of the potential minimum for a given subhalo.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present:
 
-      + `:subhalo` => ["S_Pos"]
+      + `:subhalo` => ["S\_Pos"]
   - `subhalo_abs_idx::Int`: Absolute index of the target subhalo (subfind). Starts at 1.
 
 # Returns
@@ -275,16 +287,16 @@ Compute a characteristic center of mass for the system.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present, depending on the value of `cm_type`:
 
-      + If `cm_type == :global_cm`:
+      + If `cm_type` == `:global_cm`:
           - ["POS ", "MASS"] for every cell/particle type in the snapshot (see [`computeGlobalCenterOfMass`](@ref)).
-      + If `cm_type ∈ keys(PARTICLE_INDEX)`:
+      + If `cm_type` ∈ `keys(PARTICLE_INDEX)`:
           - `cm_type` => ["POS ", "MASS"].
-      + If `cm_type == :zero`:
+      + If `cm_type` == `:zero`:
           - No blocks are required.
   - `cm_type::Symbol`: It can be:
 
       + `:global_cm`   -> Center of mass of the whole system.
-      + `:{component}` -> Center of mass of the given component (e.g. :stars, :gas, :halo, etc). It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+      + `:{component}` -> Center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc). It can be any of the keys of [`PARTICLE_INDEX`](@ref).
       + `:zero`        -> Origin.
 
 # Returns
@@ -299,7 +311,19 @@ function computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Lengt
 
     elseif cm_type ∈ keys(PARTICLE_INDEX)
 
-        return computeCenterOfMass(data_dict[cm_type]["POS "], data_dict[cm_type]["MASS"])
+        positions = data_dict[cm_type]["POS "]
+        masses    = data_dict[cm_type]["MASS"]
+
+        if any(isempty, [positions, masses])
+            (
+                !logging[] ||
+                @info("computeCenter: `positions` and/or `masses` are empty, so I will return \
+                the origin")
+            )
+            return zeros(typeof(1.0u"kpc"), 3)
+        end
+
+        return computeCenterOfMass(positions, masses)
 
     elseif cm_type == :zero
 
@@ -312,7 +336,7 @@ function computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Lengt
 
 end
 
-"""
+@doc raw"""
     findStellarHaloSubhalo(
         data_dict::Dict,
         star_idxs::Vector{Int},
@@ -328,9 +352,9 @@ For stars with no halo or subhalo, an index of -1 is given. The subhalo index is
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present:
 
-      + `:group`   => ["G_Nsubs", "G_LenType"]
-      + `:subhalo` => ["S_LenType"]
-  - `star_idxs::Vector{Int}`: Indices of the target stars in `data_dict`. The indices are relative to the stars in `data_dict[:stars]`.
+      + `:group`   => ["G\_Nsubs", "G\_LenType"]
+      + `:subhalo` => ["S\_LenType"]
+  - `star_idxs::Vector{Int}`: Indices of the target stars in `data_dict`. The indices are relative to the stars in `data_dict[:stellar]`.
   - `real_stars_idxs::Vector{Bool}`: Boolean list of stellar particles. True for real stars and false for wind particles. The indices are relative to the list of stars/wind particles in the snapshot (i.e. the output of [`findRealStars`](@ref)).
 
 # Returns
@@ -357,10 +381,10 @@ function findStellarHaloSubhalo(
     n_subhalos_in_halo = data_dict[:group]["G_Nsubs"]
 
     # Read the number of stars in each halo
-    n_stars_in_halo = data_dict[:group]["G_LenType"][PARTICLE_INDEX[:stars] + 1, :]
+    n_stars_in_halo = data_dict[:group]["G_LenType"][PARTICLE_INDEX[:stellar] + 1, :]
 
     # Read the number of stars in each subhalo
-    n_stars_in_subhalo = data_dict[:subhalo]["S_LenType"][PARTICLE_INDEX[:stars] + 1, :]
+    n_stars_in_subhalo = data_dict[:subhalo]["S_LenType"][PARTICLE_INDEX[:stellar] + 1, :]
 
     ################################################################################################
     # Allocate memory
@@ -504,7 +528,7 @@ For stars with no halo or subhalo, an index of -1 is given. The subhalo index is
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present:
 
-      + `:stars` => ["GAGE", "ID  "]
+      + `:stellar` => ["GAGE", "ID  "]
 
 # Returns
 
@@ -520,7 +544,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     ################################################################################################
 
     # Read the birth time of each star
-    birth_ticks = data_dict[:stars]["GAGE"]
+    birth_ticks = data_dict[:stellar]["GAGE"]
 
     if data_dict[:sim_data].cosmological
         # Go from scale factor to physical time
@@ -539,7 +563,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     )
 
     # Read the ID of each star
-    ids = data_dict[:stars]["ID  "]
+    ids = data_dict[:stellar]["ID  "]
 
     # Compute the number of snapshots
     n_snaps = length(times)
@@ -586,7 +610,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     birth_subhalo = fill(-1, length(birth_times))
 
     request = Dict(
-        :stars   => ["ID  "],
+        :stellar   => ["ID  "],
         :group   => ["G_Nsubs", "G_LenType"],
         :subhalo => ["S_LenType"],
     )
@@ -635,7 +659,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
         )
 
         # Get the birth index of the stars born in this snapshot
-        past_idxs = parentIDToIndex(past_data_dict, ids)[:stars]
+        past_idxs = parentIDToIndex(past_data_dict, ids)[:stellar]
 
         (
             length(ids) == length(past_idxs) ||

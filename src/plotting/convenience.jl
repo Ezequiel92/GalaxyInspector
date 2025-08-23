@@ -19,7 +19,7 @@ Write a text file with information about a given snapshot.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be considered in the "filtered" section of the report. The options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -31,7 +31,7 @@ Write a text file with information about a given snapshot.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -176,7 +176,7 @@ function snapshotReport(
             file_path = minimum(glob("$(SNAP_BASENAME)_*.*.hdf5", snapshot_path))
         end
 
-        physical_components = [:gas, :halo, :stars, :black_hole]
+        physical_components = [:gas, :dark_matter, :stellar, :black_hole]
 
         # Detect which of the main physical components are present in the snapshot
         component_list = h5open(file_path, "r") do snapshot
@@ -211,7 +211,7 @@ function snapshotReport(
                         "FRAC",
                         "SFFL",
                     ],
-                    :stars => [
+                    :stellar => [
                         "ODIT",
                         "PARA",
                         "TAUS",
@@ -232,7 +232,7 @@ function snapshotReport(
         )
 
         # Read the snapshot data
-        if !in(filter_mode, [:all, :sphere])
+        if !in(filter_mode, [:all, :sphere, :all_stellar])
 
             # Check that the group catalog data is available
             if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)
@@ -679,7 +679,7 @@ function snapshotReport(
             u"dyn*cm^-2",
         ]
 
-        present_qty = isBlockPresent.(:stars, quantities, snapshot_path)
+        present_qty = isBlockPresent.(:stellar, quantities, snapshot_path)
 
         if any(present_qty)
 
@@ -689,7 +689,7 @@ function snapshotReport(
 
             for (quantity, unit, name) in iterator
 
-                values = filter(!isnan, ustrip.(unit, data_dict[:stars][quantity]))
+                values = filter(!isnan, ustrip.(unit, data_dict[:stellar][quantity]))
 
                 isempty(values) && continue
 
@@ -705,9 +705,9 @@ function snapshotReport(
                 println(file, "\t\t\tMinimum: $(round(minimum(values), sigdigits=4)) $unit")
                 println(file, "\t\t\tMaximum: $(round(maximum(values), sigdigits=4)) $unit\n")
 
-                values_50 = computeMassQty(values, data_dict[:stars]["MASS"]; percent=50.0)
-                values_90 = computeMassQty(values, data_dict[:stars]["MASS"]; percent=90.0)
-                values_95 = computeMassQty(values, data_dict[:stars]["MASS"]; percent=95.0)
+                values_50 = computeMassQty(values, data_dict[:stellar]["MASS"]; percent=50.0)
+                values_90 = computeMassQty(values, data_dict[:stellar]["MASS"]; percent=90.0)
+                values_95 = computeMassQty(values, data_dict[:stellar]["MASS"]; percent=95.0)
 
                 println(file, "\t\t$(name) enclosing X% of the stellar mass:\n")
                 println(file, "\t\t\t$(round(values_50, sigdigits=4)) $unit (50%)")
@@ -813,11 +813,7 @@ function snapshotReport(
 
         for component in component_list
 
-            λ = computeSpinParameter(
-                data_dict[component]["POS "],
-                data_dict[component]["VEL "],
-                data_dict[component]["MASS"],
-            )
+            λ = computeSpinParameter(data_dict, component)
 
             title = "$(PARTICLE_NAMES[component]):"
             title *= " "^(25 - length(title))
@@ -841,17 +837,17 @@ function snapshotReport(
         # of the stellar mass
         ###################################################################################
 
-        if !isempty(data_dict[:stars]["MASS"])
+        if !isempty(data_dict[:stellar]["MASS"])
 
             mass_height_90 = computeMassHeight(
-                data_dict[:stars]["POS "],
-                data_dict[:stars]["MASS"];
+                data_dict[:stellar]["POS "],
+                data_dict[:stellar]["MASS"];
                 percent=90.0,
             )
 
             mass_height_95 = computeMassHeight(
-                data_dict[:stars]["POS "],
-                data_dict[:stars]["MASS"];
+                data_dict[:stellar]["POS "],
+                data_dict[:stellar]["MASS"];
                 percent=95.0,
             )
 
@@ -955,10 +951,10 @@ function snapshotReport(
                     :exsitu;
                     halo_idx,
                     subhalo_rel_idx,
-                )[:stars]
+                )[:stellar]
 
-                iMs = sum(data_dict[:stars]["MASS"][insitu_idx]; init=0.0u"Msun")
-                tMs = sum(data_dict[:stars]["MASS"]; init=0.0u"Msun")
+                iMs = sum(data_dict[:stellar]["MASS"][insitu_idx]; init=0.0u"Msun")
+                tMs = sum(data_dict[:stellar]["MASS"]; init=0.0u"Msun")
                 insitu_fraction = round(uconvert.(Unitful.NoUnits, (iMs / tMs) * 100); sigdigits=2)
 
                 println(file, "#"^100)
@@ -976,7 +972,7 @@ function snapshotReport(
                 disc_idxs = filterWithinSphere(data_dict, (0.0u"kpc", DISK_R), :zero)
                 halo_idxs = filterWithinSphere(data_dict, (DISK_R, g_r_crit_200), :zero)
 
-                stellar_masses     = computeMass(data_dict, :stars)
+                stellar_masses     = computeMass(data_dict, :stellar)
                 gas_masses         = computeMass(data_dict, :gas)
                 ionized_masses     = computeMass(data_dict, :ionized)
                 atomic_masses      = computeMass(data_dict, :atomic)
@@ -985,8 +981,8 @@ function snapshotReport(
                 neutral_masses     = computeMass(data_dict, :neutral)
                 dust_masses        = computeMass(data_dict, :dust)
 
-                stellar_mass_inside  = stellar_masses[disc_idxs[:stars]]
-                stellar_mass_outside = stellar_masses[halo_idxs[:stars]]
+                stellar_mass_inside  = stellar_masses[disc_idxs[:stellar]]
+                stellar_mass_outside = stellar_masses[halo_idxs[:stellar]]
 
                 gas_mass_inside  = gas_masses[disc_idxs[:gas]]
                 gas_mass_outside = gas_masses[halo_idxs[:gas]]
@@ -1033,13 +1029,13 @@ function snapshotReport(
                 ########
 
                 mass_radius_90 = computeMassRadius(
-                    data_dict[:stars]["POS "][:, disc_idxs[:stars]],
+                    data_dict[:stellar]["POS "][:, disc_idxs[:stellar]],
                     stellar_mass_inside;
                     percent=90.0,
                 )
 
                 mass_radius_95 = computeMassRadius(
-                    data_dict[:stars]["POS "][:, disc_idxs[:stars]],
+                    data_dict[:stellar]["POS "][:, disc_idxs[:stellar]],
                     stellar_mass_inside;
                     percent=95.0,
                 )
@@ -1587,7 +1583,7 @@ function snapshotReport(
                 symbol_name = INDEX_PARTICLE[i - 1]
                 component_label = PARTICLE_NAMES[symbol_name]
 
-                if symbol_name == :stars
+                if symbol_name == :stellar
                     component_label = "Stellar/Wind particles"
                 elseif symbol_name == :tracer
                     mass = TRACER_MASS * internalUnits("MASS", snapshot_path)
@@ -1684,7 +1680,7 @@ function snapshotReport(
                 symbol_name = INDEX_PARTICLE[i - 1]
                 component_label = PARTICLE_NAMES[symbol_name]
 
-                if symbol_name == :stars
+                if symbol_name == :stellar
                     component_label = "Stellar/Wind particles"
                 elseif symbol_name == :tracer
                     mass = TRACER_MASS * internalUnits("MASS", snapshot_path)
@@ -1922,7 +1918,7 @@ function simulationReport(
                 s_len_type = gc_data[:subhalo]["S_LenType"][:, 1]
 
                 # Select the filter function and request dictionary
-                filter_function, _, _, request = selectFilter(:subhalo, Dict(:stars => ["MASS"]))
+                filter_function, _, _, request = selectFilter(:subhalo, Dict(:stellar => ["MASS"]))
 
                 # Create a metadata dictionary
                 metadata = Dict(
@@ -1949,7 +1945,7 @@ function simulationReport(
                 filterData!(data_dict; filter_function)
 
                 # Compute the number of stars in the main subhalo
-                stellar_n_subhalo = length(data_dict[:stars]["MASS"])
+                stellar_n_subhalo = length(data_dict[:stellar]["MASS"])
 
             end
 
@@ -2322,7 +2318,7 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -2334,7 +2330,7 @@ Write, to a pair of CSV files, in which halo and subhalo every star in snapshot 
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -2357,7 +2353,7 @@ function stellarBirthHalos(
 )::Nothing
 
     # Select the filter function and request dictionary
-    filter_function, _, _, request = selectFilter(filter_mode, Dict(:stars=>["ID  "]))
+    filter_function, _, _, request = selectFilter(filter_mode, Dict(:stellar=>["ID  "]))
 
     # Read the relevant data of the snapshot
     data_dict = makeDataDict(
@@ -2425,7 +2421,7 @@ Plot a 2D histogram of the density.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -2437,7 +2433,7 @@ Plot a 2D histogram of the density.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -2632,7 +2628,7 @@ Plot a 2D map of the gas SFR.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -2644,7 +2640,7 @@ Plot a 2D map of the gas SFR.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -2847,7 +2843,7 @@ Plot a 2D histogram of the density, with the velocity field.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -2859,7 +2855,7 @@ Plot a 2D histogram of the density, with the velocity field.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -2943,9 +2939,9 @@ function densityMapVelField(
         ]
             component = :gas
         elseif quantity == :stellar_mass
-            component = :stars
+            component = :stellar
         elseif quantity == :dm_mass
-            component = :halo
+            component = :dark_matter
         elseif quantity == :bh_mass
             component = :black_hole
         else
@@ -3049,13 +3045,13 @@ Plot a 2D histogram of the metallicity.
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
   - `slice::IndexType`: Slice of the simulations, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored. If set to 0, an animation using every snapshots will be made.
-  - `components::Vector{Symbol}=[:gas]`: Target component. It can be either `:stars` or `:gas`.
+  - `components::Vector{Symbol}=[:gas]`: Target component. It can be either `:stellar` or `:gas`.
   - `types::Vector{Symbol}=[:cells]`: List of component types for the metallicity fields, each element can be either `:particles` or Voronoi `:cells`.
   - `output_path::String="."`: Path to the output folder.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -3067,7 +3063,7 @@ Plot a 2D histogram of the metallicity.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -3164,7 +3160,7 @@ function metallicityMap(
                 ),
             )
 
-        elseif component == :stars
+        elseif component == :stellar
 
             filter_function, translation, rotation, request = selectFilter(
                 filter_mode,
@@ -3276,7 +3272,7 @@ Plot a 2D histogram of the temperature.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -3288,7 +3284,7 @@ Plot a 2D histogram of the temperature.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -3621,7 +3617,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -3633,7 +3629,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4090,7 +4086,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -4102,7 +4098,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4352,7 +4348,7 @@ function atomicMolecularTransition(
         mergeRequests(
             x_plot_params.request,
             y_plot_params.request,
-            Dict(:gas => ["GZ  ", "GMET"], :stars => ["GZ2 ", "GME2"]),
+            Dict(:gas => ["GZ  ", "GMET"], :stellar => ["GZ2 ", "GME2"]),
         ),
     )
 
@@ -4606,7 +4602,7 @@ Only for gas cells that have entered our routine.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -4618,7 +4614,7 @@ Only for gas cells that have entered our routine.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4960,7 +4956,7 @@ Plot a time series.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -4972,7 +4968,7 @@ Plot a time series.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5108,7 +5104,7 @@ Plot a time series of the gas components. Either their masses or their fractions
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -5120,7 +5116,7 @@ Plot a time series of the gas components. Either their masses or their fractions
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5279,7 +5275,7 @@ function virialAccretionEvolution(
         slice,
         da_functions=[daVirialAccretion],
         da_args=[()],
-        da_kwargs=[(; filter_mode=:halo, halo_idx, tracers, smooth)],
+        da_kwargs=[(; filter_mode=:dark_matter, halo_idx, tracers, smooth)],
         post_processing=ppHorizontalFlags!,
         pp_args=([0.0],),
         pp_kwargs=(; colors=[:gray65], line_styles=[nothing]),
@@ -5358,7 +5354,7 @@ function discAccretionEvolution(
         slice,
         da_functions=[daDiscAccretion],
         da_args=[()],
-        da_kwargs=[(; filter_mode=:halo, max_r, max_z, smooth)],
+        da_kwargs=[(; filter_mode=:dark_matter, max_r, max_z, smooth)],
         post_processing=ppHorizontalFlags!,
         pp_args=([0.0],),
         pp_kwargs=(; colors=[:gray65], line_styles=[nothing]),
@@ -5409,7 +5405,7 @@ Plot the galaxy rotation curve of a set of simulations.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -5421,7 +5417,7 @@ Plot the galaxy rotation curve of a set of simulations.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5453,7 +5449,7 @@ function rotationCurve(
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        mergeRequests(x_plot_params.request, y_plot_params.request, Dict(:stars => ["GAGE"])),
+        mergeRequests(x_plot_params.request, y_plot_params.request, Dict(:stellar => ["GAGE"])),
     )
 
     plotSnapshot(
@@ -5558,7 +5554,7 @@ Plot a density profile.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -5570,7 +5566,7 @@ Plot a density profile.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5779,7 +5775,7 @@ Plot a density profile.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -5791,7 +5787,7 @@ Plot a density profile.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5937,7 +5933,7 @@ Plot a mass profile.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -5949,7 +5945,7 @@ Plot a mass profile.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -6093,7 +6089,7 @@ Plot a velocity profile.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -6105,7 +6101,7 @@ Plot a velocity profile.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -6222,7 +6218,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -6234,7 +6230,7 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -6442,7 +6438,7 @@ Plot a histogram of `quantity`.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -6454,7 +6450,7 @@ Plot a histogram of `quantity`.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -6592,7 +6588,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -6604,7 +6600,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -6728,7 +6724,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -6740,7 +6736,7 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -6774,7 +6770,7 @@ function compareMolla2015(
 )::Nothing
 
     plot_params = plotParams(quantity)
-    request = addRequest(plot_params.request, Dict(:gas => ["VEL "], :stars => ["VEL "]))
+    request = addRequest(plot_params.request, Dict(:gas => ["VEL "], :stellar => ["VEL "]))
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
     # Select the correct grid acording to the available data from M. Mollá et al. (2015)
@@ -6918,7 +6914,7 @@ Plot the Kennicutt-Schmidt law.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Selects which cells/particles will be consider, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -6930,7 +6926,7 @@ Plot the Kennicutt-Schmidt law.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -7869,7 +7865,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -7881,7 +7877,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -8029,7 +8025,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -8041,7 +8037,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -8389,7 +8385,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:subhalo`: Which cells/particles will be consider, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -8401,7 +8397,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -8778,7 +8774,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:subhalo`: Which cells/particles will be consider, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -8790,7 +8786,7 @@ By default (`filter_mode` = :subhalo) we use the following reference system:
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -8825,7 +8821,7 @@ function stellarVelocityCubes(
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        mergeRequests(plotParams(:stellar_mass).request, Dict(:stars => ["POS ", "VEL "])),
+        mergeRequests(plotParams(:stellar_mass).request, Dict(:stellar => ["POS ", "VEL "])),
     )
 
     # Create the output folder
@@ -8866,10 +8862,10 @@ function stellarVelocityCubes(
             rotateData!(data_dict, rotation)
 
             # Load the particle positions
-            positions = data_dict[:stars]["POS "]
+            positions = data_dict[:stellar]["POS "]
 
             # Load the stellar velocities
-            velocities = ustrip.(v_unit, data_dict[:stars]["VEL "])
+            velocities = ustrip.(v_unit, data_dict[:stellar]["VEL "])
 
             # Compute the stellar mass in each cell
             masses = scatterQty(data_dict, :stellar_mass)
@@ -9038,7 +9034,7 @@ Plot the clumping factor of `quantity` for different volume scales.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -9050,7 +9046,7 @@ Plot the clumping factor of `quantity` for different volume scales.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc, after filtering) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.

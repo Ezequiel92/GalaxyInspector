@@ -1257,75 +1257,96 @@ Plotting parameters for a quantity.
     axis_label::AbstractString = "auto_label"
 end
 
-#######################
-# Mass-like quantities
-#######################
+#####################
+# Derived quantities
+#####################
 
 """
-List of symbols for the physical components of a simulation.
+List of symbols for the physical components in a simulation.
 """
 const COMPONENTS = [
-    :stellar,
-    :gas,
-    :dark_matter,
-    :black_holes,
-    :ode_ionized,
-    :ode_atomic,
-    :ode_molecular,
-    :ode_stellar,
-    :ode_metals,
-    :ode_dust,
-    :ode_neutral,
-    :br_molecular,
-    :hydrogen,
-    :helium,
-    :neutral,
-    :ionized,
-    :generic,
+    ######################
+    # Particle components
+    ######################
+    :stellar,       # Stellar particles
+    :dark_matter,   # Dark matter particles
+    :black_hole,    # Black hole particles
+    #################
+    # Gas components
+    #################
+    :gas,           # Gas cells
+    :hydrogen,      # Hydrogen
+    :helium,        # Helium
+    :metals,        # Metals
+    :ionized,       # Ionized gas
+    :neutral,       # Neutral gas
+    :br_atomic,     # Atomic gas (using the Blitz et al. (2006) relation)
+    :br_molecular,  # Molecular gas (using the Blitz et al. (2006) relation)
+    ###########################################
+    # Components from our star formation model
+    ###########################################
+    :ode_ionized,   # Ionized gas
+    :ode_atomic,    # Atomic gas
+    :ode_molecular, # Molecular gas
+    :ode_stellar,   # Stars
+    :ode_metals,    # Metals
+    :ode_dust,      # Dust
+    :ode_neutral,   # Neutral gas
 ]
 
 """
-List of symbols for the physical magnitudes of a simulation.
+List of symbols for the derived physical magnitudes.
 """
 const MAGNITUDES = [
+    #######################
+    # Mass-like magnitudes
+    #######################
     :mass,
     :mass_density,
     :number_density,
     :area_density,
     :number,
     :fraction,
-    :depletion_time,
-    :xy_distance,
-    :radial_distance,
-    :specific_angular_momentum,
+    #######################
+    # Cinematic magnitudes
+    #######################
+    :specific_z_angular_momentum,
+    :z_angular_momentum,
     :eff,
+    :spin_parameter,
     :circularity,
     :circular_velocity,
     :radial_velocity,
     :tangential_velocity,
     :zstar_velocity,
+    ########
+    # Other
+    ########
+    :depletion_time,
+    :xy_distance,
+    :radial_distance,
 ]
 
 """
-List of symbols for all mass-like quantities in a simulation.
+List of symbols for the derived quantities.
 """
-const MASS_QUANTITIES = [
+const DERIVED_QUANTITIES = [
     Symbol(component, "_", magnitude) for component in COMPONENTS for magnitude in MAGNITUDES
 ]
 
 """
-Dictionary mapping each mass-like quantity to its component and magnitude.
+Dictionary mapping each derived quantity to its component and magnitude.
 """
-const MASS_SPLITS = Dict(
+const QUANTITY_SPLITS = Dict(
     Symbol(component, "_", magnitude) => (magnitude, component)
     for component in COMPONENTS, magnitude in MAGNITUDES
 )
 
 """
-Get the magnitude and component of a mass-like quantity.
+Get the magnitude and component of derived quantity.
 """
-splitMassQuantity(quantity::Symbol) = get(MASS_SPLITS, quantity) do
-    error("splitMassQuantity: I don't recognize the quantity :$(quantity)")
+splitQuantity(quantity::Symbol) = get(QUANTITY_SPLITS, quantity) do
+    error("splitQuantity: I don't recognize the quantity :$(quantity)")
 end
 
 ##########################

@@ -23,7 +23,7 @@ A Julia module for the data analysis of galaxy simulations.
 ## ⚙️ Characteristics
 
 - Works only with snapshots in [HDF5](https://www.hdfgroup.org/solutions/hdf5/) format (option `SnapFormat = 3` in P-Gadget3 and Arepo).
-- This is a collection of scripts inside a module, not a package. Global constants and data structures are defined in `src/constants/globals.jl`.
+- This is a collection of scripts inside a module, not a package. Global constants and data structures are defined in `./src/constants/globals.jl`.
 
 ## 🔗 Links
 

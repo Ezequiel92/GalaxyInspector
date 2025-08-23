@@ -171,7 +171,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
   - `filter_mode::Symbol`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:halo`            -> Plot only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Plot only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Plot only the cells/particles inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
@@ -186,7 +186,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + Translation for the simulation box. The possibilities are:
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
           + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
       + Rotation for the simulation box. The possibilities are:
@@ -214,10 +214,10 @@ function selectFilter(
                 request,
                 Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
             ),
-            Dict(:stars => ["POS ", "MASS", "VEL ", "GAGE"]),
+            Dict(:stellar => ["POS ", "MASS", "VEL ", "GAGE"]),
         )
 
-    elseif filter_mode == :halo
+    elseif filter_mode == :dark_matter
 
         # Plot only the cells/particles that belong to the main halo
         filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=0)
@@ -232,7 +232,7 @@ function selectFilter(
             Dict(
                 :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
                 :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-                :stars   => ["POS ", "MASS", "VEL ", "GAGE"],
+                :stellar   => ["POS ", "MASS", "VEL ", "GAGE"],
             ),
         )
 
@@ -253,7 +253,7 @@ function selectFilter(
             Dict(
                 :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
                 :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-                :stars   => ["POS ", "MASS", "VEL ", "GAGE"],
+                :stellar   => ["POS ", "MASS", "VEL ", "GAGE"],
             ),
         )
 
@@ -273,11 +273,11 @@ function selectFilter(
 
         # Plot only the cells/particles that belong to the main subhalo
         filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
-        translation = :stars
+        translation = :stellar
         rotation = :stellar_pa
 
         new_request = mergeRequests(
-            mergeRequests(request, Dict(:stars => ["POS ", "MASS", "VEL ", "GAGE"])),
+            mergeRequests(request, Dict(:stellar => ["POS ", "MASS", "VEL ", "GAGE"])),
             Dict(:group => ["G_Nsubs", "G_LenType"], :subhalo => ["S_LenType"]),
         )
 
@@ -298,14 +298,29 @@ function selectFilter(
             Dict(
                 :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
                 :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-                :stars   => ["POS ", "MASS", "VEL ", "GAGE"],
+                :stellar   => ["POS ", "MASS", "VEL ", "GAGE"],
             ),
+        )
+
+    elseif filter_mode == :all_stellar
+
+        # Plot every cell/particle centered around the main subhalo
+        filter_function = filterNothing
+        translation = :stellar
+        rotation = :stellar_pa
+
+        new_request = mergeRequests(
+            addRequest(
+                request,
+                Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
+            ),
+            Dict(:stellar => ["POS ", "MASS", "VEL ", "GAGE"]),
         )
 
     else
 
         throw(ArgumentError("selectFilter: `filter_mode` can only be :all, :halo, :subhalo, \
-        :stellar_subhalo, :all_subhalo, or :sphere, but I got :$(filter_mode)"))
+        :stellar_subhalo, :all_subhalo, :all_stellar, or :sphere, but I got :$(filter_mode)"))
 
     end
 
@@ -337,7 +352,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 
           + `:zero`                       -> No translation is applied.
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -361,7 +376,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + Translation for the simulation box. The possibilities are:
 
           + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
           + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
           + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
           + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -395,7 +410,7 @@ function selectFilter(
         Dict(
             :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
             :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-            :stars   => ["POS ", "MASS", "VEL ", "GAGE"],
+            :stellar   => ["POS ", "MASS", "VEL ", "GAGE"],
         ),
     )
 
@@ -768,7 +783,7 @@ function filterBySubhalo(
                 indices[component] = Int[]
             end
 
-            if component == :stars
+            if component == :stellar
 
                 # Find the indices of the stars, excluding wind particles
                 real_stars_idxs = findRealStars(data_dict[:snap_data].path)
@@ -877,7 +892,7 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
                 indices[component] = Int[]
             end
 
-            if component == :stars
+            if component == :stellar
 
                 # Find the indices of the stars, excluding wind particles
                 real_stars_idxs = findRealStars(data_dict[:snap_data].path)
@@ -1082,7 +1097,7 @@ Filter out stars that were born one or more snapshots ago.
 """
 function filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
 
-    birth_ticks = data_dict[:stars]["GAGE"]
+    birth_ticks = data_dict[:stellar]["GAGE"]
 
     # Get the global index (index in the context of the whole simulation) of the current snapshot
     present_idx = data_dict[:snap_data].global_index
@@ -1113,7 +1128,7 @@ function filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
 
     for component in snapshotTypes(data_dict)
 
-        if component == :stars
+        if component == :stellar
             indices[component] = new_stars_idxs
         else
             indices[component] = (:)
@@ -1177,7 +1192,7 @@ function filterByStellarAge(
 
     for component in snapshotTypes(data_dict)
 
-        if component == :stars
+        if component == :stellar
             indices[component] = new_stars_idxs
         else
             indices[component] = (:)
@@ -1259,7 +1274,7 @@ function filterByBirthPlace(
 
     for component in snapshotTypes(data_dict)
 
-        if component == :stars
+        if component == :stellar
             indices[component] = stars_idxs
         else
             indices[component] = (:)
