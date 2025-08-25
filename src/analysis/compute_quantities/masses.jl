@@ -122,9 +122,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
-    # BR molecular fraction
-    ################################################################################################
+        ################################################################################################
+        # BR molecular fraction
+        ################################################################################################
 
     elseif component == :br_molecular
 
@@ -150,9 +150,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
-    # Atomic fraction
-    ################################################################################################
+        ################################################################################################
+        # Atomic fraction
+        ################################################################################################
 
     elseif component == :atomic
 
@@ -163,9 +163,10 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if !any(isempty, [nh, nhp, dg["FRAC"]])
 
             (
-                !logging[] ||
-                @info("computeFraction: The atomic fraction will be calculated using the fractions \
-                from our SF model")
+                !logging[] || @info(
+                    "computeFraction: The atomic fraction will be calculated using the fractions \
+              from our SF model"
+                )
             )
 
             atomic_fraction = view(dg["FRAC"], 2, :)
@@ -196,9 +197,10 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [nh, nhp, dg["PRES"]])
 
             (
-                !logging[] ||
-                @info("computeFraction: The atomic fraction will be calculated using the fraction \
-                of neutral gas from Arepo and the pressure relation from Blitz et al. (2006)")
+                !logging[] || @info(
+                    "computeFraction: The atomic fraction will be calculated using the fraction \
+              of neutral gas from Arepo and the pressure relation from Blitz et al. (2006)"
+                )
             )
 
             relative_pressure = @. uconvert(Unitful.NoUnits, dg["PRES"] / P0)^ALPHA_BLITZ
@@ -220,9 +222,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
-    # Ionized fraction
-    ################################################################################################
+        ################################################################################################
+        # Ionized fraction
+        ################################################################################################
 
     elseif component == :ionized
 
@@ -266,9 +268,10 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [nh, nhp])
 
             (
-                !logging[] ||
-                @info("computeFraction: The ionized fraction will be calculated using the fraction \
-                of ionized gas from Arepo")
+                !logging[] || @info(
+                    "computeFraction: The ionized fraction will be calculated using the fraction \
+              of ionized gas from Arepo"
+                )
             )
 
             # Compute the fraction of ionized gas according to Arepo
@@ -282,9 +285,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
-    # Neutral fraction
-    ################################################################################################
+        ################################################################################################
+        # Neutral fraction
+        ################################################################################################
 
     elseif component == :neutral
 
@@ -338,9 +341,10 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         elseif !any(isempty, [nh, nhp])
 
             (
-                !logging[] ||
-                @info("computeFraction: The neutral fraction will be calculated using the fraction \
-                of neutral gas from Arepo")
+                !logging[] || @info(
+                    "computeFraction: The neutral fraction will be calculated using the fraction \
+              of neutral gas from Arepo"
+                )
             )
 
             # Compute the fraction of neutral gas according to Arepo
@@ -354,9 +358,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
-    # Stellar fraction
-    ################################################################################################
+        ################################################################################################
+        # Stellar fraction
+        ################################################################################################
 
     elseif component == :stellar
 
@@ -398,9 +402,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
-    # Metal fraction
-    ################################################################################################
+        ################################################################################################
+        # Metal fraction
+        ################################################################################################
 
     elseif component == :metals
 
@@ -410,11 +414,8 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         if !any(isempty, [nh, nhp, dg["FRAC"]])
 
-            (
-                !logging[] ||
-                @info("computeFraction: The metallicity will be calculated using the \
-                fractions from our SF model")
-            )
+            (!logging[] || @info("computeFraction: The metallicity will be calculated using the \
+                           fractions from our SF model"))
 
             metal_fraction = view(dg["FRAC"], 5, :)
             ρ_gas = dg["RHO "]
@@ -451,9 +452,9 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
-    # Dust fraction
-    ################################################################################################
+        ################################################################################################
+        # Dust fraction
+        ################################################################################################
 
     elseif component == :dust
 
@@ -534,6 +535,7 @@ Compute the mass in each cell/particle of a given `component`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `component::Symbol`: For which cell/particle type the mass will be calculated. The options are:
 
       + `:gas`          -> Gas mass.
@@ -585,16 +587,8 @@ function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
         masses = data_dict[:black_hole]["MASS"]
 
-    elseif component ∈ [
-        :molecular,
-        :br_molecular,
-        :atomic,
-        :ionized,
-        :neutral,
-        :stellar,
-        :metals,
-        :dust,
-    ]
+    elseif component ∈
+           [:molecular, :br_molecular, :atomic, :ionized, :neutral, :stellar, :metals, :dust]
 
         fractions = computeFraction(data_dict, component)
 
@@ -636,6 +630,7 @@ Compute the volume mass density in each cell/particle of a given `component`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `component::Symbol`: For which cell/particle type the mass will be calculated. The options are:
 
       + `:gas`          -> Gas mass density.
@@ -672,16 +667,8 @@ function computeVolumeDensity(data_dict::Dict, component::Symbol)::Vector{<:Unit
 
         densities = data_dict[:gas]["RHO "] * (1.0 - HYDROGEN_MASSFRAC)
 
-    elseif component ∈ [
-        :molecular,
-        :br_molecular,
-        :atomic,
-        :ionized,
-        :neutral,
-        :stellar,
-        :metals,
-        :dust,
-    ]
+    elseif component ∈
+           [:molecular, :br_molecular, :atomic, :ionized, :neutral, :stellar, :metals, :dust]
 
         fractions = computeFraction(data_dict, component)
 
@@ -723,6 +710,7 @@ Compute the number density in each cell/particle of a given `component`.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `component::Symbol`: For which cell/particle type the mass will be calculated. The options are:
 
       + `:gas`          -> Gas number density.
@@ -786,6 +774,7 @@ Compute the total mass of metals (elements above helium) in each cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `component::Symbol`: For which cell/particle type the mass will be calculated. The possibilities are `:stellar` and `:gas`.
 
 # Returns
@@ -815,10 +804,7 @@ function computeMetalMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.
 
     else
 
-        (
-            !logging[] ||
-            @warn("computeMetalMass: I could not compute the masses of metals")
-        )
+        (!logging[] || @warn("computeMetalMass: I could not compute the masses of metals"))
 
         masses = Unitful.Mass[]
 
@@ -854,6 +840,7 @@ Compute the total mass of `element` in each cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `component::Symbol`: For which cell/particle type the mass will be calculated. The possibilities are `:stellar` and `:gas`.
   - `element::Symbol`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
 
@@ -896,10 +883,7 @@ function computeElementMass(
 
     else
 
-        (
-            !logging[] ||
-            @warn("computeElementMass: I could not compute the masses of :$(element)")
-        )
+        (!logging[] || @warn("computeElementMass: I could not compute the masses of :$(element)"))
 
         masses = Unitful.Mass[]
 
@@ -1055,6 +1039,7 @@ Compute the inflow, outflow, and net gain of mass for a given halo virial radius
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `past_dd::Dict`: A dictionary, for the past snapshot, with the following shape:
 
       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
@@ -1087,10 +1072,10 @@ function computeVirialAccretion(
     # Find the tracers inside R200 in the present snapshot
     present_tracer_ids = tracersWithinR200(present_dd; halo_idx)
     # Find the tracers inside R200 in the past snapshot
-    past_tracer_ids    = tracersWithinR200(past_dd; halo_idx)
+    past_tracer_ids = tracersWithinR200(past_dd; halo_idx)
 
     # Find the tracers that are inside R200 now, but were outside R200 in the past
-    inflow_ids  = setdiff(present_tracer_ids, past_tracer_ids)
+    inflow_ids = setdiff(present_tracer_ids, past_tracer_ids)
     # Find the tracers that were inside R200 in the past, but are now outside R200
     outflow_ids = setdiff(past_tracer_ids, present_tracer_ids)
 
@@ -1133,6 +1118,7 @@ Compute the inflow, outflow, and net gain of mass for a given cylinder, between 
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
+
   - `past_dd::Dict`: A dictionary, for the past snapshot, with the following shape:
 
       + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
@@ -1167,10 +1153,10 @@ function computeDiscAccretion(
     # Find the tracers inside a given cylinder in the present snapshot
     present_tracer_ids = tracersWithinDisc(present_dd; max_r, max_z)
     # Find the tracers inside a given cylinder in the past snapshot
-    past_tracer_ids    = tracersWithinDisc(past_dd; max_r, max_z)
+    past_tracer_ids = tracersWithinDisc(past_dd; max_r, max_z)
 
     # Find the tracers that are inside a given cylinder now, but were outside in the past
-    inflow_ids  = setdiff(present_tracer_ids, past_tracer_ids)
+    inflow_ids = setdiff(present_tracer_ids, past_tracer_ids)
     # Find the tracers that were inside a given cylinder in the past, but are now outside
     outflow_ids = setdiff(past_tracer_ids, present_tracer_ids)
 
@@ -1215,9 +1201,10 @@ function computeMassRadius(
 )::Unitful.Length
 
     (
-        0 < percent <=100  ||
-        throw(ArgumentError("computeMassRadius: The argument `percent` must be between 0 and 100, \
-        but I got $(percent)"))
+        0 < percent <= 100 || throw(
+            ArgumentError("computeMassRadius: The argument `percent` must be between 0 and 100, \
+      but I got $(percent)"),
+        )
     )
 
     # Check for missing data
@@ -1270,9 +1257,10 @@ function computeMassHeight(
 )::Unitful.Length
 
     (
-        0 < percent <=100  ||
-        throw(ArgumentError("computeMassHeight: The argument `percent` must be between 0 and 100, \
-        but I got $(percent)"))
+        0 < percent <= 100 || throw(
+            ArgumentError("computeMassHeight: The argument `percent` must be between 0 and 100, \
+      but I got $(percent)"),
+        )
     )
 
     # Check for missing data
@@ -1325,7 +1313,7 @@ function computeMassQty(
 )::Number
 
     (
-        0 < percent <=100  ||
+        0 < percent <= 100 ||
         throw(ArgumentError("computeMassQty: The argument `percent` must be between 0 and 100, \
         but I got $(percent)"))
     )

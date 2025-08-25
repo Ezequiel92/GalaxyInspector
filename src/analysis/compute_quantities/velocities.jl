@@ -40,7 +40,6 @@ function computeVcm(
     # Compute the total mass
     M = sum(masses)
 
-    # Compute the velocity of the center of mass
     vcm = [sum(row .* masses) / M for row in eachrow(velocities)]
 
     return vcm
@@ -74,8 +73,8 @@ where $r$ is the radial distance of the cell/particle, and $M(r)$ is the total m
 
   - A tuple with two elements:
 
-      + A vector with the radial distance of each cell/particle to the origin.
-      + A vector with the circular velocity of each cell/particle.
+      + A vector with the radial distance of the target cells/particles to the origin.
+      + A vector with the circular velocity of the target cells/particles.
 """
 function computeVcirc(
     distances::Vector{<:Unitful.Length},
@@ -95,12 +94,12 @@ function computeVcirc(
     # Use the radial distances as bin edges for the mass histogram
     edges = [0.0u"kpc", rs...]
 
-    # Compute to total mass within each particle radial distance
+    # Compute to total mass within each cell/particle radial distance
     M = similar(rs, eltype(masses))
     cumsum!(M, histogram1D(distances, masses, edges; empty_nan=false))
 
-    # The mass histogram is a sorted array, so it is reverted to the unsorted order of `r`
-    # to make `vcirc` the circular velocity of each particle in the order of the snapshot
+    # The mass histogram is a sorted array, so it is reverted to the unsorted order of `r` to make
+    # `vcirc` the circular velocity of each cell/particle, in the order they have in the snapshot
     invpermute!(M, sortperm(rs))
 
     !logging[] || @info("computeVcirc: The circular velocity will be computed using $(snap_types)")
@@ -115,6 +114,7 @@ end
     computeVpolar(
         positions::Matrix{<:Unitful.Length},
         velocities::Matrix{<:Unitful.Velocity},
+        vel_type::Symbol,
     )::Vector{<:Unitful.Velocity}
 
 Compute the cylindrical components of the velocity, $\mathbf{\vec{v}} = v_r \, \mathbf{e_r} + v_\theta \, \mathbf{e_\theta} + v_z \, \mathbf{e_z}$.
@@ -252,7 +252,9 @@ function computeSpecificAngularMomentum(
 
     iterator = zip(eachcol(positions), eachcol(velocities))
 
-    return map(((r, v),) -> r[1] * v[2] - r[2] * v[1], iterator)
+    jz = map(((r, v),) -> r[1] * v[2] - r[2] * v[1], iterator)
+
+    return jz
 
 end
 
@@ -290,7 +292,9 @@ function computeAngularMomentum(
 
     iterator = zip(masses, eachcol(positions), eachcol(velocities))
 
-    return map(((m, r, v),) -> m * (r[1] * v[2] - r[2] * v[1]), iterator)
+    lz = map(((m, r, v),) -> m * (r[1] * v[2] - r[2] * v[1]), iterator)
+
+    return lz
 
 end
 
@@ -302,7 +306,7 @@ end
         <keyword arguments>
     )::Vector{<:Number}
 
-Compute the total angular momentum with respect to the origin.
+Compute the total angular momentum vector with respect to the origin.
 
 # Arguments
 
@@ -313,7 +317,7 @@ Compute the total angular momentum with respect to the origin.
 
 # Returns
 
-  - The total angular momentum.
+  - The total angular momentum vector.
 """
 function computeTotalAngularMomentum(
     positions::Matrix{<:Unitful.Length},
@@ -344,8 +348,8 @@ end
 @doc raw"""
     computeSpinParameter(
         positions::Matrix{<:Unitful.Length},
-        masses::Vector{<:Unitful.Mass},
-        velocities::Matrix{<:Unitful.Velocity};
+        velocities::Matrix{<:Unitful.Velocity},
+        masses::Vector{<:Unitful.Mass};
         <keyword arguments>
     )::Float64
 
@@ -384,11 +388,11 @@ is the circular velocity.
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
-  - `R::Unitful.Length=DISK_R`: Radius.
+  - `R::Unitful.Length=DISK_R`: Characteristic radius.
 
 # Returns
 
-  - The spin parameter of the cell/particles.
+  - The spin parameter of the cell/particles within radius `R`.
 
 # References
 
@@ -408,7 +412,7 @@ function computeSpinParameter(
     (
         !any(isempty, [positions, velocities, masses]) ||
         throw(ArgumentError("computeSpinParameter: The spin parameter of an empty dataset \
-        is undefined"))
+        is not defined"))
     )
 
     (
@@ -441,7 +445,9 @@ function computeSpinParameter(
         ),
     )
 
-    return uconvert(Unitful.NoUnits, J / sqrt(2.0 * R * Unitful.G * M^3))
+    λ = uconvert(Unitful.NoUnits, J / sqrt(2.0 * R * Unitful.G * M^3))
+
+    return λ
 
 end
 
@@ -452,7 +458,7 @@ end
         vcircs::Vector{<:Unitful.Velocity},
     )::Vector{Float64}
 
-Compute the circularity with respect to the origin and the $z$ direction [0, 0, 1].
+Compute the circularity with respect to the origin and the $z$ direction.
 
 The circularity of a cell/particle is,
 
@@ -476,7 +482,7 @@ where $r$ is the radial distance of the particle, and $M(r)$ is the total mass w
 
 # Returns
 
-  - The circularity $\epsilon$ of each cell/particle.
+  - The circularity of each cell/particle.
 """
 function computeCircularity(
     jzs::Vector{<:Unitful.KinematicViscosity},
@@ -490,7 +496,6 @@ function computeCircularity(
         must be equal"))
     )
 
-    # Allocate memory
     ϵ = similar(rs, Float64)
 
     for (i, (jz, r, vcirc)) in enumerate(zip(jzs, rs, vcircs))
@@ -661,7 +666,7 @@ end
 """
     computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
 
-Compute a characteristic velocity of the system.
+Compute a characteristic velocity for the system.
 
 # Arguments
 
@@ -754,8 +759,8 @@ where $r$ is the radial distance of the cell/particle, and $M(r)$ is the total m
 
   - A tuple with two elements:
 
-      + A vector with the radial distance of each cell/particle to the origin.
-      + A vector with the circular velocity of each cell/particle.
+      + A vector with the radial distance of the target cells/particles to the origin.
+      + A vector with the circular velocity of the target cells/particles.
 """
 function computeVcirc(
     data_dict::Dict,
@@ -767,10 +772,8 @@ function computeVcirc(
         `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:stellar, :gas, :black_hole]
+    if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :dark_matter
-        type = :dark_matter
     else
         type = :gas
     end
@@ -850,10 +853,8 @@ function computeVpolar(
         `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:stellar, :gas, :black_hole]
+    if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :dark_matter
-        type = :dark_matter
     else
         type = :gas
     end
@@ -872,7 +873,7 @@ end
         component::Symbol,
     )::Vector{<:Unitful.KinematicViscosity}
 
-Compute the specific angular momentum with respect to the origin, for each cell/particle of the given component.
+Compute the specific angular momentum in the z direction with respect to the origin, for each cell/particle of the given component.
 
 # Arguments
 
@@ -897,10 +898,8 @@ function computeSpecificAngularMomentum(
         elements of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:stellar, :gas, :black_hole]
+    if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :dark_matter
-        type = :dark_matter
     else
         type = :gas
     end
@@ -919,7 +918,7 @@ end
         component::Symbol,
     )::Vector{<:AngularMomentum}
 
-Compute the angular momentum with respect to the origin, for each cell/particle of the given component.
+Compute the angular momentum in the z direction with respect to the origin, for each cell/particle of the given component.
 
 # Arguments
 
@@ -927,7 +926,6 @@ Compute the angular momentum with respect to the origin, for each cell/particle 
     This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
-
   - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
 
 # Returns
@@ -944,10 +942,8 @@ function computeAngularMomentum(
         of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:stellar, :gas, :black_hole]
+    if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :dark_matter
-        type = :dark_matter
     else
         type = :gas
     end
@@ -964,7 +960,7 @@ end
 """
     computeGlobalAngularMomentum(data_dict::Dict; <keyword arguments>)::Vector{<:Number}
 
-Compute the total angular momentum of the whole system, with respect to the origin
+Compute the total angular momentum of the system, with respect to the origin
 
 # Arguments
 
@@ -1003,11 +999,7 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
 end
 
 @doc raw"""
-    computeSpinParameter(
-        data_dict::Dict,
-        component::Symbol;
-        R::Unitful.Length=DISK_R,
-    )::Float64
+    computeSpinParameter(data_dict::Dict, component::Symbol; <keyword arguments>)::Float64
 
 Compute the spin parameter of the given component, with respect to the origin
 
@@ -1046,11 +1038,11 @@ is the circular velocity.
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
   - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
-  - `R::Unitful.Length=DISK_R`: Radius.
+  - `R::Unitful.Length=DISK_R`: Characteristic radius.
 
 # Returns
 
-  - The spin parameter.
+  - The spin parameter of the cell/particles within radius `R`.
 
 # References
 
@@ -1067,10 +1059,8 @@ function computeSpinParameter(data_dict::Dict, component::Symbol; R::Unitful.Len
         of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:stellar, :gas, :black_hole]
+    if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :dark_matter
-        type = :dark_matter
     else
         type = :gas
     end
@@ -1124,11 +1114,11 @@ is the circular velocity.
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
   - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
-  - `R::Unitful.Length=DISK_R`: Radius.
+  - `R::Unitful.Length=DISK_R`: Characteristic radius.
 
 # Returns
 
-  - The spin parameter.
+  - The spin parameter of the cell/particles within radius `R`.
 
 # References
 
@@ -1162,7 +1152,7 @@ end
 @doc raw"""
     computeCircularity(data_dict::Dict, component::Symbol)::Vector{Float64}
 
-Compute the circularity of each cell/particle, with respect to the origin and the $z$ direction [0, 0, 1].
+Compute the circularity of each cell/particle, with respect to the origin and the $z$ direction.
 
 The circularity of a cell/particle is,
 
@@ -1188,7 +1178,7 @@ where $r$ is the radial distance of the particle, and $M(r)$ is the total mass w
 
 # Returns
 
-  - The circularity $\epsilon$ of each cell/particle.
+  - The circularity of each cell/particle.
 """
 function computeCircularity(data_dict::Dict, component::Symbol)::Vector{Float64}
 
