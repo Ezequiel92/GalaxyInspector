@@ -232,7 +232,7 @@ function snapshotReport(
         )
 
         # Read the snapshot data
-        if !in(filter_mode, [:all, :sphere])
+        if !in(filter_mode, [:all, :sphere, :all_stellar])
 
             # Check that the group catalog data is available
             if !ismissing(groupcat_path) && isSubfindActive(groupcat_path)

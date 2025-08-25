@@ -302,10 +302,25 @@ function selectFilter(
             ),
         )
 
+    elseif filter_mode == :all_stellar
+
+        # Plot every cell/particle centered around the main subhalo
+        filter_function = filterNothing
+        translation = :stars
+        rotation = :stellar_pa
+
+        new_request = mergeRequests(
+            addRequest(
+                request,
+                Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
+            ),
+            Dict(:stars => ["POS ", "MASS", "VEL ", "GAGE"]),
+        )
+
     else
 
         throw(ArgumentError("selectFilter: `filter_mode` can only be :all, :halo, :subhalo, \
-        :stellar_subhalo, :all_subhalo, or :sphere, but I got :$(filter_mode)"))
+        :stellar_subhalo, :all_subhalo, :all_stellar, or :sphere, but I got :$(filter_mode)"))
 
     end
 
