@@ -321,7 +321,6 @@ function selectFilter(
 
         throw(ArgumentError("selectFilter: `filter_mode` can only be :all, :halo, :subhalo, \
         :stellar_subhalo, :all_subhalo, :all_stellar, or :sphere, but I got :$(filter_mode)"))
-        :stellar_subhalo, :all_subhalo, :all_stellar, or :sphere, but I got :$(filter_mode)"))
 
     end
 
