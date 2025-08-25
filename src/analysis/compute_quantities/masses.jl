@@ -537,11 +537,11 @@ Compute the mass in each cell/particle of a given `component`.
   - `component::Symbol`: For which cell/particle type the mass will be calculated. The options are:
 
       + `:gas`          -> Gas mass.
-      + `:stars`        -> Stellar mass.
+      + `:stellar`        -> Stellar mass.
       + `:hydrogen`     -> Hydrogen mass.
       + `:helium`       -> Helium mass.
       + `:dark_matter`  -> Dark matter mass.
-      + `:black_holes`  -> Black hole mass.
+      + `:black_hole`  -> Black hole mass.
       + `:molecular`    -> Molecular hydrogen (``\\mathrm{H_2}``) mass.
       + `:br_molecular` -> Molecular hydrogen (``\\mathrm{H_2}``) mass, computed using the pressure relation in Blitz et al. (2006).
       + `:atomic`       -> Atomic hydrogen (``\\mathrm{HI}``) mass.
@@ -565,9 +565,9 @@ function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
         masses = data_dict[:gas]["MASS"]
 
-    elseif component == :stars
+    elseif component == :stellar
 
-        masses = data_dict[:stars]["MASS"]
+        masses = data_dict[:stellar]["MASS"]
 
     elseif component == :hydrogen
 
@@ -579,9 +579,9 @@ function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
     elseif component == :dark_matter
 
-        masses = data_dict[:halo]["MASS"]
+        masses = data_dict[:dark_matter]["MASS"]
 
-    elseif component == :black_holes
+    elseif component == :black_hole
 
         masses = data_dict[:black_hole]["MASS"]
 
@@ -786,7 +786,7 @@ Compute the total mass of metals (elements above helium) in each cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `component::Symbol`: For which cell/particle type the mass will be calculated. The possibilities are `:stars` and `:gas`.
+  - `component::Symbol`: For which cell/particle type the mass will be calculated. The possibilities are `:stellar` and `:gas`.
 
 # Returns
 
@@ -798,13 +798,13 @@ function computeMetalMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.
 
         block = "GZ  "
 
-    elseif component == :stars
+    elseif component == :stellar
 
         block = "GZ2 "
 
     else
 
-        throw(ArgumentError("computeMetalMass: `component` can only be :stars or :gas, \
+        throw(ArgumentError("computeMetalMass: `component` can only be :stellar or :gas, \
         but I got :$(component)"))
 
     end
@@ -854,7 +854,7 @@ Compute the total mass of `element` in each cell/particle.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `component::Symbol`: For which cell/particle type the mass will be calculated. The possibilities are `:stars` and `:gas`.
+  - `component::Symbol`: For which cell/particle type the mass will be calculated. The possibilities are `:stellar` and `:gas`.
   - `element::Symbol`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
 
 # Returns
@@ -877,13 +877,13 @@ function computeElementMass(
 
         block = "GMET"
 
-    elseif component == :stars
+    elseif component == :stellar
 
         block = "GME2"
 
     else
 
-        throw(ArgumentError("computeElementMass: `component` can only be :stars or :gas, \
+        throw(ArgumentError("computeElementMass: `component` can only be :stellar or :gas, \
         but I got :$(component)"))
 
     end
@@ -936,7 +936,7 @@ Compute the abundance of a given element in each cell/particle of type `componen
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `component::Symbol`: For which cell/particle type the abundance will be calculated. The possibilities are `:stars` and `:gas`.
+  - `component::Symbol`: For which cell/particle type the abundance will be calculated. The possibilities are `:stellar` and `:gas`.
   - `element::Symbol`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
   - `solar::Bool=false`: If the result will be normalized to the solar abundance or not.
 
@@ -996,7 +996,7 @@ Compute the total abundance of a given element, as $n_X / n_H$ where $n_X$ is th
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
-  - `component::Symbol`: For which cell/particle type the abundance will be calculated. The possibilities are `:stars` and `:gas`.
+  - `component::Symbol`: For which cell/particle type the abundance will be calculated. The possibilities are `:stellar` and `:gas`.
   - `element::Symbol`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
   - `solar::Bool=false`: If the result will be normalized to the solar abundance or not.
 

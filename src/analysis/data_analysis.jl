@@ -101,7 +101,7 @@ function daRotationCurve(
     filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the circular velocities and the radial distances of each star
-    r, vcirc = computeVcirc(filtered_dd)
+    r, vcirc = computeVcirc(filtered_dd, :stellar)
 
     # Only leave the data within a sphere of radius `R`
     rangeCut!(r, vcirc, (0.0u"kpc", R))
@@ -371,15 +371,15 @@ function daMolla2015(
 
     if quantity == :stellar_area_density
 
-        positions   = filtered_dd[:stars]["POS "]
-        masses      = filtered_dd[:stars]["MASS"]
+        positions   = filtered_dd[:stellar]["POS "]
+        masses      = filtered_dd[:stellar]["MASS"]
         norm_values = Number[]
         f           = identity
         density     = true
 
     elseif quantity == :sfr_area_density
 
-        positions   = filtered_dd[:stars]["POS "]
+        positions   = filtered_dd[:stellar]["POS "]
         masses      = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION)
         norm_values = Number[]
         f           = identity
@@ -411,25 +411,25 @@ function daMolla2015(
 
     elseif quantity == :O_stellar_abundance
 
-        positions   = filtered_dd[:stars]["POS "]
-        masses      = computeElementMass(filtered_dd, :stars, :O) ./ ATOMIC_WEIGHTS[:O]
-        norm_values = computeElementMass(filtered_dd, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
+        positions   = filtered_dd[:stellar]["POS "]
+        masses      = computeElementMass(filtered_dd, :stellar, :O) ./ ATOMIC_WEIGHTS[:O]
+        norm_values = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
         f           = x -> 12 .+ log10.(x)
         density     = false
 
     elseif quantity == :N_stellar_abundance
 
-        positions   = filtered_dd[:stars]["POS "]
-        masses      = computeElementMass(filtered_dd, :stars, :N) ./ ATOMIC_WEIGHTS[:N]
-        norm_values = computeElementMass(filtered_dd, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
+        positions   = filtered_dd[:stellar]["POS "]
+        masses      = computeElementMass(filtered_dd, :stellar, :N) ./ ATOMIC_WEIGHTS[:N]
+        norm_values = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
         f           = x -> 12 .+ log10.(x)
         density     = false
 
     elseif quantity == :C_stellar_abundance
 
-        positions   = filtered_dd[:stars]["POS "]
-        masses      = computeElementMass(filtered_dd, :stars, :C) ./ ATOMIC_WEIGHTS[:C]
-        norm_values = computeElementMass(filtered_dd, :stars, :H) ./ ATOMIC_WEIGHTS[:H]
+        positions   = filtered_dd[:stellar]["POS "]
+        masses      = computeElementMass(filtered_dd, :stellar, :C) ./ ATOMIC_WEIGHTS[:C]
+        norm_values = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
         f           = x -> 12 .+ log10.(x)
         density     = false
 
@@ -962,8 +962,8 @@ function daStellarHistory(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    birth_ticks = filtered_dd[:stars]["GAGE"]
-    masses      = filtered_dd[:stars]["MASS"]
+    birth_ticks = filtered_dd[:stellar]["GAGE"]
+    masses      = filtered_dd[:stellar]["MASS"]
 
     # Return `nothing` if there are less than 3 stars
     !any(x -> x <= 2, length.([birth_ticks, masses])) || return nothing
@@ -1004,7 +1004,7 @@ function daStellarHistory(
 
     elseif quantity == :stellar_metallicity
 
-        metallicities = computeMetalMass(data_dict, :stars)
+        metallicities = computeMetalMass(data_dict, :stellar)
 
         # Return `nothing` if any of the necessary quantities are missing
         !isempty(metallicities) || return nothing
@@ -1390,9 +1390,9 @@ function daDensity2DProjection(
     ]
         component = :gas
     elseif quantity == :stellar_mass
-        component = :stars
+        component = :stellar
     elseif quantity == :dm_mass
-        component = :halo
+        component = :dark_matter
     elseif quantity == :bh_mass
         component = :black_hole
     else
@@ -1865,7 +1865,7 @@ Project the 3D metallicity field to a given plane.
       + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
       + ...
   - `grid::CubicGrid`: Cubic grid.
-  - `component::Symbol`: Target component. It can be either `:stars` or `:gas`.
+  - `component::Symbol`: Target component. It can be either `:stellar` or `:gas`.
   - `field_type::Symbol`: If the source of the field are `:particles` or Voronoi `:cells`.
   - `element::Symbol=:all`: Target element. The possibilities are the keys of [`ELEMENT_INDEX`](@ref). Set it to :all if you want the total metallicity.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed adding the values of mass in each neighboring pixel. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed adding up the values of mass of the pixels the fall within each of the `reduce_factor` concentric rings.
@@ -1923,9 +1923,9 @@ function daMetallicity2DProjection(
     filtered_dd = filterData(data_dict; filter_function)
 
     (
-        component ∈ [:gas, :stars] ||
+        component ∈ [:gas, :stellar] ||
         throw(ArgumentError("daMetallicity2DProjection: The argument `component` must be :gas \
-        or :stars, but I got :$(component)"))
+        or :stellar, but I got :$(component)"))
     )
 
     (
@@ -4108,7 +4108,7 @@ Compute the stellar birth times, for an histogram.
 """
 function daStellarBTHistogram(data_dict::Dict)::Union{Tuple{Vector{<:Unitful.Time}},Nothing}
 
-    birth_ticks = data_dict[:stars]["GAGE"]
+    birth_ticks = data_dict[:stellar]["GAGE"]
 
     !isempty(birth_ticks) || return nothing
 
@@ -4347,7 +4347,7 @@ Compute the time series of two quantities.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted, the options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -4359,7 +4359,7 @@ Compute the time series of two quantities.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4509,7 +4509,7 @@ Compute the evolution of the accreted mass into the virial radius.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted. Only valid if `tracers` = true. The options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -4521,7 +4521,7 @@ Compute the evolution of the accreted mass into the virial radius.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4558,7 +4558,7 @@ function daVirialAccretion(
         filter_mode,
         Dict(
             :gas         => ["ID  ", "MASS"],
-            :stars       => ["ID  ", "MASS"],
+            :stellar       => ["ID  ", "MASS"],
             :black_hole  => ["ID  ", "MASS"],
             :group       => ["G_R_Crit200", "G_M_Crit200"],
             :tracer      => ["PAID", "TRID"],
@@ -4710,7 +4710,7 @@ function daVirialAccretion(
     t  = sim_data.snapshot_table[sim_data.slice, :physical_times]
 
     # Compure the time axis
-    Δt = deltas(t)[2:end]
+    Δt = diff(t)
 
     if iszero(smooth)
         return t[2:end], Δm ./ Δt
@@ -4734,7 +4734,7 @@ Compute the evolution of the accreted mass into the disc.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted. The options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -4746,7 +4746,7 @@ Compute the evolution of the accreted mass into the disc.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -4783,7 +4783,7 @@ function daDiscAccretion(
         filter_mode,
         Dict(
             :gas         => ["ID  ", "MASS"],
-            :stars       => ["ID  ", "MASS"],
+            :stellar       => ["ID  ", "MASS"],
             :black_hole  => ["ID  ", "MASS"],
             :tracer      => ["PAID", "TRID"],
         ),
@@ -4918,7 +4918,7 @@ function daDiscAccretion(
     t  = sim_data.snapshot_table[sim_data.slice, :physical_times]
 
     # Compure the time axis
-    Δt = deltas(t)[2:end]
+    Δt = diff(t)
 
     if iszero(smooth)
         return t[2:end], Δm ./ Δt
@@ -5665,7 +5665,7 @@ Compute the trajectory of a set of cells/particles, given their IDs.
   - `filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all`: Which cells/particles will be plotted. The options are:
 
       + `:all`             -> Consider every cell/particle within the simulation box.
-      + `:halo`            -> Consider only the cells/particles that belong to the main halo.
+      + `:dark_matter`            -> Consider only the cells/particles that belong to the main halo.
       + `:subhalo`         -> Consider only the cells/particles that belong to the main subhalo.
       + `:sphere`          -> Consider only the cell/particle inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
       + `:stellar_subhalo` -> Consider only the cells/particles that belong to the main subhalo.
@@ -5677,7 +5677,7 @@ Compute the trajectory of a set of cells/particles, given their IDs.
 
               + `:zero`                       -> No translation is applied.
               + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stars, :gas, :halo, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
+              + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
               + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
               + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
               + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
@@ -5709,7 +5709,7 @@ function daTrajectory(
     simulation_path::String,
     target_ids::Vector{UInt64};
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    component::Symbol=:stars,
+    component::Symbol=:stellar,
 )::Dict{Int64,Matrix{Quantity}}
 
     simulation_table = makeSimulationTable(simulation_path)

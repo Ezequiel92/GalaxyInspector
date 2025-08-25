@@ -154,36 +154,36 @@ Code index for each type of cell/particle.
 See for example Gadget2 [User's Guide](https://wwwmpa.mpa-garching.mpg.de/gadget/users-guide.pdf), or Gadget4 [documentation](https://wwwmpa.mpa-garching.mpg.de/gadget4/).
 """
 const LONG_PARTICLE_INDEX = Dict(
-    :gas        => 0,
-    :halo       => 1,
-    :disk       => 2,
-    :bulge      => 3,
-    :stars      => 4,
-    :black_hole => 5,
-    :tracer     => 6,
+    :gas         => 0,
+    :dark_matter => 1,
+    :disk        => 2,
+    :bulge       => 3,
+    :stellar     => 4,
+    :black_hole  => 5,
+    :tracer      => 6,
 )
 
 """
 Human readable name for each type of cell/particle.
 """
 const LONG_PARTICLE_NAMES = Dict(
-    :gas        => "Gas cells",
-    :halo       => "HR DM particles",
-    :disk       => "IR DM particles",
-    :bulge      => "LR DM particles",
-    :stars      => "Stellar particles",
-    :black_hole => "Black hole particles",
-    :tracer     => "Tracer particles",
+    :gas         => "Gas cells",
+    :dark_matter => "HR DM particles",
+    :disk        => "IR DM particles",
+    :bulge       => "LR DM particles",
+    :stellar     => "Stellar particles",
+    :black_hole  => "Black hole particles",
+    :tracer      => "Tracer particles",
 )
 
 """
 Human readable name for each type of cell/particle.
 """
 const ISOLATED_PARTICLE_NAMES = Dict(
-    :gas   => "Gas cells",
-    :halo  => "DM particles",
-    :disk  => "Stellar disk",
-    :bulge => "Stellar bulge",
+    :gas          => "Gas cells",
+    :dark_matter  => "DM particles",
+    :disk         => "Stellar disk",
+    :bulge        => "Stellar bulge",
 )
 
 """
@@ -362,54 +362,56 @@ const QUANTITIES = Dict(
 ####################
 
 """
-List of symbols for every EL_SFR quantity associated with the stellar particles.
-"""
-const EL_SFR_STELLAR_QUANTITIES = [
-    Symbol(:ode_stellar_, quantity) for
-    quantity in [
-        :integration_time,
-        :parameter_a,
-        :parameter_uvb,
-        :parameter_lwb,
-        :tau_s,
-        :parameter_cell_density,
-        :parameter_metallicity,
-        :parameter_column_height,
-        :parameter_eta_d,
-        :parameter_eta_i,
-        :parameter_r,
-        :parameter_zsn,
-        :fractions,
-        :cold_mass_frac,
-        :gas_mass,
-        :gas_sfr,
-        :gas_pressure,
-        :gas_position,
-        :gas_velocity,
-    ]
-]
-
-"""
-List of symbols for every EL_SFR quantity associated with the gas cells.
+List of symbols for every EL_SFR quantity associated with a gas cell.
 """
 const EL_SFR_GAS_QUANTITIES = [
     Symbol(:ode_gas_, quantity) for
     quantity in [
-        :integration_time,
-        :parameter_a,
-        :parameter_uvb,
-        :parameter_lwb,
-        :tau_s,
-        :parameter_cell_density,
-        :parameter_metallicity,
-        :parameter_column_height,
-        :parameter_eta_d,
-        :parameter_eta_i,
-        :parameter_r,
-        :parameter_zsn,
-        :fractions,
-        :sf_flag,
-        :cold_mass_frac,
+        :integration_time,        # Integration time
+        :parameter_a,             # Scale factor
+        :parameter_uvb,           # UVB photoionization rate
+        :parameter_lwb,           # LWB photodissociation rate
+        :tau_s,                   # Star formation time parameter
+        :parameter_cell_density,  # Gas density
+        :parameter_metallicity,   # Gas metallicity
+        :parameter_column_height, # Column height
+        :parameter_eta_d,         # Photodissociation parameter
+        :parameter_eta_i,         # Photoionization parameter
+        :parameter_r,             # Mass recycling parameter
+        :parameter_zsn,           # Metallicity of the supernova ejecta
+        :fractions,               # Gas fractions
+        :sf_flag,                 # Star formation flag
+        :cold_mass_frac,          # Cold gas fraction
+    ]
+]
+
+"""
+List of symbols for every EL_SFR quantity associated with a stellar particle.
+
+All this values are of the parent gas cell, at birth time.
+"""
+const EL_SFR_STELLAR_QUANTITIES = [
+    Symbol(:ode_stellar_, quantity) for
+    quantity in [
+        :integration_time,        # Integration time
+        :parameter_a,             # Scale factor (birth time)
+        :parameter_uvb,           # UVB photoionization rate
+        :parameter_lwb,           # LWB photodissociation rate
+        :tau_s,                   # Star formation time parameter
+        :parameter_cell_density,  # Gas density
+        :parameter_metallicity,   # Gas metallicity
+        :parameter_column_height, # Column height
+        :parameter_eta_d,         # Photodissociation parameter
+        :parameter_eta_i,         # Photoionization parameter
+        :parameter_r,             # Mass recycling parameter
+        :parameter_zsn,           # Metallicity of the supernova ejecta
+        :fractions,               # Gas fractions
+        :cold_mass_frac,          # Cold gas fraction
+        :gas_mass,                # Gas mass
+        :gas_sfr,                 # SFR
+        :gas_pressure,            # Gas pressure
+        :gas_position,            # Position
+        :gas_velocity,            # Velocity
     ]
 ]
 

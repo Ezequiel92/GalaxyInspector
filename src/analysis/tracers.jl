@@ -122,7 +122,7 @@ function parentIDToIndex(
     # Check which cell/particle types are present
     components = filter!(
         ts -> !isempty(data_dict[ts]["ID  "]),
-        snapshotTypes(data_dict) ∩ [:stars, :gas, :black_hole],
+        snapshotTypes(data_dict) ∩ [:stellar, :gas, :black_hole],
     )
 
     # Allocate memory
@@ -197,7 +197,7 @@ function findTracers(data_dict::Dict; filter_function::Function=filterNothing)::
     # Check which cell/particle types are present
     components = filter!(
         ts -> !isempty(data_dict[ts]["ID  "]),
-        snapshotTypes(data_dict) ∩ [:stars, :gas, :black_hole],
+        snapshotTypes(data_dict) ∩ [:stellar, :gas, :black_hole],
     )
 
     # Find the indices of the cells and particles that are allowed by `filter_function`
