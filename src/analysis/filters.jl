@@ -298,7 +298,7 @@ function selectFilter(
             Dict(
                 :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
                 :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-                :stars   => ["POS ", "MASS", "VEL ", "GAGE"],
+                :stellar => ["POS ", "MASS", "VEL ", "GAGE"],
             ),
         )
 
@@ -306,7 +306,7 @@ function selectFilter(
 
         # Plot every cell/particle centered around the main subhalo
         filter_function = filterNothing
-        translation = :stars
+        translation = :stellar
         rotation = :stellar_pa
 
         new_request = mergeRequests(
@@ -314,7 +314,7 @@ function selectFilter(
                 request,
                 Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
             ),
-            Dict(:stars => ["POS ", "MASS", "VEL ", "GAGE"]),
+            Dict(:stellar => ["POS ", "MASS", "VEL ", "GAGE"]),
         )
 
     else

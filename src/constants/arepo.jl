@@ -23,6 +23,8 @@ const HYDROGEN_MASSFRAC = 0.76
 
 """
 Mass of the tracers in internal code units. Its value comes from `All.TargetGasMass = All.TargetGasMassFactor * All.ReferenceGasPartMass` in the code.
+
+It is only printed in the output files (`stdout_n`), as `All.TargetGasMass=3.65456e-06`
 """
 const TRACER_MASS = 3.65456e-06
 
