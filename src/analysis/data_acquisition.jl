@@ -1357,7 +1357,7 @@ function makeDataDict(
             simulation_path,
             1,
             snapshot_n,
-            isCosmological(snapshot_path),
+            isSnapCosmological(snapshot_path),
             simulation_table,
         ),
         :snap_data => Snapshot(
@@ -1761,7 +1761,7 @@ function findQtyExtrema(
 end
 
 """
-    isCosmological(path::String)::Bool
+    isSnapCosmological(path::String)::Bool
 
 Check if the snapshot in `path` comes from a cosmological simulation.
 
@@ -1780,13 +1780,13 @@ Check if the snapshot in `path` comes from a cosmological simulation.
       + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0, `Redshift` = 0.0).
       + `true`  -> Cosmological simulation (`ComovingIntegrationOn` = 1, `Redshift` != 0.0).
 """
-function isCosmological(path::String)::Bool
+function isSnapCosmological(path::String)::Bool
 
     if isfile(path)
 
         (
             HDF5.ishdf5(path) ||
-            throw(ArgumentError("isCosmological: The file $(path) is not in the HDF5 format, \
+            throw(ArgumentError("isSnapCosmological: The file $(path) is not in the HDF5 format, \
             I don't know how to read it"))
         )
 
@@ -1798,7 +1798,7 @@ function isCosmological(path::String)::Bool
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
-            throw(ArgumentError("isCosmological: The directory $(path) does not contain \
+            throw(ArgumentError("isSnapCosmological: The directory $(path) does not contain \
             snapshot sub-files in the HDF5 format"))
         )
 
@@ -1806,7 +1806,7 @@ function isCosmological(path::String)::Bool
 
     else
 
-        throw(ArgumentError("isCosmological: $(path) does not exists as a file or folder"))
+        throw(ArgumentError("isSnapCosmological: $(path) does not exists as a file or folder"))
 
     end
 
@@ -1823,6 +1823,57 @@ function isCosmological(path::String)::Bool
     end
 
     return cosmological
+
+end
+
+"""
+    isSimCosmological(simulation_path::String)::Bool
+
+Check if the simulation in `simulation_path` is cosmological.
+
+!!! note
+
+    The function will only read the first snapshot, and if each snapshot is made of multiple files, the function will only read the first file.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+
+# Returns
+
+  - If the simulation is cosmological
+
+      + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0, `Redshift` = 0.0).
+      + `true`  -> Cosmological simulation (`ComovingIntegrationOn` = 1, `Redshift` != 0.0).
+"""
+function isSimCosmological(simulation_path::String)::Bool
+
+    (
+        isdir(simulation_path) ||
+        throw(ArgumentError("isSimCosmological: $(simulation_path) does not exists as a directory"))
+    )
+
+    # Get the full list of paths to every snapshot in `simulation_path`
+    path_list = [
+        glob("*/*/$(SNAP_BASENAME)_*", simulation_path)
+        glob("*/$(SNAP_BASENAME)_*", simulation_path)
+        glob("$(SNAP_BASENAME)_*", simulation_path)
+    ]
+
+    # Check for an empty folder
+    if isempty(path_list)
+
+        (
+            !logging[] ||
+            @warn("isSimCosmological: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
+            within $(simulation_path), or any of its subfolders")
+        )
+
+        return 0
+
+    end
+
+    return isSnapCosmological(first(path_list))
 
 end
 
@@ -1849,7 +1900,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
     )
 
     header = readSnapHeader(path)
-    cosmological = isCosmological(path)
+    cosmological = isSnapCosmological(path)
 
     a = cosmological ? header.time : 1.0
     h = cosmological ? header.h : 1.0

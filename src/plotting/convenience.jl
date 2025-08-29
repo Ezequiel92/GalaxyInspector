@@ -105,7 +105,7 @@ function snapshotReport(
         groupcat_path = snapshot_row[1, :groupcat_paths]
 
         # Check if the simulation is cosmological
-        cosmological = isCosmological(snapshot_path)
+        cosmological = isSnapCosmological(snapshot_path)
 
         # Read the physical time since the Big Bang
         physical_time = round(ustrip(u"Gyr", snapshot_row[1, :physical_times]), digits=2)
@@ -1791,7 +1791,7 @@ function simulationReport(
         groupcat_n = count(!ismissing, simulation_table[!, :groupcat_paths])
 
         # Check if the simulation is cosmological
-        cosmological = isCosmological(first(skipmissing(simulation_table[!, :snapshot_paths])))
+        cosmological = isSnapCosmological(first(skipmissing(simulation_table[!, :snapshot_paths])))
 
         ############################################################################################
         # Print the report header

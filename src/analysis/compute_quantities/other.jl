@@ -108,7 +108,7 @@ function computeTimeTicks(
 
     first_snapshot = first(snapshot_paths)
 
-    if isCosmological(first_snapshot)
+    if isSnapCosmological(first_snapshot)
 
         # For cosmological simulations, the time field in the Header of the snapshot is the scale factor
         scale_factors = [readTime(path) for path in snapshot_paths]

@@ -346,7 +346,7 @@ function plotSnapshot(
                     simulation_paths[simulation_index],
                     simulation_index,
                     slice,
-                    isCosmological(snapshot_path),
+                    isSnapCosmological(snapshot_path),
                     simulation_table,
                 ),
                 :snap_data => Snapshot(
@@ -975,7 +975,7 @@ function plotTimeSeries(
             simulation_path,
             simulation_index,
             slice,
-            isCosmological(first_snapshot),
+            isSnapCosmological(first_snapshot),
             simulation_table,
         )
 
