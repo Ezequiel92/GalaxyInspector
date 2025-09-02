@@ -1165,6 +1165,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
       + `:atomic_area_density`       -> Atomic hydrogen area mass density.
       + `:sfr_area_density`          -> Star formation rate area density.
       + `:X_stellar_abundance`       -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. ``\\mathrm{X}`` can be O (oxygen), N (nitrogen), or C (carbon).
+  - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for the `quantity`.
   - `color::ColorType=Makie.wong_colors()[6]`: Color of the line.
   - `linestyle::LineStyleType=nothing`: Style of the line. `nothing` will produce a solid line.
   - `error_bars::Bool=true`: If the error bars will be plotted.
@@ -1185,6 +1186,7 @@ M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the in
 function ppMolla2015!(
     figure::Makie.Figure,
     quantity::Symbol;
+    y_unit::Unitful.Units=Unitful.NoUnits,
     color::ColorType=Makie.wong_colors()[6],
     linestyle::LineStyleType=nothing,
     error_bars::Bool=true,
@@ -1217,18 +1219,29 @@ function ppMolla2015!(
 
     # Select the quantity for the y axis
     if quantity == :stellar_area_density
-        y_data = 10 .^ (raw[!, "logΣ*"] .± raw[!, "logΣ* error"])
+        # M⊙ pc^-2
+        factor = log10(ustrip(y_unit, 1.0u"Msun * pc^-2"))
+        y_data = (raw[!, "logΣ*"] .± raw[!, "logΣ* error"]) .+ factor
     elseif quantity ∈ [:molecular_area_density, :br_molecular_area_density]
-        y_data = raw[!, "ΣH2"] .± raw[!, "ΣH2 error"]
+        # M⊙ pc^-2
+        factor = ustrip(y_unit, 1.0u"Msun * pc^-2")
+        y_data = log10.((raw[!, "ΣH2"] .± raw[!, "ΣH2 error"]) .* factor)
     elseif quantity == :atomic_area_density
-        y_data = raw[!, "ΣHI"] .± raw[!, "ΣHI error"]
+        # M⊙ pc^-2
+        factor = ustrip(y_unit, 1.0u"Msun * pc^-2")
+        y_data = log10.((raw[!, "ΣHI"] .± raw[!, "ΣHI error"]) .* factor)
     elseif quantity == :sfr_area_density
-        y_data = 10 .^ (raw[!, "logΣsfr"] .± raw[!, "logΣsfr error"])
+        # M⊙ pc^-2 Gyr^-1
+        factor = log10(ustrip(y_unit, 1.0u"Msun * pc^-2 * Gyr^-1"))
+        y_data = (raw[!, "logΣsfr"] .± raw[!, "logΣsfr error"]) .+ factor
     elseif quantity == :O_stellar_abundance
+        # dimensionless
         y_data = raw[!, "O/H"] .± raw[!, "ΔO/H"]
     elseif quantity == :N_stellar_abundance
+        # dimensionless
         y_data = raw[!, "N/H"] .± raw[!, "ΔN/H"]
     elseif quantity == :C_stellar_abundance
+        # dimensionless
         y_data = raw[!, "C/H"] .± raw[!, "ΔC/H"]
     else
         throw(ArgumentError("ppMolla2015: `x_quantity` can only be  :stellar_area_density, \

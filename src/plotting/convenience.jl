@@ -6773,30 +6773,44 @@ function compareMolla2015(
     request = addRequest(plot_params.request, Dict(:gas => ["VEL "], :stellar => ["VEL "]))
     filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
 
+    # Set the y label
+    y_label = getLabel(
+        plot_params.var_name,
+        plot_params.exp_factor,
+        plot_params.unit;
+        latex=true,
+    )
+
     # Select the correct grid acording to the available data from M. Mollá et al. (2015)
     if quantity == :stellar_area_density
 
         grid = CircularGrid(16.5u"kpc", 14; shift=2.5u"kpc")
+        yaxis_label = L"$\log_{10} \,$ %$(y_label)"
 
     elseif quantity ∈ [:molecular_area_density, :br_molecular_area_density, :sfr_area_density]
 
         grid = CircularGrid(19.5u"kpc", 20; shift=-0.5u"kpc")
+        yaxis_label = L"$\log_{10} \,$ %$(y_label)"
 
     elseif quantity == :atomic_area_density
 
         grid = CircularGrid(20.5u"kpc", 21; shift=-0.5u"kpc")
+        yaxis_label = L"$\log_{10} \,$ %$(y_label)"
 
     elseif quantity == :O_stellar_abundance
 
         grid = CircularGrid(18.5u"kpc", 19; shift=-0.5u"kpc")
+        yaxis_label = plot_params.axis_label
 
     elseif quantity == :N_stellar_abundance
 
         grid = CircularGrid(17.5u"kpc", 18; shift=-0.5u"kpc")
+        yaxis_label = plot_params.axis_label
 
     elseif quantity == :C_stellar_abundance
 
         grid = CircularGrid(15.5u"kpc", 16; shift=-0.5u"kpc")
+        yaxis_label = plot_params.axis_label
 
     end
 
@@ -6816,16 +6830,21 @@ function compareMolla2015(
         filter_function,
         da_functions=[daMolla2015],
         da_args=[(grid, quantity)],
-        da_kwargs=[(;)],
+        da_kwargs=[(; y_unit=plot_params.unit)],
         post_processing=ppMolla2015!,
         pp_args=(quantity,),
-        pp_kwargs=(; color=Makie.wong_colors()[6], linestyle=nothing, error_bars=true),
+        pp_kwargs=(;
+            y_unit=plot_params.unit,
+            color=Makie.wong_colors()[6],
+            linestyle=nothing,
+            error_bars=true,
+        ),
         transform_box=true,
         translation,
         rotation,
         smooth=0,
         x_unit=u"kpc",
-        y_unit=plot_params.unit,
+        y_unit=Unitful.NoUnits,
         x_exp_factor=0,
         y_exp_factor=0,
         x_trim=(-Inf, Inf),
@@ -6836,7 +6855,7 @@ function compareMolla2015(
         y_func=identity,
         # Axes options
         xaxis_label="auto_label",
-        yaxis_label=plot_params.axis_label,
+        yaxis_label,
         xaxis_var_name=L"r",
         yaxis_var_name=plot_params.var_name,
         xaxis_scale_func=identity,

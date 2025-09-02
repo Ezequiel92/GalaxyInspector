@@ -232,7 +232,7 @@ function selectFilter(
             Dict(
                 :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
                 :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-                :stellar   => ["POS ", "MASS", "VEL ", "GAGE"],
+                :stellar => ["POS ", "MASS", "VEL ", "GAGE"],
             ),
         )
 
@@ -253,7 +253,7 @@ function selectFilter(
             Dict(
                 :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
                 :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-                :stellar   => ["POS ", "MASS", "VEL ", "GAGE"],
+                :stellar => ["POS ", "MASS", "VEL ", "GAGE"],
             ),
         )
 

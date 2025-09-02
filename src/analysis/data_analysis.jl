@@ -313,6 +313,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `:O_stellar_abundance`       -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
       + `:N_stellar_abundance`       -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`       -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
+  - `y_unit::Unitful.Units=Unitful.NoUnits`: Unit for the `quantity`.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -358,6 +359,7 @@ function daMolla2015(
     data_dict::Dict,
     grid::CircularGrid,
     quantity::Symbol;
+    y_unit::Unitful.Units=Unitful.NoUnits,
     filter_function::Function=filterNothing,
 )::Union{
     Tuple{
@@ -374,7 +376,7 @@ function daMolla2015(
         positions   = filtered_dd[:stellar]["POS "]
         masses      = filtered_dd[:stellar]["MASS"]
         norm_values = Number[]
-        f           = identity
+        f           = x -> log10.(ustrip.(y_unit, x))
         density     = true
 
     elseif quantity == :sfr_area_density
@@ -382,7 +384,7 @@ function daMolla2015(
         positions   = filtered_dd[:stellar]["POS "]
         masses      = computeSFR(filtered_dd; age_resol=AGE_RESOLUTION)
         norm_values = Number[]
-        f           = identity
+        f           = x -> log10.(ustrip.(y_unit, x))
         density     = true
 
     elseif quantity == :molecular_area_density
@@ -390,7 +392,7 @@ function daMolla2015(
         positions   = filtered_dd[:gas]["POS "]
         masses      = computeMass(filtered_dd, :molecular)
         norm_values = Number[]
-        f           = identity
+        f           = x -> log10.(ustrip.(y_unit, x))
         density     = true
 
     elseif quantity == :br_molecular_area_density
@@ -398,7 +400,7 @@ function daMolla2015(
         positions   = filtered_dd[:gas]["POS "]
         masses      = computeMass(filtered_dd, :br_molecular)
         norm_values = Number[]
-        f           = identity
+        f           = x -> log10.(ustrip.(y_unit, x))
         density     = true
 
     elseif quantity == :atomic_area_density
@@ -406,7 +408,7 @@ function daMolla2015(
         positions   = filtered_dd[:gas]["POS "]
         masses      = computeMass(filtered_dd, :atomic)
         norm_values = Number[]
-        f           = identity
+        f           = x -> log10.(ustrip.(y_unit, x))
         density     = true
 
     elseif quantity == :O_stellar_abundance
@@ -414,7 +416,7 @@ function daMolla2015(
         positions   = filtered_dd[:stellar]["POS "]
         masses      = computeElementMass(filtered_dd, :stellar, :O) ./ ATOMIC_WEIGHTS[:O]
         norm_values = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
-        f           = x -> 12 .+ log10.(x)
+        f           = x -> 12 .+ log10.(ustrip.(y_unit, x))
         density     = false
 
     elseif quantity == :N_stellar_abundance
@@ -422,7 +424,7 @@ function daMolla2015(
         positions   = filtered_dd[:stellar]["POS "]
         masses      = computeElementMass(filtered_dd, :stellar, :N) ./ ATOMIC_WEIGHTS[:N]
         norm_values = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
-        f           = x -> 12 .+ log10.(x)
+        f           = x -> 12 .+ log10.(ustrip.(y_unit, x))
         density     = false
 
     elseif quantity == :C_stellar_abundance
@@ -430,7 +432,7 @@ function daMolla2015(
         positions   = filtered_dd[:stellar]["POS "]
         masses      = computeElementMass(filtered_dd, :stellar, :C) ./ ATOMIC_WEIGHTS[:C]
         norm_values = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
-        f           = x -> 12 .+ log10.(x)
+        f           = x -> 12 .+ log10.(ustrip.(y_unit, x))
         density     = false
 
     else
