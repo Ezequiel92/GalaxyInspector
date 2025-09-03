@@ -162,8 +162,8 @@ function plotSnapshot(
     pp_args::Tuple=(),
     pp_kwargs::NamedTuple=(;),
     transform_box::Bool=false,
-    translation::Union{Symbol,NTuple{2,Int},Int}=:zero,
-    rotation::Union{Symbol,NTuple{2,Int},Int}=:zero,
+    translation::Union{Symbol,NTuple{2,Int},Int,Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}}=:zero,
+    rotation::Union{Symbol,NTuple{2,Int},Int,Matrix{Float64},UniformScaling{Bool}}=:zero,
     smooth::Int=0,
     x_unit::Unitful.Units=Unitful.NoUnits,
     y_unit::Unitful.Units=Unitful.NoUnits,
@@ -646,24 +646,43 @@ function plotSnapshot(
                 if title == :physical_time
 
                     c_t = ustrip(u"Gyr", time_row[1, :physical_times])
-                    time_stamp = round(c_t, digits=2)
-                    axes.title = L"t = %$time_stamp \, \mathrm{Gyr}"
+
+                    if c_t < 1.0
+                        time_stamp = round(c_t; sigdigits=2)
+                    else
+                        time_stamp = round(c_t; sigdigits=3)
+                    end
+                    axes.title = L"t = %$(rpad(time_stamp, 4, '0')) \, \text{Gyr}"
 
                 elseif title == :lookback_time
 
                     p_t = ustrip(u"Gyr", time_row[1, :lookback_times])
-                    time_stamp = round(p_t, digits=2)
-                    axes.title = L"lt = %$time_stamp \, \mathrm{Gyr}"
+                    if p_t < 1.0
+                        time_stamp = round(p_t; sigdigits=2)
+                    else
+                        time_stamp = round(p_t; sigdigits=3)
+                    end
+                    axes.title = L"lt = %$rpad(time_stamp, 4, '0')) \, \text{Gyr}"
 
                 elseif title == :redshift
 
-                    time_stamp = round(time_row[1, :redshifts], digits=2)
-                    axes.title = L"z = \mathrm{%$time_stamp}"
+                    z_t = time_row[1, :redshifts]
+                    if p_t < 1.0
+                        time_stamp = round(z_t; sigdigits=2)
+                    else
+                        time_stamp = round(z_t; sigdigits=3)
+                    end
+                    axes.title = L"z = \mathrm{%$rpad(time_stamp, 4, '0'))}"
 
                 elseif title == :scale_factor
 
-                    time_stamp = round(time_row[1, :scale_factors], digits=2)
-                    axes.title = L"a = \mathrm{%$time_stamp}"
+                    a_t = time_row[1, :scale_factors]
+                    if p_t < 1.0
+                        time_stamp = round(a_t; sigdigits=2)
+                    else
+                        time_stamp = round(a_t; sigdigits=3)
+                    end
+                    axes.title = L"a = \mathrm{%$rpad(time_stamp, 4, '0'))}"
 
                 else
 

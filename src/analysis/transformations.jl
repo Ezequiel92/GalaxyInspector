@@ -2,19 +2,19 @@
 # Coordinate transformations
 ####################################################################################################
 
+###############
+# Translations
+###############
+
 """
     function translatePoints!(positions::Matrix{<:Number}, new_origin::Vector{<:Number})::Nothing
 
-Translate a system of points, moving `new_origin` to the origin.
+Translate a system of points, moving `new_origin` to [0, 0, 0].
 
 # Arguments
 
   - `positions::Matrix{<:Number}`: Points to be translated. Each column is a point and each row a dimension.
   - `new_origin::Vector{<:Number}`: Target origin.
-
-# Returns
-
-  - Matrix with the translated points.
 """
 function translatePoints!(positions::Matrix{<:Number}, new_origin::Vector{<:Number})::Nothing
 
@@ -29,25 +29,49 @@ function translatePoints!(positions::Matrix{<:Number}, new_origin::Vector{<:Numb
 end
 
 """
+    translateData!(
+        data_dict::Dict,
+        new_coor::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}},
+    )::Nothing
+
+Translate the positions and boost the velocities of the cells/particles in `data_dict`, such that `origin` is in [0, 0, 0] and the velocity of the center of mass is [0, 0, 0].
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `new_coor::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}`: New origin and the velocity of the center of mass.
+"""
+function translateData!(
+    data_dict::Dict,
+    new_coor::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}},
+)::Nothing
+
+    for component in snapshotTypes(data_dict)
+
+        data = data_dict[component]
+
+        if haskey(data, "POS ") && !isempty(data["POS "])
+            translatePoints!(data["POS "], new_coor[1])
+        end
+
+        if haskey(data, "VEL ") && !isempty(data["VEL "])
+            translatePoints!(data["VEL "], new_coor[2])
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
     translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int},Int})::Nothing
 
 Translate the positions and velocities of the cells/particles in `data_dict`.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `translation::Union{Symbol,NTuple{2,Int},Int}=:zero`: Type of translation. The options are:
 
       + `:zero`                       -> No translation is applied.
@@ -59,232 +83,18 @@ Translate the positions and velocities of the cells/particles in `data_dict`.
 """
 function translateData!(data_dict::Dict, translation::Union{Symbol,NTuple{2,Int},Int})::Nothing
 
-    translation === :zero && return nothing
+    origin = computeCenter(data_dict, translation)
+    vcm = computeVcm(data_dict, translation)
 
-    new_origin = computeCenter(data_dict, translation)
-    new_vcm = computeVcm(data_dict, translation)
-
-    for component in snapshotTypes(data_dict)
-
-        data = data_dict[component]
-
-        if haskey(data, "POS ") && !isempty(data["POS "])
-            translatePoints!(data["POS "], new_origin)
-        end
-
-        if haskey(data, "VEL ") && !isempty(data["VEL "])
-            translatePoints!(data["VEL "], new_vcm)
-        end
-
-    end
+    translateData!(data_dict, (origin, vcm))
 
     return nothing
 
 end
 
-"""
-    rotateData!(data_dict::Dict, axis_type::Symbol)::Nothing
-
-Rotate the positions and velocities of the cells/particles in `data_dict`.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `rotation::Symbol`: Type of rotation. The options are:
-
-      + `:zero`               -> No rotation is applied.
-      + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
-      + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
-      + `:stellar_pa`         -> Sets the stellar principal axis as the new coordinate system.
-      + `:stellar_subhalo_pa` -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-"""
-function rotateData!(data_dict::Dict, rotation::Symbol)::Nothing
-
-    rotation === :zero && return nothing
-
-    # Choose how to compute the 3×3 rotation matrix
-    rotation_matrix = begin
-
-        if rotation === :global_am
-
-            computeGlobalAMRotationMatrix(data_dict)
-
-        elseif rotation === :stellar_am
-
-            isempty(data_dict[:stellar]["MASS"]) && return nothing
-
-            computeAMRotationMatrix(
-                data_dict[:stellar]["POS "],
-                data_dict[:stellar]["VEL "],
-                data_dict[:stellar]["MASS"],
-            )
-
-        elseif rotation === :stellar_pa
-
-            isempty(data_dict[:stellar]["MASS"]) && return nothing
-
-            computePARotationMatrix(
-                data_dict[:stellar]["POS "],
-                data_dict[:stellar]["VEL "],
-                data_dict[:stellar]["MASS"],
-            )
-
-        elseif rotation === :stellar_subhalo_pa
-
-            idxs = filterBySubhalo(data_dict; halo_idx=1, subhalo_rel_idx=1)[:stellar]
-
-            isempty(idxs) && return nothing
-
-            pos_view = data_dict[:stellar]["POS "][:, idxs]
-            vel_view = data_dict[:stellar]["VEL "][:, idxs]
-            mass_view = data_dict[:stellar]["MASS"][idxs]
-
-            computePARotationMatrix(pos_view, vel_view, mass_view)
-
-        else
-
-            throw(ArgumentError("rotateData!: I don't recognize the rotation :$(rotation)"))
-
-        end
-
-    end
-
-    for component in snapshotTypes(data_dict)
-
-        data = data_dict[component]
-
-        if haskey(data, "POS ") && !isempty(data["POS "])
-            data["POS "] = rotation_matrix * data["POS "]
-        end
-
-        if haskey(data, "VEL ") && !isempty(data["VEL "])
-            data["VEL "] = rotation_matrix * data["VEL "]
-        end
-
-    end
-
-    return nothing
-
-end
-
-"""
-    rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
-
-Rotate the positions and velocities of the cells/particles in `data_dict`.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `rotation::NTuple{2,Int}`: Type of rotation. The options are:
-
-      + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new coordinate system.
-      + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo as the new coordinate system.
-"""
-function rotateData!(data_dict::Dict, rotation::NTuple{2,Int})::Nothing
-
-    idxs = filterBySubhalo(data_dict; halo_idx=rotation[1], subhalo_rel_idx=rotation[2])[:stellar]
-
-    isempty(idxs) && return nothing
-
-    pos_view = data_dict[:stellar]["POS "][:, idxs]
-    vel_view = data_dict[:stellar]["VEL "][:, idxs]
-    mass_view = data_dict[:stellar]["MASS"][idxs]
-
-    rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
-
-    for component in snapshotTypes(data_dict)
-
-        data = data_dict[component]
-
-        if haskey(data, "POS ") && !isempty(data["POS "])
-            data["POS "] = rotation_matrix * data["POS "]
-        end
-
-        if haskey(data, "VEL ") && !isempty(data["VEL "])
-            data["VEL "] = rotation_matrix * data["VEL "]
-        end
-
-    end
-
-    return nothing
-
-end
-
-"""
-    rotateData!(data_dict::Dict, rotation::Int)::Nothing
-
-Rotate the positions and velocities of the cells/particles in `data_dict`.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `rotation::Int`: Target subhalo absolute index, starting at 1. Sets the principal axis of the stars in the subhalo as the new coordinate system.
-"""
-function rotateData!(data_dict::Dict, rotation::Int)::Nothing
-
-    idxs = filterBySubhalo(data_dict, rotation)[:stellar]
-
-    isempty(idxs) && return nothing
-
-    pos_view = data_dict[:stellar]["POS "][:, idxs]
-    vel_view = data_dict[:stellar]["VEL "][:, idxs]
-    mass_view = data_dict[:stellar]["MASS"][idxs]
-
-    rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
-
-    for component in snapshotTypes(data_dict)
-
-        data = data_dict[component]
-
-        if haskey(data, "POS ") && !isempty(data["POS "])
-            data["POS "] = rotation_matrix * data["POS "]
-        end
-
-        if haskey(data, "VEL ") && !isempty(data["VEL "])
-            data["VEL "] = rotation_matrix * data["VEL "]
-        end
-
-    end
-
-    return nothing
-
-end
+############
+# Rotations
+############
 
 """
     computeAMRotationMatrix(
@@ -400,19 +210,7 @@ Compute the rotation matrix that will turn the total angular momentum of the who
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
 
 # Returns
 
@@ -439,5 +237,218 @@ function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},U
     )
 
     return computeAMRotationMatrix(positions, velocities, masses)
+
+end
+
+"""
+    rotateData!(data_dict::Dict, axis_type::Symbol)::Nothing
+
+Rotate the positions and velocities of the cells/particles in `data_dict`.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}}`: Rotation matrix.
+"""
+function rotateData!(
+    data_dict::Dict,
+    rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}},
+)::Nothing
+
+    for component in snapshotTypes(data_dict)
+
+        data = data_dict[component]
+
+        if haskey(data, "POS ") && !isempty(data["POS "])
+            data["POS "] = rotation_matrix * data["POS "]
+        end
+
+        if haskey(data, "VEL ") && !isempty(data["VEL "])
+            data["VEL "] = rotation_matrix * data["VEL "]
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
+    computeRotation(
+        data_dict::Dict,
+        rotation::Symbol,
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix corresponding with `rotation`.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `rotation::Symbol`: Type of rotation. The options are:
+
+      + `:zero`               -> No rotation is applied.
+      + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
+      + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
+      + `:stellar_pa`         -> Sets the stellar principal axis as the new coordinate system.
+      + `:stellar_subhalo_pa` -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computeRotation(
+    data_dict::Dict,
+    rotation::Symbol,
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    rotation === :zero && return I
+
+    # Choose how to compute the 3×3 rotation matrix
+    rotation_matrix = begin
+
+        if rotation === :global_am
+
+            computeGlobalAMRotationMatrix(data_dict)
+
+        elseif rotation === :stellar_am
+
+            isempty(data_dict[:stellar]["MASS"]) && return I
+
+            computeAMRotationMatrix(
+                data_dict[:stellar]["POS "],
+                data_dict[:stellar]["VEL "],
+                data_dict[:stellar]["MASS"],
+            )
+
+        elseif rotation === :stellar_pa
+
+            isempty(data_dict[:stellar]["MASS"]) && return I
+
+            computePARotationMatrix(
+                data_dict[:stellar]["POS "],
+                data_dict[:stellar]["VEL "],
+                data_dict[:stellar]["MASS"],
+            )
+
+        elseif rotation === :stellar_subhalo_pa
+
+            idxs = filterBySubhalo(data_dict; halo_idx=1, subhalo_rel_idx=1)[:stellar]
+
+            isempty(idxs) && return I
+
+            pos_view = data_dict[:stellar]["POS "][:, idxs]
+            vel_view = data_dict[:stellar]["VEL "][:, idxs]
+            mass_view = data_dict[:stellar]["MASS"][idxs]
+
+            computePARotationMatrix(pos_view, vel_view, mass_view)
+
+        else
+
+            throw(ArgumentError("rotateData!: I don't recognize the rotation :$(rotation)"))
+
+        end
+
+    end
+
+    return rotation_matrix
+
+end
+
+"""
+    computeRotation(
+        data_dict::Dict,
+        rotation::NTuple{2,Int},
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix corresponding with `rotation`.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `rotation::NTuple{2,Int}`: Type of rotation. The options are:
+
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new coordinate system.
+      + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo as the new coordinate system.
+"""
+function computeRotation(
+    data_dict::Dict,
+    rotation::NTuple{2,Int},
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    idxs = filterBySubhalo(data_dict; halo_idx=rotation[1], subhalo_rel_idx=rotation[2])[:stellar]
+
+    isempty(idxs) && return I
+
+    pos_view = data_dict[:stellar]["POS "][:, idxs]
+    vel_view = data_dict[:stellar]["VEL "][:, idxs]
+    mass_view = data_dict[:stellar]["MASS"][idxs]
+
+    rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
+
+    return rotation_matrix
+
+end
+
+"""
+    computeRotation(
+        data_dict::Dict,
+        rotation::Int,
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix corresponding with `rotation`.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `rotation::Int`: Target subhalo absolute index, starting at 1. Sets the principal axis of the stars in the subhalo as the new coordinate system.
+"""
+function computeRotation(
+    data_dict::Dict,
+    rotation::Int,
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    idxs = filterBySubhalo(data_dict, rotation)[:stellar]
+
+    isempty(idxs) && return I
+
+    pos_view = data_dict[:stellar]["POS "][:, idxs]
+    vel_view = data_dict[:stellar]["VEL "][:, idxs]
+    mass_view = data_dict[:stellar]["MASS"][idxs]
+
+    rotation_matrix = computePARotationMatrix(pos_view, vel_view, mass_view)
+
+    return rotation_matrix
+
+end
+
+"""
+    rotateData!(data_dict::Dict, rotation::Union{Symbol,NTuple{2,Int},Int})::Nothing
+
+Rotate the positions and velocities of the cells/particles in `data_dict`.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `rotation::Symbol`: Type of rotation. The options are:
+
+      + `:zero`               -> No rotation is applied.
+      + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
+      + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
+      + `:stellar_pa`         -> Sets the stellar principal axis as the new coordinate system.
+      + `:stellar_subhalo_pa` -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
+      + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new coordinate system.
+      + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo as the new coordinate system.
+      + Target subhalo absolute index, starting at 1. Sets the principal axis of the stars in the subhalo as the new coordinate system.
+"""
+function rotateData!(data_dict::Dict, rotation::Union{Symbol,NTuple{2,Int},Int})::Nothing
+
+    rotation === :zero && return nothing
+
+    # Choose how to compute the 3×3 rotation matrix
+    rotation_matrix = computeRotation(data_dict, rotation)
+
+    rotateData!(data_dict, rotation_matrix)
+
+    return nothing
 
 end
