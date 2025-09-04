@@ -1282,7 +1282,7 @@ function makeSimulationTable(simulation_path::String)::DataFrame
     # Add the lookback time column
     insertcols!(source_table, 6, :lookback_times => lookback_times; copycols=false)
 
-    return identity.(DataFrame(source_table))
+    return identity.(sort!(DataFrame(source_table), [:physical_times]))
 
 end
 

@@ -4481,6 +4481,12 @@ function daEvolution(
 
     end
 
+    # Sort by x axis order
+    sort_idxs = sortperm(x_axis)
+
+    x_axis = x_axis[sort_idxs]
+    y_axis = y_axis[sort_idxs]
+
     if cumulative
         cumsum!(y_axis, y_axis)
     end
