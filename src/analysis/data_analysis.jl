@@ -314,31 +314,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `:N_stellar_abundance`       -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`       -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Unit for the `quantity`.
-  - `filter_function::Function=filterNothing`: A function with the signature:
-
-    `filter_function(data_dict) -> indices`
-
-    where
-
-      + `data_dict::Dict`: A dictionary with the following shape:
-
-        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * ...
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * ...
-      + `indices::Dict`: A dictionary with the following shape:
-
-        * `cell/particle type` -> idxs::IndexType
-        * `cell/particle type` -> idxs::IndexType
-        * `cell/particle type` -> idxs::IndexType
-        * ...
+  - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
 
 # Returns
 
@@ -360,7 +336,7 @@ function daMolla2015(
     grid::CircularGrid,
     quantity::Symbol;
     y_unit::Unitful.Units=Unitful.NoUnits,
-    filter_function::Function=filterNothing,
+    extra_filter::Function=filterNothing,
 )::Union{
     Tuple{
         Vector{<:Unitful.Length},
@@ -369,7 +345,7 @@ function daMolla2015(
     Nothing,
 }
 
-    filtered_dd = filterData(data_dict; filter_function)
+    filtered_dd = filterData(data_dict; filter_function=extra_filter)
 
     if quantity == :stellar_area_density
 

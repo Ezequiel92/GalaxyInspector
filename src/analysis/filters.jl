@@ -207,17 +207,14 @@ function selectFilter(
         # Plot every cell/particle
         filter_function = filterNothing
         translation = :global_cm
-        rotation = :global_am
+        rotation = :global_pa
 
         new_request = mergeRequests(
-            addRequest(
-                request,
-                Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
-            ),
-            Dict(:stellar => ["POS ", "MASS", "VEL ", "GAGE"]),
+            request,
+            Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
         )
 
-    elseif filter_mode == :dark_matter
+    elseif filter_mode == :halo
 
         # Plot only the cells/particles that belong to the main halo
         filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=0)
@@ -246,9 +243,7 @@ function selectFilter(
         new_request = mergeRequests(
             addRequest(
                 request,
-                Dict(
-                    component => ["POS ", "MASS"] for component in keys(PARTICLE_INDEX)
-                ),
+                Dict(component => ["POS ", "MASS"] for component in keys(PARTICLE_INDEX)),
             ),
             Dict(
                 :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
@@ -262,7 +257,7 @@ function selectFilter(
         # Plot only the cell/particle inside a sphere with radius `DISK_R`
         filter_function = dd -> filterWithinSphere(dd, (0.0u"kpc", DISK_R), :global_cm)
         translation = :global_cm
-        rotation = :global_am
+        rotation = :global_pa
 
         new_request = addRequest(
             request,
@@ -277,8 +272,12 @@ function selectFilter(
         rotation = :stellar_pa
 
         new_request = mergeRequests(
-            mergeRequests(request, Dict(:stellar => ["POS ", "MASS", "VEL ", "GAGE"])),
-            Dict(:group => ["G_Nsubs", "G_LenType"], :subhalo => ["S_LenType"]),
+            request,
+            Dict(
+                :stellar => ["POS ", "MASS", "VEL "],
+                :group => ["G_Nsubs", "G_LenType"],
+                :subhalo => ["S_LenType"],
+            ),
         )
 
     elseif filter_mode == :all_subhalo
@@ -291,9 +290,7 @@ function selectFilter(
         new_request = mergeRequests(
             addRequest(
                 request,
-                Dict(
-                    component => ["POS ", "MASS"] for component in keys(PARTICLE_INDEX)
-                ),
+                Dict(component => ["POS ", "MASS"] for component in keys(PARTICLE_INDEX)),
             ),
             Dict(
                 :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],

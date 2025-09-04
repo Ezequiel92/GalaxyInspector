@@ -4984,6 +4984,7 @@ Plot a time series.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
   - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `extra_filter` filter function.
+  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `backup_results::Bool=false`: If the values to be plotted will be backup in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -5004,6 +5005,7 @@ function timeSeries(
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    smooth::Int=0,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     backup_results::Bool=false,
     theme::Attributes=Theme(),
@@ -5049,7 +5051,7 @@ function timeSeries(
                 filter_mode,
                 extra_filter,
                 ff_request,
-                smooth=0,
+                smooth,
                 cumulative,
                 fraction,
                 scaling=identity,
@@ -6750,6 +6752,8 @@ Plot a Milky Way profile plus the corresponding experimental results from Mollá
               + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new coordinate system.
               + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo, as the new coordinate system.
               + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
+  - `extra_filter::Function=filterNothing`: Filter function that will be applied after the one given by `filter_mode`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for the `extra_filter` filter function.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
@@ -6765,13 +6769,18 @@ function compareMolla2015(
     quantity::Symbol;
     output_path::String=".",
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
 
     plot_params = plotParams(quantity)
     request = addRequest(plot_params.request, Dict(:gas => ["VEL "], :stellar => ["VEL "]))
-    filter_function, translation, rotation, request = selectFilter(filter_mode, plot_params.request)
+    filter_function, translation, rotation, request = selectFilter(
+        filter_mode,
+        mergeRequests(plot_params.request, ff_request),
+    )
 
     # Set the y label
     y_label = getLabel(
@@ -6830,7 +6839,7 @@ function compareMolla2015(
         filter_function,
         da_functions=[daMolla2015],
         da_args=[(grid, quantity)],
-        da_kwargs=[(; y_unit=plot_params.unit)],
+        da_kwargs=[(; y_unit=plot_params.unit, extra_filter)],
         post_processing=ppMolla2015!,
         pp_args=(quantity,),
         pp_kwargs=(;
@@ -7253,7 +7262,7 @@ function kennicuttSchmidtLaw(
 
     filter_function, translation, rotation, request = selectFilter(
         filter_mode,
-        plotParams(:stellar_mass).request,
+        mergeRequests(plotParams(:stellar_mass).request, Dict(:stellar => ["GAGE"])),
     )
 
     ##########################

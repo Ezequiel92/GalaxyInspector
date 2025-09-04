@@ -241,6 +241,43 @@ function computeGlobalAMRotationMatrix(data_dict::Dict)::Union{Matrix{Float64},U
 end
 
 """
+    computeGlobalPARotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix that will turn the principal axis of the whole system into the new coordinate system; when view as an passive (alias) transformation.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computeGlobalPARotationMatrix(data_dict::Dict)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    components = snapshotTypes(data_dict)
+
+    filter!(ts -> !isempty(data_dict[ts]["POS "]), components)
+
+    # Concatenate the positions, velocities, and masses of all the cells and particles in the system
+    positions  = hcat([data_dict[component]["POS "] for component in components]...)
+    velocities = hcat([data_dict[component]["VEL "] for component in components]...)
+    masses     = vcat([data_dict[component]["MASS"] for component in components]...)
+
+    # Check for missing data
+    size(positions, 2) < 2 && return I
+
+    (
+        !logging[] ||
+        @info("computeGlobalPARotationMatrix: The rotation matrix will be computed using \
+        $(components)")
+    )
+
+    return computePARotationMatrix(positions, velocities, masses)
+
+end
+
+"""
     rotateData!(data_dict::Dict, axis_type::Symbol)::Nothing
 
 Rotate the positions and velocities of the cells/particles in `data_dict`.
@@ -309,6 +346,10 @@ function computeRotation(
         if rotation === :global_am
 
             computeGlobalAMRotationMatrix(data_dict)
+
+        elseif rotation === :global_pa
+
+            computeGlobalPARotationMatrix(data_dict)
 
         elseif rotation === :stellar_am
 
