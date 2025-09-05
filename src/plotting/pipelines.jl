@@ -212,8 +212,11 @@ function plotSnapshot(
     #   - 8. Group catalog path
     simulation_tables = [makeSimulationTable(source) for source in simulation_paths]
 
+    # Find the longest one
+    longest_sim_table = argmax(nrow, simulation_tables)
+
     # Compute the different ways to index the snapshots
-    snapshot_numbers = sort!(union([table[!, :numbers] for table in simulation_tables]...))
+    snapshot_numbers = longest_sim_table[!, :numbers]
     global_indices = collect(eachindex(snapshot_numbers))
     slice_indices = safeSelect(global_indices, slice)
 
@@ -627,7 +630,6 @@ function plotSnapshot(
             axes.yscale = (yscale_flag ? yaxis_scale_func : identity)
 
             # Add a title
-            longest_sim_table = argmax(nrow, simulation_tables)
             time_row = filter(:numbers => ==(snapshot_number), longest_sim_table)
 
             if isa(title, Symbol) && isempty(time_row)

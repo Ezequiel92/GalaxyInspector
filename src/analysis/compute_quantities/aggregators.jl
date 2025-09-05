@@ -503,16 +503,17 @@ function integrateQty(
 
         if present_idx == 1
 
-            integrated_qty = 0.0u"Msun*yr^-1"
+            integrated_qty = 0.0u"Msun * yr^-1"
 
         else
 
             # Get the physical times
-            times = data_dict[:sim_data].snapshot_table[:, 5]
+            times = data_dict[:sim_data].snapshot_table[!, :physical_times]
+
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
-            integrated_qty = sum(computeSFR(data_dict; age_resol=Δt); init=0.0u"Msun*yr^-1")
+            integrated_qty = sum(computeSFR(data_dict; age_resol=Δt); init=0.0u"Msun * yr^-1")
 
         end
 
@@ -531,7 +532,7 @@ function integrateQty(
         else
 
             # Get the physical times
-            times = data_dict[:sim_data].snapshot_table[:, 5]
+            times = data_dict[:sim_data].snapshot_table[!, :physical_times]
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
@@ -666,19 +667,19 @@ function integrateQty(
 
     elseif quantity == :scale_factor
 
-        integrated_qty = data_dict[:sim_data].snapshot_table[data_dict[:snap_data].global_index, 3]
+        integrated_qty = data_dict[:sim_data].snapshot_table[data_dict[:snap_data].global_index, :scale_factors]
 
     elseif quantity == :redshift
 
-        integrated_qty = data_dict[:sim_data].snapshot_table[data_dict[:snap_data].global_index, 4]
+        integrated_qty = data_dict[:sim_data].snapshot_table[data_dict[:snap_data].global_index, :redshifts]
 
     elseif quantity == :physical_time
 
-        integrated_qty = data_dict[:sim_data].snapshot_table[data_dict[:snap_data].global_index, 5]
+        integrated_qty = data_dict[:sim_data].snapshot_table[data_dict[:snap_data].global_index, :physical_times]
 
     elseif quantity == :lookback_time
 
-        integrated_qty = data_dict[:sim_data].snapshot_table[data_dict[:snap_data].global_index, 6]
+        integrated_qty = data_dict[:sim_data].snapshot_table[data_dict[:snap_data].global_index, :lookback_times]
 
     elseif quantity == :ode_gas_it
 
@@ -1328,7 +1329,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         else
 
             # Get the physical times
-            times = data_dict[:sim_data].snapshot_table[:, 5]
+            times = data_dict[:sim_data].snapshot_table[!, :physical_times]
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
@@ -1351,7 +1352,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         else
 
             # Get the physical times
-            times = data_dict[:sim_data].snapshot_table[:, 5]
+            times = data_dict[:sim_data].snapshot_table[!, :physical_times]
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 

@@ -114,7 +114,7 @@ function computeTimeTicks(
         scale_factors = [readTime(path) for path in snapshot_paths]
         redshifts = @. (1.0 / scale_factors) - 1.0
         physical_times = computeTime(scale_factors, readSnapHeader(first_snapshot))
-        lookback_times = last(physical_times) .- physical_times
+        lookback_times = maximum(physical_times) .- physical_times
 
     else
 
@@ -127,7 +127,7 @@ function computeTimeTicks(
         redshifts = zeros(length(snapshot_paths))
         # For non-cosmological simulations, the time in the snapshot is the physical time
         physical_times = [readTime(path) * u_time for path in snapshot_paths]
-        lookback_times = last(physical_times) .- physical_times
+        lookback_times = maximum(physical_times) .- physical_times
 
     end
 
@@ -260,7 +260,7 @@ function computeSFR(
     !isempty(ages) || return Unitful.MassFlow[]
 
     # Allocate memory
-    sfr = zeros(typeof(1.0u"Msun*yr^-1"), length(ages))
+    sfr = zeros(typeof(1.0u"Msun * yr^-1"), length(ages))
 
     # Find the stellar particles younger than `age_resol`
     idxs = map(x -> x <= age_resol, ages)

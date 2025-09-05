@@ -1257,11 +1257,13 @@ function makeSimulationTable(simulation_path::String)::DataFrame
         corresponding snapshot"))
     )
 
-    paths  = [snapshot_paths, groupcat_paths]
-    labels = [:snapshot_paths, :groupcat_paths]
-    rows   = [[1:length(snapshot_paths);], [1:length(groupcat_paths);]]
+    # Number of rows
+    n = length(snapshot_paths)
 
-    source_table = unstack(flatten(DataFrame(l=labels, p=paths, ids=rows), [:p, :ids]), :l, :p)
+    source_table = DataFrame(
+        snapshot_paths = snapshot_paths,
+        groupcat_paths = [groupcat_paths; fill(missing, n - length(groupcat_paths))],
+    )
 
     # Add the file name number column
     numbers = snap_source[:numbers]
@@ -1282,7 +1284,13 @@ function makeSimulationTable(simulation_path::String)::DataFrame
     # Add the lookback time column
     insertcols!(source_table, 6, :lookback_times => lookback_times; copycols=false)
 
-    return identity.(sort!(DataFrame(source_table), [:physical_times]))
+    # Sort the table by physical time
+    sort!(source_table, :physical_times)
+
+    # Add the row indices
+    insertcols!(source_table, 1, :row_id => 1:nrow(source_table))
+
+    return identity.(DataFrame(source_table))
 
 end
 
@@ -1938,9 +1946,9 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
 
         elseif dimensions == Unitful.𝐓
 
-            # From internal units to Myr, for non-cosmological simulations,
+            # From internal units to Myr for non-cosmological simulations,
             # and to a dimensionless quantity for cosmological simulations
-            return cosmological ? Unitful.NoUnits : IU.t_cosmo
+            return cosmological ? Unitful.NoUnits : IU.t_newton
 
         elseif dimensions == Unitful.𝐌 * Unitful.𝐋^-3
 

@@ -136,7 +136,7 @@ function histogram1D(
     width = (p_max - p_min) / n_bins
 
     # Allocate memory
-    histogram = zeros(eltype(values), n_bins)
+    histogram = zeros(typeof(first(values)), n_bins)
     counts = zeros(Int, n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the grid range
@@ -227,7 +227,7 @@ function histogram1D(
     p_max = last(edges)
 
     # Allocate memory
-    histogram = zeros(eltype(values), n_bins)
+    histogram = zeros(typeof(first(values)), n_bins)
     counts = zeros(Int, n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside of range
@@ -420,7 +420,7 @@ function histogram2D(
     y_borders = (grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width)
 
     # Allocate memory
-    histogram = zeros(eltype(values), size(grid.grid))
+    histogram = zeros(typeof(first(values)), size(grid.grid))
     counts = zeros(Int, size(grid.grid))
 
     # Compute the histogram, ignoring NaNs and positions outside of range
@@ -529,7 +529,7 @@ function histogram2D(
     y_borders = (first(y_edges), last(y_edges))
 
     # Allocate memory
-    histogram = zeros(eltype(values), (n_x_bins, n_y_bins))
+    histogram = zeros(typeof(first(values)), (n_x_bins, n_y_bins))
     counts = zeros(Int, (n_x_bins, n_y_bins))
 
     # Compute the histogram, ignoring NaNs and positions outside of range
@@ -773,7 +773,7 @@ function histogram3D(
     z_borders = (grid.z_bins[1] - h_bin_width, grid.z_bins[end] + h_bin_width)
 
     # Allocate memory
-    histogram = zeros(eltype(values), size(grid.grid))
+    histogram = zeros(typeof(first(values)), size(grid.grid))
     counts = zeros(Int, size(grid.grid))
 
     # Compute the histogram, ignoring NaNs and positions outside of range

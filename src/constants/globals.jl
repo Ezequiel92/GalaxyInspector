@@ -660,6 +660,7 @@ Unit conversion factors.
   - `m_cosmo::Unitful.Mass`: From internal units of mass to ``\\mathrm{M_\\odot}``.
   - `t_cgs::Unitful.Time`: From internal units of time to ``\\mathrm{s}``.
   - `t_cosmo::Unitful.Time`: From internal units of time to ``\\mathrm{Myr}``.
+  - `t_newton::Unitful.Time`: From internal units (non-cosmological simulations) of time to ``\\mathrm{Myr}``.
   - `U_cgs::Unitful.Energy`: From internal units of specific energy to ``\\mathrm{erg \\, g^{-1}}``.
   - `rho_cgs::Unitful.Density`: From internal units of density to ``\\mathrm{g \\, cm^{-3}}``.
   - `P_Pa::Unitful.Pressure`: From internal units of pressure to ``\\mathrm{Pa}``.
@@ -678,6 +679,7 @@ struct InternalUnits
 
     t_cgs::Unitful.Time        # From internal units of time to s
     t_cosmo::Unitful.Time      # From internal units of time to Myr
+    t_newton::Unitful.Time     # From internal units (non-cosmological simulations) of time to Myr
 
     U_cgs::SpecificEnergy      # From internal units of specific energy to erg * g^-1
 
@@ -732,6 +734,7 @@ struct InternalUnits
         # Time conversion factors
         t_cgs = x_cgs / v_cgs
         t_cosmo = t_cgs |> u"Myr"
+        t_newton = 1.0u"Gyr" |> u"Myr"
 
         # Specific energy conversion factor
         U_cgs = v_unit^2 |> u"erg * g^-1"
@@ -753,6 +756,7 @@ struct InternalUnits
             m_cosmo,
             t_cgs,
             t_cosmo,
+            t_newton,
             U_cgs,
             rho_cgs,
             P_Pa,

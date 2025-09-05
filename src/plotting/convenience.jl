@@ -87,11 +87,14 @@ function snapshotReport(
             $(slice_n), the contents of $(simulation_path) are: \n$(simulation_table)"))
         )
 
+        # Select the ordinal index of the target snapshot
+        o_idx = findfirst(==(lpad(snap_number, 3, "0")), simulation_table.numbers)
+
         # Find the target row
-        snapshot_row = filter(:numbers => ==(lpad(snap_number, 3, "0")), simulation_table)
+        snapshot_row = simulation_table[o_idx, :]
 
         # Read the path to the target snapshot
-        snapshot_path = snapshot_row[1, :snapshot_paths]
+        snapshot_path = snapshot_row[:snapshot_paths]
 
         # Check that the snapshot path is not missing
         snapshot_filename = "\"$(SNAP_BASENAME)_$(lpad(snap_number, 3, "0"))\""
@@ -102,16 +105,13 @@ function snapshotReport(
         )
 
         # Read the path to the target group catalog file
-        groupcat_path = snapshot_row[1, :groupcat_paths]
+        groupcat_path = snapshot_row[:groupcat_paths]
 
         # Check if the simulation is cosmological
         cosmological = isSnapCosmological(snapshot_path)
 
         # Read the physical time since the Big Bang
-        physical_time = round(ustrip(u"Gyr", snapshot_row[1, :physical_times]), digits=2)
-
-        # Select the ordinal index of the target snapshot
-        o_idx = snapshot_row[1, :ids]
+        physical_time = round(ustrip(u"Gyr", snapshot_row[:physical_times]), digits=2)
 
         # Compute the number of snapshots in the folder
         snapshot_length = count(!ismissing, simulation_table[!, :snapshot_paths])
@@ -136,8 +136,8 @@ function snapshotReport(
 
         if cosmological
             # For cosmological simulations print the scale factor and the redshift
-            scale_factor = round(snapshot_row[1, :scale_factors], digits=3)
-            redshift = round(snapshot_row[1, :redshifts], digits=3)
+            scale_factor = round(snapshot_row[:scale_factors], digits=3)
+            redshift = round(snapshot_row[:redshifts], digits=3)
 
             println(file, "Scale factor:     $(scale_factor)")
             println(file, "Redshift:         $(redshift)")

@@ -4397,13 +4397,13 @@ function daEvolution(
 
     for (slice_index, sim_table_data) in pairs(iterator)
 
-        global_index  = sim_table_data[1]
-        scale_factor  = sim_table_data[3]
-        redshift      = sim_table_data[4]
-        physical_time = sim_table_data[5]
-        lookback_time = sim_table_data[6]
-        snapshot_path = sim_table_data[7]
-        groupcat_path = sim_table_data[8]
+        global_index  = sim_table_data[:row_id]
+        scale_factor  = sim_table_data[:scale_factors]
+        redshift      = sim_table_data[:redshifts]
+        physical_time = sim_table_data[:physical_times]
+        lookback_time = sim_table_data[:lookback_times]
+        snapshot_path = sim_table_data[:snapshot_paths]
+        groupcat_path = sim_table_data[:groupcat_paths]
 
         # Skip missing snapshots
         !ismissing(snapshot_path) || continue
@@ -4586,12 +4586,12 @@ function daVirialAccretion(
         :sim_data => sim_data,
         :snap_data => Snapshot(
             snapshot_path,
-            sim_table_data[1],
+            sim_table_data[:row_id],
             1,
-            sim_table_data[5],
-            sim_table_data[6],
-            sim_table_data[3],
-            sim_table_data[4],
+            sim_table_data[:physical_times],
+            sim_table_data[:lookback_times],
+            sim_table_data[:scale_factors],
+            sim_table_data[:redshifts],
             snapshot_header,
         ),
         :gc_data => GroupCatalog(groupcat_path, groupcat_header),
@@ -4620,13 +4620,13 @@ function daVirialAccretion(
 
     for (slice_index, sim_table_data) in pairs(iterator[2:end])
 
-        global_index  = sim_table_data[1]
-        scale_factor  = sim_table_data[3]
-        redshift      = sim_table_data[4]
-        physical_time = sim_table_data[5]
-        lookback_time = sim_table_data[6]
-        snapshot_path = sim_table_data[7]
-        groupcat_path = sim_table_data[8]
+        global_index  = sim_table_data[:row_id]
+        scale_factor  = sim_table_data[:scale_factors]
+        redshift      = sim_table_data[:redshifts]
+        physical_time = sim_table_data[:physical_times]
+        lookback_time = sim_table_data[:lookback_times]
+        snapshot_path = sim_table_data[:snapshot_paths]
+        groupcat_path = sim_table_data[:groupcat_paths]
 
         # Get the snapshot header
         snapshot_header = readSnapHeader(snapshot_path)
@@ -4810,12 +4810,12 @@ function daDiscAccretion(
         :sim_data => sim_data,
         :snap_data => Snapshot(
             snapshot_path,
-            sim_table_data[1],
+            sim_table_data[:row_id],
             1,
-            sim_table_data[5],
-            sim_table_data[6],
-            sim_table_data[3],
-            sim_table_data[4],
+            sim_table_data[:physical_times],
+            sim_table_data[:lookback_times],
+            sim_table_data[:scale_factors],
+            sim_table_data[:redshifts],
             snapshot_header,
         ),
         :gc_data => GroupCatalog(groupcat_path, groupcat_header),
@@ -4846,13 +4846,13 @@ function daDiscAccretion(
 
     for (slice_index, sim_table_data) in pairs(iterator[2:end])
 
-        global_index  = sim_table_data[1]
-        scale_factor  = sim_table_data[3]
-        redshift      = sim_table_data[4]
-        physical_time = sim_table_data[5]
-        lookback_time = sim_table_data[6]
-        snapshot_path = sim_table_data[7]
-        groupcat_path = sim_table_data[8]
+        global_index  = sim_table_data[:row_id]
+        scale_factor  = sim_table_data[:scale_factors]
+        redshift      = sim_table_data[:redshifts]
+        physical_time = sim_table_data[:physical_times]
+        lookback_time = sim_table_data[:lookback_times]
+        snapshot_path = sim_table_data[:snapshot_paths]
+        groupcat_path = sim_table_data[:groupcat_paths]
 
         # Get the snapshot header
         snapshot_header = readSnapHeader(snapshot_path)
@@ -4951,7 +4951,7 @@ function daSFRtxt(
     smooth::Int=0,
 )::NTuple{2,Vector{<:Number}}
 
-    snapshot_paths = filter(!ismissing, sim_data.snapshot_table[!, 7])
+    snapshot_paths = filter(!ismissing, sim_data.snapshot_table[!, :snapshot_paths])
 
     (
         !isempty(snapshot_paths) ||
@@ -5094,7 +5094,7 @@ function daCPUtxt(
     smooth::Int=0,
 )::NTuple{2,Vector{<:Number}}
 
-    snapshot_paths = filter(!ismissing, sim_data.snapshot_table[!, 7])
+    snapshot_paths = filter(!ismissing, sim_data.snapshot_table[!, :snapshot_paths])
 
     (
         !isempty(snapshot_paths) ||
