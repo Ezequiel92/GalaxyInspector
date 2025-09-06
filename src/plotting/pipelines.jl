@@ -650,7 +650,7 @@ function plotSnapshot(
                     c_t = ustrip(u"Gyr", time_row[1, :physical_times])
 
                     if c_t < 1.0
-                        time_stamp = round(c_t; sigdigits=2)
+                        time_stamp = round(c_t; digits=2)
                     else
                         time_stamp = round(c_t; sigdigits=3)
                     end
@@ -660,7 +660,7 @@ function plotSnapshot(
 
                     p_t = ustrip(u"Gyr", time_row[1, :lookback_times])
                     if p_t < 1.0
-                        time_stamp = round(p_t; sigdigits=2)
+                        time_stamp = round(p_t; digits=2)
                     else
                         time_stamp = round(p_t; sigdigits=3)
                     end
@@ -670,7 +670,7 @@ function plotSnapshot(
 
                     z_t = time_row[1, :redshifts]
                     if p_t < 1.0
-                        time_stamp = round(z_t; sigdigits=2)
+                        time_stamp = round(z_t; digits=2)
                     else
                         time_stamp = round(z_t; sigdigits=3)
                     end
@@ -680,7 +680,7 @@ function plotSnapshot(
 
                     a_t = time_row[1, :scale_factors]
                     if p_t < 1.0
-                        time_stamp = round(a_t; sigdigits=2)
+                        time_stamp = round(a_t; digits=2)
                     else
                         time_stamp = round(a_t; sigdigits=3)
                     end
