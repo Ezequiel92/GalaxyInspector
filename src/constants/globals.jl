@@ -466,6 +466,7 @@ const DEFAULT_THEME = Theme(
     # Alternative colormaps:
     # colormap = :nipy_spectral - nan_color = ColorSchemes.nipy_spectral[1]
     # colormap = :cubehelix     - nan_color = ColorSchemes.cubehelix[1]
+    # colormap = :lipari        - nan_color = ColorSchemes.lipari[1]
     ########################################################################
     Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
     Colorbar=(
