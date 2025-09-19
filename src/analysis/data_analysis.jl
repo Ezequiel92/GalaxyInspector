@@ -545,7 +545,7 @@ Compute a profile.
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
-  - `fractions::Bool=false`: If a profile of the gas mass fractions will be calculated. It is only valid with `quantity` equal to :neutral_mass, :molecular_mass, :br_molecular_mass, :atomic_mass, :ionized_mass, :stellar_gas_mass, :metal_gas_mass or :dust_mass, and it forces `total` = true, `cumulative` = false, and `density` = false.
+  - `fractions::Bool=false`: If a profile of the gas mass fractions will be calculated. It is only valid with `quantity` equal to :neutral_mass, :molecular_mass, :br_molecular_mass, :atomic_mass, :ionized_mass, :stellar_gas_mass, :ode_metal_mass or :dust_mass, and it forces `total` = true, `cumulative` = false, and `density` = false.
   - `filter_function::Function=filterNothing`: A function with the signature:
 
     `filter_function(data_dict) -> indices`
@@ -631,12 +631,12 @@ function daProfile(
                 :atomic_mass,
                 :ionized_mass,
                 :stellar_gas_mass,
-                :metal_gas_mass,
+                :ode_metal_mass,
                 :dust_mass,
             ] ||
             throw(ArgumentError("daProfile: If `fractions`= true, quantity must be \
             :neutral_mass, :molecular_mass, :br_molecular_mass, :atomic_mass, :ionized_mass, \
-            :stellar_gas_mass, :metal_gas_mass or :dust_mass, but I got `quantity` = :$(quantity)"))
+            :stellar_gas_mass, :ode_metal_mass or :dust_mass, but I got `quantity` = :$(quantity)"))
         )
 
         total       = true
