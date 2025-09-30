@@ -201,6 +201,18 @@ function integrateQty(
 
         integrated_qty = length(data_dict[:black_hole]["MASS"])
 
+    elseif quantity == :dust_stellar_mass_ratio
+
+        Ms = sum(computeMass(data_dict, :stellar); init=0.0u"Msun")
+
+        Md = sum(computeMass(data_dict, :dust); init=0.0u"Msun")
+
+        if iszero(Ms)
+            integrated_qty = NaN
+        else
+            integrated_qty = Md / Ms
+        end
+
     elseif quantity == :molecular_fraction
 
         molecular_mass = sum(computeMass(data_dict, :molecular); init=0.0u"Msun")

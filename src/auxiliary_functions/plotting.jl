@@ -1437,6 +1437,16 @@ function plotParams(quantity::Symbol)::PlotParams
             var_name = L"\mathrm{Number \,\, of \,\, BH \,\, particles}",
         )
 
+    elseif quantity == :dust_stellar_mass_ratio
+
+        plot_params = PlotParams(;
+            request = Dict(
+                :stellar => ["MASS", "POS "],
+                :gas => ["MASS", "POS ", "FRAC", "NH  ", "NHP ", "RHO ", "GZ  "],
+            ),
+            var_name = L"M_\mathrm{d} / M_\star",
+        )
+
     elseif quantity == :molecular_fraction
 
         plot_params = PlotParams(;

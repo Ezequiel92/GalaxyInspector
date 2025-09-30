@@ -156,6 +156,43 @@ function ppHorizontalFlags!(
 end
 
 """
+    ppABFlags!(
+        figure::Makie.Figure,
+        intercepts::Vector{<:Real},
+        slopes::Vector{<:Real};
+        <keyword arguments>
+    )::Nothing
+
+Draw lines defined by f(x) = slope * x + intercept.
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure to be drawn over.
+  - `intercepts::Vector{<:Real}`: List of intercepts.
+  - `slopes::Vector{<:Real}`: List of slopes.
+  - `colors::Vector{<:ColorType}=[:red]`: Colors of the lines.
+  - `line_styles::Vector{<:LineStyleType}=[nothing]`: Styles of the lines. `nothing` will produce a solid line.
+"""
+function ppABFlags!(
+    figure::Makie.Figure,
+    intercepts::Vector{<:Real},
+    slopes::Vector{<:Real};
+    colors::Vector{<:ColorType}=[:red],
+    line_styles::Vector{<:LineStyleType}=[nothing],
+)::Nothing
+
+    # Draw the AB lines
+    for (i, (intercept, slope)) in enumerate(zip(intercepts, slopes))
+        color = ring(colors, i)
+        linestyle = ring(line_styles, i)
+        ablines!(figure.current_axis.x, intercept, slope; color, linestyle)
+    end
+
+    return nothing
+
+end
+
+"""
     ppCross!(
         figure::Makie.Figure,
         cross_point::Tuple{<:Real,<:Real};
