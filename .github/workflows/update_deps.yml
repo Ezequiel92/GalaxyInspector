@@ -68,7 +68,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           delete-branch: true
-          branch: 'update_manifest/'
+          branch: 'update_manifest'
           commit-message: '🤖 Update manifest file'
           title: '🤖 Update manifest file'
-          body: ''
+          body: 'Automated update of dependencies'
