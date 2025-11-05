@@ -446,8 +446,10 @@ function radialProfile(
 
     if ylog
         yaxis_label  = L"\log_{10} \, " * ylabel
+        y_log        = yunit
     else
         yaxis_label  = ylabel
+        y_log        = nothing
     end
 
     base_request = mergeRequests(plot_params.request, norm_request, ff_request)
@@ -476,7 +478,7 @@ function radialProfile(
         filter_function,
         da_functions=[daProfile],
         da_args=[(quantity, grid)],
-        da_kwargs=[(; norm, ylog, flat, total, cumulative, density, filter_function=da_ff)],
+        da_kwargs=[(; norm, y_log, flat, total, cumulative, density, filter_function=da_ff)],
         x_unit=u"kpc",
         y_unit = ylog ? Unitful.NoUnits : yunit,
         yaxis_label,
@@ -584,8 +586,10 @@ function radialProfile(
 
     if ylog
         yaxis_label  = L"\log_{10} \, " * ylabel
+        y_log        = yunit
     else
         yaxis_label  = ylabel
+        y_log        = nothing
     end
 
     base_request = mergeRequests(norm_request, ff_request, requests...)
@@ -610,7 +614,7 @@ function radialProfile(
             filter_function,
             da_functions=[daProfile],
             da_args=[(quantity, grid) for quantity in quantities],
-            da_kwargs=[(; norm, ylog, flat, total, cumulative, density, filter_function=da_ff)],
+            da_kwargs=[(; norm, y_log, flat, total, cumulative, density, filter_function=da_ff)],
             x_unit=u"kpc",
             y_unit = ylog ? Unitful.NoUnits : yunit,
             yaxis_label,
@@ -1202,6 +1206,119 @@ function compareMolla2015(
     )
 
     return nothing
+
+end
+
+"""
+    compareAgertz2021(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot a stellar density profile with the corresponding experimental values of the Milky Way from Agertz et al. (2021).
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `ylog::Bool=true`: If true, sets the y axis as ``\\log_{10} \\Sigma_\\star``.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+O. Agertz et al. (2021). *VINTERGATAN – I. The origins of chemically, kinematically, and structurally distinct discs in a simulated Milky Way-mass galaxy*. Monthly Notices of the Royal Astronomical Society. **503(4), 5826–5845. [doi:10.1093/mnras/stab322](https://doi.org/10.1093/mnras/stab322)
+
+A. K. Leroy et al. (2008). *THE STAR FORMATION EFFICIENCY IN NEARBY GALAXIES: MEASURING WHERE GAS FORMS STARS EFFECTIVELY*. The Astronomical Journal **136(6)**, 2782–2845. [doi:10.1088/0004-6256/136/6/2782](https://doi.org/10.1088/0004-6256/136/6/2782)
+
+P. J. McMillan (2011). *Mass models of the Milky Way*. Monthly Notices of the Royal Astronomical Society **414(3)**, 2446–2457. [doi:10.1111/j.1365-2966.2011.18564.x](https://doi.org/10.1111/j.1365-2966.2011.18564.x)
+"""
+function compareAgertz2021(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    ylog::Bool=true,
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    plot_params = plotParams(:stellar_area_density)
+
+    base_request = mergeRequests(plot_params.request, ff_request)
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    # Set arguments for the y axis
+    if ylog
+        y_unit      = Unitful.NoUnits
+        y_log       = plot_params.unit
+        yaxis_label = L"\log_{10} \, " * getLabel("auto_label", 0, plot_params.unit)
+    else
+        y_unit      = plot_params.unit
+        y_log       = nothing
+        yaxis_label = plot_params.axis_label
+    end
+
+    grid = CircularGrid(25.0u"kpc", 25)
+
+    if isone(length(simulation_paths))
+        base_filename = "$(basename(simulation_paths[1]))_stellar_mass_density_profile_Agertz2021"
+    else
+        base_filename = "stellar_mass_density_profile_Agertz2021"
+    end
+
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [lines!];
+        output_path,
+        base_filename,
+        slice,
+        transform_box=true,
+        translation,
+        rotation,
+        filter_function,
+        da_functions=[daProfile],
+        da_args=[(:stellar_mass, grid)],
+        da_kwargs=[(; y_log, density=true, filter_function=da_ff)],
+        post_processing=ppAgertz2021!,
+        pp_kwargs=(;
+            galaxies=[:all, "MW"],
+            colors=[Makie.wong_colors()[4], Makie.wong_colors()[1]],
+            linestyle=:dash,
+            y_unit=plot_params.unit,
+        ),
+        x_unit=u"kpc",
+        y_unit,
+        yaxis_label,
+        xaxis_var_name=L"r",
+        yaxis_var_name=plot_params.var_name,
+        theme=merge(
+            theme,
+            Theme(
+                size=(1200, 880),
+                figure_padding=(5, 10, 5, 10),
+                palette=(linestyle=[:solid], color=[WONG_ORANGE]),
+                Legend=(nbanks=1, valign=:top, margins=(0, 10, 0, 15)),
+                Axis=(aspect=nothing, xticks=0:5:25),
+                Lines=(linewidth=3,),
+                Scatter=(markersize=20,),
+                Band=(alpha=0.6,),
+            ),
+        ),
+        sim_labels,
+    )
 
 end
 
@@ -3660,10 +3777,12 @@ function massProfile(
     # Set arguments for the y axis
     if ylog
         y_unit       = Unitful.NoUnits
+        y_log        = plot_params.unit
         y_exp_factor = 0
         yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, plot_params.unit)
     else
         y_unit       = plot_params.unit
+        y_log        = nothing
         y_exp_factor = plot_params.exp_factor
         yaxis_label  = plot_params.axis_label
     end
@@ -3701,7 +3820,7 @@ function massProfile(
             filter_function,
             da_functions=[daProfile],
             da_args=[(Symbol(component, :_mass), grid) for component in components],
-            da_kwargs=[(; ylog, cumulative, filter_function=da_filter)],
+            da_kwargs=[(; y_log, cumulative, filter_function=da_filter)],
             x_unit=u"kpc",
             y_unit,
             y_exp_factor,

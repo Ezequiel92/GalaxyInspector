@@ -410,7 +410,7 @@ Compute a profile.
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `grid::CircularGrid`: Circular grid.
   - `norm::Union{Symbol,Nothing}=nothing`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`. It can be any of the quantities valid for [`scatterQty`](@ref). If set to `nothing`, no operation is applied.
-  - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`) (after dividing by `norm`).
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `quantity`, if you want to apply ``\\log_{10}`` to `quantity`. If set to `nothing`, the data is left as is.
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin. This affects the values of `norm` too.
   - `cumulative::Bool=false`: If the profile will be accumulated (after dividing by `norm`).
@@ -431,7 +431,7 @@ function daProfile(
     quantity::Symbol,
     grid::CircularGrid;
     norm::Union{Symbol,Nothing}=nothing,
-    ylog::Bool=false,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
     flat::Bool=true,
     total::Bool=true,
     cumulative::Bool=false,
@@ -478,31 +478,32 @@ function daProfile(
 
     x_axis = copy(grid.grid)
 
-    if ylog
+    if !isnothing(y_log)
 
         # Delete zeros
         idxs = map(iszero, profile)
+
         deleteat!(x_axis, idxs)
         deleteat!(profile, idxs)
 
-        # Compute the unit of the norm
-        if isnothing(norm)
-            u_norm = Unitful.NoUnits
-        else
-            u_norm = plotParams(norm).unit
-        end
+        # # Compute the unit of the norm
+        # if isnothing(norm)
+        #     u_norm = Unitful.NoUnits
+        # else
+        #     u_norm = plotParams(norm).unit
+        # end
 
-        # Compute the unit of the bins
-        if density
-            u_bin = flat ? u"kpc"^2 : u"kpc"^3
-        else
-            u_bin = Unitful.NoUnits
-        end
+        # # Compute the unit of the bins
+        # if density
+        #     u_bin = flat ? u"kpc"^2 : u"kpc"^3
+        # else
+        #     u_bin = Unitful.NoUnits
+        # end
 
-        # Compute the unit of the y axis
-        y_unit = plot_params.unit / u_norm / u_bin
+        # # Compute the unit of the y axis
+        # y_unit = plot_params.unit / u_norm / u_bin
 
-        y_axis = log10.(ustrip.(y_unit, profile))
+        y_axis = log10.(ustrip.(y_log, profile))
 
     else
 

@@ -269,6 +269,15 @@ function computeCenterOfMass(data_dict::Dict, component::Symbol)::Vector{<:Unitf
 
     end
 
+    if any(isempty, [positions, masses])
+        (
+            logging[] &&
+            @warn("computeCenterOfMass: `positions` and/or `masses` are empty, so I will return \
+            the origin")
+        )
+        return zeros(typeof(1.0u"kpc"), 3)
+    end
+
     return computeCenterOfMass(positions, masses)
 
 end

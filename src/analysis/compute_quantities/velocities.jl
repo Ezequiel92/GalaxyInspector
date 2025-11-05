@@ -1187,7 +1187,7 @@ where $r$ is the radial distance of the particle, and $M(r)$ is the total mass w
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
-      + `cell/particle type` => ["VEL", "POS ", "MASS"].
+      + `cell/particle type` => ["VEL ", "POS ", "MASS"].
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
 # Returns

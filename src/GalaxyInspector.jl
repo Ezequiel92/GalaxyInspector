@@ -114,6 +114,7 @@ export stellarHistory
 export histogram
 export compareFeldmann2020
 export compareMolla2015
+export compareAgertz2021
 export kennicuttSchmidtLaw
 export fitVSFLaw
 export massMetallicityRelation

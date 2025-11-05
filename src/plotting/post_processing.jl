@@ -1762,7 +1762,7 @@ function ppAgertz2021!(
 
         if galaxy == :all
 
-            sp = scatter!(figure.current_axis.x, x_data, y_data; color=(color, 0.3))
+            sp = scatter!(figure.current_axis.x, x_data, y_data; color=(color, 0.4))
 
             # Put the post processing elements at the back of the plot
             translate!(Accum, sp, 0, 0, -10)

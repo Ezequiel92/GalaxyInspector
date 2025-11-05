@@ -1181,7 +1181,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
     elseif magnitude == :circularity
 
         # See computeCircularity() in ./src/analysis/compute_quantities/velocities.jl
-        request = Dict(type => ["VEL", "POS ", "MASS"] for type in keys(PARTICLE_INDEX))
+        request = Dict(type => ["VEL ", "POS ", "MASS"] for type in keys(PARTICLE_INDEX))
 
         if isempty(c_label)
             var_name = L"\epsilon"
