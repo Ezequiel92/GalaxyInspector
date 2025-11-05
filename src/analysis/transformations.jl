@@ -215,15 +215,15 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 
 # Arguments
 
-  - `trans_mode::Symbol`: How to translate and rotate the cells/particles, after filtering with `filter_mode`. The options are the elements of [`TRANSFORM_LIST`](@ref) which have the form :{component}_{group} selecting which cells/particle to consider for the center of mass (new origin -> translation) and principal axis (new reference system -> rotation), where group can be:
-
-      + :box     -> Whole simulation box
-      + :halo    -> Main halo
-      + :subhalo -> Main subhalo
-    and components can be:
+  - `trans_mode::Symbol`: How to translate and rotate the cells/particles, after filtering with `filter_mode`. The options are the elements of [`TRANSFORM_LIST`](@ref) which have the form :{component}_{group} selecting which cells/particle to consider for the center of mass (new origin for the translation) and principal axis (new reference system for the rotation), where component can be:
 
       + :all         -> Every component present in data_dict
       + :{component} -> One of the keys of PARTICLE_INDEX
+
+    and group can be:
+      + :box     -> Whole simulation box
+      + :halo    -> Main halo
+      + :subhalo -> Main subhalo
   - `base_request::Dict{Symbol,Vector{String}}`: Base request dictionary.
 
 # Returns

@@ -1646,6 +1646,16 @@ const ABUNDANCE_SHIFT = Dict(
 
 """
 List of symbols for the transformation presets.
+
+The options have the form :{component}_{group} selecting which cells/particle to consider for the center of mass (new origin for the translation) and principal axis (new reference system for the rotation), where component can be:
+
+      + :all         -> Every component present in data_dict
+      + :{component} -> One of the keys of PARTICLE_INDEX
+
+    and group can be:
+      + :box     -> Whole simulation box
+      + :halo    -> Main halo
+      + :subhalo -> Main subhalo
 """
 const TRANSFORM_LIST = [
     Symbol(component, :_, group)
