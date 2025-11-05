@@ -16,6 +16,12 @@ isPositive(x::AbstractArray)::Bool = all(isPositive, x)
 isPositive(x...)::Bool = all(isPositive, x)
 
 """
+New method for `Base.iterate` to manage symbols.
+"""
+Base.iterate(x::Symbol)::Tuple{Symbol,Nothing} = (x, nothing)
+Base.iterate(x::Symbol, ::Nothing)::Nothing = nothing
+
+"""
 New method for `Base.iszero` to compare [`IndexType`](@ref) with 0.
 """
 Base.iszero(x::IndexType)::Bool = x == 0
@@ -232,8 +238,8 @@ function safeSelect(vec::Vector, index::IndexType)
     filter!(x -> x <= length(vec), index_list)
 
     (
-        length(index_list) == length([index...]) ||
-        !logging[] ||
+        length(index_list) != length([index...]) &&
+        logging[] &&
         @info("safeSelect: There are out of bounds indices")
     )
 
@@ -687,5 +693,37 @@ function smoothWindow(
 
     # Remove empty bins
     return filter!(!isnan, smooth_x_data), filter!(!isnan, smooth_y_data)
+
+end
+
+"""
+    ratio(qty_1::Symbol, qty_2::Symbol)::Symbol
+
+Returns the symbol for the ratio between two derived quantities.
+
+# Arguments
+
+  - `qty_1::Symbol`: Symbol for the numerator derived quantity.
+  - `qty_2::Symbol`: Symbol for the denominator derived quantity.
+
+# Returns
+
+  - The symbol for the ration between `qty_1` and `qty_2`.
+"""
+function ratio(qty_1::Symbol, qty_2::Symbol)::Symbol
+
+    (
+        qty_1 ∈ QTY_GLOBAL_LIST ||
+        throw(ArgumentError("ratio: `qty_1` must be one of the quantities in QTY_GLOBAL_LIST, \
+        but I got `qty_1` = :$(qty_1)"))
+    )
+
+    (
+        qty_2 ∈ QTY_GLOBAL_LIST ||
+        throw(ArgumentError("ratio: `qty_2` must be one of the quantities in QTY_GLOBAL_LIST, \
+        but I got `qty_2` = :$(qty_2)"))
+    )
+
+    return Symbol(qty_1, :_, qty_2, :_ratio)
 
 end

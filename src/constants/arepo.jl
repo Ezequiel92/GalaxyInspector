@@ -23,6 +23,8 @@ const HYDROGEN_MASSFRAC = 0.76
 
 """
 Mass of the tracers in internal code units. Its value comes from `All.TargetGasMass = All.TargetGasMassFactor * All.ReferenceGasPartMass` in the code.
+
+It is only printed in the output files (`stdout_n`), as `All.TargetGasMass=3.65456e-06`
 """
 const TRACER_MASS = 3.65456e-06
 
@@ -36,9 +38,18 @@ M. Asplund et al. (2006). *The new solar abundances - Part I: the observations*.
 const SOLAR_METALLICITY = 0.0127
 
 """
-Constant for the initial condition of dust and metals.
+Star formation model parameters
 """
-const C_xd = 0.2835953313674557
+const Cxd   = 0.2836                         # Constant for the initial condition of dust and metals.
+const εff   = 1.0                            # Star formation efficiency per free-fall time
+const αH    = 2.6e-13u"cm^3 * s^-1"          # Case B recombination coefficient at T = 10^4 K
+const Rd    = 3.5e-17u"cm^3 * s^-1"          # H2 formation rate on dust grains at T = 100 K
+const Cdg   = 2.4634u"mp^-1 * Myr^-1 * cm^3" # Dust growth coefficient
+const σion  = 6.3e-18u"cm^2"                 # Hydrogen ionization cross section at the Lyman limit
+const σdiss = 2.1e-19u"cm^2"                 # H2 dissociation cross section in the Lyman-Werner band
+const σd    = 4.0e-21u"cm^2"                 # Effective dust cross-section per hydrogen atom
+const ωH2   = 0.2                            # Constant for the H2 self-shielding factor
+const xnf   = 5.0e14u"cm^-2"                 # H2 self-shielding column density factor
 
 """
 Cosmological threshold density above which the gas cells/particles can turn into stars.
@@ -231,217 +242,21 @@ List of element indices above helium.
 """
 const METAL_LIST = [3, 4, 5, 6, 7, 8, 9, 10]
 
-#############################################################
-# Quantities that can be in a snapshot or group catalog file
-#############################################################
-
 """
-Dimensional properties for the quantities in the code.
+ODE index corresponding to each gas phase in our star formation model.
+
+  * Ionized gas fraction:   fi(t) = Mi(t) / MC --> data_dict[:gas]["FRAC"][1, :]
+  * Atomic gas fraction:    fa(t) = Ma(t) / MC --> data_dict[:gas]["FRAC"][2, :]
+  * Molecular gas fraction: fm(t) = Mm(t) / MC --> data_dict[:gas]["FRAC"][3, :]
+  * Stellar fraction:       fs(t) = Ms(t) / MC --> data_dict[:gas]["FRAC"][4, :]
+  * Metal fraction:         fZ(t) = MZ(t) / MC --> data_dict[:gas]["FRAC"][5, :]
+  * Dust fraction:          fd(t) = Md(t) / MC --> data_dict[:gas]["FRAC"][6, :]
 """
-const QUANTITIES = Dict(
-
-    ######################
-    # Snapshot quantities
-    ######################
-
-    "CLKT" => Qty("", Unitful.𝐓, :internal),
-    "GAGE" => Qty("GFM_StellarFormationTime", Unitful.𝐓, :internal),
-    "GME2" => Qty("GFM_Metals", Unitful.NoDims, Unitful.NoUnits),
-    "GMET" => Qty("GFM_Metals", Unitful.NoDims, Unitful.NoUnits),
-    "GZ  " => Qty("GFM_Metallicity", Unitful.NoDims, Unitful.NoUnits),
-    "GZ2 " => Qty("GFM_Metallicity", Unitful.NoDims, Unitful.NoUnits),
-    "ID  " => Qty("ParticleIDs", Unitful.NoDims, Unitful.NoUnits),
-    "PAID" => Qty("ParentID", Unitful.NoDims, Unitful.NoUnits),
-    "TRID" => Qty("TracerID", Unitful.NoDims, Unitful.NoUnits),
-    "MASS" => Qty("Masses", Unitful.𝐌, :internal),
-    "NE  " => Qty("ElectronAbundance", Unitful.NoDims, Unitful.NoUnits),
-    "NH  " => Qty("NeutralHydrogenAbundance", Unitful.NoDims, Unitful.NoUnits),
-    "NHP " => Qty("IonizedHydrogenAbundance", Unitful.NoDims, Unitful.NoUnits),
-    "POS " => Qty("Coordinates", Unitful.𝐋, :internal),
-    "PRES" => Qty("Pressure", Unitful.𝐌 * Unitful.𝐋^-1 * Unitful.𝐓^-2, :internal),
-    "RHO " => Qty("Density", Unitful.𝐌 * Unitful.𝐋^-3, :internal),
-    "SFR " => Qty("StarFormationRate", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun * yr^-1"),
-    "SOFT" => Qty("Softenings", Unitful.𝐋, :internal),
-    "TEMP" => Qty("Temperature", Unitful.𝚯, u"K"),
-    "U   " => Qty("InternalEnergy", Unitful.𝐋^2 * Unitful.𝐓^-2, :internal),
-    "VEL " => Qty("Velocities", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
-    "TSTP" => Qty("TimeStep", Unitful.𝐓, :internal),
-    "POT " => Qty("Potential", Unitful.𝐋^2 * Unitful.𝐓^-2, :pot),
-
-    #####################
-    # sfr.txt quantities
-    #####################
-
-    # Time or scale factor
-    "SFC1" => Qty("", Unitful.𝐓, :internal),
-    # Total stellar mass to be formed prior to stochastic sampling
-    "SFC2" => Qty("", Unitful.𝐌, :internal),
-    # Instantaneous star formation rate of all cells
-    "SFC3" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun * yr^-1"),
-    # Instantaneous star formation rate of active cells
-    "SFC4" => Qty("", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun * yr^-1"),
-    # Total mass in stars formed after stochastic sampling
-    "SFC5" => Qty("", Unitful.𝐌, :internal),
-    # Cumulative stellar mass formed
-    "SFC6" => Qty("", Unitful.𝐌, :internal),
-
-    ####################
-    # EL_SFR quantities
-    ####################
-
-    # Integration time, for gas cells and stellar particles
-    "ODIT" => Qty("ODE_IntegrationTime", Unitful.𝐓, u"Myr"),
-    # Scale factor, for gas cells and stellar particles
-    "PARA" => Qty("ODE_ParameterA", Unitful.NoDims, Unitful.NoUnits),
-    # UVB photoionization rate, for gas cells and stellar particles
-    "PARU" => Qty("ODE_ParameterUVB", Unitful.𝐓^-1, u"Myr^-1"),
-    # LWB photodissociation rate, for gas cells and stellar particles
-    "PARL" => Qty("ODE_ParameterLWB", Unitful.𝐓^-1, u"Myr^-1"),
-    # Star formation time parameter, for gas cells and stellar particles
-    "TAUS" => Qty("ODE_TauS", Unitful.𝐓, u"Myr"),
-    # Gas density, for gas cells and stellar particles
-    "RHOC" => Qty("ODE_ParameterCellDensity", Unitful.𝐋^-3, u"cm^-3"),
-    # Gas metallicity, for gas cells and stellar particles
-    "PARZ" => Qty("ODE_ParameterMetallicity", Unitful.NoDims, Unitful.NoUnits),
-    # Column height, for gas cells and stellar particles
-    "PARH" => Qty("ODE_ParameterColumnHeight", Unitful.𝐋, u"cm"),
-    # Photodissociation parameter, for gas cells and stellar particles
-    "ETAD" => Qty("ODE_ParameterEtaD", Unitful.NoDims, Unitful.NoUnits),
-    # Photoionization parameter, for gas cells and stellar particles
-    "ETAI" => Qty("ODE_ParameterEtaI", Unitful.NoDims, Unitful.NoUnits),
-    # Mass recycling parameter, for gas cells and stellar particles
-    "PARR" => Qty("ODE_ParameterR", Unitful.NoDims, Unitful.NoUnits),
-    # Metallicity of the supernova ejecta, for gas cells and stellar particles
-    "PAZN" => Qty("ODE_ParameterZsn", Unitful.NoDims, Unitful.NoUnits),
-    # Gas fractions, for gas cells and stellar particles
-    "FRAC" => Qty("ODE_Fractions", Unitful.NoDims, Unitful.NoUnits),
-    # Star formation flag, for gas cells
-    "SFFL" => Qty("ODE_SfFlag", Unitful.NoDims, Unitful.NoUnits),
-    # Cold gas fraction, for gas cells and stellar particles
-    "COLF" => Qty("ODE_ColdMassFrac", Unitful.NoDims, Unitful.NoUnits),
-    # Parent gas mass (at the moment of star formation), for stellar particles
-    "GMAS" => Qty("ODE_GasMass", Unitful.𝐌, :internal),
-    # Parent SFR (at the moment of star formation), for stellar particles
-    "GSFR" => Qty("ODE_GasSFR", Unitful.𝐌 * Unitful.𝐓^-1, u"Msun * yr^-1"),
-    # Parent gas pressure (at the moment of star formation), for stellar particles
-    "GPRE" => Qty("ODE_GasPressure", Unitful.𝐌 * Unitful.𝐋^-1 * Unitful.𝐓^-2, :internal),
-    # Parent position (at the moment of star formation), for stellar particles
-    "GPOS" => Qty("ODE_GasPosition", Unitful.𝐋, :internal),
-    # Parent velocity (at the moment of star formation), for stellar particles
-    "GVEL" => Qty("ODE_GasVelocity", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
-
-    ##############################
-    # Halo (FoF group) quantities
-    ##############################
-
-    "G_CM"        => Qty("GroupCM", Unitful.𝐋, :internal),
-    "G_LenType"   => Qty("GroupLenType", Unitful.NoDims, Unitful.NoUnits),
-    "G_Mass"      => Qty("GroupMass", Unitful.𝐌, :internal),
-    "G_MassType"  => Qty("GroupMassType", Unitful.𝐌, :internal),
-    "G_Nsubs"     => Qty("GroupNsubs", Unitful.NoDims, Unitful.NoUnits),
-    "G_Pos"       => Qty("GroupPos", Unitful.𝐋, :internal),
-    "G_M_Crit200" => Qty("Group_M_Crit200", Unitful.𝐌, :internal),
-    "G_R_Crit200" => Qty("Group_R_Crit200", Unitful.𝐋, :internal),
-    "G_Vel"       => Qty("GroupVel", Unitful.𝐋 * Unitful.𝐓^-1, :gvel),
-
-    ###############################
-    # Subhalo (subfind) quantities
-    ###############################
-
-    "S_CM"          => Qty("SubhaloCM", Unitful.𝐋, :internal),
-    "S_HalfmassRad" => Qty("SubhaloHalfmassRad", Unitful.𝐋, :internal),
-    "S_LenType"     => Qty("SubhaloLenType", Unitful.NoDims, Unitful.NoUnits),
-    "S_Mass"        => Qty("SubhaloMass", Unitful.𝐌, :internal),
-    "S_MassType"    => Qty("SubhaloMassType", Unitful.𝐌, :internal),
-    "S_Pos"         => Qty("SubhaloPos", Unitful.𝐋, :internal),
-    "S_Vel"         => Qty("SubhaloVel", Unitful.𝐋 * Unitful.𝐓^-1, u"km * s^-1"),
-)
-
-####################
-# EL_SFR quantities
-####################
-
-"""
-List of symbols for every EL_SFR quantity associated with a gas cell.
-"""
-const EL_SFR_GAS_QUANTITIES = [
-    Symbol(:ode_gas_, quantity) for
-    quantity in [
-        :integration_time,        # Integration time
-        :parameter_a,             # Scale factor
-        :parameter_uvb,           # UVB photoionization rate
-        :parameter_lwb,           # LWB photodissociation rate
-        :tau_s,                   # Star formation time parameter
-        :parameter_cell_density,  # Gas density
-        :parameter_metallicity,   # Gas metallicity
-        :parameter_column_height, # Column height
-        :parameter_eta_d,         # Photodissociation parameter
-        :parameter_eta_i,         # Photoionization parameter
-        :parameter_r,             # Mass recycling parameter
-        :parameter_zsn,           # Metallicity of the supernova ejecta
-        :fractions,               # Gas fractions
-        :sf_flag,                 # Star formation flag
-        :cold_mass_frac,          # Cold gas fraction
-    ]
-]
-
-"""
-List of symbols for every EL_SFR quantity associated with a stellar particle.
-
-All this values are of the parent gas cell, at birth time.
-"""
-const EL_SFR_STELLAR_QUANTITIES = [
-    Symbol(:ode_stellar_, quantity) for
-    quantity in [
-        :integration_time,        # Integration time
-        :parameter_a,             # Scale factor (birth time)
-        :parameter_uvb,           # UVB photoionization rate
-        :parameter_lwb,           # LWB photodissociation rate
-        :tau_s,                   # Star formation time parameter
-        :parameter_cell_density,  # Gas density
-        :parameter_metallicity,   # Gas metallicity
-        :parameter_column_height, # Column height
-        :parameter_eta_d,         # Photodissociation parameter
-        :parameter_eta_i,         # Photoionization parameter
-        :parameter_r,             # Mass recycling parameter
-        :parameter_zsn,           # Metallicity of the supernova ejecta
-        :fractions,               # Gas fractions
-        :cold_mass_frac,          # Cold gas fraction
-        :gas_mass,                # Gas mass
-        :gas_sfr,                 # SFR
-        :gas_pressure,            # Gas pressure
-        :gas_position,            # Position
-        :gas_velocity,            # Velocity
-    ]
-]
-
-"""
-List of symbols for every EL_SFR quantity.
-"""
-const EL_SFR_QUANTITIES = vcat(EL_SFR_STELLAR_QUANTITIES, EL_SFR_GAS_QUANTITIES)
-
-"""
-Dictionary mapping each EL_SFR quantity symbol with its [`QUANTITIES`](@ref) key.
-"""
-const EL_SFR_KEYS = Dict(
-    :integration_time        => "ODIT",
-    :parameter_a             => "PARA",
-    :parameter_uvb           => "PARU",
-    :parameter_lwb           => "PARL",
-    :tau_s                   => "TAUS",
-    :parameter_cell_density  => "RHOC",
-    :parameter_metallicity   => "PARZ",
-    :parameter_column_height => "PARH",
-    :parameter_eta_d         => "ETAD",
-    :parameter_eta_i         => "ETAI",
-    :parameter_r             => "PARR",
-    :parameter_zsn           => "PAZN",
-    :fractions               => "FRAC",
-    :sf_flag                 => "SFFL",
-    :cold_mass_frac          => "COLF",
-    :gas_mass                => "GMAS",
-    :gas_sfr                 => "GSFR",
-    :gas_pressure            => "GPRE",
-    :gas_position            => "GPOS",
-    :gas_velocity            => "GVEL",
+const SFM_IDX = Dict(
+    :ode_ionized   => 1,
+    :ode_atomic    => 2,
+    :ode_molecular => 3,
+    :ode_stellar   => 4,
+    :ode_metals    => 5,
+    :ode_dust      => 6,
 )

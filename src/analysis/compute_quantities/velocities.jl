@@ -31,7 +31,7 @@ function computeVcm(
     # Check for missing data
     if any(isempty, [velocities, masses])
 
-        !logging[] || @info("computeVcm: The velocities or masses are empty, so I will return 0s")
+        logging[] && @warn("computeVcm: The velocities or masses are empty, so I will return 0s")
 
         return zeros(typeof(1.0u"km * s^-1"), 3)
 
@@ -85,8 +85,8 @@ function computeVcirc(
     # Check for missing data
     if isempty(rs)
         (
-            !logging[] ||
-            @info("computeVcirc: The radial distances are empty, so I will return empty arrays")
+            logging[] &&
+            @warn("computeVcirc: The radial distances are empty, so I will return empty arrays")
         )
         return rs, Unitful.Velocity[]
     end
@@ -102,7 +102,7 @@ function computeVcirc(
     # `vcirc` the circular velocity of each cell/particle, in the order they have in the snapshot
     invpermute!(M, sortperm(rs))
 
-    !logging[] || @info("computeVcirc: The circular velocity will be computed using $(snap_types)")
+    logging[] && @info("computeVcirc: The circular velocity will be computed using $(snap_types)")
 
     vcirc = [iszero(r) ? 0.0u"km * s^-1" : sqrt(Unitful.G * m / r) for (m, r) in zip(M, rs)]
 
@@ -329,8 +329,8 @@ function computeTotalAngularMomentum(
     # Check for missing data
     if any(isempty, [positions, velocities, masses])
         (
-            !logging[] ||
-            @info("computeTotalAngularMomentum: The angular momentum of an empty dataset is \
+            logging[] &&
+            @warn("computeTotalAngularMomentum: The angular momentum of an empty dataset is \
             not defined, so I will return the z axis, [0.0, 0.0, 1.0]")
         )
         return [0.0, 0.0, 1.0]
@@ -428,8 +428,8 @@ function computeSpinParameter(
 
     if iszero(M)
         (
-            !logging[] ||
-            @info("computeSpinParameter: The total mass within radius $(R) is 0, so \
+            logging[] &&
+            @warn("computeSpinParameter: The total mass within radius $(R) is 0, so \
             the spin parameter will be NaN")
         )
         return NaN
@@ -517,7 +517,11 @@ end
 ###################
 
 @doc raw"""
-    computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Velocity}
+    computeVcm(
+        data_dict::Dict,
+        halo_idx::Int,
+        subhalo_rel_idx::Int,
+    )::Vector{<:Unitful.Velocity}
 
 Return the velocity of the center of mass of a given halo or subhalo.
 
@@ -528,27 +532,27 @@ Return the velocity of the center of mass of a given halo or subhalo.
 
       + `:group`   => ["G\_Nsubs", "G\_Vel"]
       + `:subhalo` => ["S\_Vel"]
-  - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
-
-      + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If set to `0`, the halo velocity is returned.
+  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If set to `0`, the halo potential minimum is returned.
 
 # Returns
 
   - The velocity of the center of mass.
 """
-function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Velocity}
+function computeVcm(
+    data_dict::Dict,
+    halo_idx::Int,
+    subhalo_rel_idx::Int,
+)::Vector{<:Unitful.Velocity}
 
     # If there are no subfind data, return 0s
-    if ismissing(data_dict[:gc_data].path) || !isSubfindActive(data_dict[:gc_data].path)
+    if !isSubfindActive(data_dict[:gc_data].path)
 
-        !logging[] || @info("computeVcm: There is no subfind data, so I will return 0s")
+        logging[] && @warn("computeVcm: There is no subfind data, so I will return 0s")
 
         return zeros(typeof(1.0u"km * s^-1"), 3)
 
     end
-
-    halo_idx, subhalo_rel_idx = subfind_idx
 
     # Load the necessary data
     n_subhalos_in_halo = data_dict[:group]["G_Nsubs"]
@@ -560,8 +564,8 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
 
     if iszero(n_halos) || any(isempty, [n_subhalos_in_halo, g_vel, s_vel])
         (
-            !logging[] ||
-            @info("computeVcm: There are no halos in $(data_dict[:gc_data].path), \
+            logging[] &&
+            @warn("computeVcm: There are no halos in $(data_dict[:gc_data].path), \
             so I will return 0s")
         )
         return zeros(typeof(1.0u"km * s^-1"), 3)
@@ -581,8 +585,8 @@ function computeVcm(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitf
 
     if iszero(n_subfinds)
         (
-            !logging[] ||
-            @info("computeVcm: There are 0 subhalos in the FoF group $(halo_idx) from \
+            logging[] &&
+            @warn("computeVcm: There are 0 subhalos in the FoF group $(halo_idx) from \
             $(data_dict[:gc_data].path), so the velocity will be the halo velocity")
         )
         return g_vel[:, halo_idx]
@@ -630,9 +634,9 @@ Return the velocity of the center of mass of a given subhalo.
 function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Velocity}
 
     # If there are no subfind data, return 0s
-    if ismissing(data_dict[:gc_data].path) || !isSubfindActive(data_dict[:gc_data].path)
+    if !isSubfindActive(data_dict[:gc_data].path)
 
-        !logging[] || @info("computeVcm: There is no subfind data, so I will return 0s")
+        logging[] && @warn("computeVcm: There is no subfind data, so I will return 0s")
 
         return zeros(typeof(1.0u"km * s^-1"), 3)
 
@@ -645,8 +649,8 @@ function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Vel
 
     if iszero(n_subgroups_total) || isempty(s_vel)
         (
-            !logging[] ||
-            @info("computeVcm: There are no subhalos in $(data_dict[:gc_data].path), \
+            logging[] &&
+            @warn("computeVcm: There are no subhalos in $(data_dict[:gc_data].path), \
             so I will return 0s")
         )
         return zeros(typeof(1.0u"km * s^-1"), 3)
@@ -673,15 +677,15 @@ Compute a characteristic velocity for the system.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present, depending on the value of `cm_type`:
 
-      + If `cm_type` == :global_cm:
+      + If `cm_type` == :all:
           * ["VEL ", "MASS"] for every cell/particle type in the snapshot.
-      + If `cm_type` ∈ keys(`PARTICLE_INDEX`):
+      + If haskey(`PARTICLE_INDEX`, `cm_type`):
           * `cm_type` => ["VEL ", "MASS"].
       + If `cm_type` == :zero:
-          * No blocks are required.
+          * No blocks are required
   - `cm_type::Symbol`: It can be:
 
-      + `:global_cm`   -> Velocity of the center of mass of the whole system.
+      + `:all`         -> Velocity of the center of mass of the whole system.
       + `:{component}` -> Velocity of the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc). It can be any of the keys of [`PARTICLE_INDEX`](@ref).
       + `:zero`        -> 0 velocity.
 
@@ -691,7 +695,7 @@ Compute a characteristic velocity for the system.
 """
 function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity}
 
-    if cm_type == :global_cm
+    if cm_type == :all
 
         snap_types = snapshotTypes(data_dict)
 
@@ -705,15 +709,15 @@ function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity
 
         return computeVcm(velocities, masses)
 
-    elseif cm_type ∈ keys(PARTICLE_INDEX)
+    elseif haskey(PARTICLE_INDEX, cm_type)
 
         velocities = data_dict[cm_type]["VEL "]
         masses     = data_dict[cm_type]["MASS"]
 
         if any(isempty, [velocities, masses])
             (
-                !logging[] ||
-                @info("computeVcm: The velocities or masses are empty, so I will return 0s")
+                logging[] &&
+                @warn("computeVcm: The velocities or masses are empty, so I will return 0s")
             )
             return zeros(typeof(1.0u"km * s^-1"), 3)
         end
@@ -726,7 +730,7 @@ function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity
 
     end
 
-    throw(ArgumentError("computeVcm: `cm_type` can only be :global_cm, :zero or one of the keys of \
+    throw(ArgumentError("computeVcm: `cm_type` can only be :all, :zero or one of the keys of \
     `PARTICLE_INDEX` but I got :$(cm_type)"))
 
 end
@@ -753,7 +757,7 @@ where $r$ is the radial distance of the cell/particle, and $M(r)$ is the total m
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["POS ", "MASS"].
-  - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
 # Returns
 
@@ -774,6 +778,8 @@ function computeVcirc(
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
+    elseif component == :Z_stellar
+        type = :stellar
     else
         type = :gas
     end
@@ -836,7 +842,7 @@ in order to distinguish between inflows ($v^*_z < 0$) and outflows ($v^*_z > 0$)
       + `:radial`     -> Stellar radial speed ($v_r$).
       + `:tangential` -> Stellar tangential speed ($v_\theta$).
       + `:zstar`      -> Stellar speed in the z direction, computed as $v_z \, \mathrm{sign}(z)$.
-  - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
 # Returns
 
@@ -855,6 +861,8 @@ function computeVpolar(
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
+    elseif component == :Z_stellar
+        type = :stellar
     else
         type = :gas
     end
@@ -882,7 +890,7 @@ Compute the specific angular momentum in the z direction with respect to the ori
 
       + `cell/particle type` => ["POS ", "VEL "].
 
-  - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
 # Returns
 
@@ -900,6 +908,8 @@ function computeSpecificAngularMomentum(
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
+    elseif component == :Z_stellar
+        type = :stellar
     else
         type = :gas
     end
@@ -926,7 +936,7 @@ Compute the angular momentum in the z direction with respect to the origin, for 
     This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
-  - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
 # Returns
 
@@ -944,6 +954,8 @@ function computeAngularMomentum(
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
+    elseif component == :Z_stellar
+        type = :stellar
     else
         type = :gas
     end
@@ -953,7 +965,7 @@ function computeAngularMomentum(
     velocities = data_dict[type]["VEL "]
     masses     = data_dict[type]["MASS"]
 
-    return return computeAngularMomentum(positions, velocities, masses)
+    return computeAngularMomentum(positions, velocities, masses)
 
 end
 
@@ -989,7 +1001,7 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
     masses     = vcat([data_dict[st]["MASS"] for st in snap_types]...)
 
     (
-        !logging[] ||
+        logging[] &&
         @info("computeGlobalAngularMomentum: The angular momentum will be computed using \
         $(components)")
     )
@@ -1037,7 +1049,7 @@ is the circular velocity.
     This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
-  - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `R::Unitful.Length=DISK_R`: Characteristic radius.
 
 # Returns
@@ -1061,6 +1073,8 @@ function computeSpinParameter(data_dict::Dict, component::Symbol; R::Unitful.Len
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
+    elseif component == :Z_stellar
+        type = :stellar
     else
         type = :gas
     end
@@ -1070,7 +1084,7 @@ function computeSpinParameter(data_dict::Dict, component::Symbol; R::Unitful.Len
     velocities = data_dict[type]["VEL "]
     masses     = data_dict[type]["MASS"]
 
-    return return computeSpinParameter(positions, velocities, masses; R)
+    return computeSpinParameter(positions, velocities, masses; R)
 
 end
 
@@ -1113,7 +1127,7 @@ is the circular velocity.
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
-  - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `R::Unitful.Length=DISK_R`: Characteristic radius.
 
 # Returns
@@ -1140,7 +1154,7 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R)::
     masses     = vcat([data_dict[component]["MASS"] for component in snap_types]...)
 
     (
-        !logging[] ||
+        logging[] &&
         @info("computeGlobalSpinParameter: The spin parameter will be computed using $(snap_types)")
     )
 
@@ -1174,7 +1188,7 @@ where $r$ is the radial distance of the particle, and $M(r)$ is the total mass w
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["VEL", "POS ", "MASS"].
-  - `component::Symbol`: Target component. It can be one of the elements of [`COMPONENTS`](@ref).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
 # Returns
 

@@ -30,8 +30,8 @@ function computeDistance(
 
     if isempty(positions)
         (
-            !logging[] ||
-            @info("computeDistance: `positions` is empty, so I will return an empty vector")
+            logging[] &&
+            @warn("computeDistance: `positions` is empty, so I will return an empty vector")
         )
         return positions
     end
@@ -76,8 +76,8 @@ function computeCenterOfMass(
     # Check for missing data
     if any(isempty, [positions, masses])
         (
-            !logging[] ||
-            @info("computeCenterOfMass: `positions` and/or `masses` are empty, so I will return \
+            logging[] &&
+            @warn("computeCenterOfMass: `positions` and/or `masses` are empty, so I will return \
             the origin")
         )
         return zeros(typeof(1.0u"kpc"), 3)
@@ -93,14 +93,135 @@ function computeCenterOfMass(
 
 end
 
+"""
+    computeAMRotationMatrix(
+        positions::Matrix{<:Unitful.Length},
+        velocities::Matrix{<:Unitful.Velocity},
+        masses::Vector{<:Unitful.Mass},
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix that will turn the total angular momentum into the z axis, when view as an active (alibi) transformation.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computeAMRotationMatrix(
+    positions::Matrix{<:Unitful.Length},
+    velocities::Matrix{<:Unitful.Velocity},
+    masses::Vector{<:Unitful.Mass},
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    # Check for missing data
+    if size(positions, 2) < 2
+        (
+            logging[] &&
+            @warn("computeAMRotationMatrix: I got less than two valid positions. I cannot compute \
+            the angular momentum, so I will return the identity matrix")
+        )
+        return I
+    end
+
+    # Compute the total angular momentum
+    L = computeTotalAngularMomentum(positions, velocities, masses)
+
+    # Rotation vector
+    n = [L[2], -L[1], 0.0]
+
+    # Angle of rotation
+    θ = acos(L[3])
+
+    return Matrix{Float64}(AngleAxis(θ, n...))
+
+end
+
+"""
+    computePARotationMatrix(
+        positions::Matrix{<:Unitful.Length},
+        velocities::Matrix{<:Unitful.Velocity},
+        masses::Vector{<:Unitful.Mass},
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix that will turn the principal axis into the new coordinate system, when view as an passive (alias) transformation.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computePARotationMatrix(
+    positions::Matrix{<:Unitful.Length},
+    velocities::Matrix{<:Unitful.Velocity},
+    masses::Vector{<:Unitful.Mass},
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    # Check for missing data
+    if size(positions, 2) < 2
+        (
+            logging[] &&
+            @warn("computePARotationMatrix: I got less than two valid positions. I cannot compute \
+            the principal axis, so I will return the identity matrix")
+        )
+        return I
+    end
+
+    # Center the data (subtract the mean of each row)
+    mean_point = mean(positions, dims=2)
+    centered_pos = positions .- mean_point
+
+    # Compute the covariance matrix (principal axis operator)
+    R = ustrip.(cov(centered_pos; dims=2))
+
+    # Reverse the order of the eigenvectors, making the last column the eigenvector
+    # with the largest eigenvalue, which should correspond to the new z axis
+    pa = eigvecs(R)[:, end:-1:1]
+
+    # Compute the total angular momentum
+    L = computeTotalAngularMomentum(positions, velocities, masses; normal=true)
+
+    # 3rd principal axis ≡ new z axis
+    pa_z = pa[:, 3]
+
+    # Rotate the principal axis to align the third component with the angular momentum
+    θ = acos(L ⋅ pa_z)
+    n = cross(pa_z, L)
+    aligned_pa = AngleAxis(θ, n...) * pa
+
+    # The rotation matrix has the principal axis as rows
+    rotation_matrix = aligned_pa'
+
+    if det(rotation_matrix) < 0.0
+        # If the determinant is < 0, that means that the chosen principal axis for the x and y
+        # directions form a left-handed Cartesian reference system (x × y = -z). When applying
+        # this as a rotation, the z axis will be flipped. So, in this case we swap the x and y
+        # axis to get a right-handed Cartesian reference system (x × y = z) and generate the
+        # correct rotation
+        rotation_matrix[[1, 2], :] = rotation_matrix[[2, 1], :]
+    end
+
+    return Matrix{Float64}(rotation_matrix)
+
+end
+
 ###################
 # Derive functions
 ###################
 
 """
-    computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
+    computeCenterOfMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Length}
 
-Compute the center of mass of the whole system.
+Compute the center of mass of `component`.
 
 # Arguments
 
@@ -108,34 +229,56 @@ Compute the center of mass of the whole system.
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["POS ", "MASS"]
+  - `component::Symbol`: Target component. The options are:
+
+      + `:all`         -> Every component present in `data_dict`.
+      + `:{component}` -> Any of the keys of [`PARTICLE_INDEX`](@ref), if present in `data_dict`.
 
 # Returns
 
   - The center of mass.
 """
-function computeGlobalCenterOfMass(data_dict::Dict)::Vector{<:Unitful.Length}
+function computeCenterOfMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Length}
 
-    snap_types = snapshotTypes(data_dict)
+    if component == :all
 
-    # Remove components with no position or mass data
-    filter!(st -> !isempty(data_dict[st]["POS "]), snap_types)
-    filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
+        snap_types = snapshotTypes(data_dict)
 
-    # Concatenate the position and masses of all the cells and particles in the system
-    positions = hcat([data_dict[st]["POS "] for st in snap_types]...)
-    masses    = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+        # Remove components with no position or mass data
+        filter!(st -> !isempty(data_dict[st]["POS "]), snap_types)
+        filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
-    (
-        !logging[] ||
-        @info("computeGlobalCenterOfMass: The center of mass will be computed using $(snap_types)")
-    )
+        # Concatenate the position and masses of all the cells and particles in the system
+        positions = hcat([data_dict[st]["POS "] for st in snap_types]...)
+        masses    = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+
+        (
+            logging[] &&
+            @info("computeCenterOfMass: The center of mass will be computed using $(snap_types)")
+        )
+
+    elseif component ∈ snapshotTypes(data_dict)
+
+        positions = data_dict[component]["POS "]
+        masses    = data_dict[component]["MASS"]
+
+    else
+
+        throw(ArgumentError("computeCenterOfMass: `component` can only be :all or one of the \
+        keys of `PARTICLE_INDEX` present within `data_dict`, but I got :$(z_axis)"))
+
+    end
 
     return computeCenterOfMass(positions, masses)
 
 end
 
 @doc raw"""
-    computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
+    computeCenter(
+        data_dict::Dict,
+        halo_idx::Int,
+        subhalo_rel_idx::Int,
+    )::Vector{<:Unitful.Length}
 
 Return the 3D position of the potential minimum for a halo or subhalo.
 
@@ -146,27 +289,27 @@ Return the 3D position of the potential minimum for a halo or subhalo.
 
       + `:group`   => ["G\_Nsubs", "G\_Pos"]
       + `:subhalo` => ["S\_Pos"]
-  - `subfind_idx::NTuple{2,Int}`: Tuple with two elements:
-
-      + Index of the target halo (FoF group). Starts at 1.
-      + Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If set to `0`, the halo potential minimum is returned.
+  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If set to `0`, the halo potential minimum is returned.
 
 # Returns
 
   - The 3D position of the potential minimum.
 """
-function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Unitful.Length}
+function computeCenter(
+    data_dict::Dict,
+    halo_idx::Int,
+    subhalo_rel_idx::Int,
+)::Vector{<:Unitful.Length}
 
     # If there are no subfind data, return the origin
-    if ismissing(data_dict[:gc_data].path) || !isSubfindActive(data_dict[:gc_data].path)
+    if !isSubfindActive(data_dict[:gc_data].path)
 
-        !logging[] || @info("computeCenter: There is no subfind data, so I will return the origin")
+        logging[] && @warn("computeCenter: There is no subfind data, so I will return the origin")
 
         return zeros(typeof(1.0u"kpc"), 3)
 
     end
-
-    halo_idx, subhalo_rel_idx = subfind_idx
 
     # Load the necessary data
     n_subhalos_in_halo = data_dict[:group]["G_Nsubs"]
@@ -178,7 +321,7 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
 
     if iszero(n_halos) || any(isempty, [n_subhalos_in_halo, g_pos, s_pos])
         (
-            !logging[] ||
+            logging[] &&
             @info("computeCenter: There are no halos in $(data_dict[:gc_data].path), \
             so I will return the origin")
         )
@@ -200,8 +343,8 @@ function computeCenter(data_dict::Dict, subfind_idx::NTuple{2,Int})::Vector{<:Un
     if iszero(n_subfinds)
 
         (
-            !logging[] ||
-            @info("computeCenter: There are 0 subhalos in the FoF group $(halo_idx) from \
+            logging[] &&
+            @warn("computeCenter: There are 0 subhalos in the FoF group $(halo_idx) from \
             $(data_dict[:gc_data].path), so the center will be the halo potential minimum")
         )
 
@@ -251,9 +394,9 @@ Return the 3D position of the potential minimum for a given subhalo.
 function computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Length}
 
     # If there are no subfind data, return the origin
-    if ismissing(data_dict[:gc_data].path) || !isSubfindActive(data_dict[:gc_data].path)
+    if !isSubfindActive(data_dict[:gc_data].path)
 
-        !logging[] || @info("computeCenter: There is no subfind data, so I will return the origin")
+        logging[] && @warn("computeCenter: There is no subfind data, so I will return the origin")
 
         return zeros(typeof(1.0u"kpc"), 3)
 
@@ -287,15 +430,15 @@ Compute a characteristic center of mass for the system.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present, depending on the value of `cm_type`:
 
-      + If `cm_type` == `:global_cm`:
-          - ["POS ", "MASS"] for every cell/particle type in the snapshot (see [`computeGlobalCenterOfMass`](@ref)).
-      + If `cm_type` ∈ `keys(PARTICLE_INDEX)`:
+      + If `cm_type` == `:all`:
+          - ["POS ", "MASS"] for every cell/particle type in the snapshot (see [`computeCenterOfMass`](@ref)).
+      + If haskey(`PARTICLE_INDEX`, `cm_type`):
           - `cm_type` => ["POS ", "MASS"].
       + If `cm_type` == `:zero`:
           - No blocks are required.
   - `cm_type::Symbol`: It can be:
 
-      + `:global_cm`   -> Center of mass of the whole system.
+      + `:all`         -> Center of mass of the whole system.
       + `:{component}` -> Center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc). It can be any of the keys of [`PARTICLE_INDEX`](@ref).
       + `:zero`        -> Origin.
 
@@ -305,34 +448,176 @@ Compute a characteristic center of mass for the system.
 """
 function computeCenter(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Length}
 
-    if cm_type == :global_cm
+    cm_type == :zero && return zeros(typeof(1.0u"kpc"), 3)
 
-        return computeGlobalCenterOfMass(data_dict)
+    return computeCenterOfMass(data_dict, cm_type)
 
-    elseif cm_type ∈ keys(PARTICLE_INDEX)
+end
 
-        positions = data_dict[cm_type]["POS "]
-        masses    = data_dict[cm_type]["MASS"]
+"""
+    computeXYDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Length}
 
-        if any(isempty, [positions, masses])
-            (
-                !logging[] ||
-                @info("computeCenter: `positions` and/or `masses` are empty, so I will return \
-                the origin")
-            )
-            return zeros(typeof(1.0u"kpc"), 3)
-        end
+Compute the projected distance of each cell/particle to the origin, in the xy plane.
 
-        return computeCenterOfMass(positions, masses)
+# Arguments
 
-    elseif cm_type == :zero
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
-        return zeros(typeof(1.0u"kpc"), 3)
+      + `cell/particle type` => ["POS "].
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+
+# Returns
+
+  - The projected distance of each cell/particles to the origin.
+"""
+function computeXYDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Length}
+
+    if component ∉ COMPONENTS
+        throw(ArgumentError("computeXYDistance: `component` can only be one of the elements \
+        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+    end
+
+    if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
+        type = component
+    elseif component == :Z_stellar
+        type = :stellar
+    else
+        type = :gas
+    end
+
+    positions = data_dict[type]["POS "]
+
+    if isempty(positions)
+        (
+            logging[] &&
+            @warn("computeXYDistance: The `positions` of $(type) are empty, so I will return an \
+            empty array")
+        )
+        return Unitful.Length[]
+    end
+
+    return computeDistance(positions[1:2, :])
+
+end
+
+"""
+    computeRadialDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Length}
+
+Compute the distance of each cell/particle to the origin.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
+
+      + `cell/particle type` => ["POS "].
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+
+# Returns
+
+  - The distance of each cell/particles to the origin.
+"""
+function computeRadialDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Length}
+
+    if component ∉ COMPONENTS
+        throw(ArgumentError("computeRadialDistance: `component` can only be one of the elements \
+        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+    end
+
+    if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
+        type = component
+    elseif component == :Z_stellar
+        type = :stellar
+    else
+        type = :gas
+    end
+
+    positions = data_dict[type]["POS "]
+
+    if isempty(positions)
+        (
+            logging[] &&
+            @warn("computeRadialDistance: The `positions` of $(type) are empty, so I will return \
+            an empty array")
+        )
+        return Unitful.Length[]
+    end
+
+    return computeDistance(positions)
+
+end
+
+@doc raw"""
+    findStellarHalo(
+        data_dict::Dict,
+        star_idxs::Vector{Int},
+        real_stars_idxs::Vector{Bool},
+    )::Vector{Int}
+
+Find in which halo of `data_dict` each star in `star_idxs` is located.
+
+For stars with no halo, an index of -1 is given.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present:
+
+      + `:group`   => ["G\_LenType"]
+  - `star_idxs::Vector{Int}`: Indices of the target stars in `data_dict`. The indices are relative to the stars in `data_dict[:stellar]`.
+  - `real_stars_idxs::Vector{Bool}`: Boolean list of stellar particles. True for real stars and false for wind particles. The indices are relative to the list of stars/wind particles in the snapshot (i.e. the output of [`findRealStars`](@ref)).
+
+# Returns
+
+  - A vector with the halo (index starting at 1) of each star (in the order of `star_idxs`).
+"""
+function findStellarHalo(
+    data_dict::Dict,
+    star_idxs::Vector{Int},
+    real_stars_idxs::Vector{Bool},
+)::Vector{Int}
+
+    # Read the number of stars in each halo
+    n_stars_in_halo = data_dict[:group]["G_LenType"][PARTICLE_INDEX[:stellar] + 1, :]
+
+    # Allocate memory
+    halo_idxs = fill(-1, length(star_idxs))
+
+    ################################################################################################
+    # Compute the index of the last real star particle belonging to each halo
+    ################################################################################################
+
+    # Compute the index of the last star/wind particle in each of the halos
+    last_idxs_in_halo = cumsum(n_stars_in_halo)
+
+    for (i, idx) in enumerate(last_idxs_in_halo)
+
+        # Compute the number of wind particles up to the particle with index `idx`
+        n_wind = count(!, real_stars_idxs[1:idx])
+
+        # Shift `last_idxs_in_halo` to ignore wind particles
+        last_idxs_in_halo[i] = idx - n_wind
 
     end
 
-    throw(ArgumentError("computeCenter: `cm_type` can only be :global_cm, :zero or one of the keys \
-    of `PARTICLE_INDEX` but I got :$(cm_type)"))
+    ################################################################################################
+    # Compute in which halo each star is located
+    ################################################################################################
+
+    for (i, star_idx) in enumerate(star_idxs)
+
+        # Find the halo where the target star is located
+        halo_idx = searchsortedfirst(last_idxs_in_halo, star_idx)
+
+        # If the star does not belong to any halo, leave the index as -1
+        halo_idx <= length(last_idxs_in_halo) || continue
+
+        halo_idxs[i] = halo_idx
+
+    end
+
+    return halo_idxs
 
 end
 
@@ -379,6 +664,14 @@ function findStellarHaloSubhalo(
 
     # Read the number of subhalos in each halo
     n_subhalos_in_halo = data_dict[:group]["G_Nsubs"]
+
+    if isempty(n_subhalos_in_halo)
+        (
+            logging[] &&
+            @warn("findStellarHaloSubhalo: There are no subhalos in $(data_dict[:gc_data].path)")
+        )
+        return findStellarHalo(data_dict, star_idxs, real_stars_idxs), fill(-1, length(star_idxs))
+    end
 
     # Read the number of stars in each halo
     n_stars_in_halo = data_dict[:group]["G_LenType"][PARTICLE_INDEX[:stellar] + 1, :]
@@ -484,7 +777,7 @@ function findStellarHaloSubhalo(
                 last_idxs_in_subhalo,
                 n_stars_in_subhalo[first_subhalo_abs_idx:last_subhalo_abs_idx],
             )
-            map!(x -> x + n_star_floor, last_idxs_in_subhalo, last_idxs_in_subhalo)
+            map!(x -> x + n_star_floor, last_idxs_in_subhalo)
 
             # Compute the index of the last real star particle in each of the subhalos of the halo `halo_idx`
             for (i, idx) in enumerate(last_idxs_in_subhalo)
@@ -543,14 +836,15 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     # Read `data_dict`
     ################################################################################################
 
-    # Read the birth time of each star
-    birth_ticks = data_dict[:stellar]["GAGE"]
+    birth_times = computeStellarBirthTime(data_dict)
 
-    if data_dict[:sim_data].cosmological
-        # Go from scale factor to physical time
-        birth_times = computeTime(birth_ticks, data_dict[:snap_data].header)
-    else
-        birth_times = birth_ticks
+    if isempty(birth_times)
+        (
+            logging[] &&
+            @info("locateStellarBirthPlace: The birth times of the stars in snapshot $(snapshot_n) \
+            of simulation $(basename(simulation_path)) are missing. Returning empty arrays")
+        )
+        return Int[], Int[]
     end
 
     # Read the time stamp of each snapshot
@@ -572,7 +866,6 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     # Compute the indices and IDs of the stars born between each of the snapshots
     ################################################################################################
 
-    # Allocate memory
     present_star_idxs = [Int[] for _ in 1:n_snaps]
 
     for (star_idx, birth_time) in pairs(birth_times)
@@ -594,23 +887,22 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     # Read each snapshot and find the halo and subhalos of the stars born there
     ################################################################################################
 
-    # Make a dataframe with the following columns:
-    #   - 1. DataFrame index
-    #   - 2. Number in the file name
-    #   - 3. Scale factor
-    #   - 4. Redshift
-    #   - 5. Physical time
-    #   - 6. Lookback time
-    #   - 7. Snapshot path
-    #   - 8. Group catalog path
+    # Make a dataframe for the simulation with the following columns:
+    #  - DataFrame index         -> :row_id
+    #  - Number in the file name -> :numbers
+    #  - Scale factor            -> :scale_factors
+    #  - Redshift                -> :redshifts
+    #  - Physical time           -> :physical_times
+    #  - Lookback time           -> :lookback_times
+    #  - Snapshot path           -> :snapshot_paths
+    #  - Group catalog path      -> :groupcat_paths
     simulation_table = makeSimulationTable(data_dict[:sim_data].path)
 
-    # Allocate memory
     birth_halo    = fill(-1, length(birth_times))
     birth_subhalo = fill(-1, length(birth_times))
 
     request = Dict(
-        :stellar   => ["ID  "],
+        :stellar => ["ID  "],
         :group   => ["G_Nsubs", "G_LenType"],
         :subhalo => ["S_LenType"],
     )
@@ -682,11 +974,165 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
     end
 
     (
-        allequal(length, [birth_halo, birth_subhalo, birth_ticks]) ||
+        allequal(length, [birth_halo, birth_subhalo, birth_times]) ||
         throw(ArgumentError("locateStellarBirthPlace: The results do not have as many elements as
         there are stars. Something went wrong!"))
     )
 
     return birth_halo, birth_subhalo
+
+end
+
+"""
+    computeAMRotationMatrix(
+        data_dict::Dict,
+        component::Symbol,
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix that will turn the angular momentum of `component` into the z axis, when view as an active (alibi) transformation.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
+
+      + `cell/particle type` => ["POS ", "MASS", "VEL "]
+  - `component::Symbol`: Target component. The options are:
+
+      + `:all`         -> Every component present in `data_dict`.
+      + `:{component}` -> Any of the keys of [`PARTICLE_INDEX`](@ref), if present in `data_dict`.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computeAMRotationMatrix(
+    data_dict::Dict,
+    component::Symbol,
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    if component == :all
+
+        snap_types = snapshotTypes(data_dict)
+
+        # Remove components with no position, velocity or mass data
+        filter!(st -> !isempty(data_dict[st]["POS "]), snap_types)
+        filter!(st -> !isempty(data_dict[st]["VEL "]), snap_types)
+        filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
+
+        # Concatenate the position, velocities, and masses of all the cells and particles in the system
+        positions  = hcat([data_dict[st]["POS "] for st in snap_types]...)
+        velocities = hcat([data_dict[st]["VEL "] for st in snap_types]...)
+        masses     = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+
+        (
+            logging[] &&
+            @info("computeAMRotationMatrix: The angular momentum will be computed using \
+            $(components)")
+        )
+
+    elseif component ∈ snapshotTypes(filtered_dd)
+
+        positions  = filtered_dd[component]["POS "]
+        velocities = filtered_dd[component]["VEL "]
+        masses     = filtered_dd[component]["MASS"]
+
+        (
+            any(isempty, [positions, velocities, masses]) &&
+            throw(ArgumentError("computeAMRotationMatrix: The positions, masses or velocities \
+            for component :$(component) are missing. I cannot compute the rotation matrix"))
+        )
+
+        if any(isempty, [positions, velocities, masses])
+            (
+                logging[] &&
+                @info("computeAMRotationMatrix: The positions, masses or velocities for component \
+                :$(component) are missing. I will return the identity matrix")
+            )
+            return I
+        end
+
+    else
+
+        throw(ArgumentError("computeAMRotationMatrix: `component` can only be :all or one of the \
+        keys of `PARTICLE_INDEX` present within `data_dict`, but I got :$(z_axis)"))
+
+    end
+
+    return computeAMRotationMatrix(positions, velocities, masses)
+
+end
+
+"""
+    computePARotationMatrix(
+        data_dict::Dict,
+        component::Symbol,
+    )::Union{Matrix{Float64},UniformScaling{Bool},Nothing}
+
+Compute the rotation matrix that will turn the principal axis of `component` into the new coordinate system, when view as an passive (alias) transformation.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+    This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
+
+      + `cell/particle type` => ["POS ", "MASS", "VEL "]
+  - `component::Symbol`: Target component. The options are:
+
+      + `:all`         -> Every component present in `data_dict`.
+      + `:{component}` -> Any of the keys of [`PARTICLE_INDEX`](@ref), if present in `data_dict`.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computePARotationMatrix(
+    data_dict::Dict,
+    component::Symbol,
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    if component == :all
+
+        snap_types = snapshotTypes(data_dict)
+
+        # Remove components with no position, velocity or mass data
+        filter!(st -> !isempty(data_dict[st]["POS "]), snap_types)
+        filter!(st -> !isempty(data_dict[st]["VEL "]), snap_types)
+        filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
+
+        # Concatenate the position, velocities, and masses of all the cells and particles in the system
+        positions  = hcat([data_dict[st]["POS "] for st in snap_types]...)
+        velocities = hcat([data_dict[st]["VEL "] for st in snap_types]...)
+        masses     = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+
+        (
+            logging[] &&
+            @info("computePARotationMatrix: The angular momentum will be computed using \
+            $(components)")
+        )
+
+    elseif component ∈ snapshotTypes(data_dict)
+
+        positions  = data_dict[component]["POS "]
+        velocities = data_dict[component]["VEL "]
+        masses     = data_dict[component]["MASS"]
+
+        if any(isempty, [positions, velocities, masses])
+            (
+                logging[] &&
+                @info("computePARotationMatrix: The positions, masses or velocities for component \
+                :$(component) are missing. I will return the identity matrix")
+            )
+            return I
+        end
+
+    else
+
+        throw(ArgumentError("computePARotationMatrix: `component` can only be :all or one of the \
+        keys of `PARTICLE_INDEX` present within `data_dict`, but I got :$(z_axis)"))
+
+    end
+
+    return computePARotationMatrix(positions, velocities, masses)
 
 end

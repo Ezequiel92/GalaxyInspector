@@ -52,7 +52,7 @@ jobs:
     strategy:
       fail-fast: false
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - run: rm -rf /tmp/manifest_updater
       - run: mkdir /tmp/manifest_updater
       - run: chmod 700 /tmp/manifest_updater
@@ -68,7 +68,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           delete-branch: true
-          branch: 'update_manifest/'
+          branch: 'update_manifest'
           commit-message: '🤖 Update manifest file'
           title: '🤖 Update manifest file'
-          body: ''
+          body: 'Automated update of dependencies'

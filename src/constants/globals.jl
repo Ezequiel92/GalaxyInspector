@@ -26,6 +26,11 @@ Characteristic radius.
 const DISK_R = 40.0u"kpc"
 
 """
+Characteristic height.
+"""
+const DISK_HEIGHT = 5.0u"kpc"
+
+"""
 Characteristic box size.
 """
 const BOX_L = 65.0u"kpc"
@@ -325,6 +330,21 @@ Line style type.
 const LineStyleType = Union{Tuple{String,Symbol},Nothing,String,Symbol}
 
 """
+Translation type
+"""
+const TranslationType = Union{
+    Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}},
+    Symbol,
+    Int,
+    NTuple{2,Int},
+}
+
+"""
+Rotation type
+"""
+const RotationType = Union{Tuple{Symbol,Symbol,Function},Matrix{Float64},UniformScaling{Bool}}
+
+"""
 Index type.
 """
 const IndexType = Union{
@@ -333,6 +353,7 @@ const IndexType = Union{
     UnitRange{<:Integer},
     StepRange{<:Integer,<:Integer},
     Vector{<:Integer},
+    InvertedIndex,
 }
 
 """
@@ -343,6 +364,7 @@ const ReducedIndexType = Union{
     UnitRange{<:Integer},
     StepRange{<:Integer,<:Integer},
     Vector{<:Integer},
+    InvertedIndex,
 }
 
 # Dimensions of specific energy
@@ -363,6 +385,12 @@ const ReducedIndexType = Union{
 #########################
 # Makie.jl default theme
 #########################
+
+"""
+Default colors.
+"""
+const WONG_RED = Makie.wong_colors()[6]
+const WONG_ORANGE = Makie.wong_colors()[2]
 
 """
 Default list of marker types.
@@ -412,7 +440,7 @@ const DEFAULT_THEME = Theme(
     #############################
     # (left, right, bottom, top)
     #############################
-    figure_padding=(1, 15, 5, 15),
+    figure_padding=(2, 15, 5, 15),
     palette=(color=Makie.wong_colors(), marker=MARKERS, linestyle=LINE_STYLES),
     CairoMakie=(px_per_unit=2.3622, pt_per_unit=0.283466),
     Axis=(
@@ -442,6 +470,7 @@ const DEFAULT_THEME = Theme(
         tellwidth=false,
         framevisible=false,
         colgap=20,
+        rowgap=10,
         halign=:right,
         valign=:bottom,
         nbanks=3,
@@ -449,7 +478,7 @@ const DEFAULT_THEME = Theme(
         labelsize=30,
         linewidth=5,
         markersize=28,
-        patchsize=(50, 50),
+        patchsize=(30, 30),
     ),
     Lines=(linewidth=5, cycle=CYCLE),
     VLines=(linewidth=3, cycle=CYCLE),
@@ -466,6 +495,7 @@ const DEFAULT_THEME = Theme(
     # Alternative colormaps:
     # colormap = :nipy_spectral - nan_color = ColorSchemes.nipy_spectral[1]
     # colormap = :cubehelix     - nan_color = ColorSchemes.cubehelix[1]
+    # colormap = :lipari        - nan_color = ColorSchemes.lipari[1]
     ########################################################################
     Heatmap=(colormap=:CMRmap, nan_color=ColorSchemes.CMRmap[1]),
     Colorbar=(
@@ -480,13 +510,11 @@ const DEFAULT_THEME = Theme(
         color_over_background=:black,
         color_over_bar=:black,
         flip_labels_at=10,
-        direction=:x,
         strokecolor=:black,
         strokewidth=1,
-        bar_labels=:y,
         dodge_gap=0.04,
     ),
-    Arrows2D=(lengthscale=0.02, color=:white),
+    Arrows2D=(lengthscale=0.015, color=:white, shaftwidth=2, tipwidth=8),
     Hist=(strokecolor=:black, strokewidth=1),
 )
 
@@ -504,9 +532,9 @@ Dimensional information about a physical quantity.
   - `unit::Union{Unitful.Units,Symbol}`: Units of the quantity within the simulation code. It can be a unit from [Unitful](https://github.com/PainterQubits/Unitful.jl) or [UnitfulAstro](https://github.com/JuliaAstro/UnitfulAstro.jl), or it can be the symbol `:internal` which denotes internal code units.
 """
 struct Qty
-    hdf5_name::String
-    dimensions::Unitful.Dimensions
-    unit::Union{Unitful.Units,Symbol}
+    hdf5_name  :: String
+    dimensions :: Unitful.Dimensions
+    unit       :: Union{Unitful.Units,Symbol}
 end
 
 """
@@ -529,19 +557,19 @@ Data in the "Header" group of a HDF5 snapshot file.
   - `v_unit::Unitful.Velocity`: Conversion factor from internal units of velocity to centimeters per second.
 """
 @kwdef struct SnapshotHeader
-    box_size::Float64
-    h::Float64
-    mass_table::Vector{Float64}
-    num_files::Int32
-    num_part::Vector{Int32}
-    num_total::Vector{UInt32}
-    omega_0::Float64
-    omega_l::Float64
-    redshift::Float64
-    time::Float64
-    l_unit::Unitful.Length
-    m_unit::Unitful.Mass
-    v_unit::Unitful.Velocity
+    box_size   :: Float64
+    h          :: Float64
+    mass_table :: Vector{Float64}
+    num_files  :: Int32
+    num_part   :: Vector{Int32}
+    num_total  :: Vector{UInt32}
+    omega_0    :: Float64
+    omega_l    :: Float64
+    redshift   :: Float64
+    time       :: Float64
+    l_unit     :: Unitful.Length
+    m_unit     :: Unitful.Mass
+    v_unit     :: Unitful.Velocity
 end
 
 """
@@ -564,17 +592,17 @@ The default values are for when there are no group catalog files.
   - `time::Float64 = NaN`: The physical time or the scale factor, depending on the type of simulation.
 """
 @kwdef struct GroupCatHeader
-    box_size::Float64 = NaN
-    h::Float64 = NaN
-    n_groups_part::Int32 = -1
-    n_groups_total::Int32 = -1
-    n_subgroups_part::Int32 = -1
-    n_subgroups_total::Int32 = -1
-    num_files::Int32 = -1
-    omega_0::Float64 = NaN
-    omega_l::Float64 = NaN
-    redshift::Float64 = NaN
-    time::Float64 = NaN
+    box_size          :: Float64 = NaN
+    h                 :: Float64 = NaN
+    n_groups_part     :: Int32   = -1
+    n_groups_total    :: Int32   = -1
+    n_subgroups_part  :: Int32   = -1
+    n_subgroups_total :: Int32   = -1
+    num_files         :: Int32   = -1
+    omega_0           :: Float64 = NaN
+    omega_l           :: Float64 = NaN
+    redshift          :: Float64 = NaN
+    time              :: Float64 = NaN
 end
 
 """
@@ -601,11 +629,11 @@ Metadata for a simulation.
       + `:groupcat_paths` -> Full path to each group catalog files.
 """
 struct Simulation
-    path::String
-    index::Int
-    slice::IndexType
-    cosmological::Bool
-    snapshot_table::DataFrame
+    path           :: String
+    index          :: Int
+    slice          :: IndexType
+    cosmological   :: Bool
+    snapshot_table :: DataFrame
 end
 
 """
@@ -623,14 +651,14 @@ Metadata for a snapshot.
   - `header::SnapshotHeader`: Header.
 """
 struct Snapshot
-    path::String
-    global_index::Int
-    slice_index::Int
-    physical_time::Unitful.Time
-    lookback_time::Unitful.Time
-    scale_factor::Float64
-    redshift::Float64
-    header::SnapshotHeader
+    path          :: String
+    global_index  :: Int
+    slice_index   :: Int
+    physical_time :: Unitful.Time
+    lookback_time :: Unitful.Time
+    scale_factor  :: Float64
+    redshift      :: Float64
+    header        :: SnapshotHeader
 end
 
 """
@@ -642,8 +670,8 @@ Metadata for a group catalog file.
   - `header::GroupCatHeader`: Header.
 """
 struct GroupCatalog
-    path::Union{String,Missing}
-    header::GroupCatHeader
+    path   :: Union{String,Missing}
+    header :: GroupCatHeader
 end
 
 """
@@ -660,30 +688,31 @@ Unit conversion factors.
   - `m_cosmo::Unitful.Mass`: From internal units of mass to ``\\mathrm{M_\\odot}``.
   - `t_cgs::Unitful.Time`: From internal units of time to ``\\mathrm{s}``.
   - `t_cosmo::Unitful.Time`: From internal units of time to ``\\mathrm{Myr}``.
+  - `t_newton::Unitful.Time`: From internal units (non-cosmological simulations) of time to ``\\mathrm{Myr}``.
   - `U_cgs::Unitful.Energy`: From internal units of specific energy to ``\\mathrm{erg \\, g^{-1}}``.
   - `rho_cgs::Unitful.Density`: From internal units of density to ``\\mathrm{g \\, cm^{-3}}``.
   - `P_Pa::Unitful.Pressure`: From internal units of pressure to ``\\mathrm{Pa}``.
 """
 struct InternalUnits
+    x_cgs      :: Unitful.Length   # From internal units of length to cm
+    x_cosmo    :: Unitful.Length   # From internal units of length to kpc
+    x_comoving :: Unitful.Length   # From internal units of length to ckpc
 
-    x_cgs::Unitful.Length      # From internal units of length to cm
-    x_cosmo::Unitful.Length    # From internal units of length to kpc
-    x_comoving::Unitful.Length # From internal units of length to ckpc
+    v_cgs      :: Unitful.Velocity # From internal units of velocity to cm * s^-1
+    v_cosmo    :: Unitful.Velocity # From internal units of velocity to km * s^-1
 
-    v_cgs::Unitful.Velocity    # From internal units of velocity to cm * s^-1
-    v_cosmo::Unitful.Velocity  # From internal units of velocity to km * s^-1
+    m_cgs      :: Unitful.Mass     # From internal units of mass to g
+    m_cosmo    :: Unitful.Mass     # From internal units of mass to M⊙
 
-    m_cgs::Unitful.Mass        # From internal units of mass to g
-    m_cosmo::Unitful.Mass      # From internal units of mass to M⊙
+    t_cgs      :: Unitful.Time     # From internal units of time to s
+    t_cosmo    :: Unitful.Time     # From internal units of time to Myr
+    t_newton   :: Unitful.Time     # From internal units (non-cosmological simulations) of time to Myr
 
-    t_cgs::Unitful.Time        # From internal units of time to s
-    t_cosmo::Unitful.Time      # From internal units of time to Myr
+    U_cgs      :: SpecificEnergy   # From internal units of specific energy to erg * g^-1
 
-    U_cgs::SpecificEnergy      # From internal units of specific energy to erg * g^-1
+    rho_cgs    :: Unitful.Density  # From internal units of density to g * cm^-3
 
-    rho_cgs::Unitful.Density   # From internal units of density to g * cm^-3
-
-    P_Pa::Unitful.Pressure     # From internal units of pressure to Pa
+    P_Pa       :: Unitful.Pressure # From internal units of pressure to Pa
 
     """
         InternalUnits(; <keyword arguments>)
@@ -732,6 +761,7 @@ struct InternalUnits
         # Time conversion factors
         t_cgs = x_cgs / v_cgs
         t_cosmo = t_cgs |> u"Myr"
+        t_newton = 1.0u"Gyr" |> u"Myr"
 
         # Specific energy conversion factor
         U_cgs = v_unit^2 |> u"erg * g^-1"
@@ -753,13 +783,13 @@ struct InternalUnits
             m_cosmo,
             t_cgs,
             t_cosmo,
+            t_newton,
             U_cgs,
             rho_cgs,
             P_Pa,
         )
 
     end
-
 end
 
 """
@@ -771,12 +801,14 @@ Linear grid (1D).
   - `edges::Vector{<:Number}`: Edges of the bins.
   - `bin_widths::Vector{<:Number}`: Widths of the bins.
   - `log::Bool`: If the grid is logarithmic.
+  - `regular::Bool`: If the grid is regular.
 """
 struct LinearGrid
-    grid::Vector{<:Number}
-    edges::Vector{<:Number}
-    bin_widths::Vector{<:Number}
-    log::Bool
+    grid       :: Vector{<:Number}
+    edges      :: Vector{<:Number}
+    bin_widths :: Vector{<:Number}
+    log        :: Bool
+    regular    :: Bool
 
     """
         LinearGrid(start::Number, stop::Number, n_bins::Int; <keyword arguments>)
@@ -788,7 +820,7 @@ struct LinearGrid
       - `start::Number`: Left most edge of the grid.
       - `stop::Number`: Right most edge of the grid.
       - `n_bins::Int`: Number of bins.
-      - `log::Bool=false`: If the bins will be logarithmic.
+      - `log::Bool=false`: If the bins will be logarithmic. `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
     """
     function LinearGrid(start::Number, stop::Number, n_bins::Int; log::Bool=false)
 
@@ -836,7 +868,368 @@ struct LinearGrid
 
         end
 
-        new(grid, edges, bin_widths, log)
+        new(grid, edges, bin_widths, log, !log)
+
+    end
+
+    """
+        LinearGrid(edges::Vector{<:Number}; <keyword arguments>)
+
+    Constructor for `LinearGrid`.
+
+    # Arguments
+
+      - `edges::Vector{<:Number}`: A list of bin edges.
+      - `log::Bool=false`: If the bins are logarithmic, which means that `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
+    """
+    function LinearGrid(edges::Vector{<:Number}; log::Bool=false)
+
+        # Example of a grid with 3 bins:
+        #
+        # +-----------------------------+-----------------------------+-----------------------------+
+        # |   grid[1] -->|              |   grid[2] -->|              |   grid[3] -->|              |
+        # +-----------------------------+-----------------------------+-----------------------------+
+        #
+        # +-----------------------------+-----------------------------+-----------------------------+
+        # |<-- edges[1] (= `start`)     |<-- edges[2]     edges[3] -->|      edges[4] (= `stop`) -->|
+        # +-----------------------------+-----------------------------+-----------------------------+
+
+        n_bins = length(edges) - 1
+
+        issorted(edges) || sort!(edges)
+
+        start = first(edges)
+
+        if log
+
+            (
+                isPositive(start) ||
+                throw(ArgumentError("LinearGrid: For a logarithmic grid you need strictly \
+                positive edges, but the first edge is $(start) <= 0"))
+            )
+
+            # Unit of lenght
+            u_l = unit(start)
+
+            log_edges = log10.(ustrip.(edges))
+            log_grid  = [(log_edges[i + 1] + log_edges[i]) / 2.0 for i in 1:n_bins]
+
+            grid = exp10.(log_grid) .* u_l
+
+        else
+
+            grid = [(edges[i + 1] + edges[i]) / 2.0 for i in 1:n_bins]
+
+        end
+
+        bin_widths = [edges[i + 1] - edges[i] for i in 1:n_bins]
+
+        new(grid, edges, bin_widths, log, allequal(bin_widths))
+
+    end
+end
+
+"""
+Linear grid (1D).
+
+# Fields
+
+  - `grid::Vector{<:Number}`: Position of (the center of) each bin.
+  - `edges::Vector{<:Number}`: Edges of the bins.
+  - `bin_widths::Vector{<:Number}`: Widths of the bins.
+  - `log::Bool`: If the grid is logarithmic.
+  - `regular::Bool`: If the grid is regular.
+"""
+struct LinearGrid2
+    grid       :: Vector{<:Number}
+    edges      :: Vector{<:Number}
+    bin_widths :: Vector{<:Number}
+    log        :: Bool
+    regular    :: Bool
+
+    """
+        LinearGrid(start::Number, stop::Number, n_bins::Int; <keyword arguments>)
+
+    Constructor for `LinearGrid`.
+
+    # Arguments
+
+      - `start::Number`: Left most edge of the grid.
+      - `stop::Number`: Right most edge of the grid.
+      - `n_bins::Int`: Number of bins.
+      - `log::Bool=false`: If the bins will be logarithmic. `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
+    """
+    function LinearGrid2(start::Number, stop::Number, n_bins::Int; log::Bool=false)
+
+        # Example of a grid with 3 bins:
+        #
+        # +-----------------------------+-----------------------------+-----------------------------+
+        # |   grid[1] -->|              |   grid[2] -->|              |   grid[3] -->|              |
+        # +-----------------------------+-----------------------------+-----------------------------+
+        #
+        # +-----------------------------+-----------------------------+-----------------------------+
+        # |<-- edges[1] (= `start`)     |<-- edges[2]     edges[3] -->|      edges[4] (= `stop`) -->|
+        # +-----------------------------+-----------------------------+-----------------------------+
+
+        (
+            stop > start ||
+            throw(ArgumentError("LinearGrid: `stop` must be larger than `start`, \
+            but I got `stop` = $(stop) <= `start` = $(start)"))
+        )
+
+        if log
+
+            (
+                isPositive(start) ||
+                throw(ArgumentError("LinearGrid: For a logarithmic grid you need a strictly \
+                positive `start`, but I got `start` = $(start) <= 0"))
+            )
+
+            # Unit of length
+            u_l = unit(start)
+
+            log_start = log10(ustrip(start))
+            log_stop  = log10(ustrip(u_l, stop))
+
+            width      = (log_stop - log_start) / n_bins
+            grid       = [exp10((i - 0.5) * width + log_start) * u_l for i in 1:n_bins]
+            edges      = [exp10(i * width + log_start) * u_l for i in 0:n_bins]
+            bin_widths = [edges[i + 1] - edges[i] for i in 1:n_bins]
+
+        else
+
+            width      = (stop - start) / n_bins
+            grid       = [(i - 0.5) * width + start for i in 1:n_bins]
+            edges      = [i * width + start for i in 0:n_bins]
+            bin_widths = [width for _ in 1:n_bins]
+
+        end
+
+        new(grid, edges, bin_widths, log, true)
+
+    end
+
+    """
+        LinearGrid(edges::Vector{<:Number}; <keyword arguments>)
+
+    Constructor for `LinearGrid`.
+
+    # Arguments
+
+      - `edges::Vector{<:Number}`: A list of bin edges.
+      - `log::Bool=false`: If the bins are logarithmic, which means that `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
+    """
+    function LinearGrid2(edges::Vector{<:Number}; log::Bool=false)
+
+        # Example of a grid with 3 bins:
+        #
+        # +-----------------------------+-----------------------------+-----------------------------+
+        # |   grid[1] -->|              |   grid[2] -->|              |   grid[3] -->|              |
+        # +-----------------------------+-----------------------------+-----------------------------+
+        #
+        # +-----------------------------+-----------------------------+-----------------------------+
+        # |<-- edges[1] (= `start`)     |<-- edges[2]     edges[3] -->|      edges[4] (= `stop`) -->|
+        # +-----------------------------+-----------------------------+-----------------------------+
+
+        n_bins = length(edges) - 1
+
+        issorted(edges) || sort!(edges)
+
+        start = first(edges)
+
+        if log
+
+            (
+                isPositive(start) ||
+                throw(ArgumentError("LinearGrid: For a logarithmic grid you need strictly \
+                positive edges, but the first edge is $(start) <= 0"))
+            )
+
+            # Unit of lenght
+            u_l = unit(start)
+
+            log_edges = log10.(ustrip.(edges))
+            log_grid  = [(log_edges[i + 1] + log_edges[i]) / 2.0 for i in 1:n_bins]
+
+            grid = exp10.(log_grid) .* u_l
+
+        else
+
+            grid = [(edges[i + 1] + edges[i]) / 2.0 for i in 1:n_bins]
+
+        end
+
+        bin_widths = [edges[i + 1] - edges[i] for i in 1:n_bins]
+
+        new(grid, edges, bin_widths, log, false)
+
+    end
+end
+
+"""
+Circular grid (2D or 3D).
+
+Series of concentric rings or spherical shells.
+
+# Fields
+
+  - `grid::Vector{<:Number}`: Distance of (the center of) each bin to the center of the grid.
+  - `edges::Vector{<:Number}`: Distance of the edges of the bins to the center of the grid.
+  - `center::Vector{<:Number}`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
+  - `bin_area::Vector{<:Number}`: Area of each ring.
+  - `bin_volumes::Vector{<:Number}`: Volume of each spherical shell.
+  - `log::Bool`: If the grid is logarithmic.
+  - `regular::Bool`: If the grid is regular.
+"""
+struct CircularGrid
+    grid        :: Vector{<:Number}
+    edges       :: Vector{<:Number}
+    center      :: Vector{<:Number}
+    bin_areas   :: Vector{<:Number}
+    bin_volumes :: Vector{<:Number}
+    log         :: Bool
+    regular     :: Bool
+
+    """
+        CircularGrid(
+            radius::Number,
+            n_bins::Int;
+            <keyword arguments>
+        )
+
+    Constructor for a regular `CircularGrid`.
+
+    # Arguments
+
+      - `radius::Number`: Radius of the grid (equal to the last bin edge).
+      - `n_bins::Int`: Number of bins.
+      - `center::Vector{<:Number}=zeros(typeof(radius), 3)`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
+      - `log::Bool=false`: If the bins will be logarithmic. `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
+      - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
+    """
+    function CircularGrid(
+        radius::Number,
+        n_bins::Int;
+        center::Vector{<:Number}=zeros(typeof(radius), 3),
+        log::Bool=false,
+        shift::Number=zero(radius),
+    )
+
+        # Example of a grid with 3 bins:
+        #
+        # |<-----------------------------------------radius---------------------------------------->|
+        #
+        # +-----------+-------------------------+-------------------------+-------------------------+
+        # |<--shift-->| grid[1] -->|            | grid[2] -->|            | grid[3] -->|            |
+        # +-----------+-------------------------+-------------------------+-------------------------+
+        #
+        # +-----------+-------------------------+-------------------------+-------------------------+
+        # |<--shift-->|<-- edges[1] edges[2] -->|             edges[3] -->|             edges[4] -->|
+        # +-----------+-------------------------+-------------------------+-------------------------+
+
+        (
+            isPositive(radius) ||
+            throw(ArgumentError("CircularGrid: `radius` must be strictly positive, \
+            but I got `radius` = $(radius) <= 0"))
+        )
+
+        if log
+
+            (
+                isPositive(shift) ||
+                throw(ArgumentError("CircularGrid: For a logarithmic grid you need a \
+                strictly positive `shift`, but I got `shift` = $(shift) <= 0"))
+            )
+
+            # Unit of lenght
+            u_l = unit(radius)
+
+            log_shift  = log10(ustrip(u_l, shift))
+            log_radius = log10(ustrip(radius))
+
+            width = (log_radius - log_shift) / n_bins
+            grid  = [exp10((i - 0.5) * width + log_shift) * u_l for i in 1:n_bins]
+            edges = [exp10(i * width + log_shift) * u_l for i in 0:n_bins]
+
+        else
+
+            width = (radius - shift) / n_bins
+            grid  = [(i - 0.5) * width + shift for i in 1:n_bins]
+            edges = [i * width + shift for i in 0:n_bins]
+
+        end
+
+        bin_areas   = [area(edges[i + 1]) - area(edges[i]) for i in 1:n_bins]
+        bin_volumes = [volume(edges[i + 1]) - volume(edges[i]) for i in 1:n_bins]
+
+        new(grid, edges, center, bin_areas, bin_volumes, log, true)
+
+    end
+
+    """
+        CircularGrid(
+            edges::Vector{<:Number};
+            <keyword arguments>
+        )
+
+    Constructor for an irregular `CircularGrid`.
+
+    # Arguments
+
+      - `edges::Vector{<:Number}`: A list of bin edges.
+      - `center::Vector{<:Number}=zeros(typeof(radius), 3)`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
+      - `log::Bool=false`: If the bins are logarithmic, which means that `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
+      - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
+    """
+    function CircularGrid(
+        edges::Vector{<:Number};
+        center::Vector{<:Number}=zeros(typeof(radius), 3),
+        log::Bool=false,
+        shift::Number=zero(radius),
+    )
+
+        # Example of a grid with 3 bins:
+        #
+        # |<-----------------------------------------radius---------------------------------------->|
+        #
+        # +-----------+-------------------------+-------------------------+-------------------------+
+        # |<--shift-->| grid[1] -->|            | grid[2] -->|            | grid[3] -->|            |
+        # +-----------+-------------------------+-------------------------+-------------------------+
+        #
+        # +-----------+-------------------------+-------------------------+-------------------------+
+        # |<--shift-->|<-- edges[1] edges[2] -->|             edges[3] -->|             edges[4] -->|
+        # +-----------+-------------------------+-------------------------+-------------------------+
+
+        n_bins = length(edges) - 1
+
+        issorted(edges) || sort!(edges)
+
+        if log
+
+            (
+                isPositive(shift) ||
+                throw(ArgumentError("CircularGrid: For a logarithmic grid you need a \
+                strictly positive `shift`, but I got `shift` = $(shift) <= 0"))
+            )
+
+            # Unit of lenght
+            u_l = unit(first(edges))
+
+            log_edges = log10.(ustrip.(edges))
+            log_grid  = [(log_edges[i + 1] + log_edges[i]) / 2.0 for i in 1:n_bins]
+
+            grid = exp10.(log_grid) .* u_l
+
+        else
+
+            grid = [(edges[i + 1] + edges[i]) / 2.0 for i in 1:n_bins]
+
+        end
+
+        bin_areas   = [area(edges[i + 1]) - area(edges[i]) for i in 1:n_bins]
+        bin_volumes = [volume(edges[i + 1]) - volume(edges[i]) for i in 1:n_bins]
+
+        new(grid, edges, center, bin_areas, bin_volumes, log, false)
 
     end
 end
@@ -856,14 +1249,14 @@ Square grid (2D).
   - `bin_area::Number`: Area of each bin.
 """
 struct SquareGrid
-    grid::Matrix{NTuple{2,<:Number}}
-    x_bins::Vector{<:Number}
-    y_bins::Vector{<:Number}
-    center::Vector{<:Number}
-    grid_size::Number
-    n_bins::Int
-    bin_width::Number
-    bin_area::Number
+    grid      :: Matrix{NTuple{2,<:Number}}
+    x_bins    :: Vector{<:Number}
+    y_bins    :: Vector{<:Number}
+    center    :: Vector{<:Number}
+    grid_size :: Number
+    n_bins    :: Int
+    bin_width :: Number
+    bin_area  :: Number
 
     """
         SquareGrid(
@@ -935,7 +1328,6 @@ struct SquareGrid
         x_bins = [(i - 1) * bin_width - shift + center[1] for i in 1:n_bins]
         y_bins = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
 
-        # Allocate memory
         grid = Matrix{NTuple{2,<:Number}}(undef, n_bins, n_bins)
 
         # Compute the position of each grid point
@@ -974,16 +1366,16 @@ Cubic grid (3D).
   - `bin_volume::Number`: Volume of each bin.
 """
 struct CubicGrid
-    grid::Array{NTuple{3,<:Number},3}
-    x_bins::Vector{<:Number}
-    y_bins::Vector{<:Number}
-    z_bins::Vector{<:Number}
-    center::Vector{<:Number}
-    grid_size::Number
-    n_bins::Int
-    bin_width::Number
-    bin_area::Number
-    bin_volume::Number
+    grid       :: Array{NTuple{3,<:Number},3}
+    x_bins     :: Vector{<:Number}
+    y_bins     :: Vector{<:Number}
+    z_bins     :: Vector{<:Number}
+    center     :: Vector{<:Number}
+    grid_size  :: Number
+    n_bins     :: Int
+    bin_width  :: Number
+    bin_area   :: Number
+    bin_volume :: Number
 
     """
         CubicGrid(
@@ -1107,7 +1499,6 @@ struct CubicGrid
         y_bins = [(i - 1) * bin_width - shift + center[2] for i in 1:n_bins]
         z_bins = [(i - 1) * bin_width - shift + center[3] for i in 1:n_bins]
 
-        # Allocate memory
         grid = Array{NTuple{3,<:Number},3}(undef, n_bins, n_bins, n_bins)
 
         # Compute the position of each grid point
@@ -1140,105 +1531,6 @@ struct CubicGrid
 end
 
 """
-Circular grid (2D or 3D).
-
-Series of concentric rings or spherical shells.
-
-# Fields
-
-  - `grid::Vector{<:Number}`: Distance of (the center of) each bin to the center of the grid.
-  - `edges::Vector{<:Number}`: Distance of the edges of the bins to the center of the grid.
-  - `center::Vector{<:Number}`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
-  - `bin_area::Vector{<:Number}`: Area of each ring.
-  - `bin_volumes::Vector{<:Number}`: Volume of each spherical shell.
-  - `log::Bool`: If the grid is logarithmic.
-"""
-struct CircularGrid
-    grid::Vector{<:Number}
-    edges::Vector{<:Number}
-    center::Vector{<:Number}
-    bin_areas::Vector{<:Number}
-    bin_volumes::Vector{<:Number}
-    log::Bool
-
-    """
-        CircularGrid(
-            radius::Number,
-            n_bins::Int;
-            <keyword arguments>
-        )
-
-    Constructor for `CircularGrid`.
-
-    # Arguments
-
-      - `radius::Number`: Radius of the grid (equal to the last bin edge).
-      - `n_bins::Int`: Number of bins.
-      - `center::Vector{<:Number}=zeros(typeof(radius), 3)`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
-      - `log::Bool=false`: If the bins will be logarithmic.
-      - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
-    """
-    function CircularGrid(
-        radius::Number,
-        n_bins::Int;
-        center::Vector{<:Number}=zeros(typeof(radius), 3),
-        log::Bool=false,
-        shift::Number=zero(radius),
-    )
-
-        # Example of a grid with 3 bins:
-        #
-        # |<-----------------------------------------radius---------------------------------------->|
-        #
-        # +-----------+-------------------------+-------------------------+-------------------------+
-        # |<--shift-->| grid[1] -->|            | grid[2] -->|            | grid[3] -->|            |
-        # +-----------+-------------------------+-------------------------+-------------------------+
-        #
-        # +-----------+-------------------------+-------------------------+-------------------------+
-        # |<--shift-->|<-- edges[1] edges[2] -->|             edges[3] -->|             edges[4] -->|
-        # +-----------+-------------------------+-------------------------+-------------------------+
-
-        (
-            isPositive(radius) ||
-            throw(ArgumentError("CircularGrid: `radius` must be strictly positive, \
-            but I got `radius` = $(radius) <= 0"))
-        )
-
-        if log
-
-            (
-                isPositive(shift) ||
-                throw(ArgumentError("CircularGrid: For a logarithmic grid you need a \
-                strictly positive `shift`, but I got `shift` = $(shift) <= 0"))
-            )
-
-            # Unit of lenght
-            u_l = unit(radius)
-
-            log_shift  = log10(ustrip(u_l, shift))
-            log_radius = log10(ustrip(radius))
-
-            width = (log_radius - log_shift) / n_bins
-            grid  = [exp10((i - 0.5) * width + log_shift) * u_l for i in 1:n_bins]
-            edges = [exp10(i * width + log_shift) * u_l for i in 0:n_bins]
-
-        else
-
-            width = (radius - shift) / n_bins
-            grid  = [(i - 0.5) * width + shift for i in 1:n_bins]
-            edges = [i * width + shift for i in 0:n_bins]
-
-        end
-
-        bin_areas   = [area(edges[i + 1]) - area(edges[i]) for i in 1:n_bins]
-        bin_volumes = [volume(edges[i + 1]) - volume(edges[i]) for i in 1:n_bins]
-
-        new(grid, edges, center, bin_areas, bin_volumes, log)
-
-    end
-end
-
-"""
 Plotting parameters for a quantity.
 
 # Fields
@@ -1248,106 +1540,22 @@ Plotting parameters for a quantity.
   - `exp_factor::Int = 0`: Numerical exponent to scale down the axis, e.g. if `exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
   - `unit::Unitful.Units = Unitful.NoUnits`: Target unit for the axis.
   - `axis_label::AbstractString = "auto_label"`: Label for the axis. It can contain the string `auto_label`, which will be replaced by the default label: `var_name` / 10^`exp_factor` `unit`.
+  - `cp_type::Union{Symbol,Nothing} = nothing`: Cell/particle type corresponding to the quantity. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
 """
 @kwdef struct PlotParams
-    request::Dict{Symbol,Vector{String}} = Dict{Symbol,Vector{String}}()
-    var_name::AbstractString = ""
-    exp_factor::Int = 0
-    unit::Unitful.Units = Unitful.NoUnits
-    axis_label::AbstractString = "auto_label"
+    request    :: Dict{Symbol,Vector{String}} = Dict{Symbol,Vector{String}}()
+    var_name   :: AbstractString              = ""
+    exp_factor :: Int                         = 0
+    unit       :: Unitful.Units               = Unitful.NoUnits
+    axis_label :: AbstractString              = "auto_label"
+    cp_type    :: Union{Symbol,Nothing}       = nothing
 end
 
 #####################
 # Derived quantities
 #####################
 
-"""
-List of symbols for the physical components in a simulation.
-"""
-const COMPONENTS = [
-    ######################
-    # Particle components
-    ######################
-    :stellar,       # Stellar particles
-    :dark_matter,   # Dark matter particles
-    :black_hole,    # Black hole particles
-    #################
-    # Gas components
-    #################
-    :gas,           # Gas cells
-    :hydrogen,      # Hydrogen
-    :helium,        # Helium
-    :metals,        # Metals
-    :ionized,       # Ionized gas
-    :neutral,       # Neutral gas
-    :br_atomic,     # Atomic gas (using the Blitz et al. (2006) relation)
-    :br_molecular,  # Molecular gas (using the Blitz et al. (2006) relation)
-    ###########################################
-    # Components from our star formation model
-    ###########################################
-    :ode_ionized,   # Ionized gas
-    :ode_atomic,    # Atomic gas
-    :ode_molecular, # Molecular gas
-    :ode_stellar,   # Stars
-    :ode_metals,    # Metals
-    :ode_dust,      # Dust
-    :ode_neutral,   # Neutral gas
-]
-
-"""
-List of symbols for the derived physical magnitudes.
-"""
-const MAGNITUDES = [
-    #######################
-    # Mass-like magnitudes
-    #######################
-    :mass,
-    :mass_density,
-    :number_density,
-    :area_density,
-    :number,
-    :fraction,
-    #######################
-    # Cinematic magnitudes
-    #######################
-    :specific_z_angular_momentum,
-    :z_angular_momentum,
-    :eff,
-    :spin_parameter,
-    :circularity,
-    :circular_velocity,
-    :radial_velocity,
-    :tangential_velocity,
-    :zstar_velocity,
-    ########
-    # Other
-    ########
-    :depletion_time,
-    :xy_distance,
-    :radial_distance,
-]
-
-"""
-List of symbols for the derived quantities.
-"""
-const DERIVED_QUANTITIES = [
-    Symbol(component, "_", magnitude) for component in COMPONENTS for magnitude in MAGNITUDES
-]
-
-"""
-Dictionary mapping each derived quantity to its component and magnitude.
-"""
-const QUANTITY_SPLITS = Dict(
-    Symbol(component, "_", magnitude) => (magnitude, component)
-    for component in COMPONENTS, magnitude in MAGNITUDES
-)
-
-"""
-Get the magnitude and component of derived quantity.
-"""
-splitQuantity(quantity::Symbol) = get(QUANTITY_SPLITS, quantity) do
-    error("splitQuantity: I don't recognize the quantity :$(quantity)")
-end
+include("./quantities.jl")
 
 ##########################
 # Code specific constants
@@ -1374,6 +1582,20 @@ Internal code name (data group in the HDF5 output) corresponding to each type of
 """
 const PARTICLE_CODE_NAME = Dict(symbol => "PartType$n" for (symbol, n) in PARTICLE_INDEX)
 
+##############################
+# Default filter dictionaries
+##############################
+
+"""
+Filter dictionary that does not exclude any cell/particle.
+"""
+const PASS_ALL = Dict{Symbol,IndexType}(key => (:) for key in keys(PARTICLE_INDEX))
+
+"""
+Filter dictionary that excludes every cell/particle.
+"""
+const PASS_NONE = Dict{Symbol,IndexType}(key => Int[] for key in keys(PARTICLE_INDEX))
+
 ###################
 # Tracked elements
 ###################
@@ -1381,23 +1603,61 @@ const PARTICLE_CODE_NAME = Dict(symbol => "PartType$n" for (symbol, n) in PARTIC
 """
 List of symbols for the gas abundance quantities.
 """
-const GAS_ABUNDANCE = [Symbol(element, "_gas_abundance") for element in keys(ELEMENT_INDEX)]
+const GAS_ABUNDANCE = Symbol.(keys(ELEMENT_INDEX), :_gas_abundance)
 
 """
 Dictionary mapping each gas abundance quantity to its element.
 """
 const GAS_ABUNDANCE_SPLITS = Dict(
-    Symbol(element, "_gas_abundance") => element for element in keys(ELEMENT_INDEX)
+    Symbol(element, :_gas_abundance) => element for element in keys(ELEMENT_INDEX)
 )
 
 """
 List of symbols for the stellar abundance quantities.
 """
-const STELLAR_ABUNDANCE = [Symbol(element, "_stellar_abundance") for element in keys(ELEMENT_INDEX)]
+const STELLAR_ABUNDANCE = Symbol.(keys(ELEMENT_INDEX), :_stellar_abundance)
 
 """
 Dictionary mapping each stellar abundance quantity to its element.
 """
 const STELLAR_ABUNDANCE_SPLITS = Dict(
-    Symbol(element, "_stellar_abundance") => element for element in keys(ELEMENT_INDEX)
+    Symbol(element, :_stellar_abundance) => element for element in keys(ELEMENT_INDEX)
+)
+
+"""
+Shift for the solar abundance in dex.
+"""
+const ABUNDANCE_SHIFT = Dict(
+    :H     => 0.0,  # Hydrogen
+    :He    => 0.0,  # Helium
+    :C     => 0.0,  # Carbon
+    :N     => 0.0,  # Nitrogen
+    :O     => 12.0, # Oxygen
+    :Ne    => 0.0,  # Neon
+    :Mg    => 0.0,  # Magnesium
+    :Si    => 0.0,  # Silicon
+    :Fe    => 0.0,  # Iron
+    :Other => 0.0,  # All other
+)
+
+##########################
+# Transformations presets
+##########################
+
+"""
+List of symbols for the transformation presets.
+"""
+const TRANSFORM_LIST = [
+    Symbol(component, :_, group)
+    for component in push!(collect(keys(PARTICLE_INDEX)), :all)
+    for group in [:box, :halo, :subhalo]
+]
+
+"""
+Dictionary mapping each transformation to its component and group.
+"""
+const TRANSFORM_SPLITS = Dict(
+    Symbol(component, :_, group) => (component, group)
+    for component in push!(collect(keys(PARTICLE_INDEX)), :all)
+    for group in [:box, :halo, :subhalo]
 )

@@ -24,6 +24,7 @@ using CSV,
     Glob,
     HDF5,
     Images,
+    InvertedIndices,
     JLD2,
     LaTeXStrings,
     LinearAlgebra,
@@ -53,15 +54,15 @@ include("constants/globals.jl")
 include("auxiliary_functions/grid.jl")
 include("auxiliary_functions/histograms.jl")
 include("auxiliary_functions/other.jl")
-#TODO
 include("auxiliary_functions/plotting.jl")
 
 include("analysis/data_acquisition.jl")
-include("analysis/compute_quantities/positions.jl")
-include("analysis/compute_quantities/velocities.jl")
-#TODO
+include("analysis/compute_quantities/energies.jl")
 include("analysis/compute_quantities/masses.jl")
-include("analysis/compute_quantities/other.jl")
+include("analysis/compute_quantities/positions.jl")
+include("analysis/compute_quantities/sfm.jl")
+include("analysis/compute_quantities/times.jl")
+include("analysis/compute_quantities/velocities.jl")
 include("analysis/compute_quantities/aggregators.jl")
 include("analysis/filters.jl")
 include("analysis/tracers.jl")
@@ -106,11 +107,11 @@ export gasEvolution
 export virialAccretionEvolution
 export discAccretionEvolution
 export rotationCurve
-export densityProfile
+export radialProfile
 export massProfile
 export velocityProfile
 export stellarHistory
-export lineHistogram
+export histogram
 export compareFeldmann2020
 export compareMolla2015
 export kennicuttSchmidtLaw

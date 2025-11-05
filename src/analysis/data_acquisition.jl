@@ -23,7 +23,7 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     if ismissing(path)
 
-        !logging[] || @warn("readGroupCatHeader: The group catalog file or folder is missing")
+        logging[] && @warn("readGroupCatHeader: The group catalog file or folder is missing")
 
         return GroupCatHeader()
 
@@ -253,12 +253,12 @@ Checks if a given data block exists in a HDF5 group.
 function isBlockPresent(block::String, group::HDF5.Group)::Bool
 
     (
-        block ∈ keys(QUANTITIES) ||
+        haskey(QUANTITIES, block) ||
         throw(ArgumentError("isBlockPresent: `block` should be a key of `QUANTITIES`, \
         but I got $(block), see the options in `./src/constants/arepo.jl`"))
     )
 
-    return QUANTITIES[block].hdf5_name ∈ keys(group)
+    return haskey(group, QUANTITIES[block].hdf5_name)
 
 end
 
@@ -315,7 +315,7 @@ function isBlockPresent(component::Symbol, block::String, path::String)::Bool
 
         type_str = PARTICLE_CODE_NAME[component]
 
-        if type_str ∈ keys(snapshot)
+        if haskey(snapshot, type_str)
             isBlockPresent(block, snapshot[type_str])
         else
             false
@@ -477,7 +477,6 @@ function readGoupCatBlocks(
 
     end
 
-    # Allocate memory
     output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
     h5open(file_path, "r") do gc_file
@@ -489,10 +488,9 @@ function readGoupCatBlocks(
 
             type_str = titlecase(string(component))
 
-            # Allocate memory
             qty_data = Dict{String,VecOrMat{<:Number}}()
 
-            if type_str ∈ keys(gc_file)
+            if haskey(gc_file, type_str)
 
                 # Read the HDF5 group
                 hdf5_group = gc_file[type_str]
@@ -500,7 +498,7 @@ function readGoupCatBlocks(
                 if isempty(hdf5_group)
 
                     (
-                        !logging[] ||
+                        logging[] &&
                         @warn("readGoupCatBlocks: The group catalog type :$(component) \
                         in $(file_path) is empty")
                     )
@@ -524,7 +522,7 @@ function readGoupCatBlocks(
                         else
 
                             (
-                                !logging[] ||
+                                logging[] &&
                                 @warn("readGoupCatBlocks: The block $(block) for the group \
                                 catalog type :$(component) in $(file_path) is missing")
                             )
@@ -541,7 +539,7 @@ function readGoupCatBlocks(
             else
 
                 (
-                    !logging[] ||
+                    logging[] &&
                     @warn("readGoupCatBlocks: The group catalog type \
                     :$(component) in $(file_path) is missing")
                 )
@@ -600,7 +598,6 @@ function readSnapBlocks(
 
     end
 
-    # Allocate memory
     output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
     # Read the header
@@ -615,10 +612,9 @@ function readSnapBlocks(
 
             type_str = PARTICLE_CODE_NAME[component]
 
-            # Allocate memory
             qty_data = Dict{String,VecOrMat{<:Number}}()
 
-            if type_str ∈ keys(snapshot)
+            if haskey(snapshot, type_str)
 
                 # Read the HDF5 group
                 hdf5_group = snapshot[type_str]
@@ -626,7 +622,7 @@ function readSnapBlocks(
                 if isempty(hdf5_group)
 
                     (
-                        !logging[] ||
+                        logging[] &&
                         @warn("readSnapBlocks: The cell/particle type \
                         :$(component) in $(file_path) is empty")
                     )
@@ -687,7 +683,7 @@ function readSnapBlocks(
                         else
 
                             (
-                                !logging[] ||
+                                logging[] &&
                                 @warn("readSnapBlocks: The block $(block) for the \
                                 cell/particle type :$(component) in $(file_path) is missing")
                             )
@@ -704,7 +700,7 @@ function readSnapBlocks(
             else
 
                 (
-                    !logging[] ||
+                    logging[] &&
                     @warn("readSnapBlocks: The cell/particle type \
                     :$(component) in $(file_path) is missing")
                 )
@@ -753,7 +749,7 @@ function readGroupCatalog(
 
     if ismissing(path)
 
-        !logging[] || @warn("readGroupCatalog: The group catalog file or folder is missing")
+        logging[] && @warn("readGroupCatalog: The group catalog file or folder is missing")
 
         return Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
@@ -783,7 +779,6 @@ function readGroupCatalog(
         # Read the data in each sub file
         data_in_files = [readGoupCatBlocks(file, snapshot_path, request) for file in sub_files]
 
-        # Allocate memory
         output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
         for (component, data_blocks) in first(data_in_files)
@@ -867,7 +862,6 @@ function readSnapshot(
         # Read the data in each sub file
         data_in_files = [readSnapBlocks(file, request) for file in sub_files]
 
-        # Allocate memory
         output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
         for (component, data_blocks) in first(data_in_files)
@@ -928,7 +922,7 @@ end
     readSfrFile(
         file_path::String,
         snap_path::String,
-    )::Dict{Int32,VecOrMat{<:Number}}
+    )::DataFrame
 
 Read the `sfr.txt` file.
 
@@ -939,16 +933,16 @@ Read the `sfr.txt` file.
 
 # Returns
 
-  - A dictionary with the following shape:
+  - A DataFrame with the following columns:
 
-      + `1` -> Time or scale factor (internal units).
-      + `2` -> Total stellar mass to be formed prior to stochastic sampling (internal units).
-      + `3` -> Instantaneous star formation rate of all cells (``\\mathrm{M_\\odot \\, yr^{-1}}``).
-      + `4` -> Instantaneous star formation rate of active cells (``\\mathrm{M_\\odot \\, yr^{-1}}``).
-      + `5` -> Total mass in stars formed after stochastic sampling (internal units).
-      + `6` -> Cumulative stellar mass formed (internal units).
+      + 1. Time or scale factor (internal units).
+      + 2. Total stellar mass to be formed prior to stochastic sampling (internal units).
+      + 3. Instantaneous star formation rate of all cells (``\\mathrm{M_\\odot \\, yr^{-1}}``).
+      + 4. Instantaneous star formation rate of active cells (``\\mathrm{M_\\odot \\, yr^{-1}}``).
+      + 5. Total mass in stars formed after stochastic sampling (internal units).
+      + 6. Cumulative stellar mass formed (internal units).
 """
-function readSfrFile(file_path::String, snap_path::String)::Dict{Int32,VecOrMat{<:Number}}
+function readSfrFile(file_path::String, snap_path::String)::DataFrame
 
     isfile(file_path) || throw(ArgumentError("readSfrFile: $(file_path) does not exists as a file"))
 
@@ -962,6 +956,7 @@ function readSfrFile(file_path::String, snap_path::String)::Dict{Int32,VecOrMat{
         throw(ArgumentError("readSfrFile: I don't know how to handle more \
         than 6 columns in `sfr.txt`"))
     )
+
     (
         !(logging[] && n_cols < 6) ||
         @warn("readSfrFile: I could only find $(n_cols) columns \
@@ -971,7 +966,11 @@ function readSfrFile(file_path::String, snap_path::String)::Dict{Int32,VecOrMat{
     # Load the units for each column
     units = [internalUnits("SFC$(i)", snap_path) for i in 1:n_cols]
 
-    return Dict(i => column .* units[i] for (i, column) in pairs(eachcol(file_data)))
+    for (i, col) in enumerate(names(file_data))
+        file_data[!, col] .*= units[i]
+    end
+
+    return file_data
 
 end
 
@@ -1063,7 +1062,6 @@ function readCpuFile(
         @warn("readCpuFile: I could not find some of the target rows in $(file_path)")
     )
 
-    # Allocate memory
     data_out = Dict{String,Matrix{Float64}}()
 
     # Try reducing the data size
@@ -1129,7 +1127,7 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     if isempty(path_list)
 
         (
-            !logging[] ||
+            logging[] &&
             @warn("getSnapshotPaths: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )
@@ -1144,7 +1142,7 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
     if readSnapHeader(first(path_list)).num_files > 1
         # If there are multiple files per snapshot, get the path to the snapshot directory
-        map!(dirname, path_list, path_list)
+        map!(dirname, path_list)
         # Delete duplicates
         unique!(path_list)
         unique!(number_list)
@@ -1192,7 +1190,7 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     if isempty(path_list)
 
         (
-            !logging[] ||
+            logging[] &&
             @warn("getGroupCatPaths: I could not find any file named $(GC_BASENAME)_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )
@@ -1207,7 +1205,7 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 
     if readGroupCatHeader(first(path_list)).num_files > 1
         # If there are multiple files per group catalog, get the path to the group catalog directory
-        map!(dirname, path_list, path_list)
+        map!(dirname, path_list)
         # Delete duplicates
         unique!(path_list)
         unique!(number_list)
@@ -1230,7 +1228,7 @@ Construct a dataframe with the path, time stamps, and number of each snapshot an
 
   - A dataframe with 8 columns:
 
-      + `:ids`            -> Dataframe index of each snapshot, i.e. if there are 10 snapshots in total it runs from 1 to 10.
+      + `:row_id`         -> Dataframe index of each snapshot, i.e. if there are 10 snapshots in total it runs from 1 to 10.
       + `:numbers`        -> Number in the file name of each snapshot.
       + `:scale_factors`  -> Scale factor of each snapshot.
       + `:redshifts`      -> Redshift of each snapshot.
@@ -1257,30 +1255,38 @@ function makeSimulationTable(simulation_path::String)::DataFrame
         corresponding snapshot"))
     )
 
-    paths  = [snapshot_paths, groupcat_paths]
-    labels = [:snapshot_paths, :groupcat_paths]
-    rows   = [[1:length(snapshot_paths);], [1:length(groupcat_paths);]]
+    # Number of rows
+    n = length(snapshot_paths)
 
-    source_table = unstack(flatten(DataFrame(l=labels, p=paths, ids=rows), [:p, :ids]), :l, :p)
+    source_table = DataFrame(
+        snapshot_paths = snapshot_paths,
+        groupcat_paths = [groupcat_paths; fill(missing, n - length(groupcat_paths))],
+    )
 
     # Add the file name number column
     numbers = snap_source[:numbers]
-    insertcols!(source_table, 2, :numbers => isempty(numbers) ? ["000"] : numbers; copycols=false)
+    insertcols!(source_table, :numbers => isempty(numbers) ? ["000"] : numbers; copycols=false)
 
     # Get the time stamps of every snapshot
-    scale_factors, redshifts, physical_times, lookback_times = computeTimeTicks(snapshot_paths)
+    scale_factors, redshifts, physical_times, lookback_times = computeTimeStamps(snapshot_paths)
 
     # Add the scale factor column
-    insertcols!(source_table, 3, :scale_factors => scale_factors; copycols=false)
+    insertcols!(source_table, :scale_factors => scale_factors; copycols=false)
 
     # Add the redshift column
-    insertcols!(source_table, 4, :redshifts => redshifts; copycols=false)
+    insertcols!(source_table, :redshifts => redshifts; copycols=false)
 
     # Add the physical time column
-    insertcols!(source_table, 5, :physical_times => physical_times; copycols=false)
+    insertcols!(source_table, :physical_times => physical_times; copycols=false)
 
     # Add the lookback time column
-    insertcols!(source_table, 6, :lookback_times => lookback_times; copycols=false)
+    insertcols!(source_table, :lookback_times => lookback_times; copycols=false)
+
+    # Sort the table by physical time
+    sort!(source_table, :physical_times)
+
+    # Add the row indices
+    insertcols!(source_table, :row_id => 1:nrow(source_table))
 
     return identity.(DataFrame(source_table))
 
@@ -1357,7 +1363,7 @@ function makeDataDict(
             simulation_path,
             1,
             snapshot_n,
-            isCosmological(snapshot_path),
+            isSnapCosmological(snapshot_path),
             simulation_table,
         ),
         :snap_data => Snapshot(
@@ -1418,15 +1424,15 @@ function makeDataDict(
     request::Dict{Symbol,Vector{String}},
 )::Dict
 
-    # Make a dataframe for every simulation, with the following columns:
-    #   - 1. DataFrame index
-    #   - 2. Number in the file name
-    #   - 3. Scale factor
-    #   - 4. Redshift
-    #   - 5. Physical time
-    #   - 6. Lookback time
-    #   - 7. Snapshot path
-    #   - 8. Group catalog path
+    # Make a dataframe for the simulation with the following columns:
+    #  - DataFrame index         -> :row_id
+    #  - Number in the file name -> :numbers
+    #  - Scale factor            -> :scale_factors
+    #  - Redshift                -> :redshifts
+    #  - Physical time           -> :physical_times
+    #  - Lookback time           -> :lookback_times
+    #  - Snapshot path           -> :snapshot_paths
+    #  - Group catalog path      -> :groupcat_paths
     simulation_table = makeSimulationTable(simulation_path)
 
     return makeDataDict(
@@ -1473,7 +1479,7 @@ function countSnapshot(simulation_path::String)::Int
     if isempty(path_list)
 
         (
-            !logging[] ||
+            logging[] &&
             @warn("countSnapshot: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )
@@ -1484,7 +1490,7 @@ function countSnapshot(simulation_path::String)::Int
 
     if readSnapHeader(first(path_list)).num_files > 1
         # If there are multiple files per snapshot, get the path to the snapshot directory
-        map!(dirname, path_list, path_list)
+        map!(dirname, path_list)
         # Delete duplicates
         unique!(path_list)
     end
@@ -1494,7 +1500,7 @@ function countSnapshot(simulation_path::String)::Int
 end
 
 """
-    mergeRequests(requests::Dict{Symbol,Vector{String}}...)::Dict{Symbol,Vector{String}}
+    mergeRequests(requests...)::Dict{Symbol,Vector{String}}
 
 Merge several request dictionaries, ignoring duplicates.
 
@@ -1506,7 +1512,7 @@ Merge several request dictionaries, ignoring duplicates.
 
   - A new dictionary with all the requests.
 """
-function mergeRequests(requests::Dict{Symbol,Vector{String}}...)::Dict{Symbol,Vector{String}}
+function mergeRequests(requests...)::Dict{Symbol,Vector{String}}
 
     return Dict(
         type => union([get(request, type, String[]) for request in requests]...) for
@@ -1598,6 +1604,13 @@ function isSubfindActive(path::String)::Bool
 end
 
 """
+    isSubfindActive(path::Missing)::Bool
+
+Default method of [`isSubfindActive`](@ref) for a missing group catalog file.
+"""
+isSubfindActive(path::Missing)::Bool = false
+
+"""
     findRealStars(path::String)::Vector{Bool}
 
 Find which stellar particles are real stars and not wind particles.
@@ -1621,7 +1634,7 @@ function findRealStars(path::String)::Vector{Bool}
         )
 
         time_of_birth = h5open(path, "r") do snapshot
-            if PARTICLE_CODE_NAME[:stellar] ∉ keys(snapshot)
+            if !haskey(snapshot, PARTICLE_CODE_NAME[:stellar])
                 Float64[]
             else
                 read(snapshot[PARTICLE_CODE_NAME[:stellar]], QUANTITIES["GAGE"].hdf5_name)
@@ -1708,15 +1721,15 @@ function findQtyExtrema(
         throw(ArgumentError("findQtyExtrema: $(simulation_path) does not exists as a directory"))
     )
 
-    # Make a dataframe for every simulation, with the following columns:
-    #   - 1. DataFrame index
-    #   - 2. Number in the file name
-    #   - 3. Scale factor
-    #   - 4. Redshift
-    #   - 5. Physical time
-    #   - 6. Lookback time
-    #   - 7. Snapshot path
-    #   - 8. Group catalog path
+    # Make a dataframe for the simulation with the following columns:
+    #  - DataFrame index         -> :row_id
+    #  - Number in the file name -> :numbers
+    #  - Scale factor            -> :scale_factors
+    #  - Redshift                -> :redshifts
+    #  - Physical time           -> :physical_times
+    #  - Lookback time           -> :lookback_times
+    #  - Snapshot path           -> :snapshot_paths
+    #  - Group catalog path      -> :groupcat_paths
     simulation_table = makeSimulationTable(simulation_path)
 
     if snapshot_n > 0
@@ -1732,7 +1745,7 @@ function findQtyExtrema(
         )
 
         # Find the target row and snapshot path
-        snapshot_row = filter(:numbers => ==(lpad(file_number, 3, "0")), simulation_table)
+        snapshot_row = filter(:numbers => ==(file_number), simulation_table)
         snapshot_path = snapshot_row[1, :snapshot_paths]
 
         (
@@ -1761,7 +1774,7 @@ function findQtyExtrema(
 end
 
 """
-    isCosmological(path::String)::Bool
+    isSnapCosmological(path::String)::Bool
 
 Check if the snapshot in `path` comes from a cosmological simulation.
 
@@ -1780,13 +1793,13 @@ Check if the snapshot in `path` comes from a cosmological simulation.
       + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0, `Redshift` = 0.0).
       + `true`  -> Cosmological simulation (`ComovingIntegrationOn` = 1, `Redshift` != 0.0).
 """
-function isCosmological(path::String)::Bool
+function isSnapCosmological(path::String)::Bool
 
     if isfile(path)
 
         (
             HDF5.ishdf5(path) ||
-            throw(ArgumentError("isCosmological: The file $(path) is not in the HDF5 format, \
+            throw(ArgumentError("isSnapCosmological: The file $(path) is not in the HDF5 format, \
             I don't know how to read it"))
         )
 
@@ -1798,7 +1811,7 @@ function isCosmological(path::String)::Bool
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
-            throw(ArgumentError("isCosmological: The directory $(path) does not contain \
+            throw(ArgumentError("isSnapCosmological: The directory $(path) does not contain \
             snapshot sub-files in the HDF5 format"))
         )
 
@@ -1806,13 +1819,13 @@ function isCosmological(path::String)::Bool
 
     else
 
-        throw(ArgumentError("isCosmological: $(path) does not exists as a file or folder"))
+        throw(ArgumentError("isSnapCosmological: $(path) does not exists as a file or folder"))
 
     end
 
     cosmological = h5open(file_path, "r") do snapshot
 
-        if "Parameters" ∈ keys(snapshot)
+        if haskey(snapshot, "Parameters")
             # If the `param.txt` file is saved in the snapshot metadata, read `ComovingIntegrationOn`
             read_attribute(snapshot["Parameters"], "ComovingIntegrationOn")
         else
@@ -1823,6 +1836,164 @@ function isCosmological(path::String)::Bool
     end
 
     return cosmological
+
+end
+
+"""
+    isSimCosmological(simulation_path::String)::Bool
+
+Check if the simulation in `simulation_path` is cosmological.
+
+!!! note
+
+    This function will only read the first snapshot, and if each snapshot is made of multiple files, the function will only read the first file.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+
+# Returns
+
+  - If the simulation is cosmological
+
+      + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0, `Redshift` = 0.0).
+      + `true`  -> Cosmological simulation (`ComovingIntegrationOn` = 1, `Redshift` != 0.0).
+"""
+function isSimCosmological(simulation_path::String)::Bool
+
+    (
+        isdir(simulation_path) ||
+        throw(ArgumentError("isSimCosmological: $(simulation_path) does not exists as a directory"))
+    )
+
+    # Get the full list of paths to every snapshot in `simulation_path`
+    path_list = [
+        glob("*/*/$(SNAP_BASENAME)_*", simulation_path)
+        glob("*/$(SNAP_BASENAME)_*", simulation_path)
+        glob("$(SNAP_BASENAME)_*", simulation_path)
+    ]
+
+    # Check for an empty folder
+    if isempty(path_list)
+
+        (
+            logging[] &&
+            @warn("isSimCosmological: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
+            within $(simulation_path), or any of its subfolders")
+        )
+
+        return 0
+
+    end
+
+    return isSnapCosmological(first(path_list))
+
+end
+
+"""
+    isSnapSFM(path::String)::Bool
+
+Check if the snapshot in `path` comes from a simulation with our star formation model.
+
+!!! note
+
+    If each snapshot is made of multiple files, the function will only read the first file.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - If the simulation has our star formation model.
+"""
+function isSnapSFM(path::String)::Bool
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("isSnapSFM: The file $(path) is not in the HDF5 format, \
+            I don't know how to read it"))
+        )
+
+        file_path = path
+
+    elseif isdir(path)
+
+        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("isSnapSFM: The directory $(path) does not contain \
+            snapshot sub-files in the HDF5 format"))
+        )
+
+        file_path = minimum(sub_files)
+
+    else
+
+        throw(ArgumentError("isSnapSFM: $(path) does not exists as a file or folder"))
+
+    end
+
+    sfm = h5open(file_path, "r") do snapshot
+
+        group = snapshot[PARTICLE_CODE_NAME[:gas]]
+
+        isBlockPresent("FRAC", group) && !isempty(read(group, QUANTITIES["FRAC"].hdf5_name))
+
+    end
+
+    return sfm
+
+end
+
+"""
+    isSimSFM(simulation_path::String)::Bool
+
+Check if the simulation in `simulation_path` has our star formation model.
+
+!!! note
+
+    This function will only read the first snapshot, and if each snapshot is made of multiple files, the function will only read the first file.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+
+# Returns
+
+  - If the simulation has our star formation model.
+"""
+function isSimSFM(simulation_path::String)::Bool
+
+    (
+        isdir(simulation_path) ||
+        throw(ArgumentError("isSimSFM: $(simulation_path) does not exists as a directory"))
+    )
+
+    # Get the full list of paths to every snapshot in `simulation_path`
+    path_list = [
+        glob("*/*/$(SNAP_BASENAME)_*", simulation_path)
+        glob("*/$(SNAP_BASENAME)_*", simulation_path)
+        glob("$(SNAP_BASENAME)_*", simulation_path)
+    ]
+
+    # Check for an empty folder
+    if isempty(path_list)
+
+        (
+            logging[] &&
+            @warn("isSimSFM: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
+            within $(simulation_path), or any of its subfolders")
+        )
+
+        return 0
+
+    end
+
+    return isSnapSFM(first(path_list))
 
 end
 
@@ -1843,13 +2014,13 @@ Get the factor to convert a plain number into a [Unitful](https://github.com/Pai
 function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,Unitful.Units}
 
     (
-        quantity ∈ keys(QUANTITIES) ||
+        haskey(QUANTITIES, quantity) ||
         throw(ArgumentError("internalUnits: `quantity` should be one of the keys of \
         `QUANTITIES` but I got $(quantity), see the options in `./src/constants/globals.jl`"))
     )
 
     header = readSnapHeader(path)
-    cosmological = isCosmological(path)
+    cosmological = isSnapCosmological(path)
 
     a = cosmological ? header.time : 1.0
     h = cosmological ? header.h : 1.0
@@ -1872,8 +2043,8 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
                 @warn(
                     "internalUnits: You have set the unit system to use comoving lengths \
                     (`PHYSICAL_UNITS` = $(PHYSICAL_UNITS)), but the simulation is not \
-                    cosmological. internalUnits will keep the lengths physical. \
-                    Check `PHYSICAL_UNITS` in `constants/globals.jl`",
+                    cosmological. internalUnits will default to physical lengths \
+                    (`PHYSICAL_UNITS` = true). Check `PHYSICAL_UNITS` in `constants/globals.jl`",
                     maxlog = 1,
                 )
             end
@@ -1887,9 +2058,9 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
 
         elseif dimensions == Unitful.𝐓
 
-            # From internal units to Myr, for non-cosmological simulations,
+            # From internal units to Myr for non-cosmological simulations,
             # and to a dimensionless quantity for cosmological simulations
-            return cosmological ? Unitful.NoUnits : IU.t_cosmo
+            return cosmological ? Unitful.NoUnits : IU.t_newton
 
         elseif dimensions == Unitful.𝐌 * Unitful.𝐋^-3
 
@@ -1945,7 +2116,7 @@ Find which cell/particle types are part of the keys of `data_dict`.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary.
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
 
 # Returns
 
@@ -2015,7 +2186,7 @@ Find which group catalog data types are part of the keys of `data_dict`.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary.
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
 
 # Returns
 
@@ -2107,7 +2278,6 @@ function findClosestSnapshot(
     # Read the physical time associated to each snapshot
     snap_times = simulation_table[!, :physical_times]
 
-    # Allocate memory
     slices = similar(times, Int)
 
     # Find the closest snapshot to each of the `times`
@@ -2135,15 +2305,15 @@ Find the global index, in the context of the simulation, of the snapshot with a 
 """
 function findClosestSnapshot(simulation_path::String, times::Vector{<:Unitful.Time})::Vector{Int}
 
-    # Make a dataframe for every simulation, with the following columns:
-    #   - 1. DataFrame index
-    #   - 2. Number in the file name
-    #   - 3. Scale factor
-    #   - 4. Redshift
-    #   - 5. Physical time
-    #   - 6. Lookback time
-    #   - 7. Snapshot path
-    #   - 8. Group catalog path
+    # Make a dataframe for the simulation with the following columns:
+    #  - DataFrame index         -> :row_id
+    #  - Number in the file name -> :numbers
+    #  - Scale factor            -> :scale_factors
+    #  - Redshift                -> :redshifts
+    #  - Physical time           -> :physical_times
+    #  - Lookback time           -> :lookback_times
+    #  - Snapshot path           -> :snapshot_paths
+    #  - Group catalog path      -> :groupcat_paths
     simulation_table = makeSimulationTable(simulation_path)
 
     return findClosestSnapshot(

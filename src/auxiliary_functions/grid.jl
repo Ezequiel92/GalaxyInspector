@@ -102,7 +102,6 @@ function reduceMatrix(hr_matrix::Matrix{<:Number}, factor::Int; total::Bool=fals
     # Compute the size of the new matrix
     new_size = r ÷ factor
 
-    # Allocate memory
     lr_matrix = zeros(eltype(hr_matrix), new_size, new_size)
 
     # Compute the number of values in `hr_matrix` per position in the new matrix
@@ -202,5 +201,87 @@ From a `CubicGrid` construct a `SquareGrid` with the same center, number of bins
 function flattenGrid(cubic_grid::CubicGrid)::SquareGrid
 
     return SquareGrid(cubic_grid.grid_size, cubic_grid.n_bins; center=cubic_grid.center)
+
+end
+
+"""
+    equalAreaBins(radius::Number, n_bins::Int; shift::Number=zero(radius))::Vector{<:Number}
+
+Compute the bin edges that make each bin have equal area.
+
+# Arguments
+
+  - `radius::Number`: Radius of the grid (equal to the last bin edge).
+  - `n_bins::Int`: Number of bins.
+  - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
+
+# Returns
+
+  - The bin edges
+"""
+function equalAreaBins(radius::Number, n_bins::Int; shift::Number=zero(radius))::Vector{<:Number}
+
+    (
+        shift >= radius &&
+        throw(ArgumentError("equalAreaBins: `shift` has to be smaller than `radius`, \
+        but I got `shift` = $(shift) >= `radius` = $(radius)"))
+    )
+
+    # Compute the total area
+    A = area(radius) - area(shift)
+
+    # Compute the area of each bin
+    bin_area = A / n_bins / π
+
+    edges = Vector{typeof(radius)}(undef, n_bins + 1)
+
+    edges[1] = shift
+
+    for i in 1:n_bins
+        edges[i + 1] = sqrt(bin_area + edges[i]^2)
+    end
+
+    return edges
+
+end
+
+"""
+    equalVolumeBins(radius::Number, n_bins::Int; shift::Number=zero(radius))::Vector{<:Number}
+
+Compute the bin edges that make each bin have equal volume.
+
+# Arguments
+
+  - `radius::Number`: Radius of the grid (equal to the last bin edge).
+  - `n_bins::Int`: Number of bins.
+  - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
+
+# Returns
+
+  - The bin edges
+"""
+function equalVolumeBins(radius::Number, n_bins::Int; shift::Number=zero(radius))::Vector{<:Number}
+
+    (
+        shift >= radius &&
+        throw(ArgumentError("equalVolumeBins: `shift` has to be smaller than `radius`, \
+        but I got `shift` = $(shift) >= `radius` = $(radius)"))
+    )
+
+    # Compute the total volume
+    V = volume(radius) - volume(shift)
+
+    # Compute the volume of each bin
+    bin_volume = V / n_bins / (4π / 3)
+
+    edges = Vector{typeof(radius)}(undef, n_bins + 1)
+
+    edges[1] = shift
+
+    for i in 1:n_bins
+        edges[i + 1] = cbrt(bin_volume + edges[i]^3)
+    end
+
+    return edges
 
 end

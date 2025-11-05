@@ -2,15 +2,9 @@
 # Filters
 ####################################################################################################
 
-"""
-Default filter dictionary that does not exclude any cells/particles.
-"""
-const PASS_ALL = Dict(key => (:) for key in keys(PARTICLE_INDEX))
-
-"""
-Filter that excludes every cell/particle.
-"""
-const PASS_NONE = Dict(key => Int[] for key in keys(PARTICLE_INDEX))
+#################
+# Base functions
+#################
 
 """
     filterData!(data_dict::Dict; <keyword arguments>)::Nothing
@@ -19,58 +13,26 @@ Filter `data_dict` using the indices provided by `filter_function`.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `filter_function::Function=filterNothing`: A function with the signature:
-
-    `filter_function(data_dict) -> indices`
-
-    where
-
-      + `data_dict::Dict`: A dictionary with the following shape:
-
-        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * ...
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * ...
-      + `indices::Dict`: A dictionary with the following shape:
-
-        * `cell/particle type` -> idxs::IndexType
-        * `cell/particle type` -> idxs::IndexType
-        * `cell/particle type` -> idxs::IndexType
-        * ...
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `filter_function::Function=filterNothing`: Filter function. See the required signature and examples in `./src/analysis/filters.jl`.
 """
 function filterData!(data_dict::Dict; filter_function::Function=filterNothing)::Nothing
 
     # Compute the filter dictionary
-    indices = filter_function(data_dict)
+    filter_dict = filter_function(data_dict)
 
     for component in snapshotTypes(data_dict)
 
-        idxs = indices[component]
+        idxs = filter_dict[component]
 
-        for (block, values) in data_dict[component]
+        Threads.@threads for (block, values) in collect(pairs(data_dict[component]))
+
             if !isempty(values)
+
                 data_dict[component][block] = collect(selectdim(values, ndims(values), idxs))
+
             end
+
         end
 
     end
@@ -86,44 +48,8 @@ Return a filtered copy of `data_dict` using the indices provided by `filter_func
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `filter_function::Function=filterNothing`: A function with the signature:
-
-    `filter_function(data_dict) -> indices`
-
-    where
-
-      + `data_dict::Dict`: A dictionary with the following shape:
-
-        * `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-        * `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-        * `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * ...
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-        * ...
-      + `indices::Dict`: A dictionary with the following shape:
-
-        * `cell/particle type` -> idxs::IndexType
-        * `cell/particle type` -> idxs::IndexType
-        * `cell/particle type` -> idxs::IndexType
-        * ...
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `filter_function::Function=filterNothing`: Filter function. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
 
@@ -131,23 +57,27 @@ Return a filtered copy of `data_dict` using the indices provided by `filter_func
 """
 function filterData(data_dict::Dict; filter_function::Function=filterNothing)::Dict
 
-    if filter_function == filterNothing
-        return data_dict
-    end
-
     dd_copy = deepcopy(data_dict)
 
+    if filter_function == filterNothing
+        return dd_copy
+    end
+
     # Compute the filter dictionary
-    indices = filter_function(dd_copy)
+    filter_dict = filter_function(dd_copy)
 
     for component in snapshotTypes(dd_copy)
 
-        idxs = indices[component]
+        idxs = filter_dict[component]
 
-        for (block, values) in dd_copy[component]
+        Threads.@threads for (block, values) in collect(pairs(dd_copy[component]))
+
             if !isempty(values)
+
                 dd_copy[component][block] = collect(selectdim(values, ndims(values), idxs))
+
             end
+
         end
 
     end
@@ -157,489 +87,251 @@ function filterData(data_dict::Dict; filter_function::Function=filterNothing)::D
 end
 
 """
-    selectFilter(
-        filter_mode::Symbol,
-        request::Dict{Symbol,Vector{String}},
-    )::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
+    intersectFilters(filters::Function...)::Function
 
-Select a filter function, and the corresponding translation and rotation for the simulation box, from a list of premade ones.
-
-Creates a request dictionary, using `request` as a base, adding what is necessary for the filter function and corresponding transformations.
+Generate the filter function resulting from intersecting `filters` (using AND in boolean logic).
 
 # Arguments
 
-  - `filter_mode::Symbol`: Which cells/particles will be plotted, the options are:
-
-      + `:all`             -> Plot every cell/particle within the simulation box.
-      + `:dark_matter`            -> Plot only the cells/particles that belong to the main halo.
-      + `:subhalo`         -> Plot only the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Plot only the cells/particles inside a sphere with radius `DISK_R` (see `./src/constants/globals.jl`).
-      + `:stellar_subhalo` -> Plot only the cells/particles that belong to the main subhalo.
-      + `:all_subhalo`     -> Plot every cell/particle centered around the main subhalo.
-  - `request::Dict{Symbol,Vector{String}}`: Base request dictionary, nothing will be deleted from it.
+  - `filters`: Filter functions.
 
 # Returns
 
-  - A Tuple with four elements:
-
-      + The filter function.
-      + Translation for the simulation box. The possibilities are:
-
-          + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo), as the new origin.
-          + `(halo_idx, 0)`               -> Selects the center of mass of the `halo_idx::Int` halo, as the new origin.
-      + Rotation for the simulation box. The possibilities are:
-
-          + `:global_am`          -> Sets the angular momentum of the whole system as the new z axis.
-          + `:stellar_am`         -> Sets the stellar angular momentum as the new z axis.
-          + `:stellar_pa`         -> Sets the stellar principal axis as the new coordinate system.
-          + `:stellar_subhalo_pa` -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-      + New request dictionary.
+  - The filter function resulting from intersecting `filters`.
 """
-function selectFilter(
-    filter_mode::Symbol,
-    request::Dict{Symbol,Vector{String}},
-)::Tuple{Function,Union{Symbol,NTuple{2,Int}},Symbol,Dict{Symbol,Vector{String}}}
+function intersectFilters(filters::Function...)::Function
 
-    if filter_mode == :all
+    return dd -> intersectFilters([filter(dd) for filter in filters]...)
 
-        # Plot every cell/particle
-        filter_function = filterNothing
-        translation = :global_cm
-        rotation = :global_am
+end
 
-        new_request = mergeRequests(
-            addRequest(
-                request,
-                Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
-            ),
-            Dict(:stellar => ["POS ", "MASS", "VEL ", "GAGE"]),
-        )
+"""
+    intersectFilters(filters...)::Dict{Symbol,IndexType}
 
-    elseif filter_mode == :dark_matter
+Generate the filter dictionary resulting from intersecting `filters` (using AND in boolean logic).
 
-        # Plot only the cells/particles that belong to the main halo
-        filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=0)
-        translation = (1, 0)
-        rotation = :stellar_pa
+# Arguments
 
-        new_request = mergeRequests(
-            addRequest(
-                request,
-                Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
-            ),
-            Dict(
-                :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
-                :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-                :stellar   => ["POS ", "MASS", "VEL ", "GAGE"],
-            ),
-        )
+  - `filters`: Filter dictionary.
 
-    elseif filter_mode == :subhalo
+# Returns
 
-        # Plot only the cells/particles that belong to the main subhalo
-        filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
-        translation = (1, 1)
-        rotation = :stellar_pa
+  - The filter dictionary resulting from intersecting `filters`.
+"""
+function intersectFilters(filters...)::Dict{Symbol,IndexType}
 
-        new_request = mergeRequests(
-            addRequest(
-                request,
-                Dict(
-                    component => ["POS ", "MASS"] for component in keys(PARTICLE_INDEX)
-                ),
-            ),
-            Dict(
-                :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
-                :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-                :stellar   => ["POS ", "MASS", "VEL ", "GAGE"],
-            ),
-        )
-
-    elseif filter_mode == :sphere
-
-        # Plot only the cell/particle inside a sphere with radius `DISK_R`
-        filter_function = dd -> filterWithinSphere(dd, (0.0u"kpc", DISK_R), :global_cm)
-        translation = :global_cm
-        rotation = :global_am
-
-        new_request = addRequest(
-            request,
-            Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
-        )
-
-    elseif filter_mode == :stellar_subhalo
-
-        # Plot only the cells/particles that belong to the main subhalo
-        filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
-        translation = :stellar
-        rotation = :stellar_pa
-
-        new_request = mergeRequests(
-            mergeRequests(request, Dict(:stellar => ["POS ", "MASS", "VEL ", "GAGE"])),
-            Dict(:group => ["G_Nsubs", "G_LenType"], :subhalo => ["S_LenType"]),
-        )
-
-    elseif filter_mode == :all_subhalo
-
-        # Plot every cell/particle centered around the main subhalo
-        filter_function = filterNothing
-        translation = (1, 1)
-        rotation = :stellar_subhalo_pa
-
-        new_request = mergeRequests(
-            addRequest(
-                request,
-                Dict(
-                    component => ["POS ", "MASS"] for component in keys(PARTICLE_INDEX)
-                ),
-            ),
-            Dict(
-                :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
-                :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-                :stars   => ["POS ", "MASS", "VEL ", "GAGE"],
-            ),
-        )
-
-    elseif filter_mode == :all_stellar
-
-        # Plot every cell/particle centered around the main subhalo
-        filter_function = filterNothing
-        translation = :stars
-        rotation = :stellar_pa
-
-        new_request = mergeRequests(
-            addRequest(
-                request,
-                Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
-            ),
-            Dict(:stars => ["POS ", "MASS", "VEL ", "GAGE"]),
-        )
-
-    else
-
-        throw(ArgumentError("selectFilter: `filter_mode` can only be :all, :halo, :subhalo, \
-        :stellar_subhalo, :all_subhalo, :all_stellar, or :sphere, but I got :$(filter_mode)"))
-
+    if !allequal(keys.(filters))
+        throw(ArgumentError("intersectFilters: The filters dictionaries must have the same list of \
+        components (their keys)"))
     end
 
-    return filter_function, translation, rotation, new_request
-
-end
-
-"""
-    selectFilter(
-        filter_mode::Dict{Symbol,Any},
-        request::Dict{Symbol,Vector{String}},
-    )::Tuple{
-        Function,
-        Union{Symbol,NTuple{2,Int},Int},
-        Union{Symbol,NTuple{2,Int},Int},
-        Dict{Symbol,Vector{String}},
-    }
-
-Select the filter function, translation, and rotation from `filter_mode`.
-
-Creates a request dictionary, using `request` as a base, adding what is necessary for the filter function and corresponding transformations.
-
-# Arguments
-
-  - `filter_mode::Dict{Symbol,Any}`: A dictionary with three entries:
-
-      + `:filter_function` -> The filter function.
-      + `:translation`     -> Translation for the simulation box. The possibilities are:
-
-          + `:zero`                       -> No translation is applied.
-          + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
-          + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
-          + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-      + `:rotation`        -> Rotation for the simulation box. The possibilities are:
-
-          + `:zero`                       -> No rotation is applied.
-          + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
-          + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
-          + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
-          + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new coordinate system.
-          + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo as the new coordinate system.
-          + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-  - `request::Dict{Symbol,Vector{String}}`: Base request dictionary, nothing will be deleted from it.
-
-# Returns
-
-  - A Tuple with four elements:
-
-      + The filter function.
-      + Translation for the simulation box. The possibilities are:
-
-          + `:global_cm`                  -> Selects the center of mass of the whole system as the new origin.
-          + `:{component}`                -> Sets the center of mass of the given component (e.g. :stellar, :gas, :dark_matter, etc) as the new origin. It can be any of the keys of [`PARTICLE_INDEX`](@ref).
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the position of the potential minimum for the `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new origin.
-          + `(halo_idx, 0)`               -> Sets the center of mass of the `halo_idx::Int` halo as the new origin.
-          + `subhalo_abs_idx`             -> Sets the center of mass of the `subhalo_abs_idx::Int` as the new origin.
-      + Rotation for the simulation box. The possibilities are:
-
-          + `:zero`                       -> No rotation is applied.
-          + `:global_am`                  -> Sets the angular momentum of the whole system as the new z axis.
-          + `:stellar_am`                 -> Sets the stellar angular momentum as the new z axis.
-          + `:stellar_pa`                 -> Sets the stellar principal axis as the new coordinate system.
-          + `:stellar_subhalo_pa`         -> Sets the principal axis of the stars in the main subhalo as the new coordinate system.
-          + `(halo_idx, subhalo_rel_idx)` -> Sets the principal axis of the stars in `subhalo_rel_idx::Int` subhalo (of the `halo_idx::Int` halo) as the new coordinate system.
-          + `(halo_idx, 0)`               -> Sets the principal axis of the stars in the `halo_idx::Int` halo as the new coordinate system.
-          + `subhalo_abs_idx`             -> Sets the principal axis of the stars in the `subhalo_abs_idx::Int` subhalo as the new coordinate system.
-      + New request dictionary.
-"""
-function selectFilter(
-    filter_mode::Dict{Symbol,Any},
-    request::Dict{Symbol,Vector{String}},
-)::Tuple{
-    Function,
-    Union{Symbol,NTuple{2,Int},Int},
-    Union{Symbol,NTuple{2,Int},Int},
-    Dict{Symbol,Vector{String}},
-}
-
-    new_request = mergeRequests(
-        addRequest(
-            request,
-            Dict(component => ["POS ", "MASS", "VEL "] for component in keys(PARTICLE_INDEX)),
-        ),
-        Dict(
-            :group   => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
-            :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
-            :stellar   => ["POS ", "MASS", "VEL ", "GAGE"],
-        ),
-    )
-
-    return (
-        filter_mode[:filter_function],
-        filter_mode[:translation],
-        filter_mode[:rotation],
-        new_request,
-    )
-
-end
-
-"""
-    intersectFilters(filters::Dict{Symbol,IndexType}...)::Dict{Symbol,IndexType}
-
-Generate the filter resulting from intersecting `filters` (AND in boolean logic) .
-
-# Arguments
-
-  - `filters::Dict{Symbol,IndexType}`: Filter, as a dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function intersectFilters(filters::Dict{Symbol,IndexType}...)::Dict{Symbol,IndexType}
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    (
-        allequal(keys.(filters)) ||
-        throw(ArgumentError("intersectFilters: The filters must have the same list of components \
-        (their keys)"))
-    )
+    filter_dict = Dict{Symbol,IndexType}()
 
     for component in keys(filters[1])
 
-        indices[component] = intersect(
-            filters[1][component],
-            getindex.(filters[2:end], component)...,
-        )
+        filter_dict[component] = intersect(getindex.(filters, component)...)
 
     end
 
-    return indices
+    return filter_dict
 
 end
 
+"""
+    intersectFilters(filters::Dict{Symbol,IndexType})::Dict{Symbol,IndexType}
+
+Trivial method for the case of a single argument.
+
+# Arguments
+
+  - `filters::Dict{Symbol,IndexType}`: Filter dictionary.
+
+# Returns
+
+  - The filter dictionary given as argument.
+"""
 intersectFilters(filters::Dict{Symbol,IndexType})::Dict{Symbol,IndexType} = filters
 
+"""
+    invertFilterDict(filter::Dict{Symbol,IndexType})::Dict{Symbol,IndexType}
+
+Invert a given filter dictionary.
+
+# Arguments
+
+  - `filter::Dict{Symbol,IndexType}`: Filter dictionary to be inverted.
+
+# Returns
+
+  - The inverted filter dictionary.
+"""
+function invertFilterDict(filter::Dict{Symbol,IndexType})::Dict{Symbol,IndexType}
+
+    filter_dict = Dict{Symbol,IndexType}()
+
+    for (component, idxs) in pairs(filter)
+        filter_dict[component] = Not(idxs)
+    end
+
+    return filter_dict
+
+end
+
+"""
+    invertFilter(filter::Function)::Function
+
+Invert a filter function
+
+# Arguments
+
+  - `filter::Function`: Filter function to be inverted.
+
+# Returns
+
+  - The inverted filter function.
+"""
+function invertFilter(filter::Function)::Function
+
+    return (x...; y...) -> invertFilterDict(filter(x...; y...))
+
+end
+
+####################################################################################################
+# Filter functions
 ####################################################################################################
 #
-# A filter function must take a data dictionary, and return a filter dictionary
-#
-# These functions are for the second argument of `filterData` in `./src/analysis/filters.jl`
+# A filter function must take a data dictionary and return a filter dictionary.
 #
 # Expected signature:
 #
-#   filter_function(data_dict) -> indices
+#   filter_function(data_dict::Dict) -> filter_dict::Dict{Symbol,IndexType}
 #
 # where:
 #
-#   - `data_dict::Dict`: A dictionary with the following shape:
+#   - `data_dict::Dict`: Data dictionary (see makeDataDict for the canonical description).
+#   - filter_dict::Dict{Symbol,IndexType}: A dictionary with the following shape:
 #
-#      + `:sim_data`          -> ::Simulation (see `Simulation` in `./src/constants/globals.jl`).
-#      + `:snap_data`         -> ::Snapshot (see `Snapshot` in `./src/constants/globals.jl`).
-#      + `:gc_data`           -> ::GroupCatalog (see `GroupCatalog` in `./src/constants/globals.jl`).
-#      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-#      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-#      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-#      + ...
-#      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-#      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-#      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-#      + ...
-#   - indices::Dict{Symbol,IndexType}: A dictionary with the following shape:
-#
-#      + `cell/particle type` -> idxs::IndexType
-#      + `cell/particle type` -> idxs::IndexType
-#      + `cell/particle type` -> idxs::IndexType
+#      + `cell/particle type::Symbol` -> indices::IndexType
+#      + `cell/particle type::Symbol` -> indices::IndexType
+#      + `cell/particle type::Symbol` -> indices::IndexType
 #      + ...
 #
 ####################################################################################################
 
 """
-Default filter function that does not filter any cells/particles.
+Filter function that does not filter out any cell/particle.
 """
 filterNothing(x...; y...)::Dict{Symbol,IndexType} = PASS_ALL
 
 """
-    filterWithinSphere(
+Filter function that filters out all cells/particles.
+"""
+filterAll(x...; y...)::Dict{Symbol,IndexType} = PASS_NONE
+
+"""
+    filterBySphere(
         data_dict::Dict,
-        range::NTuple{2,<:Unitful.Length},
+        min_r::Unitful.Length,
+        max_r::Unitful.Length,
         origin...,
     )::Dict{Symbol,IndexType}
 
-Filter out the cells/particles outside a given spherical shell.
+Select the cells/particles within a given spherical shell.
 
 # Arguments
 
-  - `data::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `range::NTuple{2,<:Unitful.Length}`: Internal and external radius of the spherical shell.
-  - `origin`: It can be any number and type of argument compatible with the second to last arguments of a [`computeCenter`](@ref) method.
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `min_r::Unitful.Length`: Internal radius of the spherical shell.
+  - `max_r::Unitful.Length`: External radius of the spherical shell.
+  - `origin...`: It can be any number and type of argument compatible with the second to last arguments of a [`computeCenter`](@ref) method.
 
 # Returns
 
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
+  - A filter dictionary.
 """
-function filterWithinSphere(
+function filterBySphere(
     data_dict::Dict,
-    range::NTuple{2,<:Unitful.Length},
+    min_r::Unitful.Length,
+    max_r::Unitful.Length,
     origin...,
 )::Dict{Symbol,IndexType}
 
+    (
+        min_r >= max_r &&
+        throw(ArgumentError("filterBySphere: `max_r` should be larger than `min_r`, \
+        but I got `min_r` = $(min_r) >= `max_r` = $(max_r)"))
+    )
+
     center = computeCenter(data_dict, origin...)
 
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
+    filter_dict = Dict{Symbol,IndexType}(type => Int[] for type in snapshotTypes(data_dict))
 
-    for component in snapshotTypes(data_dict)
+    Threads.@threads for component in collect(keys(filter_dict))
 
         positions = data_dict[component]["POS "]
 
-        if isempty(positions)
-            indices[component] = (:)
-        else
+        if !isempty(positions)
             distances = computeDistance(positions; center)
-            indices[component] = map(x -> range[1] < x <= range[2], distances)
+            filter_dict[component] = map(x -> min_r < x <= max_r, distances)
         end
 
     end
 
-    return indices
+    return filter_dict
 
 end
 
 """
-    filterWithinCylinder(
+    filterByCylinder(
         data_dict::Dict,
         max_r::Unitful.Length,
         max_z::Unitful.Length,
         origin...,
     )::Dict{Symbol,IndexType}
 
-Filter out the cells/particles outside a given cylinder.
+Select the cells/particles within a given cylinder.
 
 # Arguments
 
-  - `data::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `max_r::Unitful.Length`: Radius of the cylinder.
   - `max_z::Unitful.Length`: Half height of the cylinder.
-  - `origin`: It can be any number and type of argument compatible with the second to last arguments of a [`computeCenter`](@ref) method.
+  - `origin...`: It can be any number and type of argument compatible with the second to last arguments of a [`computeCenter`](@ref) method.
 
 # Returns
 
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
+  - A filter dictionary.
 """
-function filterWithinCylinder(
+function filterByCylinder(
     data_dict::Dict,
     max_r::Unitful.Length,
     max_z::Unitful.Length,
     origin...,
 )::Dict{Symbol,IndexType}
 
-    center  = computeCenter(data_dict, origin...)
+    (
+        isPositive([max_r, max_z]) ||
+        throw(ArgumentError("filterByCylinder: `max_r` and `max_z` should be larger than 0, \
+        but I got `max_r` = $(max_r) and `max_z` = $(max_z)"))
+    )
 
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
+    center = computeCenter(data_dict, origin...)
 
-    for component in snapshotTypes(data_dict)
+    filter_dict = Dict{Symbol,IndexType}(type => Int[] for type in snapshotTypes(data_dict))
+
+    Threads.@threads for component in collect(keys(filter_dict))
 
         positions = data_dict[component]["POS "]
 
-        if isempty(positions)
-            indices[component] = (:)
-        else
+        if !isempty(positions)
             distances = computeDistance(positions; center)
-            heights   = abs.(positions[3, :])
-            indices[component] = map(r -> r <= max_r, distances) ∩ map(z -> z <= max_z, heights)
+            heights = abs.(positions[3, :])
+            filter_dict[component] = map(r -> r <= max_r, distances) ∩ map(z -> z <= max_z, heights)
         end
 
     end
 
-    return indices
+    return filter_dict
 
 end
 
@@ -649,34 +341,17 @@ end
         <keyword arguments>
     )::Dict{Symbol,IndexType}
 
-Filter out cells/particles that do not belong to a given halo and subhalo.
+Select the cells/particles that belong to a given halo and subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `halo_idx::Int`: Index of the target halo (FoF group). Starts at 1.
-  - `subhalo_rel_idx::Int`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are included.
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are included.
 
 # Returns
 
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
+  - A filter dictionary.
 """
 function filterBySubhalo(
     data_dict::Dict;
@@ -685,19 +360,31 @@ function filterBySubhalo(
 )::Dict{Symbol,IndexType}
 
     # If there are no subfind data, filter out every cell/particle
-    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
+    if !isSubfindActive(data_dict[:gc_data].path)
+        (
+            logging[] &&
+            @warn("filterBySubhalo: There is no subfind data in $(data_dict[:gc_data].path), \
+            so every particle will be filtered out")
+        )
         return PASS_NONE
     end
 
     # Load the necessary data
-    g_n_subs = data_dict[:group]["G_Nsubs"]
+    g_n_subs   = data_dict[:group]["G_Nsubs"]
     g_len_type = data_dict[:group]["G_LenType"]
     s_len_type = data_dict[:subhalo]["S_LenType"]
 
     # If any of the data is missing return an empty filter dictionary
     n_groups_total = data_dict[:gc_data].header.n_groups_total
 
-    !iszero(n_groups_total) && !any(isempty, [g_n_subs, g_len_type, s_len_type]) || return PASS_NONE
+    if iszero(n_groups_total) || any(isempty, [g_n_subs, g_len_type, s_len_type])
+        (
+            logging[] &&
+            @warn("filterBySubhalo: There is missing subfind data in $(data_dict[:gc_data].path), \
+            so every particle will be filtered out")
+        )
+        return PASS_NONE
+    end
 
     # Check that the requested halo index is within bounds
     (
@@ -719,15 +406,12 @@ function filterBySubhalo(
     n_subfinds = g_n_subs[halo_idx]
 
     if iszero(n_subfinds)
-
         (
-            !logging[] ||
-            @info("filterBySubhalo: There are 0 subhalos in the FoF group $(halo_idx) from
+            logging[] &&
+            @warn("filterBySubhalo: There are 0 subhalos in the FoF group $(halo_idx) from
             $(data_dict[:gc_data].path), so every particle will be filtered out")
         )
-
         return PASS_NONE
-
     end
 
     (
@@ -754,7 +438,9 @@ function filterBySubhalo(
             len_type_floor_in_halo = zeros(Int, size(s_len_type, 1))
         else
             len_type_floor_in_halo = sum(
-                s_len_type[:, (n_subs_floor + 1):(subhalo_abs_idx - 1)], dims=2; init=0,
+                s_len_type[:, (n_subs_floor + 1):(subhalo_abs_idx - 1)],
+                dims=2;
+                init=0,
             )
         end
 
@@ -765,8 +451,7 @@ function filterBySubhalo(
 
     end
 
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
+    filter_dict = Dict{Symbol,IndexType}()
 
     # Find which cell/particle types are part of the keys of `data_dict`
     components_in_dd = snapshotTypes(data_dict)
@@ -780,7 +465,7 @@ function filterBySubhalo(
         if component ∈ components_in_dd
 
             if first_idx == last_idx || iszero(last_idx)
-                indices[component] = Int[]
+                filter_dict[component] = Int[]
             end
 
             if component == :stellar
@@ -794,11 +479,11 @@ function filterBySubhalo(
                 stars_first_idx = first_idx - n_wind_before
                 stars_last_idx = last_idx - n_wind_before - n_wind_between
 
-                indices[component] = stars_first_idx:stars_last_idx
+                filter_dict[component] = stars_first_idx:stars_last_idx
 
             else
 
-                indices[component] = first_idx:last_idx
+                filter_dict[component] = first_idx:last_idx
 
             end
 
@@ -806,45 +491,33 @@ function filterBySubhalo(
 
     end
 
-    return indices
+    return filter_dict
 
 end
 
 """
     filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
 
-Filter out cells/particles that do not belong to a given subhalo.
+Select the cells/particles that belong to a given subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `subhalo_abs_idx::Int`: Index of the target subhalo (subfind). Starts at 1.
 
 # Returns
 
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
+  - A filter dictionary.
 """
 function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
 
     # If there are no subfind data, filter out every cell/particle
-    if ismissing(data_dict[:gc_data].path) && !isSubfindActive(data_dict[:gc_data].path)
+    if !isSubfindActive(data_dict[:gc_data].path)
+        (
+            logging[] &&
+            @warn("filterBySubhalo: There is no subfind data in $(data_dict[:gc_data].path), \
+            so every particle will be filtered out")
+        )
         return PASS_NONE
     end
 
@@ -854,7 +527,14 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
     # If any of the data is missing return an empty filter dictionary
     n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
 
-    !iszero(n_subgroups_total) && !isempty(s_len_type) || return PASS_NONE
+    if iszero(n_subgroups_total) || isempty(s_len_type)
+        (
+            logging[] &&
+            @warn("filterBySubhalo: There is missing subfind data in $(data_dict[:gc_data].path), \
+            so every particle will be filtered out")
+        )
+        return PASS_NONE
+    end
 
     # Check that the requested subhalo index is within bounds
     (
@@ -874,8 +554,7 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
     first_idxs = len_type_floor .+ 1
     last_idxs  = len_type_floor .+ s_len_type[:, subhalo_abs_idx]
 
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
+    filter_dict = Dict{Symbol,IndexType}()
 
     # Find which cell/particle types are part of the keys of `data_dict`
     components_in_dd = snapshotTypes(data_dict)
@@ -889,7 +568,7 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
         if component ∈ components_in_dd
 
             if first_idx == last_idx || iszero(last_idx)
-                indices[component] = Int[]
+                filter_dict[component] = Int[]
             end
 
             if component == :stellar
@@ -903,11 +582,11 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
                 stars_first_idx = first_idx - n_wind_before
                 stars_last_idx = last_idx - n_wind_before - n_wind_between
 
-                indices[component] = stars_first_idx:stars_last_idx
+                filter_dict[component] = stars_first_idx:stars_last_idx
 
             else
 
-                indices[component] = first_idx:last_idx
+                filter_dict[component] = first_idx:last_idx
 
             end
 
@@ -915,7 +594,7 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
 
     end
 
-    return indices
+    return filter_dict
 
 end
 
@@ -924,219 +603,79 @@ end
         data_dict::Dict,
         quantity::Symbol,
         component::Symbol,
-        minimum::Number,
-        maximum::Number,
+        min::Number,
+        max::Number,
     )::Dict{Symbol,IndexType}
 
-Filter out particles/cells with `quantity` outside the range [`minimum`, `maximum`].
+Select particles/cells with a value of `quantity` within [`min`, `max`].
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. For the possibilities see the documentation of [`scatterQty`](@ref).
   - `component::Symbol`: Type of particle/cell. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
-  - `minimum::Number`: Minimum value of `quantity`.
-  - `maximum::Number`: Maximum value of `quantity`.
+  - `min::Number`: Minimum value of `quantity`.
+  - `max::Number`: Maximum value of `quantity`.
 
 # Returns
 
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
+  - A filter dictionary.
 """
 function filterByQuantity(
     data_dict::Dict,
     quantity::Symbol,
     component::Symbol,
-    minimum::Number,
-    maximum::Number,
+    min::Number,
+    max::Number,
 )::Dict{Symbol,IndexType}
+
+    (
+        min >= max &&
+        throw(ArgumentError("filterByQuantity: `max` should be larger than `min`, \
+        but I got `min` = $(min) >= `max` = $(max)"))
+    )
+
+    filter_dict = Dict{Symbol,IndexType}(type => (:) for type in snapshotTypes(data_dict))
 
     # Compute the `quantity`
     values = scatterQty(data_dict, quantity)
 
-    (
-        minimum >= maximum &&
-        throw(ArgumentError("filterByQuantity: `maximum` should be larger than `minimum`, \
-        but I got `minimum` = $(minimum) >= `maximum` = $(maximum)"))
-    )
-
     if isempty(values)
-
-        (
-            logging[] &&
-            @warn("filterByQuantity: Quantity :$(quantity) is empty, no particles/cells will be \
-            filtered out")
-        )
-
-        return PASS_ALL
-
-    end
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    for type in snapshotTypes(data_dict)
-
-        (
-            length(data_dict[type]["MASS"]) != length(values) && logging[] &&
-            @warn("filterByQuantity: The amount of particles/cells of type :$(component) is not \
-            the same as the amount of values for quantity :$(quantity). Are you sure that \
-            `component` = :$(component) is correct?")
-        )
-
-        if type == component
-            indices[type] = map(x -> minimum <= x <= maximum, values)
-        else
-            indices[type] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterByELSFR(data_dict::Dict)::Dict{Symbol,IndexType}
-
-Filter out gas cells that have not entered our star formation routine.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterByELSFR(data_dict::Dict)::Dict{Symbol,IndexType}
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    for component in snapshotTypes(data_dict)
-
-        if component == :gas
-            if isempty(data_dict[:gas]["FRAC"])
-                indices[component] = Int[]
-            else
-                indices[component] = map(!isnan, data_dict[:gas]["FRAC"][1, :])
-            end
-        else
-            indices[component] = (:)
-        end
-
-    end
-
-    return indices
-
-end
-
-"""
-    filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
-
-Filter out stars that were born one or more snapshots ago.
-
-# Arguments
-
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-
-# Returns
-
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
-"""
-function filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
-
-    birth_ticks = data_dict[:stellar]["GAGE"]
-
-    # Get the global index (index in the context of the whole simulation) of the current snapshot
-    present_idx = data_dict[:snap_data].global_index
-
-    if present_idx == 1 || isempty(birth_ticks)
-
-        new_stars_idxs = (:)
-
+        filter_dict[component] = Int[]
     else
-
-        # Compute the stellar birth dates
-        if data_dict[:sim_data].cosmological
-            # Go from scale factor to physical time
-            birth_times = computeTime(birth_ticks, data_dict[:snap_data].header)
-        else
-            birth_times = birth_ticks
-        end
-
-        # Get the physical times
-        times = data_dict[:sim_data].snapshot_table[:, 5]
-
-        new_stars_idxs = map(t -> t > times[present_idx - 1], birth_times)
-
+        filter_dict[component] = map(x -> min <= x <= max, values)
     end
 
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
+    return filter_dict
 
-    for component in snapshotTypes(data_dict)
+end
 
-        if component == :stellar
-            indices[component] = new_stars_idxs
-        else
-            indices[component] = (:)
-        end
+"""
+    filterBySFM(data_dict::Dict)::Dict{Symbol,IndexType}
 
+Select the gas cells that have entered our star formation routine at least once.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+
+# Returns
+
+  - A filter dictionary.
+"""
+function filterBySFM(data_dict::Dict)::Dict{Symbol,IndexType}
+
+    filter_dict = Dict{Symbol,IndexType}(type => (:) for type in snapshotTypes(data_dict))
+
+    fractions = data_dict[:gas]["FRAC"]
+
+    if isempty(fractions)
+        filter_dict[:gas] = Int[]
+    else
+        filter_dict[:gas] = map(!isnan, fractions[SFM_IDX[:ode_ionized], :])
     end
 
-    return indices
+    return filter_dict
 
 end
 
@@ -1146,34 +685,17 @@ end
         <keyword arguments>
     )::Dict{Symbol,IndexType}
 
-Filter out stars with an age outside the range [`min_age`, `max_age`].
+Select stars with an age within [`min_age`, `max_age`].
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `min_age::Unitful.Time=0.0u"Gyr"`: Minimum age.
   - `max_age::Unitful.Time=AGE_RESOLUTION`: Maximum age.
 
 # Returns
 
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
+  - A filter dictionary.
 """
 function filterByStellarAge(
     data_dict::Dict;
@@ -1181,26 +703,78 @@ function filterByStellarAge(
     max_age::Unitful.Time=AGE_RESOLUTION,
 )::Dict{Symbol,IndexType}
 
+    (
+        min_age >= max_age &&
+        throw(ArgumentError("filterByStellarAge: `max_age` should be larger than `min_age`, \
+        but I got `min_age` = $(min_age) >= `max_age` = $(max_age)"))
+    )
+
+    filter_dict = Dict{Symbol,IndexType}(type => (:) for type in snapshotTypes(data_dict))
+
     ages = computeStellarAge(data_dict)
 
-    isempty(ages) && PASS_ALL
+    if isempty(ages)
+        filter_dict[:stellar] = Int[]
+    else
+        filter_dict[:stellar] = map(t -> min_age <= t <= max_age, ages)
+    end
 
-    new_stars_idxs = map(t -> min_age <= t <= max_age, ages)
+    return filter_dict
 
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
+end
 
-    for component in snapshotTypes(data_dict)
+"""
+    filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
 
-        if component == :stellar
-            indices[component] = new_stars_idxs
+Select stars born after the previous snapshot.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+
+# Returns
+
+  - A filter dictionary.
+"""
+function filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
+
+    filter_dict = Dict{Symbol,IndexType}(type => (:) for type in snapshotTypes(data_dict))
+
+    birth_ticks = data_dict[:stellar]["GAGE"]
+
+    if isempty(birth_ticks)
+
+        filter_dict[:stellar] = Int[]
+
+    else
+
+        # Get the global index (index in the context of the whole simulation) of the current snapshot
+        present_idx = data_dict[:snap_data].global_index
+
+        if present_idx == 1
+
+            filter_dict[:stellar] = (:)
+
         else
-            indices[component] = (:)
+
+            # Compute the stellar birth dates
+            if data_dict[:sim_data].cosmological
+                # Go from scale factor to physical time
+                birth_times = computeTime(birth_ticks, data_dict[:snap_data].header)
+            else
+                birth_times = birth_ticks
+            end
+
+            # Get the physical times
+            times = data_dict[:sim_data].snapshot_table[!, :physical_times]
+
+            filter_dict[:stellar] = map(t -> t >= times[present_idx - 1], birth_times)
+
         end
 
     end
 
-    return indices
+    return filter_dict
 
 end
 
@@ -1211,35 +785,18 @@ end
         <keyword arguments>
     )::Dict{Symbol,IndexType}
 
-Filter out stars that were born either outside the given halo and subhalo (`exclude`= :exsitu), or inside (`exclude`= :insitu).
+Select stars that were born either inside the given halo and subhalo (`exclude`= :exsitu), or outside (`exclude`= :insitu).
 
 # Arguments
 
-  - `data_dict::Dict`: A dictionary with the following shape:
-
-      + `:sim_data`          -> ::Simulation (see [`Simulation`](@ref)).
-      + `:snap_data`         -> ::Snapshot (see [`Snapshot`](@ref)).
-      + `:gc_data`           -> ::GroupCatalog (see [`GroupCatalog`](@ref)).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `cell/particle type` -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + `groupcat type`      -> (`block` -> data of `block`, `block` -> data of `block`, ...).
-      + ...
-  - `exclude::Symbol`: Which stars will be filtered out, either the ones born outside the given halo and subhalo (:exsitu), or inside (:insitu).
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `exclude::Symbol`: Which stars will be excluded, either the ones born outside the given halo and subhalo (:exsitu), or inside (:insitu).
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are considered in-situ.
 
 # Returns
 
-  - A dictionary with the following shape:
-
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + `cell/particle type` -> idxs::IndexType
-      + ...
+  - A filter dictionary.
 """
 function filterByBirthPlace(
     data_dict::Dict,
@@ -1248,40 +805,172 @@ function filterByBirthPlace(
     subhalo_rel_idx::Int=1,
 )::Dict{Symbol,IndexType}
 
+    filter_dict = Dict{Symbol,IndexType}(type => (:) for type in snapshotTypes(data_dict))
+
     birth_halo, birth_subhalo = locateStellarBirthPlace(data_dict)
 
-    stars_born_in_halo = map(isequal(halo_idx), birth_halo)
+    if any(isempty, [birth_halo, birth_subhalo])
 
-    if iszero(subhalo_rel_idx)
-        stars_born_in_subhalo = (:)
+        filter_dict[:stellar] = Int[]
+
     else
-        stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
-    end
 
-    insitu_stars = stars_born_in_halo ∩ stars_born_in_subhalo
+        stars_born_in_halo = map(isequal(halo_idx), birth_halo)
 
-    if exclude == :insitu
-        stars_idxs = Vector{Bool}(.!(insitu_stars))
-    elseif exclude == :exsitu
-        stars_idxs = insitu_stars
-    else
-        throw(ArgumentError("filterByBirthPlace: `exclude` can only be :insitu or :exsitu, \
-        but I got :$(exclude)"))
-    end
-
-    # Allocate memory
-    indices = Dict{Symbol,IndexType}()
-
-    for component in snapshotTypes(data_dict)
-
-        if component == :stellar
-            indices[component] = stars_idxs
+        if iszero(subhalo_rel_idx)
+            stars_born_in_subhalo = (:)
         else
-            indices[component] = (:)
+            stars_born_in_subhalo = map(isequal(subhalo_rel_idx), birth_subhalo)
+        end
+
+        insitu_stars = stars_born_in_halo ∩ stars_born_in_subhalo
+
+        if exclude == :insitu
+
+            filter_dict[:stellar] = Vector{Bool}(.!(insitu_stars))
+
+        elseif exclude == :exsitu
+
+            filter_dict[:stellar] = insitu_stars
+
+        else
+
+            throw(ArgumentError("filterByBirthPlace: `exclude` can only be :insitu or :exsitu, \
+            but I got :$(exclude)"))
+
         end
 
     end
 
-    return indices
+    return filter_dict
+
+end
+
+#################
+# Filter presets
+#################
+
+"""
+    selectFilter(
+        filter_mode::Symbol,
+        base_request::Dict{Symbol,Vector{String}},
+    )::Tuple{Function,Dict{Symbol,Vector{String}}}
+
+Select a filter function from a list of premade ones.
+
+Creates a request dictionary, using `base_request` as a base, adding what is necessary for the filter function.
+
+# Arguments
+
+  - `filter_mode::Symbol`: Which cells/particles will be selected, the options are:
+
+      + `:all`             -> Select every cell/particle within the simulation box.
+      + `:halo`            -> Select the cells/particles that belong to the main halo.
+      + `:subhalo`         -> Select the cells/particles that belong to the main subhalo.
+      + `:sphere`          -> Select the cells/particles inside a sphere centered at the origin with radius `DISK_R` (see `./src/constants/globals.jl`).
+      + `:cylinder`        -> Select the cells/particles inside a cylinder centered at the origin with radius `DISK_R` and half height `DISK_HEIGHT` (see `./src/constants/globals.jl`). The cylinder axis is aligned with the z axis.
+  - `base_request::Dict{Symbol,Vector{String}}`: Base request dictionary.
+
+# Returns
+
+  - A Tuple with two elements:
+
+      + The filter function.
+      + The new request dictionary.
+"""
+function selectFilter(
+    filter_mode::Symbol,
+    base_request::Dict{Symbol,Vector{String}},
+)::Tuple{Function,Dict{Symbol,Vector{String}}}
+
+    if filter_mode == :all
+
+        # Select every cell/particle within the simulation box
+        filter_function = filterNothing
+
+        new_request = base_request
+
+    elseif filter_mode == :halo
+
+        # Select the cells/particles that belong to the main halo
+        filter_function = dd -> filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=0)
+
+        new_request = mergeRequests(
+            base_request,
+            Dict(:group => ["G_Nsubs", "G_LenType"], :subhalo => ["S_LenType"]),
+        )
+
+    elseif filter_mode == :subhalo
+
+        # Select the cells/particles that belong to the main subhalo
+        filter_function = dd -> filterBySubhalo(dd)
+
+        new_request = mergeRequests(
+            base_request,
+            Dict(:group => ["G_Nsubs", "G_LenType"], :subhalo => ["S_LenType"]),
+        )
+
+    elseif filter_mode == :sphere
+
+        # Select the cells/particles inside a sphere centered at the origin with radius `DISK_R`
+        filter_function = dd -> filterBySphere(dd, 0.0u"kpc", DISK_R, :zero)
+
+        new_request = mergeRequests(
+            base_request,
+            Dict(component => ["POS "] for component in keys(PARTICLE_INDEX)),
+        )
+
+    elseif filter_mode == :cylinder
+
+        # Select the cells/particles inside a cylinder centered at the origin with radius `DISK_R`
+        # and half height `DISK_HEIGHT`. The cylinder axis is aligned with the z axis
+        filter_function = dd -> filterByCylinder(dd, DISK_R, DISK_HEIGHT, :zero)
+
+        new_request = mergeRequests(
+            base_request,
+            Dict(component => ["POS "] for component in keys(PARTICLE_INDEX)),
+        )
+
+    else
+
+        throw(ArgumentError("selectFilter: `filter_mode` can only be :all, :halo, :subhalo, \
+        :sphere or :cylinder, but I got :$(filter_mode)"))
+
+    end
+
+    return filter_function, new_request
+
+end
+
+"""
+    selectFilter(
+        filter_mode::Tuple{Function,Dict{Symbol,Vector{String}}},
+        base_request::Dict{Symbol,Vector{String}},
+    )::Tuple{Function,Dict{Symbol,Vector{String}}}
+
+Compatibility method to pass personalized filters to functions that only use the `filter_mode` argument.
+
+# Arguments
+
+  - `filter_mode::Tuple{Function,Dict{Symbol,Vector{String}}}`: Filter function and the request that goes with it.
+  - `base_request::Dict{Symbol,Vector{String}}`: Base request dictionary.
+
+# Returns
+
+  - A Tuple with two elements:
+
+      + The filter function.
+      + The new request dictionary.
+"""
+function selectFilter(
+    filter_mode::Tuple{Function,Dict{Symbol,Vector{String}}},
+    base_request::Dict{Symbol,Vector{String}},
+)::Tuple{Function,Dict{Symbol,Vector{String}}}
+
+    filter_function, ff_request = filter_mode
+
+    new_request = mergeRequests(base_request, ff_request)
+
+    return filter_function, new_request
 
 end
