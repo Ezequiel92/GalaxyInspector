@@ -1970,7 +1970,7 @@ Plot a time series.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
   - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the quantities valid for [`integrateQty`](@ref).
   - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the quantities valid for [`integrateQty`](@ref).
-  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
   - `xlog::Bool=true`: If the x axis is will have a ``\\log_{10}`` scale.
   - `ylog::Bool=true`: If the y axis is will have a ``\\log_{10}`` scale.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
@@ -1987,8 +1987,8 @@ Plot a time series.
 function timeSeries(
     simulation_paths::Vector{String},
     x_quantity::Symbol,
-    y_quantity::Symbol,
-    slice::IndexType;
+    y_quantity::Symbol;
+    slice::IndexType=(:),
     xlog::Bool=true,
     ylog::Bool=true,
     cumulative::Bool=false,
