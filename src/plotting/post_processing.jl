@@ -1533,7 +1533,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
       + `:molecular_area_density` -> Molecular mass surface density, as ``\\log10(\\Sigma_\\text{H2})``.
       + `:atomic_area_density`    -> Atomic mass surface density, as ``\\log10(\\Sigma_\\text{HI})``.
       + `:sfr_area_density`       -> Star formation rate surface density, as ``\\log10(\\Sigma_\\text{SFR})``.
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. ``\\mathrm{X}`` can be O (oxygen), N (nitrogen), or C (carbon).
+      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as [`ABUNDANCE_SHIFT`](@ref) + ``\\log_{10}(\\mathrm{X \\, / \\, H})``. ``\\mathrm{X}`` can be O (oxygen), N (nitrogen), or C (carbon).
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for `quantity`.
   - `color::ColorType=WONG_RED`: Color of the line.
   - `linestyle::LineStyleType=:solid`: Style of the line.
@@ -1609,13 +1609,13 @@ function ppMolla2015!(
         y_data = (raw[!, "logΣsfr"] .± raw[!, "logΣsfr error"]) .+ factor
     elseif quantity == :O_stellar_abundance
         # dimensionless
-        y_data = raw[!, "O/H"] .± raw[!, "ΔO/H"]
+        y_data = @. (raw[!, "O/H"] - 12.0 + ABUNDANCE_SHIFT[:O]) ± raw[!, "ΔO/H"]
     elseif quantity == :N_stellar_abundance
         # dimensionless
-        y_data = raw[!, "N/H"] .± raw[!, "ΔN/H"]
+        y_data = @. (raw[!, "N/H"] - 12.0 + ABUNDANCE_SHIFT[:N]) ± raw[!, "ΔN/H"]
     elseif quantity == :C_stellar_abundance
         # dimensionless
-        y_data = raw[!, "C/H"] .± raw[!, "ΔC/H"]
+        y_data = @. (raw[!, "C/H"] - 12.0 + ABUNDANCE_SHIFT[:C]) ± raw[!, "ΔC/H"]
     else
         throw(ArgumentError("ppMolla2015: `x_quantity` can only be  :stellar_area_density, \
         :ode_molecular_area_density, :br_molecular_area_density, :ode_atomic_area_density, \

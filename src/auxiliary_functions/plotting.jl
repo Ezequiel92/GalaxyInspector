@@ -2064,9 +2064,15 @@ function plotParams(quantity::Symbol)::PlotParams
         # See computeAbundance() in ./src/analysis/compute_quantities/masses.jl
         element = GAS_ABUNDANCE_SPLITS[quantity]
 
+        if iszero(ABUNDANCE_SHIFT[element])
+            axis_label = L"\log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
+        else
+            axis_label = L"%$(Int(ABUNDANCE_SHIFT[element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
+        end
+
         plot_params = PlotParams(;
             request    = Dict(:gas => ["MASS", "GMET"]),
-            axis_label = L"%$(Int(ABUNDANCE_SHIFT[element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})",
+            axis_label,
             cp_type    = :gas,
         )
 
@@ -2075,9 +2081,15 @@ function plotParams(quantity::Symbol)::PlotParams
         # See computeAbundance() in ./src/analysis/compute_quantities/masses.jl
         element = STELLAR_ABUNDANCE_SPLITS[quantity]
 
+        if iszero(ABUNDANCE_SHIFT[element])
+            axis_label = L"\log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
+        else
+            axis_label = L"%$(Int(ABUNDANCE_SHIFT[element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
+        end
+
         plot_params = PlotParams(;
             request    = Dict(:stellar => ["MASS", "GME2"]),
-            axis_label = L"%$(Int(ABUNDANCE_SHIFT[element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})",
+            axis_label,
             cp_type    = :stellar,
         )
 

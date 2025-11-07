@@ -1212,7 +1212,7 @@ function daMolla2015(
         positions = filtered_dd[:stellar]["POS "]
         masses    = computeElementMass(filtered_dd, :stellar, element) ./ ATOMIC_WEIGHTS[element]
         norm      = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
-        scaling   = x -> 12.0 .+ log10.(ustrip.(y_unit, x))
+        scaling   = x -> ABUNDANCE_SHIFT[element] .+ log10.(ustrip.(y_unit, x))
         density   = false
 
     else
@@ -2082,8 +2082,18 @@ function daMetallicity2DProjection(
 
         end
 
+        title = if element == :all
+            "log₁₀(Z [Z⊙])"
+        else
+            if iszero(ABUNDANCE_SHIFT[element])
+                "log₁₀($(element) / H)"
+            else
+                "$(ABUNDANCE_SHIFT[element]) + log₁₀($(element) / H)"
+            end
+        end
+
         @info(
-            "\nMetallicity range - $(element == :all ? "log₁₀(Z [Z⊙])" : "$(ABUNDANCE_SHIFT[element]) + log₁₀($(element) / H)") \
+            "\nMetallicity range - $(title) \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Component:  $(component) \
