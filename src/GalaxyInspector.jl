@@ -88,8 +88,6 @@ export plotSnapshot
 export plotTimeSeries
 
 # From `plotting/convenience.jl`
-export snapshotReport
-export simulationReport
 export sfrTXT
 export cpuTXT
 export stellarBirthHalos
@@ -121,5 +119,8 @@ export massMetallicityRelation
 export gasVelocityCubes
 export stellarVelocityCubes
 export clumpingFactor
+export circularityHistogram
+export snapshotReport
+export simulationReport
 
 end

@@ -5337,6 +5337,147 @@ function clumpingFactor(
 end
 
 """
+    circularityHistogram(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot three stellar circularity histograms for each simulation. One for the stars within `R_out`, another for the stars within `R_in`, and another for the stars between `R_in` and `R_out`.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `R_in::Unitful.Length=2.0u"kpc"`: Internal radius.
+  - `R_out::Unitful.Length=DISK_R`: External radius.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function circularityHistogram(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    R_in::Unitful.Length=2.0u"kpc",
+    R_out::Unitful.Length=DISK_R,
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    theme::Attributes=Theme(),
+)::Nothing
+
+    plot_params = plotParams(:stellar_circularity)
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, plot_params.request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    grid = LinearGrid(-2.0, 2.0, 200)
+
+    l_unit = u"kpc"
+
+    R_out_label = string(round(Int, ustrip(l_unit, R_out))) * "\\, \\mathrm{$(l_unit)}"
+    R_in_label  = string(round(Int, ustrip(l_unit, R_in))) * "\\, \\mathrm{$(l_unit)}"
+
+    da_ff = [
+        dd -> filterBySphere(dd, 0.0 * l_unit, R_out, :zero),
+        dd -> filterBySphere(dd, 0.0 * l_unit, R_in, :zero),
+        dd -> filterBySphere(dd, R_in, R_out, :zero),
+    ]
+
+    for simulation_path in simulation_paths
+
+        plotSnapshot(
+            [simulation_path, simulation_path, simulation_path],
+            request,
+            [lines!];
+            output_path,
+            base_filename="circularity_histogram",
+            slice,
+            transform_box=true,
+            translation,
+            rotation,
+            filter_function,
+            da_functions=[daHistogram],
+            da_args=[(:stellar_circularity, grid)],
+            da_kwargs=[
+                (; norm=1, filter_function=da_ff[1]),
+                (; norm=1, filter_function=da_ff[2]),
+                (; norm=1, filter_function=da_ff[3]),
+            ],
+            save_figures=false,
+            backup_results=true,
+            sim_labels=["simulation_1", "simulation_2", "simulation_3"],
+        )
+
+        current_theme = merge(
+            theme,
+            Theme(
+                palette=(color=[:gray65, :orangered2, :navy], linestyle=[:solid]),
+                Legend=(nbanks=1, margins=(15, 0, 0, 10), halign=:left, valign=:top),
+            ),
+            DEFAULT_THEME,
+            theme_latexfonts(),
+        )
+
+        with_theme(current_theme) do
+
+            f = Figure()
+
+            ax = CairoMakie.Axis(
+                f[1, 1];
+                xlabel=getLabel(plot_params.var_name, 0, Unitful.NoUnits),
+                ylabel=L"\mathrm{Normalized \,\, counts}",
+            )
+
+            labels = [
+                L"r \,\, \le \,\, %$(R_out_label)",
+                L"r \,\, \le \,\, %$(R_in_label)",
+                L"%$(R_in_label) \,\, < \,\, r \,\, \le \,\, %$(R_out_label)",
+            ]
+
+            jld2_path = joinpath(output_path, "circularity_histogram.jld2")
+
+            jldopen(jld2_path, "r") do jld2_file
+
+                snaps = keys(jld2_file)
+
+                for snap in snaps
+
+                    x, y1 = jld2_file[snap]["simulation_1"]
+                    _, y2 = jld2_file[snap]["simulation_2"]
+                    _, y3 = jld2_file[snap]["simulation_3"]
+
+                    norm = maximum(y1)
+
+                    lines!(ax, x, y1 ./ norm; label=labels[1])
+                    lines!(ax, x, y2 ./ norm; label=labels[2])
+                    lines!(ax, x, y3 ./ norm; label=labels[3])
+
+                    axislegend(
+                        ax;
+                        position=(current_theme.Legend.halign[], current_theme.Legend.valign[]),
+                    )
+
+                    filename = "$(basename(simulation_path))_circularity_histogram_$(snap).png"
+
+                    save(joinpath(output_path, filename), f)
+
+                end
+
+            end
+
+            rm(jld2_path)
+
+        end
+
+    end
+
+    return nothing
+
+end
+
+"""
     simulationReport(simulation_paths::Vector{String}; <keyword arguments>)::Nothing
 
 Write a text file with information about a given simulation
