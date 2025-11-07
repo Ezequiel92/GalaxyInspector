@@ -1030,7 +1030,9 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
     elseif magnitude == :eff
 
         # See computeEfficiencyFF() in ./src/analysis/compute_quantities/masses.jl
-        if component ∈ [:gas, :hydrogen, :helium]
+        if component == :stellar
+            request = Dict(:stellar => ["RHOC", "GMAS", "GSFR"])
+        elseif component ∈ [:gas, :hydrogen, :helium]
             request = Dict(:gas => ["SFR ", "MASS", "RHO "])
         elseif component == :Z_gas
             request = Dict(:gas => ["SFR ", "MASS", "RHO ", "GZ  "])
@@ -1043,7 +1045,10 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         elseif component ∈ [:ode_molecular, :ode_stellar]
             request = Dict(:gas => ["SFR ", "MASS", "FRAC", "RHO "])
         elseif component == :generic
-            request = Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
+            request = Dict(
+                :gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
+                :stellar => ["RHOC", "GMAS", "GSFR"],
+            )
         else
             throw(ArgumentError("derivedQtyPlotParams: `component` for magnitude \
             :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
@@ -1053,7 +1058,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"\epsilon_\text{ff}"
         else
-            var_name = L"\epsilon_{\text{ff}, \,\,%$(c_label)}"
+            var_name = L"\epsilon_{\text{ff}, %$(c_label)}"
         end
 
         exp_factor = 0
@@ -1086,7 +1091,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"C_\rho"
         else
-            var_name = L"C_{\rho, \,\,%$(c_label)}"
+            var_name = L"C_{\rho, \,%$(c_label)}"
         end
 
         exp_factor = 0
@@ -1117,7 +1122,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"j_z"
         else
-            var_name = L"j_{z, \,\,%$(c_label)}"
+            var_name = L"j_{z, \,%$(c_label)}"
         end
 
         exp_factor = 0
@@ -1144,7 +1149,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"l_z"
         else
-            var_name = L"l_{z, \,\,%$(c_label)}"
+            var_name = L"l_{z, \,%$(c_label)}"
         end
 
         exp_factor = 0
@@ -1201,7 +1206,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"v_\text{circ}"
         else
-            var_name = L"v_{\text{circ}, \,\,%$(c_label)}"
+            var_name = L"v_{\text{circ}, \,%$(c_label)}"
         end
 
         exp_factor = 0
@@ -1228,7 +1233,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"v_r"
         else
-            var_name = L"v_{r, \,\,%$(c_label)}"
+            var_name = L"v_{r, \,%$(c_label)}"
         end
 
         exp_factor = 0
@@ -1255,7 +1260,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"v_\theta"
         else
-            var_name = L"v_{\theta, \,\,%$(c_label)}"
+            var_name = L"v_{\theta, \,%$(c_label)}"
         end
 
         exp_factor = 0
@@ -1278,9 +1283,9 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         end
 
         if isempty(c_label)
-            var_name = L"v_z \,\, \mathrm{sign}(z)"
+            var_name = L"v_z \, \mathrm{sign}(z)"
         else
-            var_name = L"v_{z, \,\,%$(c_label)} \, \mathrm{sign}(z)"
+            var_name = L"v_{z, \,%$(c_label)} \, \mathrm{sign}(z)"
         end
 
         exp_factor = 0
@@ -1319,7 +1324,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"E_k"
         else
-            var_name = L"E_{k, \,\,%$(c_label)}"
+            var_name = L"E_{k, \,%$(c_label)}"
         end
 
         exp_factor = 51
@@ -1358,7 +1363,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"E_p"
         else
-            var_name = L"E_{p, \,\,%$(c_label)}"
+            var_name = L"E_{p, \,%$(c_label)}"
         end
 
         exp_factor = 51
@@ -1431,7 +1436,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"\tau_\text{dep}"
         else
-            var_name = L"\tau_{\text{dep}, \,\,%$(c_label)}"
+            var_name = L"\tau_{\text{dep}, \,%$(c_label)}"
         end
 
         exp_factor = 0
@@ -1458,7 +1463,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         if isempty(c_label)
             var_name = L"d_{xy}"
         else
-            var_name = L"d_{xy, \,\,%$(c_label)}"
+            var_name = L"d_{xy, \,%$(c_label)}"
         end
 
         exp_factor = 0

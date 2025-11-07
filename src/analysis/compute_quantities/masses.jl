@@ -972,6 +972,8 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present, depending on the value of `component`:
 
+      + If `component == :stellar
+          * `:stellar` => ["RHOC", "GMAS", "GSFR"]
       + If `component` ∈ [:gas, :hydrogen, :helium]:
           * `:gas` => ["SFR ", "MASS", "RHO "]
       + If `component` == :Z_gas:
@@ -996,14 +998,25 @@ M. R. Krumholz et al. (2012). *A UNIVERSAL, LOCAL STAR FORMATION LAW IN GALACTIC
 """
 function computeEfficiencyFF(data_dict::Dict, component::Symbol)::Vector{Float64}
 
-    if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
+    if component ∉ COMPONENTS || component ∈ [:dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` or :stellar (see `./src/constants/globals.jl`), but I got :$(component)"))
     end
 
-    densities = computeMassDensity(data_dict, component)
-    masses    = computeMass(data_dict, component)
-    sfrs      = data_dict[:gas]["SFR "]
+    if component == :stellar
+
+        # Compute the ϵff of the progenitor
+        densities = data_dict[:stellar]["RHOC"] * 1.0u"mp"
+        masses    = data_dict[:stellar]["GMAS"]
+        sfrs      = data_dict[:stellar]["GSFR"]
+
+    else
+
+        densities = computeMassDensity(data_dict, component)
+        masses    = computeMass(data_dict, component)
+        sfrs      = data_dict[:gas]["SFR "]
+
+    end
 
     return computeEfficiencyFF(densities, masses, sfrs)
 
