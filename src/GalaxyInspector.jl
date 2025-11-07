@@ -120,6 +120,7 @@ export gasVelocityCubes
 export stellarVelocityCubes
 export clumpingFactor
 export circularityHistogram
+export efficiencyHistogram
 export snapshotReport
 export simulationReport
 

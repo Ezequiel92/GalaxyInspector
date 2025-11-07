@@ -5478,6 +5478,85 @@ function circularityHistogram(
 end
 
 """
+    efficiencyHistogram(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot two histogram of the efficiency per free-fall time, for each simulation. One for the progenitors of the stars and the other for the gas.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `range::NTuple{2,Float64}=(1.0e-4, 1.0)`: Range for the efficiency per free-fall time (x axis).
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `stellar_ff::Function=filterNothing`: Filter function to be applied to the stellar histogram after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `gas_ff::Function=filterNothing`: Filter function to be applied to the gas histogram after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `stellar_ff` and `gas_ff`.
+  - `labels::Vector{<:AbstractString}=["Stars", "Gas"]`: Legend for the stellar and gas histograms, respectively.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function efficiencyHistogram(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    range::NTuple{2,Float64}=(1.0e-4, 1.0),
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    stellar_ff::Function=filterNothing,
+    gas_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    labels::Vector{<:AbstractString}=["Stars", "Gas"],
+    theme::Attributes=Theme(),
+)::Nothing
+
+    plot_params = plotParams(:eff)
+
+    base_request = mergeRequests(plot_params.request, ff_request)
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    grid = LinearGrid(range..., 100; log=true)
+
+    for simulation_path in simulation_paths
+
+        plotSnapshot(
+            [simulation_path, simulation_path],
+            request,
+            [lines!];
+            output_path,
+            base_filename="$(basename(simulation_path))_eff_histogram",
+            slice,
+            transform_box=true,
+            translation,
+            rotation,
+            filter_function,
+            da_functions=[daHistogram, daHistogram],
+            da_args=[(:stellar_eff, grid), (:gas_eff, grid)],
+            da_kwargs=[(; filter_function=stellar_ff), (; filter_function=gas_ff)],
+            xaxis_label=L"\log_{10} \," * getLabel(plot_params.axis_label, 0, plot_params.unit),
+            xaxis_var_name=plot_params.var_name,
+            yaxis_var_name=L"\mathrm{Normalized \,\, counts}",
+            theme=merge(
+                theme,
+                Theme(
+                    palette=(linestyle=[:solid], color=[WONG_ORANGE, :black]),
+                    Legend=(nbanks=1, halign=:left, valign=:top, margin=(10, 0, 0, 10)),
+                ),
+            ),
+            sim_labels=labels,
+        )
+
+    end
+
+end
+
+"""
     simulationReport(simulation_paths::Vector{String}; <keyword arguments>)::Nothing
 
 Write a text file with information about a given simulation
