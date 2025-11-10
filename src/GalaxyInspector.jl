@@ -121,6 +121,7 @@ export stellarVelocityCubes
 export clumpingFactor
 export circularityHistogram
 export efficiencyHistogram
+export stellarDensityMaps
 export snapshotReport
 export simulationReport
 

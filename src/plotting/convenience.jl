@@ -5557,6 +5557,186 @@ function efficiencyHistogram(
 end
 
 """
+    stellarDensityMaps(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot stellar density maps for the xy and xz projections, in two panels.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `box_size::Unitful.Length=BOX_L`: Size of the plotting box (x and y coordinates).
+  - `box_height::Unitful.Length=12.0u"kpc"`: Size of the plotting box (z coordinate).
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function stellarDensityMaps(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    box_size::Unitful.Length=BOX_L,
+    box_height::Unitful.Length=12.0u"kpc",
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    projection_planes = [:xy, :xz]
+
+    grid     = CubicGrid(box_size, 400)
+    half_box = ustrip(u"kpc", box_size) / 2.0
+
+    # Maximun tick for the axes
+    tick = floor(half_box; sigdigits=1)
+
+    x_limits = half_box
+    y_limits = [half_box, ustrip(u"kpc", box_height)]
+
+    x_label = getLabel("x", 0, u"kpc")
+    y_label = getLabel("y", 0, u"kpc")
+    z_label = getLabel("z", 0, u"kpc")
+
+    base_request = mergeRequests(plotParams(:stellar_area_density).request, ff_request)
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    current_theme = merge(
+        theme,
+        Theme(
+            size=(880, 1300),
+            figure_padding=(5, 25, 0, 0),
+            Axis=(xticklabelsize=35, yticklabelsize=35, aspect=DataAspect()),
+            Colorbar=(ticklabelsize=28, vertical=false),
+        ),
+        DEFAULT_THEME,
+        theme_latexfonts(),
+    )
+
+    for simulation_path in simulation_paths
+
+        temp_folder = joinpath(output_path, "_stellar_density_maps")
+
+        for projection_plane in projection_planes
+
+            plotSnapshot(
+                [simulation_path],
+                request,
+                [heatmap!];
+                output_path=temp_folder,
+                base_filename="stellar_mass_$(projection_plane)",
+                slice,
+                transform_box=true,
+                translation,
+                rotation,
+                filter_function,
+                da_functions=[daDensity2DProjection],
+                da_args=[(grid, :stellar, :particles)],
+                da_kwargs=[(; projection_plane, filter_function=da_ff)],
+                x_unit=u"kpc",
+                y_unit=u"kpc",
+                save_figures=false,
+                backup_results=true,
+            )
+
+        end
+
+        jld2_paths = [joinpath(temp_folder, "stellar_mass_$(pp).jld2") for pp in projection_planes]
+
+        jld2_data = load.(jld2_paths)
+
+        with_theme(current_theme) do
+
+            f = Figure()
+
+            # Color range
+            min_color = Inf
+            max_color = -Inf
+
+            for ((snap, xy_data), (_, xz_data)) in zip(jld2_data...)
+
+                # Compute a good color range
+                for (_, _, z) in [xy_data, xz_data]
+
+                    if !all(isnan, z)
+
+                        min_Σ, max_Σ = extrema(filter(!isnan, z))
+
+                        floor_Σ = floor(min_Σ)
+                        ceil_Σ  = ceil(max_Σ)
+
+                        if floor_Σ < min_color
+                            min_color = floor_Σ
+                        end
+                        if ceil_Σ > max_color
+                            max_color = ceil_Σ
+                        end
+
+                    end
+
+                end
+
+                for (row, (x, y, z)) in pairs([xy_data, xz_data])
+
+                    xaxis_v = row == 2
+
+                    ax = CairoMakie.Axis(
+                        f[row+1, 1];
+                        xlabel=x_label,
+                        ylabel=(row == 1 ? y_label : z_label),
+                        xminorticksvisible=xaxis_v,
+                        xticksvisible=xaxis_v,
+                        xlabelvisible=xaxis_v,
+                        xticklabelsvisible=xaxis_v,
+                        xticks=-tick:10:tick,
+                        yticks=-tick:10:tick,
+                        limits=(-x_limits, x_limits, -y_limits[row], y_limits[row]),
+                    )
+
+                    pf = heatmap!(ax, x, y, z; colorrange=(min_color + 0.5, max_color - 0.5))
+
+                    if row == 1
+
+                        Colorbar(
+                            f[row, 1],
+                            pf,
+                            label=L"\log_{10} \, \Sigma_* \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
+                            ticks=min_color:0.5:max_color,
+                        )
+
+                    end
+
+                end
+
+                rowsize!(f.layout, 3, Relative(0.3f0))
+
+                filename = "$(basename(simulation_path))_stellar_density_maps_$(dirname(snap)).png"
+
+                save(joinpath(output_path, filename), f)
+
+            end
+
+        end
+
+        rm(temp_folder; recursive=true)
+
+    end
+
+    return nothing
+
+end
+
+"""
     simulationReport(simulation_paths::Vector{String}; <keyword arguments>)::Nothing
 
 Write a text file with information about a given simulation
