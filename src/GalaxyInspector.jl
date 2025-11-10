@@ -122,6 +122,7 @@ export clumpingFactor
 export circularityHistogram
 export efficiencyHistogram
 export stellarDensityMaps
+export gasDensityMaps
 export snapshotReport
 export simulationReport
 

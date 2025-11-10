@@ -5592,21 +5592,30 @@ function stellarDensityMaps(
 )::Nothing
 
     projection_planes = [:xy, :xz]
+    m_unit = u"Msun"
+    l_unit = u"kpc"
 
     grid     = CubicGrid(box_size, 400)
-    half_box = ustrip(u"kpc", box_size) / 2.0
+    half_box = ustrip(l_unit, box_size) / 2.0
 
     # Maximun tick for the axes
     tick = floor(half_box; sigdigits=1)
 
     x_limits = half_box
-    y_limits = [half_box, ustrip(u"kpc", box_height)]
+    y_limits = [half_box, ustrip(l_unit, box_height)]
 
-    x_label = getLabel("x", 0, u"kpc")
-    y_label = getLabel("y", 0, u"kpc")
-    z_label = getLabel("z", 0, u"kpc")
+    x_label = getLabel("x", 0, l_unit)
+    y_label = getLabel("y", 0, l_unit)
+    z_label = getLabel("z", 0, l_unit)
 
-    base_request = mergeRequests(plotParams(:stellar_area_density).request, ff_request)
+    plot_params = plotParams(:stellar_area_density)
+
+    # Label for the colorbar
+    colorbar_label = LaTeXString(
+        L"\log_{10} \, " * getLabel(plot_params.var_name, 0, m_unit * l_unit^-2)
+    )
+
+    base_request = mergeRequests(plot_params.request, ff_request)
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
@@ -5642,9 +5651,9 @@ function stellarDensityMaps(
                 filter_function,
                 da_functions=[daDensity2DProjection],
                 da_args=[(grid, :stellar, :particles)],
-                da_kwargs=[(; projection_plane, filter_function=da_ff)],
-                x_unit=u"kpc",
-                y_unit=u"kpc",
+                da_kwargs=[(; projection_plane, m_unit, l_unit, filter_function=da_ff)],
+                x_unit=l_unit,
+                y_unit=l_unit,
                 save_figures=false,
                 backup_results=true,
             )
@@ -5706,21 +5715,238 @@ function stellarDensityMaps(
                     pf = heatmap!(ax, x, y, z; colorrange=(min_color + 0.5, max_color - 0.5))
 
                     if row == 1
-
-                        Colorbar(
-                            f[row, 1],
-                            pf,
-                            label=L"\log_{10} \, \Sigma_* \,\, [\mathrm{M_\odot \, kpc^{-2}}]",
-                            ticks=min_color:0.5:max_color,
-                        )
-
+                        Colorbar(f[row, 1], pf; label=colorbar_label, ticks=min_color:0.5:max_color)
                     end
 
                 end
 
                 rowsize!(f.layout, 3, Relative(0.3f0))
 
-                filename = "$(basename(simulation_path))_stellar_density_maps_$(dirname(snap)).png"
+                filename = "$(basename(snap))_stellar_density_maps_$(dirname(snap)).png"
+
+                save(joinpath(output_path, filename), f)
+
+            end
+
+        end
+
+        rm(temp_folder; recursive=true)
+
+    end
+
+    return nothing
+
+end
+
+"""
+    gasDensityMaps(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot density map of five gas components for the xy and xz projections, in several panels.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `box_size::Unitful.Length=BOX_L`: Size of the plotting box.
+  - `output_path::String="."`: Path to the output folder.
+  - `density_range::NTuple{2,Float64}=(NaN,NaN)`: Area density range in ``\\log_{10} \\mathrm{[M_\\odot \\, kpc^{-2}]``. If set to NaN an automatically chosen value is used.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function gasDensityMaps(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    box_size::Unitful.Length=BOX_L,
+    output_path::String=".",
+    density_range::NTuple{2,Float64}=(NaN,NaN),
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    projection_planes = [:xy, :xz]
+    m_unit = u"Msun"
+    l_unit = u"kpc"
+
+    grid     = CubicGrid(box_size, 400)
+    half_box = ustrip(l_unit, box_size) / 2.0
+
+    # Maximun tick for the axes
+    tick = floor(half_box; sigdigits=1)
+
+    x_label = getLabel("x", 0, l_unit)
+    y_label = getLabel("y", 0, l_unit)
+    z_label = getLabel("z", 0, l_unit)
+
+    for simulation_path in simulation_paths
+
+        temp_folder = joinpath(output_path, "_gas_density_maps")
+
+        if isSimSFM(simulation_path)
+            quantities = [:gas, :ode_molecular, :ode_atomic, :ode_ionized, :ode_dust]
+        else
+            quantities = [:gas, :br_molecular, :br_atomic, :ionized, :Z_gas]
+        end
+
+        n_rows = length(projection_planes)
+        n_cols = length(quantities)
+
+        jld2_paths = Vector{String}(undef, n_rows * n_cols)
+        colorbar_labels = Vector{LaTeXString}(undef, n_cols)
+
+        for (i, quantity) in pairs(quantities)
+
+            plot_params = plotParams(Symbol(quantity, :_area_density))
+
+            colorbar_labels[i] = LaTeXString(
+                L"\log_{10} \, " * getLabel(plot_params.var_name, 0, m_unit * l_unit^-2)
+            )
+
+            base_request = mergeRequests(plot_params.request, ff_request)
+
+            translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+            filter_function, request = selectFilter(filter_mode, trans_request)
+
+            for (j, projection_plane) in pairs(projection_planes)
+
+                plotSnapshot(
+                    [simulation_path],
+                    request,
+                    [heatmap!];
+                    output_path=temp_folder,
+                    base_filename="$(quantity)_$(projection_plane)",
+                    slice,
+                    transform_box=true,
+                    translation,
+                    rotation,
+                    filter_function,
+                    da_functions=[daDensity2DProjection],
+                    da_args=[(grid, quantity, :cells)],
+                    da_kwargs=[(; projection_plane, m_unit, l_unit, filter_function=da_ff)],
+                    x_unit=u"kpc",
+                    y_unit=u"kpc",
+                    save_figures=false,
+                    backup_results=true,
+                )
+
+                jld2_paths[i + n_cols * (j - 1)] = joinpath(
+                    temp_folder,
+                    "$(quantity)_$(projection_plane).jld2",
+                )
+
+            end
+
+        end
+
+        jld2_data = load.(jld2_paths)
+
+        current_theme = merge(
+            theme,
+            Theme(
+                size=(2200, 1020),
+                figure_padding=(5, 10, 5, 0),
+                Axis=(xticklabelsize=28, yticklabelsize=28),
+                Colorbar=(ticklabelsize=23, vertical=false),
+            ),
+            DEFAULT_THEME,
+            theme_latexfonts(),
+        )
+
+        with_theme(current_theme) do
+
+            f = Figure()
+
+            # Color range
+            min_color = Inf
+            max_color = -Inf
+
+            for data_dicts in zip(jld2_data...)
+
+                # Compute a good color range
+                for (_, (_, _, z)) in data_dicts
+
+                    if !all(isnan, z)
+
+                        min_Σ, max_Σ = extrema(filter(!isnan, z))
+
+                        floor_Σ = floor(min_Σ)
+                        ceil_Σ  = ceil(max_Σ)
+
+                        if floor_Σ < min_color
+                            min_color = floor_Σ
+                        end
+                        if ceil_Σ > max_color
+                            max_color = ceil_Σ
+                        end
+
+                    end
+
+                end
+
+                if !isnan(density_range[1])
+                    min_color = density_range[1]
+                end
+
+                if !isnan(density_range[2])
+                    max_color = density_range[2]
+                end
+
+                for (idx, (_, (x, y, z))) in pairs(data_dicts)
+
+                    row = ceil(Int, idx / n_cols)
+                    col = mod1(idx, n_cols)
+
+                    xaxis_v = row == 2
+                    yaxis_v = col == 1
+
+                    ax = CairoMakie.Axis(
+                        f[row+1, col];
+                        xlabel=x_label,
+                        ylabel=(row == 1 ? y_label : z_label),
+                        xminorticksvisible=xaxis_v,
+                        xticksvisible=xaxis_v,
+                        xlabelvisible=xaxis_v,
+                        xticklabelsvisible=xaxis_v,
+                        yminorticksvisible=yaxis_v,
+                        yticksvisible=yaxis_v,
+                        ylabelvisible=yaxis_v,
+                        yticklabelsvisible=yaxis_v,
+                        xticks=-tick:10:tick,
+                        yticks=-tick:10:tick,
+                        limits=(-half_box, half_box, -half_box, half_box),
+                    )
+
+                    pf = heatmap!(ax, x, y, z; colorrange=(min_color + 0.5, max_color - 0.5))
+
+                    if row == 1
+
+                        Colorbar(
+                            f[row, col],
+                            pf,
+                            label=colorbar_labels[col],
+                            ticklabelsize=23,
+                            ticks=min_color:1:max_color,
+                            vertical=false,
+                        )
+
+                    end
+
+                end
+
+                colgap!(f.layout, 30)
+
+                snap = first(first(data_dicts))
+
+                filename = "$(basename(snap))_gas_density_maps_$(dirname(snap)).png"
 
                 save(joinpath(output_path, filename), f)
 
