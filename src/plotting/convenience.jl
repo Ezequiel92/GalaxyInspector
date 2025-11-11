@@ -5664,15 +5664,14 @@ function stellarDensityMaps(
 
         jld2_data = load.(jld2_paths)
 
-        with_theme(current_theme) do
+        for ((snap, xy_data), (_, xz_data)) in zip(jld2_data...)
 
-            f = Figure()
+            with_theme(current_theme) do
 
-            # Color range
-            min_color = Inf
-            max_color = -Inf
+                f = Figure()
 
-            for ((snap, xy_data), (_, xz_data)) in zip(jld2_data...)
+                min_color = Inf
+                max_color = -Inf
 
                 # Compute a good color range
                 for (_, _, z) in [xy_data, xz_data]
@@ -5695,6 +5694,8 @@ function stellarDensityMaps(
 
                 end
 
+                Δc = round((max_color - min_color) * 0.1; sigdigits=1)
+
                 for (row, (x, y, z)) in pairs([xy_data, xz_data])
 
                     xaxis_v = row == 2
@@ -5712,10 +5713,15 @@ function stellarDensityMaps(
                         limits=(-x_limits, x_limits, -y_limits[row], y_limits[row]),
                     )
 
-                    pf = heatmap!(ax, x, y, z; colorrange=(min_color + 0.5, max_color - 0.5))
+                    pf = heatmap!(ax, x, y, z; colorrange=(min_color + Δc, max_color - Δc))
 
                     if row == 1
-                        Colorbar(f[row, 1], pf; label=colorbar_label, ticks=min_color:0.5:max_color)
+                        Colorbar(
+                            f[row, 1],
+                            pf;
+                            label=colorbar_label,
+                            ticks=min_color:2*Δc:max_color,
+                        )
                     end
 
                 end
@@ -5861,15 +5867,14 @@ function gasDensityMaps(
             theme_latexfonts(),
         )
 
-        with_theme(current_theme) do
+        for data_dicts in zip(jld2_data...)
 
-            f = Figure()
+            with_theme(current_theme) do
 
-            # Color range
-            min_color = Inf
-            max_color = -Inf
+                f = Figure()
 
-            for data_dicts in zip(jld2_data...)
+                min_color = Inf
+                max_color = -Inf
 
                 # Compute a good color range
                 for (_, (_, _, z)) in data_dicts
@@ -5900,6 +5905,8 @@ function gasDensityMaps(
                     max_color = density_range[2]
                 end
 
+                Δc = round((max_color - min_color) * 0.1; sigdigits=1)
+
                 for (idx, (_, (x, y, z))) in pairs(data_dicts)
 
                     row = ceil(Int, idx / n_cols)
@@ -5925,7 +5932,7 @@ function gasDensityMaps(
                         limits=(-half_box, half_box, -half_box, half_box),
                     )
 
-                    pf = heatmap!(ax, x, y, z; colorrange=(min_color + 0.5, max_color - 0.5))
+                    pf = heatmap!(ax, x, y, z; colorrange=(min_color + Δc, max_color - Δc))
 
                     if row == 1
 
@@ -5934,7 +5941,7 @@ function gasDensityMaps(
                             pf,
                             label=colorbar_labels[col],
                             ticklabelsize=23,
-                            ticks=min_color:1:max_color,
+                            ticks=min_color:2*Δc:max_color,
                             vertical=false,
                         )
 

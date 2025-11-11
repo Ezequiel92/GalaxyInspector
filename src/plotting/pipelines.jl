@@ -445,21 +445,34 @@ function plotSnapshot(
             if animation || save_figures
 
                 if colorbar && plot_function isa typeof(heatmap!)
+
                     min_c, max_c = extrema(filter(!isnan, axis_data[3]))
+
                     min_color = floor(min_c)
                     max_color = ceil(max_c)
-                    pf_kwarg = merge(pf_kwarg, (; colorrange=(min_color + 0.5, max_color - 0.5)))
+
+                    Δc = round((max_color - min_color) * 0.1; sigdigits=1)
+
+                    pf_kwarg = merge((; colorrange=(min_color + Δc, max_color - Δc)), pf_kwarg)
+
                 end
 
                 plot_function(axes, axis_data...; pf_kwarg...)
 
                 if colorbar && plot_function isa typeof(heatmap!)
-                    Colorbar(
-                        figure[1, 2];
-                        colorrange=(min_color + 0.5, max_color - 0.5),
-                        ticks=min_color:0.5:max_color,
-                    )
+
+                    if haskey(current_theme, Colorbar) && haskey(current_theme.Colorbar, :colorrange)
+                        colorbar_cr = current_theme.Colorbar.colorrange
+                    else
+                        colorbar_cr = pf_kwarg.colorrange
+                    end
+
+                    Δc = round((colorbar_cr[2] - colorbar_cr[1]) * 0.1; sigdigits=1)
+
+                    Colorbar(figure[1, 2]; colorrange=colorbar_cr, ticks=min_color:2*Δc:max_color)
+
                     rowsize!(figure.layout, 1, Auto(1.0))
+
                 end
 
             end
