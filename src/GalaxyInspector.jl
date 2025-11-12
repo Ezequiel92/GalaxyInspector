@@ -123,6 +123,7 @@ export circularityHistogram
 export efficiencyHistogram
 export stellarDensityMaps
 export gasDensityMaps
+export gasFractionsEvolution
 export snapshotReport
 export simulationReport
 

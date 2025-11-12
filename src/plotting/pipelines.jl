@@ -448,12 +448,10 @@ function plotSnapshot(
 
                     min_c, max_c = extrema(filter(!isnan, axis_data[3]))
 
-                    min_color = floor(min_c)
-                    max_color = ceil(max_c)
+                    min_color = round(min_c)
+                    max_color = round(max_c)
 
-                    Δc = round((max_color - min_color) * 0.1; sigdigits=1)
-
-                    pf_kwarg = merge((; colorrange=(min_color + Δc, max_color - Δc)), pf_kwarg)
+                    pf_kwarg = merge((; colorrange=(min_color, max_color)), pf_kwarg)
 
                 end
 
@@ -467,9 +465,7 @@ function plotSnapshot(
                         colorbar_cr = pf_kwarg.colorrange
                     end
 
-                    Δc = round((colorbar_cr[2] - colorbar_cr[1]) * 0.1; sigdigits=1)
-
-                    Colorbar(figure[1, 2]; colorrange=colorbar_cr, ticks=min_color:2*Δc:max_color)
+                    Colorbar(figure[1, 2]; colorrange=colorbar_cr, ticks=WilkinsonTicks(5),)
 
                     rowsize!(figure.layout, 1, Auto(1.0))
 

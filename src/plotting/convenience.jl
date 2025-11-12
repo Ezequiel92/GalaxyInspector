@@ -2538,7 +2538,7 @@ Plot the Kennicutt-Schmidt law.
       + `:gas_sfr`          -> The total gas SFR of the column associated with each bin. See the documentation for the function [`daGasSFR2DProjection`](@ref).
       + `:gas_metallicity`  -> The total metallicity of the column associated with each bin. See the documentation for the function [`daMetallicity2DProjection`](@ref).
       + `:temperature`      -> The median gas temperature of the column associated with each bin. See the documentation for the function [`daTemperature2DProjection`](@ref).
-  - `post_processing::Function=getNothing`: Post processing function. See the required signature and examples in `./src/plotting/post_processing.jl`.
+  - `post_processing::Function=getNothing`: Post processing function. It can only be [`getNothing`](@ref), [`ppBigiel2008!`](@ref), [`ppBigiel2010!`](@ref), [`ppKennicutt1998!`](@ref), [`ppSun2023!`](@ref) or [`ppLeroy2008!`](@ref). The default units will be force into the post processing function.
   - `pp_args::Tuple=()`: Positional arguments for the post processing function.
   - `pp_kwargs::NamedTuple=(;)`: Keyword arguments for the post processing function.
   - `fit::Bool=false`: If the simulation data will be fitted with a power law. The fit will be plotted as a line. This option is only valid if `integrated` = false and `plot_type` = `:scatter`, otherwise it will be ignored.
@@ -2801,11 +2801,23 @@ function kennicuttSchmidtLaw(
         ppLeroy2008!,
     ]
 
-         (
+        (
             logging[] &&
             @warn("kennicuttSchmidtLaw: `post_processing` can only be getNothing, ppBigiel2008!, \
             ppBigiel2010!, ppKennicutt1998!, ppSun2023! or ppLeroy2008!, but I got \
             $(post_processing) which will be ignored and default to getNothing")
+        )
+
+        post_processing = getNothing
+
+    end
+
+    if !sfr_density && post_processing != getNothing
+
+        (
+            logging[] &&
+            @warn("kennicuttSchmidtLaw: `post_processing` can only be getNothing when `sfr_density` \
+            is false, but I got $(post_processing) which will be ignored and default to getNothing")
         )
 
         post_processing = getNothing
@@ -3395,13 +3407,10 @@ function kennicuttSchmidtLaw(
 
         end
 
-        pp_legend = post_processing(
-            figure,
-            pp_args...;
-            x_unit=Σg_unit,
-            y_unit=Σs_m_unit * Σs_t_unit^-1 * Σs_l_unit^-2,
-            pp_kwargs...
-        )
+        # Force consistent units
+        pp_kwargs = merge(pp_kwargs, (; x_unit=Σg_unit, y_unit=Σs_unit))
+
+        pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
        if !isnothing(pp_legend)
 
@@ -5563,7 +5572,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot stellar density maps for the xy and xz projections, in two panels.
+Plot the stellar density maps for the xy and xz projections, in two panels.
 
 # Arguments
 
@@ -5680,8 +5689,8 @@ function stellarDensityMaps(
 
                         min_Σ, max_Σ = extrema(filter(!isnan, z))
 
-                        floor_Σ = floor(min_Σ)
-                        ceil_Σ  = ceil(max_Σ)
+                        floor_Σ = round(min_Σ)
+                        ceil_Σ  = round(max_Σ)
 
                         if floor_Σ < min_color
                             min_color = floor_Σ
@@ -5693,8 +5702,6 @@ function stellarDensityMaps(
                     end
 
                 end
-
-                Δc = round((max_color - min_color) * 0.1; sigdigits=1)
 
                 for (row, (x, y, z)) in pairs([xy_data, xz_data])
 
@@ -5713,14 +5720,14 @@ function stellarDensityMaps(
                         limits=(-x_limits, x_limits, -y_limits[row], y_limits[row]),
                     )
 
-                    pf = heatmap!(ax, x, y, z; colorrange=(min_color + Δc, max_color - Δc))
+                    pf = heatmap!(ax, x, y, z; colorrange=(min_color, max_color))
 
                     if row == 1
                         Colorbar(
                             f[row, 1],
                             pf;
                             label=colorbar_label,
-                            ticks=min_color:2*Δc:max_color,
+                            ticks=WilkinsonTicks(5),
                         )
                     end
 
@@ -5751,7 +5758,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot density map of five gas components for the xy and xz projections, in several panels.
+Plot the density map of five gas components for the xy and xz projections, in several panels.
 
 # Arguments
 
@@ -5883,8 +5890,8 @@ function gasDensityMaps(
 
                         min_Σ, max_Σ = extrema(filter(!isnan, z))
 
-                        floor_Σ = floor(min_Σ)
-                        ceil_Σ  = ceil(max_Σ)
+                        floor_Σ = round(min_Σ)
+                        ceil_Σ  = round(max_Σ)
 
                         if floor_Σ < min_color
                             min_color = floor_Σ
@@ -5904,8 +5911,6 @@ function gasDensityMaps(
                 if !isnan(density_range[2])
                     max_color = density_range[2]
                 end
-
-                Δc = round((max_color - min_color) * 0.1; sigdigits=1)
 
                 for (idx, (_, (x, y, z))) in pairs(data_dicts)
 
@@ -5932,7 +5937,7 @@ function gasDensityMaps(
                         limits=(-half_box, half_box, -half_box, half_box),
                     )
 
-                    pf = heatmap!(ax, x, y, z; colorrange=(min_color + Δc, max_color - Δc))
+                    pf = heatmap!(ax, x, y, z; colorrange=(min_color, max_color))
 
                     if row == 1
 
@@ -5940,9 +5945,7 @@ function gasDensityMaps(
                             f[row, col],
                             pf,
                             label=colorbar_labels[col],
-                            ticklabelsize=23,
-                            ticks=min_color:2*Δc:max_color,
-                            vertical=false,
+                            ticks=WilkinsonTicks(5),
                         )
 
                     end
@@ -5958,6 +5961,203 @@ function gasDensityMaps(
                 save(joinpath(output_path, filename), f)
 
             end
+
+        end
+
+        rm(temp_folder; recursive=true)
+
+    end
+
+    return nothing
+
+end
+
+"""
+    gasFractionsEvolution(
+        simulation_paths::Vector{String};
+        <keyword arguments>
+    )::Nothing
+
+Plot time evolution of the gas components mass and fraction, in two panels.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `r_gas::Unitful.Length=DISK_R`: Radius of the gas sphere to consider.
+  - `output_path::String="."`: Path to the output folder.
+  - `mass_limits::NTuple{2,Float64}=(-4.2, 1.2)`: Limits for the masses, ``\\log_{10} M \\mathrm{[M_\\odot}``.
+  - `fraction_limits::NTuple{2,Float64}=(-5.2, 0.2)`: Limits for fractions, ``\\log_{10} f``.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function gasFractionsEvolution(
+    simulation_paths::Vector{String};
+    slice::IndexType=(:),
+    r_gas::Unitful.Length=DISK_R,
+    output_path::String=".",
+    mass_limits::NTuple{2,Float64}=(-4.2, 1.2),
+    fraction_limits::NTuple{2,Float64}=(-5.2, 0.2),
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    theme::Attributes=Theme(),
+)::Nothing
+
+    for simulation_path in simulation_paths
+
+        if isSimSFM(simulation_path)
+            quantities = [:ode_ionized, :ode_atomic, :ode_molecular, :ode_metals, :ode_dust]
+            labels     = ["Ionized", "Atomic", "Molecular", "Dust", "Metals"]
+            colors     = [
+                Makie.wong_colors()[1],
+                Makie.wong_colors()[4],
+                Makie.wong_colors()[3],
+                Makie.wong_colors()[5],
+                Makie.wong_colors()[6],
+            ]
+        else
+            quantities = [:ionized, :br_atomic, :br_molecular, :Z_gas]
+            labels     = ["Ionized", "Atomic", "Molecular", "Metals"]
+            colors     = [
+                Makie.wong_colors()[1],
+                Makie.wong_colors()[4],
+                Makie.wong_colors()[3],
+                Makie.wong_colors()[5],
+            ]
+        end
+
+        x_plot_params = plotParams(:physical_time)
+        y_plot_params = plotParams(:fraction)
+
+        temp_folder = joinpath(output_path, "_gas_evolution")
+
+        plotTimeSeries(
+            fill(simulation_path, length(quantities)),
+            [lines!];
+            output_path=temp_folder,
+            slice,
+            filename="fraction_evolution",
+            da_functions=[daEvolution],
+            da_args=[(:physical_time, Symbol(quantity, :_fraction)) for quantity in quantities],
+            da_kwargs=[(;
+                trans_mode,
+                filter_mode,
+                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
+            )],
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            save_figures=false,
+            backup_results=true,
+            sim_labels=string.(quantities),
+        )
+
+        fraction_label = LaTeXString(
+            L"\log_{10} \, " * getLabel(
+                y_plot_params.var_name,
+                y_plot_params.exp_factor,
+                y_plot_params.unit,
+            )
+        )
+
+        y_plot_params = GalaxyInspector.plotParams(:mass)
+
+        plotTimeSeries(
+            fill(simulation_path, length(quantities)),
+            [lines!];
+            output_path=temp_folder,
+            slice,
+            filename="mass_evolution",
+            da_functions=[GalaxyInspector.daEvolution],
+            da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
+            da_kwargs=[(;
+                trans_mode,
+                filter_mode,
+                extra_filter=dd -> GalaxyInspector.filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
+            )],
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            save_figures=false,
+            backup_results=true,
+            sim_labels=string.(quantities),
+        )
+
+        mass_label = LaTeXString(
+            L"\log_{10} \, " * getLabel(
+                y_plot_params.var_name,
+                y_plot_params.exp_factor,
+                y_plot_params.unit,
+            )
+        )
+
+        jld2_paths = joinpath.(temp_folder, ["mass_evolution.jld2", "fraction_evolution.jld2"])
+
+        current_theme = merge(
+            theme,
+            Theme(
+                size=(880, 1650),
+                figure_padding=(5, 10, 5, 10),
+                palette=(linestyle=[:solid],),
+                Axis=(xticks=0:14,),
+            ),
+            DEFAULT_THEME,
+            theme_latexfonts(),
+        )
+
+        with_theme(current_theme) do
+
+            f = Figure()
+
+            ax_1 = CairoMakie.Axis(
+                f[1, 1];
+                xlabel=L"t \, [\mathrm{Gyr}]",
+                ylabel=mass_label,
+                xlabelvisible=false,
+                xticklabelsvisible=false,
+                limits=(-0.1, nothing, mass_limits...),
+            )
+
+            jldopen(jld2_paths[1], "r") do mass_evolution
+
+                for (quantity, color, label) in zip(quantities, colors, labels)
+
+                    x, y = mass_evolution["mass_evolution"][string(quantity)]
+
+                    lines!(ax_1, x, log10.(y); color, label)
+
+                end
+
+            end
+
+            axislegend(ax_1, position=:rb, framevisible=false, nbanks=2)
+
+            ax_2 = CairoMakie.Axis(
+                f[2, 1];
+                xlabel=L"t \, [\mathrm{Gyr}]",
+                ylabel=fraction_label,
+                aspect=nothing,
+                limits=(-0.1, nothing, fraction_limits...),
+            )
+
+            jldopen(jld2_paths[2], "r") do fraction_evolution
+
+                for (quantity, color) in zip(quantities, colors)
+
+                    x, y = fraction_evolution["fraction_evolution"][string(quantity)]
+
+                    lines!(ax_2, x, log10.(y); color)
+
+                end
+
+            end
+
+            linkxaxes!(ax_1, ax_2)
+
+            save(joinpath(output_path, "$(basename(simulation_path))_gas_evolution.png"), f)
 
         end
 
