@@ -140,6 +140,68 @@ function rotateData!(
 end
 
 """
+    computeRotation(
+        data_dict::Dict,
+        z_axis::Symbol,
+        component::Symbol,
+        filter_function::Function,
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the corresponding rotation matrix.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `z_axis::Symbol`: Target reference system axis. The options are:
+
+      + `:zero` -> No rotation is applied.
+      + `:am`   -> The angular momentum will be used as the new z axis.
+      + `:pa`   -> The principal axes will be used as the new coordinate system.
+  - `component::Symbol`: Which component will be considered to compute the angular momentum or the principal axes. The options are:
+
+      + `:all`         -> Every component present in `data_dict`.
+      + `:{component}` -> Any of the keys of [`PARTICLE_INDEX`](@ref), if present in `data_dict`.
+  - `filter_function::Function`: A function with the signature:
+
+    `filter_function(data_dict::Dict) -> filter_dict::Dict{Symbol,IndexType}`
+
+    Determines which cell/particles will be considered to compute the angular momentum or the principal axes.
+
+# Returns
+
+  - The rotation matrix.
+"""
+function computeRotation(
+    data_dict::Dict,
+    z_axis::Symbol,
+    component::Symbol,
+    filter_function::Function,
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    z_axis == :zero && return nothing
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    if z_axis == :am
+
+        rotation_matrix = computeAMRotationMatrix(filtered_dd, component)
+
+    elseif z_axis ===:pa
+
+        rotation_matrix = computePARotationMatrix(filtered_dd, component)
+
+    else
+
+        throw(ArgumentError("computeRotation: `z_axis` can only be :zero, :am or :pa, but I got \
+        :$(z_axis)"))
+
+    end
+
+    return rotation_matrix
+
+end
+
+"""
     rotateData!(
         data_dict::Dict,
         z_axis::Symbol,
@@ -174,24 +236,7 @@ function rotateData!(
     filter_function::Function,
 )::Nothing
 
-    z_axis == :zero && return nothing
-
-    filtered_dd = filterData(data_dict; filter_function)
-
-    if z_axis == :am
-
-        rotation_matrix = computeAMRotationMatrix(filtered_dd, component)
-
-    elseif z_axis ===:pa
-
-        rotation_matrix = computePARotationMatrix(filtered_dd, component)
-
-    else
-
-        throw(ArgumentError("rotateData!: `z_axis` can only be :zero, :am or :pa, but I got \
-        :$(z_axis)"))
-
-    end
+    rotation_matrix = computeRotation(data_dict, z_axis, component, filter_function)
 
     rotateData!(data_dict, rotation_matrix)
 

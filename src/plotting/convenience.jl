@@ -1014,11 +1014,31 @@ function gasBarPlot(
     # Compute the dodge argument for `barplot!`
     dodge = repeat(1:n_bars, outer=n_bins)
 
-    # Set the color list
-    colors = Makie.wong_colors()[dodge]
-
     # Compute the axis ticks
     ticks = [string(round((y_ticks[i] + y_ticks[i + 1]) / 2, sigdigits=2)) for i in 1:n_bins]
+
+    current_theme = merge(
+        theme,
+        Theme(
+            size=(1200, 880),
+            Legend=(nbanks=1, valign=:top),
+            Axis=(
+                aspect=nothing,
+                limits=(nothing, 105, nothing, nothing),
+                xticks=[0, 25, 50, 75, 100],
+                yticks=(1:n_bins, ticks),
+            ),
+            BarPlot=(
+                flip_labels_at=10,
+                label_formatter=barPlotLabelFormater,
+                label_size=35,
+            ),
+        ),
+        DEFAULT_THEME,
+    )
+
+    # Set the color list
+    colors = safeSelect(current_theme[:palette][:color][], dodge)
 
     for simulation_path in simulation_paths
 
@@ -1045,24 +1065,7 @@ function gasBarPlot(
             yaxis_label,
             xaxis_label=L"\text{Mass fraction} \,\, [%]",
             yaxis_var_name=plot_params.var_name,
-            theme=merge(
-                theme,
-                Theme(
-                    size=(1200, 880),
-                    Legend=(nbanks=1, valign=:top),
-                    Axis=(
-                        aspect=nothing,
-                        limits=(nothing, 105, nothing, nothing),
-                        xticks=[0, 25, 50, 75, 100],
-                        yticks=(1:n_bins, ticks),
-                    ),
-                    BarPlot=(
-                        flip_labels_at=10,
-                        label_formatter=barPlotLabelFormater,
-                        label_size=35,
-                    ),
-                ),
-            ),
+            theme=current_theme,
         )
 
     end
@@ -3089,7 +3092,7 @@ function kennicuttSchmidtLaw(
 
     # Set the plot theme
     if integrated || reduce_grid == :circular
-        markersize = 15
+        markersize = 20
     else
         markersize = 6
     end
@@ -3105,6 +3108,7 @@ function kennicuttSchmidtLaw(
                 valign=:top,
                 margin=(15, 0, 0, 10),
                 labelsize=colorbar ? 28 : 32,
+                markersize=20,
             ),
             Scatter=(; markersize, colormap=:nipy_spectral),
             Heatmap=(; colormap=:nipy_spectral),
@@ -3124,7 +3128,10 @@ function kennicuttSchmidtLaw(
             ylabel=LaTeXString(L"\log_{10} \, " * y_label),
         )
 
-        colors = [:gray15, current_theme[:palette][:color][][1:(ns - 1)]...]
+        colors    = safeSelect(current_theme[:palette][:color][], 1:ns)
+        markers   = safeSelect(current_theme[:palette][:marker][], 1:ns)
+        fit_color = :gray20
+        pp_color  = :darkslateblue
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
@@ -3295,7 +3302,7 @@ function kennicuttSchmidtLaw(
                                 figure;
                                 text_position=(0.98, 0.12),
                                 text_align=(:right, :bottom),
-                                color=Makie.wong_colors()[1],
+                                color=fit_color,
                             )
                         end
 
@@ -3389,30 +3396,29 @@ function kennicuttSchmidtLaw(
 
         if !isnothing(sim_labels) && plot_type == :scatter
 
-            marker     = :circle
-            markersize = 20
-
             if !isnothing(gas_weights) && !integrated
 
                 markers = [
-                    MarkerElement(; color=colors[1], marker, markersize) for
-                    _ in eachindex(sim_labels)
+                    MarkerElement(; color=colors[1], marker=markers[1])
+                    for _ in eachindex(sim_labels)
                 ]
 
             else
 
-                markers = [MarkerElement(; color, marker, markersize) for color in colors]
+                markers = [
+                    MarkerElement(; color, marker) for (color, marker) in zip(colors, markers)
+                ]
 
             end
 
         end
 
-        # Force consistent units
-        pp_kwargs = merge(pp_kwargs, (; x_unit=Σg_unit, y_unit=Σs_unit))
+        # Force consistent units and colors
+        pp_kwargs = merge(pp_kwargs, (; x_unit=Σg_unit, y_unit=Σs_unit, color=pp_color))
 
         pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
-       if !isnothing(pp_legend)
+        if !isnothing(pp_legend)
 
             if !isnothing(sim_labels) && plot_type == :scatter
 
@@ -5635,7 +5641,7 @@ function stellarDensityMaps(
             size=(880, 1300),
             figure_padding=(5, 25, 0, 0),
             Axis=(xticklabelsize=35, yticklabelsize=35, aspect=DataAspect()),
-            Colorbar=(ticklabelsize=28, vertical=false),
+            Colorbar=(ticklabelsize=28, vertical=false, ticks=WilkinsonTicks(5)),
         ),
         DEFAULT_THEME,
         theme_latexfonts(),
@@ -5723,12 +5729,7 @@ function stellarDensityMaps(
                     pf = heatmap!(ax, x, y, z; colorrange=(min_color, max_color))
 
                     if row == 1
-                        Colorbar(
-                            f[row, 1],
-                            pf;
-                            label=colorbar_label,
-                            ticks=WilkinsonTicks(5),
-                        )
+                        Colorbar(f[row, 1], pf; label=colorbar_label)
                     end
 
                 end
@@ -5766,7 +5767,7 @@ Plot the density map of five gas components for the xy and xz projections, in se
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `box_size::Unitful.Length=BOX_L`: Size of the plotting box.
   - `output_path::String="."`: Path to the output folder.
-  - `density_range::NTuple{2,Float64}=(NaN,NaN)`: Area density range in ``\\log_{10} \\mathrm{[M_\\odot \\, kpc^{-2}]``. If set to NaN an automatically chosen value is used.
+  - `density_range::NTuple{2,Float64}=(NaN,NaN)`: Area density range in ``\\log_{10} \\mathrm{[M_\\odot \\, kpc^{-2}]``. If set to NaN a value is chosen automatically.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -5845,8 +5846,8 @@ function gasDensityMaps(
                     da_functions=[daDensity2DProjection],
                     da_args=[(grid, quantity, :cells)],
                     da_kwargs=[(; projection_plane, m_unit, l_unit, filter_function=da_ff)],
-                    x_unit=u"kpc",
-                    y_unit=u"kpc",
+                    x_unit=l_unit,
+                    y_unit=l_unit,
                     save_figures=false,
                     backup_results=true,
                 )
@@ -5868,7 +5869,7 @@ function gasDensityMaps(
                 size=(2200, 1020),
                 figure_padding=(5, 10, 5, 0),
                 Axis=(xticklabelsize=28, yticklabelsize=28),
-                Colorbar=(ticklabelsize=23, vertical=false),
+                Colorbar=(ticklabelsize=23, vertical=false, ticks=WilkinsonTicks(5)),
             ),
             DEFAULT_THEME,
             theme_latexfonts(),
@@ -5941,12 +5942,7 @@ function gasDensityMaps(
 
                     if row == 1
 
-                        Colorbar(
-                            f[row, col],
-                            pf,
-                            label=colorbar_labels[col],
-                            ticks=WilkinsonTicks(5),
-                        )
+                        Colorbar(f[row, col], pf, label=colorbar_labels[col])
 
                     end
 
@@ -6062,7 +6058,7 @@ function gasFractionsEvolution(
             )
         )
 
-        y_plot_params = GalaxyInspector.plotParams(:mass)
+        y_plot_params = plotParams(:mass)
 
         plotTimeSeries(
             fill(simulation_path, length(quantities)),
@@ -6070,12 +6066,12 @@ function gasFractionsEvolution(
             output_path=temp_folder,
             slice,
             filename="mass_evolution",
-            da_functions=[GalaxyInspector.daEvolution],
+            da_functions=[daEvolution],
             da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
             da_kwargs=[(;
                 trans_mode,
                 filter_mode,
-                extra_filter=dd -> GalaxyInspector.filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
+                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
             )],
             x_unit=x_plot_params.unit,
             y_unit=y_plot_params.unit,
@@ -6158,6 +6154,369 @@ function gasFractionsEvolution(
             linkxaxes!(ax_1, ax_2)
 
             save(joinpath(output_path, "$(basename(simulation_path))_gas_evolution.png"), f)
+
+        end
+
+        rm(temp_folder; recursive=true)
+
+    end
+
+    return nothing
+
+end
+
+"""
+    evolutionVideo(
+        simulation_paths::Vector{String},
+        component::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Make a video of how the projected density (xy and xz planes) evolves through time, for the stars, gas, and a given gas `component`.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will have a different video.
+  - `component::Symbol`: Target gas component. See [`COMPONENTS`](@ref) for options.
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `field_type::Symbol=cells`: If the gas field is made up of `:particles` or Voronoi `:cells`.
+  - `box_size::Unitful.Length=BOX_L`: Size of the plotting box.
+  - `output_path::String="."`: Path to the output folder.
+  - `density_range::NTuple{2,Float64}=(NaN,NaN)`: Area density range in ``\\log_{10} \\mathrm{[M_\\odot \\, kpc^{-2}]`` for the `component` and gas. If set to NaN a value is chosen automatically.
+  - `framerate::Int64=20`: Video framerate.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function evolutionVideo(
+    simulation_paths::Vector{String},
+    component::Symbol;
+    slice::IndexType=(:),
+    field_type::Symbol=:cells,
+    box_size::Unitful.Length=BOX_L,
+    output_path::String=".",
+    density_range::NTuple{2,Float64}=(NaN,NaN),
+    framerate::Int64=20,
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    ################################################################################################
+    # Constants and parameters
+    ################################################################################################
+
+    projection_planes = [:xy, :xz]
+    m_unit = u"Msun"
+    l_unit = u"kpc"
+    Σ_unit = m_unit * l_unit^-2
+
+    grid     = CubicGrid(box_size, 400)
+    half_box = ustrip(l_unit, box_size) / 2.0
+
+    # Maximun tick for the axes
+    tick = floor(half_box; sigdigits=1)
+
+    x_label = getLabel("x", 0, l_unit)
+    y_label = getLabel("y", 0, l_unit)
+    z_label = getLabel("z", 0, l_unit)
+
+    x_limits = half_box
+    y_limits = [half_box, 12]
+
+    plot_params = plotParams(Symbol(component, :_area_density))
+    quantities  = [:gas, component, :stellar]
+
+    labels = LaTeXString.(
+        [
+            L"\log_{10} \, " * getLabel(plotParams(:gas_area_density).var_name, 0, Σ_unit),
+            L"\log_{10} \, " * getLabel(plot_params.var_name, 0, Σ_unit),
+            L"\log_{10} \, " * getLabel(plotParams(:stellar_area_density).var_name, 0, Σ_unit),
+        ]
+    )
+    field_types = [field_type, field_type, :particles]
+
+    base_request = mergeRequests(plotParams(:area_density).request, ff_request)
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    for simulation_path in simulation_paths
+
+        ############################################################################################
+        # Compute the last coordinate trasformation
+        ############################################################################################
+
+        simulation_table = makeSimulationTable(simulation_path)
+
+        numbers = safeSelect(simulation_table[!, :numbers], slice)
+        times   = safeSelect(simulation_table[!, :physical_times], slice)
+
+        last_address = "$(SNAP_BASENAME)_$(last(numbers))/$(basename(simulation_path))"
+
+        # Read the last snapshot
+        last_dd = makeDataDict(
+            simulation_path,
+            parse(Int, last(numbers)),
+            request,
+            simulation_table,
+        )
+
+        # Compute the translation for the last snapshot
+        last_origin = computeCenter(last_dd, translation...)
+        last_vcm    = computeVcm(last_dd, translation...)
+        translateData!(last_dd, last_origin, last_vcm)
+
+        # Compute the rotation for the last snapshot
+        rotation_matrix = computeRotation(last_dd, rotation...)
+
+        ############################################################################################
+        # Compute the area densities
+        ############################################################################################
+
+        temp_folder = joinpath(output_path, "_density_maps_video")
+
+        for (quantity, field_type) in zip(quantities, field_types)
+
+            for projection_plane in projection_planes
+
+                plotSnapshot(
+                    [simulation_path],
+                    request,
+                    [heatmap!];
+                    slice,
+                    output_path=temp_folder,
+                    base_filename="$(quantity)_$(projection_plane)",
+                    transform_box=true,
+                    translation=(last_origin, last_vcm),
+                    rotation=(rotation_matrix,),
+                    filter_function,
+                    da_functions=[daDensity2DProjection],
+                    da_args=[(grid, quantity, field_type)],
+                    da_kwargs=[(; projection_plane, m_unit, l_unit, filter_function=da_ff)],
+                    x_unit=l_unit,
+                    y_unit=l_unit,
+                    save_figures=false,
+                    backup_results=true,
+                )
+
+            end
+
+        end
+
+        ############################################################################################
+        # Compute a good stellar color range
+        ############################################################################################
+
+        min_color = Inf
+        max_color = -Inf
+
+        for projection_plane in projection_planes
+
+            jld2_path = joinpath(temp_folder, "stellar_$(projection_plane).jld2")
+
+            jld2_data = load(jld2_path)
+
+            _, _, z = jld2_data[last_address]
+
+            if !all(isnan, z)
+
+                min_Σ, max_Σ = extrema(filter(!isnan, z))
+
+                floor_Σ = round(min_Σ)
+                ceil_Σ  = round(max_Σ)
+
+                if floor_Σ < min_color
+                    min_color = floor_Σ
+                end
+                if ceil_Σ > max_color
+                    max_color = ceil_Σ
+                end
+
+            end
+
+        end
+
+        if any(isinf, [min_color, max_color])
+
+            stellar_colorrange = (0.0, 1.0)
+
+        else
+
+            stellar_colorrange = (min_color, max_color)
+
+        end
+
+        ############################################################################################
+        # Compute a good component and gas color range
+        ############################################################################################
+
+        min_color = Inf
+        max_color = -Inf
+
+        # Compute a good color range
+        for projection_plane in projection_planes
+
+            jld2_path = joinpath(temp_folder, "$(component)_$(projection_plane).jld2")
+
+            jld2_data = load(jld2_path)
+
+            _, _, z = jld2_data[last_address]
+
+            if !all(isnan, z)
+
+                min_Σ, max_Σ = extrema(filter(!isnan, z))
+
+                floor_Σ = round(min_Σ)
+                ceil_Σ  = round(max_Σ)
+
+                if floor_Σ < min_color
+                    min_color = floor_Σ
+                end
+                if ceil_Σ > max_color
+                    max_color = ceil_Σ
+                end
+
+            end
+
+        end
+
+        if !isnan(density_range[1])
+            min_color = density_range[1]
+        end
+
+        if !isnan(density_range[2])
+            max_color = density_range[2]
+        end
+
+        if any(isinf, [min_color, max_color])
+
+            gas_colorrange = (0.0, 1.0)
+
+        else
+
+            gas_colorrange = (min_color, max_color)
+
+        end
+
+        colorranges = [gas_colorrange, gas_colorrange, stellar_colorrange]
+
+        ############################################################################################
+        # Generate the video
+        ############################################################################################
+
+        prog_bar = Progress(
+            nrow(simulation_table),
+            dt=0.5,
+            desc="Analyzing and plotting the data... ",
+            color=:blue,
+            barglyphs=BarGlyphs("|#  |"),
+        )
+
+        current_theme = merge(
+            theme,
+            Theme(
+                size=(2400, 1300),
+                figure_padding=(5, 25, 0, 0),
+                Axis=(xticklabelsize=35, yticklabelsize=35, aspect=DataAspect()),
+                Colorbar=(ticklabelsize=28, ticks=WilkinsonTicks(5), vertical=false),
+                Text=(color=:white, fontsize=40),
+            ),
+            DEFAULT_THEME,
+            theme_latexfonts(),
+        )
+
+        with_theme(current_theme) do
+
+            f = Figure()
+
+            # Initialize the animation stream
+            vs = VideoStream(f; framerate)
+
+            col_iterator = enumerate(zip(quantities, labels, colorranges))
+
+            for (snap_n, time) in zip(numbers, times)
+
+                for (col, (quantity, label, colorrange)) in col_iterator
+
+                    for (row, projection_plane) in pairs(projection_planes)
+
+                        xaxis_v = row == 2
+                        yaxis_v = col == 1
+
+                        ax = CairoMakie.Axis(
+                            f[row+1, col];
+                            xlabel=x_label,
+                            ylabel=(row == 1 ? y_label : z_label),
+                            xminorticksvisible=xaxis_v,
+                            xticksvisible=xaxis_v,
+                            xlabelvisible=xaxis_v,
+                            xticklabelsvisible=xaxis_v,
+                            yminorticksvisible=yaxis_v,
+                            yticksvisible=yaxis_v,
+                            ylabelvisible=yaxis_v,
+                            yticklabelsvisible=yaxis_v,
+                            xticks=-tick:10:tick,
+                            yticks=-tick:10:tick,
+                            limits=(-x_limits, x_limits, -y_limits[row], y_limits[row]),
+                        )
+
+                        address = "$(SNAP_BASENAME)_$(snap_n)/$(basename(simulation_path))"
+                        path = joinpath(temp_folder, "$(quantity)_$(projection_plane).jld2")
+
+                        jldopen(path, "r") do jld2_file
+
+                            x, y, z = jld2_file[address]
+
+                            pf = heatmap!(ax, x, y, z; colorrange)
+
+                            if row == 1
+
+                                Colorbar(f[row, col], pf; label)
+
+                                c_t = ustrip(u"Gyr", time)
+
+                                if c_t < 1.0
+                                    time_stamp = round(c_t; digits=2)
+                                else
+                                    time_stamp = round(c_t; sigdigits=3)
+                                end
+
+                                text!(
+                                    ax,
+                                    0.68,
+                                    0.98;
+                                    text=L"t = %$(rpad(time_stamp, 4, '0')) \, \text{Gyr}",
+                                    align=(:left, :top),
+                                    space=:relative,
+                                )
+
+                            end
+
+                        end
+
+                    end
+
+                    rowsize!(f.layout, 3, Relative(0.3f0))
+
+                end
+
+                colgap!(f.layout, 70)
+
+                # Add the figure as a frame to the animation stream
+                recordframe!(vs)
+
+                cleanPlot!(f)
+
+                next!(prog_bar)
+
+            end
+
+            save(joinpath(output_path, "$(basename(simulation_path))_density_evolution.mkv"), vs)
 
         end
 

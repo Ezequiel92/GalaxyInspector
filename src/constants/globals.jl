@@ -342,7 +342,11 @@ const TranslationType = Union{
 """
 Rotation type
 """
-const RotationType = Union{Tuple{Symbol,Symbol,Function},Matrix{Float64},UniformScaling{Bool}}
+const RotationType = Union{
+    Tuple{Symbol,Symbol,Function},
+    Tuple{Matrix{Float64}},
+    Tuple{UniformScaling{Bool}},
+}
 
 """
 Index type.

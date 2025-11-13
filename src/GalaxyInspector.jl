@@ -124,6 +124,7 @@ export efficiencyHistogram
 export stellarDensityMaps
 export gasDensityMaps
 export gasFractionsEvolution
+export evolutionVideo
 export snapshotReport
 export simulationReport
 
