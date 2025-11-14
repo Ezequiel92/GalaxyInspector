@@ -5006,12 +5006,17 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot a time series of the accreted gas mass into a sphere with the virial radius.
+Plot a time series of the gas mass flux into a sphere with the virial radius.
 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
+
+      + `:net_mass`     -> Net accreted mass.
+      + `:inflow_mass`  -> Inflow mass only.
+      + `:outflow_mass` -> Outflow mass only.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
@@ -5022,6 +5027,7 @@ Plot a time series of the accreted gas mass into a sphere with the virial radius
 function virialAccretionEvolution(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
+    flux_direction::Symbol=:net_mass,
     halo_idx::Int=1,
     tracers::Bool=false,
     smooth::Int=0,
@@ -5030,13 +5036,44 @@ function virialAccretionEvolution(
     theme::Attributes=Theme(),
 )::Nothing
 
+    if !tracers && flux_direction != :net_mass
+
+        (
+            logging[] &&
+            @warn("virialAccretionEvolution: If `tracers` is set to false, `flux_direction` can \
+            only be :net_mass, but I got :$(flux_direction). It will default to :net_mass.")
+        )
+
+        flux_direction = :net_mass
+
+    end
+
     x_plot_params = plotParams(:physical_time)
     y_plot_params = plotParams(:mass_accretion)
 
-    if tracers
-        filename="virial_mass_accretion_with_tracers"
+    if flux_direction == :net_mass
+
+        yaxis_var_name = L"\dot{M}_\text{net}^\text{R200}"
+
+    elseif flux_direction == :inflow_mass
+
+        yaxis_var_name = L"\dot{M}_\text{in}^\text{R200}"
+
+    elseif flux_direction == :outflow_mass
+
+        yaxis_var_name = L"\dot{M}_\text{out}^\text{R200}"
+
     else
-        filename="virial_mass_change_evolution"
+
+        throw(ArgumentError("discAccretionEvolution: `flux_direction` can only be :net_mass, \
+        :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
+
+    end
+
+    if tracers
+        filename="virial_$(flux_direction)_accretion_with_tracers"
+    else
+        filename="virial_net_mass_change_evolution"
     end
 
     plotTimeSeries(
@@ -5046,7 +5083,7 @@ function virialAccretionEvolution(
         filename,
         slice,
         da_functions=[daVirialAccretion],
-        da_kwargs=[(; halo_idx, tracers, smooth)],
+        da_kwargs=[(; flux_direction, halo_idx, tracers, smooth)],
         post_processing=ppHorizontalFlags!,
         pp_args=([0.0],),
         pp_kwargs=(; colors=[:gray65], line_styles=[:solid]),
@@ -5057,7 +5094,7 @@ function virialAccretionEvolution(
         xaxis_label=x_plot_params.axis_label,
         yaxis_label=y_plot_params.axis_label,
         xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=tracers ? y_plot_params.var_name : "Net mass change",
+        yaxis_var_name,
         theme=merge(
             theme,
             Theme(
@@ -5086,6 +5123,11 @@ Plot a time series of the accreted mass into a given disc.
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
+
+      + `:net_mass`     -> Net accreted mass.
+      + `:inflow_mass`  -> Inflow mass only.
+      + `:outflow_mass` -> Outflow mass only.
   - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles. For options see [`selectTransformation`](@ref).
@@ -5097,6 +5139,7 @@ Plot a time series of the accreted mass into a given disc.
 function discAccretionEvolution(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
+    flux_direction::Symbol=:net_mass,
     max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -5109,14 +5152,33 @@ function discAccretionEvolution(
     x_plot_params = plotParams(:physical_time)
     y_plot_params = plotParams(:mass_accretion)
 
+    if flux_direction == :net_mass
+
+        yaxis_var_name = L"\dot{M}_\text{net}^\text{disk}"
+
+    elseif flux_direction == :inflow_mass
+
+        yaxis_var_name = L"\dot{M}_\text{in}^\text{disk}"
+
+    elseif flux_direction == :outflow_mass
+
+        yaxis_var_name = L"\dot{M}_\text{out}^\text{disk}"
+
+    else
+
+        throw(ArgumentError("discAccretionEvolution: `flux_direction` can only be :net_mass, \
+        :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
+
+    end
+
     plotTimeSeries(
         simulation_paths,
         [lines!];
         output_path,
-        filename="disc_mass_accretion_with_tracers",
+        filename="disc_$(flux_direction)_accretion_with_tracers",
         slice,
         da_functions=[daDiscAccretion],
-        da_kwargs=[(; max_r, max_z, trans_mode, smooth)],
+        da_kwargs=[(; flux_direction, max_r, max_z, trans_mode, smooth)],
         post_processing=ppHorizontalFlags!,
         pp_args=([0.0],),
         pp_kwargs=(; colors=[:gray65], line_styles=[:solid]),
@@ -5127,7 +5189,7 @@ function discAccretionEvolution(
         xaxis_label=x_plot_params.axis_label,
         yaxis_label=y_plot_params.axis_label,
         xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
+        yaxis_var_name,
         theme=merge(
             theme,
             Theme(

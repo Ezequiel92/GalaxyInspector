@@ -2106,7 +2106,7 @@ function plotParams(quantity::Symbol)::PlotParams
                 :subhalo     => ["S_Pos"],
                 :tracer      => ["PAID", "TRID", "POS "],
             ),
-            var_name = "Mass accretion",
+            var_name = L"\dot{M}_\text{acc}",
             unit     = u"Msun * yr^-1",
         )
 

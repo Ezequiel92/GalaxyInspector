@@ -2831,6 +2831,11 @@ Compute the evolution of the accreted mass into a sphere with the virial radius.
 # Arguments
 
   - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
+
+      + `:net_mass`     -> Net accreted mass.
+      + `:inflow_mass`  -> Inflow mass only.
+      + `:outflow_mass` -> Outflow mass only.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
@@ -2845,6 +2850,7 @@ Compute the evolution of the accreted mass into a sphere with the virial radius.
 """
 function daVirialAccretion(
     sim_data::Simulation;
+    flux_direction::Symbol=:net,
     halo_idx::Int=1,
     tracers::Bool=false,
     smooth::Int=0,
@@ -2907,9 +2913,35 @@ function daVirialAccretion(
 
         if tracers
 
-            Δm[slice_index], _, _ = computeVirialAccretion(present_dd, past_dd; halo_idx)
+            δm, m_in, m_out = computeVirialAccretion(present_dd, past_dd; halo_idx)
+
+            if flux_direction == :net_mass
+
+                Δm[slice_index] = δm
+
+            elseif flux_direction == :inflow_mass
+
+                Δm[slice_index] = m_in
+
+            elseif flux_direction == :outflow_mass
+
+                Δm[slice_index] = m_out
+
+            else
+
+                throw(ArgumentError("daVirialAccretion: `flux_direction` can only be :net_mass, \
+                :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
+
+            end
 
         else
+
+            if flux_direction != :net_mass
+
+                throw(ArgumentError("daVirialAccretion: If `tracers` is set to false, \
+                `flux_direction` can only be :net_mass, but I got :$(flux_direction)"))
+
+            end
 
             if isempty(past_dd[:group]["G_M_Crit200"])
                 m_past = 0.0u"Msun"
@@ -2961,6 +2993,11 @@ Compute the evolution of the accreted mass into a given disc.
 # Arguments
 
   - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
+
+      + `:net_mass`     -> Net accreted mass.
+      + `:inflow_mass`  -> Inflow mass only.
+      + `:outflow_mass` -> Outflow mass only.
   - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -2976,6 +3013,7 @@ Compute the evolution of the accreted mass into a given disc.
 """
 function daDiscAccretion(
     sim_data::Simulation;
+    flux_direction::Symbol=:net_mass,
     max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -3051,7 +3089,26 @@ function daDiscAccretion(
         # Rotate the data
         rotateData!(present_dd, rotation...)
 
-        Δm[slice_index], _, _ = computeDiscAccretion(present_dd, past_dd; max_r, max_z)
+        δm, m_in, m_out = computeDiscAccretion(present_dd, past_dd; max_r, max_z)
+
+        if flux_direction == :net_mass
+
+            Δm[slice_index] = δm
+
+        elseif flux_direction == :inflow_mass
+
+            Δm[slice_index] = m_in
+
+        elseif flux_direction == :outflow_mass
+
+            Δm[slice_index] = m_out
+
+        else
+
+            throw(ArgumentError("daDiscAccretion: `flux_direction` can only be :net_mass, \
+            :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
+
+        end
 
         past_dd = present_dd
 
