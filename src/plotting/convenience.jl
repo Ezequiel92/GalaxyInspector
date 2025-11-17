@@ -7590,7 +7590,7 @@ function quantityReport(
 
         println(file, "#"^100)
 
-        println(file, "\nQuantity: :$(quantity)")
+        println(file, "\nQuantity: :$(quantity)\n")
 
         println(file, "#"^100)
 
