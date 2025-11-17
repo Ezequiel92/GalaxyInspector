@@ -6630,6 +6630,9 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
         # Check if the simulation is cosmological
         cosmological = isSimCosmological(simulation_path)
 
+        # Read the runtime from the cpu.txt file
+        cpu_txt_path = joinpath(simulation_path, CPU_REL_PATH)
+
         ############################################################################################
         # Print the report header
         ############################################################################################
@@ -6656,7 +6659,15 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
 
         println(file, "#"^100)
         println(file, "\nNumber of snapshots:       $(snapshot_n)")
-        println(file, "Number of group catalogs:  $(groupcat_n)\n")
+        println(file, "Number of group catalogs:  $(groupcat_n)")
+
+        if isfile(cpu_txt_path)
+            cpu_txt_data = readCpuFile(cpu_txt_path, ["total"])["total"]
+            run_time     = cpu_txt_data[end, 5]
+            println(file, "Run time:                  $(format_seconds(run_time))\n")
+        else
+            println(file, "Run time:                  Missing $(cpu_txt_path) file!\n")
+        end
 
         ############################################################################################
         # Print the time ranges

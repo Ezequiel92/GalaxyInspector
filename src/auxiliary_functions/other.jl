@@ -727,3 +727,38 @@ function ratio(qty_1::Symbol, qty_2::Symbol)::Symbol
     return Symbol(qty_1, :_, qty_2, :_ratio)
 
 end
+
+"""
+    format_seconds(sec::Float64)::String
+
+Format given number of seconds as "DDd-HHh:MM':SS''", where D is days, H is hours, M is minutes, and S is seconds.
+
+# Arguments
+
+  - `sec::Float64`: Number of seconds.
+
+# Returns
+
+  - String with the formatted time.
+"""
+function format_seconds(sec::Float64)::String
+
+    days    = floor(sec / (24 * 3600))
+    rem1    = sec - days * (24 * 3600)
+    hours   = floor(rem1 / 3600)
+    rem2    = rem1 - hours * 3600
+    minutes = floor(rem2 / 60)
+    seconds = round(rem2 - minutes * 60)
+
+    return string(
+        Int(days),
+        "d-",
+        lpad(Int(hours), 2, "0"),
+        "h:",
+        lpad(Int(minutes), 2, "0"),
+        "':",
+        lpad(Int(seconds), 2, "0"),
+        "''",
+    )
+
+end
