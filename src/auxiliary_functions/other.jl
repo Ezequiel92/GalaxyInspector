@@ -53,6 +53,11 @@ Base.union(a1::ReducedIndexType, a2::Vector{Bool})::Vector{Int} = a1 ∪ findall
 Base.union(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .|| a2)
 
 """
+New method for `Base.round` to use with the `Unitful.Quantity` type.
+"""
+Base.round(value::Unitful.Quantity; kwargs...) = round(typeof(value), value; kwargs...)
+
+"""
 Area of a circle with radius `r`.
 """
 function area(r::Number)::Number
@@ -752,11 +757,11 @@ function format_seconds(sec::Float64)::String
 
     return string(
         Int(days),
-        "d-",
+        "d ",
         lpad(Int(hours), 2, "0"),
-        "h:",
+        "hs ",
         lpad(Int(minutes), 2, "0"),
-        "':",
+        "' ",
         lpad(Int(seconds), 2, "0"),
         "''",
     )

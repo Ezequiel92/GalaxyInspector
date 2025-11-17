@@ -127,5 +127,6 @@ export gasFractionsEvolution
 export evolutionVideo
 export snapshotReport
 export simulationReport
+export quantityReport
 
 end

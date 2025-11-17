@@ -6593,7 +6593,7 @@ end
 """
     simulationReport(simulation_paths::Vector{String}; <keyword arguments>)::Nothing
 
-Write a text file with information about a given simulation
+Write a text file with information about a given simulation.
 
 # Arguments
 
@@ -6821,7 +6821,7 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
                     println(
                         file,
                         "\t\tSeparation between the minimum potential and the center of mass: \
-                        \n\n\t\t\t$(round(typeof(1.0u"kpc"), separation, sigdigits=6))\n",
+                        \n\n\t\t\t$(round(separation, sigdigits=6))\n",
                     )
 
                     println(file, "\t\t", "#"^62)
@@ -7100,11 +7100,11 @@ function snapshotReport(
                 total_mass += mass
                 title      = rpad("$(PARTICLE_NAMES[component]):", 25)
 
-                println(file, "\t\t$(title)$(round(typeof(1.0u"Msun"), mass, sigdigits=3))")
+                println(file, "\t\t$(title)$(round(mass, sigdigits=3))")
 
             end
 
-            str_total_mass = round(typeof(total_mass), total_mass, sigdigits=3)
+            str_total_mass = round(total_mass, sigdigits=3)
 
             println(file, "\n\t\tTotal mass:              $(str_total_mass)\n")
 
@@ -7130,7 +7130,7 @@ function snapshotReport(
 
                     mass     = integrateQty(dd, Symbol(gas_component, :_mass))
                     percent  = round((mass / gas_mass) * 100, sigdigits=4)
-                    str_mass = round(typeof(mass), mass, sigdigits=3)
+                    str_mass = round(mass, sigdigits=3)
                     title    = rpad("$(gas_label) mass:", 25)
 
                     println(file, "\t\t$(title)$(str_mass ) ($(percent)% of the total gas mass)")
@@ -7474,6 +7474,180 @@ function snapshotReport(
                 end
 
             end
+
+        end
+
+        close(file)
+
+    end
+
+    return nothing
+
+end
+
+"""
+    quantityReport(
+        simulation_paths::Vector{String},
+        quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Write a text file with information about a given quantity.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be written for each simulation.
+  - `quantity::Symbol`: Target quantity. Has to be one of the valid quantities for [`scatterQty`](@ref).
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be analysed. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be considered in the "filtered" section of the report. For options see [`selectFilter`](@ref).
+"""
+function quantityReport(
+    simulation_paths::Vector{String},
+    quantity::Symbol;
+    slice::IndexType=(:),
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+)::Nothing
+
+    for simulation_path in simulation_paths
+
+        ############################################################################################
+        # Load the relevant values and check for missing files
+        ############################################################################################
+
+        # Make a dataframe for the simulation with the following columns:
+        #  - DataFrame index         -> :row_id
+        #  - Number in the file name -> :numbers
+        #  - Scale factor            -> :scale_factors
+        #  - Redshift                -> :redshifts
+        #  - Physical time           -> :physical_times
+        #  - Lookback time           -> :lookback_times
+        #  - Snapshot path           -> :snapshot_paths
+        #  - Group catalog path      -> :groupcat_paths
+        simulation_table = makeSimulationTable(simulation_path)
+
+        # Compute the number of snapshots in the folder
+        snapshot_n = count(!ismissing, simulation_table[!, :snapshot_paths])
+
+        # Check that there is at least one snapshot
+        (
+            !iszero(snapshot_n) ||
+            throw(ArgumentError("simulationReport: There are no snapshots in $(simulation_path)"))
+        )
+
+        # Compute the number of group catalog files in the folder
+        groupcat_n = count(!ismissing, simulation_table[!, :groupcat_paths])
+
+        # Get the snapshot paths
+        snapshot_paths = safeSelect(simulation_table[!, :snapshot_paths], slice)
+
+        # Check that the snapshots for `slice` exist
+        (
+            !isempty(snapshot_paths) ||
+            throw(ArgumentError("snapshotReport: There are no snapshots for the slice \
+            $(slice), for the simulation $(simulation_path)"))
+        )
+
+        # Get the snapshot paths
+        global_indices = safeSelect(simulation_table[!, :row_id], slice)
+
+        # Get the number in the filename
+        snapshot_numbers = safeSelect(simulation_table[!, :numbers], slice)
+
+        # Create the output file
+        filename = "$(quantity)_of_$(basename(simulation_path))"
+        file = open(joinpath(mkpath(output_path), "report_for_$(filename).txt"), "w")
+
+        plot_params = plotParams(quantity)
+
+        # Select the filter function, translation, rotation, and request dictionary
+        translation, rotation, trans_request = selectTransformation(trans_mode, plot_params.request)
+        filter_function, request = selectFilter(filter_mode, trans_request)
+
+        ############################################################################################
+        # Print the header
+        ############################################################################################
+
+        println(file, "#"^100)
+        println(file, "\nSimulation name:  $(basename(simulation_path))")
+
+        println(file, "\nNumber of snapshots:       $(snapshot_n)")
+        println(file, "Number of group catalogs:  $(groupcat_n)\n")
+
+        println(file, "#"^100)
+
+        println(file, "\nTranslation: $(translation)")
+        println(file, "Rotation:    $(rotation[1:2])")
+
+        if filter_mode isa Symbol
+            println(file, "Filter mode: :$(filter_mode)\n")
+        else
+            println(file, "Filter function: $(String(Symbol(filter_function)))\n")
+        end
+
+        println(file, "#"^100)
+
+        println(file, "\nQuantity: :$(quantity)")
+
+        println(file, "#"^100)
+
+        println(file)
+
+        ############################################################################################
+        # Print statistics of `quantity` for every snapshot
+        ############################################################################################
+
+        iterator = zip(snapshot_paths, global_indices, snapshot_numbers)
+
+        for (snapshot_path, global_index, snapshot_number) in iterator
+
+            if ismissing(snapshot_path)
+                println(file, "Snapshot: snap_$(lpad(snapshot_number, 3, '0')).hdf5 is missing!\n")
+                continue
+            else
+                println(file, "Snapshot: $(snapshot_path)\n")
+            end
+
+            # Create the data dictionary
+            data_dict = makeDataDict(simulation_path, global_index, request, simulation_table)
+
+            translateData!(data_dict, translation...)
+            rotateData!(data_dict, rotation...)
+            filterData!(data_dict; filter_function)
+
+            quantity_values = scatterQty(data_dict, quantity)
+
+            filter!(!isnan, quantity_values)
+            filter!(!isinf, quantity_values)
+
+            if !isempty(quantity_values)
+
+                println(file, "\t# data points:    $(length(quantity_values))")
+
+                mean_qty  = uconvert(plot_params.unit, mean(quantity_values))
+                std_qty   = uconvert(plot_params.unit, std(quantity_values))
+                extre_qty = uconvert.(plot_params.unit, extrema(quantity_values))
+
+                println(file, "\tMean:             $(round(mean_qty; digits=2))")
+                println(file, "\tSTD:              $(round(std_qty; digits=2))")
+                println(file, "\tMinimum:          $(round(extre_qty[1]; digits=2))")
+                println(file, "\tMaximum:          $(round(extre_qty[2]; digits=2))\n")
+
+                for p in [10, 25, 50, 75, 90]
+                    percentile_qty = uconvert(plot_params.unit, percentile(quantity_values, p))
+                    println(file, "\tPercentile $(p)%:   $(round(percentile_qty; digits=2))")
+                end
+
+            else
+
+                println(file, "\tThere are no valid data point in this snapshot!")
+
+            end
+
+            println(file)
 
         end
 
