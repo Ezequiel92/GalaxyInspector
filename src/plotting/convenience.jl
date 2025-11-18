@@ -2196,6 +2196,39 @@ function timeSeries(
 
 end
 
+"""
+    statisticsEvolution(
+        simulation_paths::Vector{String},
+        x_quantity::Symbol,
+        y_quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Plot a time series of the statistics of `y_quantity` (25th, 50th, 75th percentails, and maximum and minimum).
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the time quantities valid for [`integrateQty`](@ref), namely
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the quantities valid for [`integrateQty`](@ref).
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `xlog::Bool=false`: If the x axis is will have a ``\\log_{10}`` scale.
+  - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
+  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
 function statisticsEvolution(
     simulation_paths::Vector{String},
     x_quantity::Symbol,
@@ -2213,6 +2246,12 @@ function statisticsEvolution(
     backup_results::Bool=false,
     theme::Attributes=Theme(),
 )::Nothing
+
+    (
+        x_quantity ∈ [:scale_factor, :redshift, :physical_time, :lookback_time] ) ||
+        throw(ArgumentError("statisticsEvolution: The argument `x_quantity` has to be \
+        :scale_factor, :redshift, :physical_time or :lookback_time, but I got :$(x_quantity)")
+    )
 
     x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
@@ -2250,6 +2289,9 @@ function statisticsEvolution(
         (dd, qty)->integrateQty(dd, qty; agg_function=minimum),
         (dd, qty)->integrateQty(dd, qty; agg_function=maximum),
     ]
+    labels     = ["25th Percentile", "50th Percentile", "75th Percentile", "Minimum", "Maximum"]
+    linestyles = [:solid, :solid, :solid, :dash, :dash]
+    colors     = [WONG_BLUE, WONG_GREEN, WONG_RED, :black, :black]
 
     da_kwargs=[
         (;
@@ -2291,16 +2333,13 @@ function statisticsEvolution(
                 Theme(
                     size=(1400, 880),
                     figure_padding=(10, 15, 5, 15),
-                    palette=(
-                        linestyle=[:solid, :solid, :solid, :dash, :dash],
-                        color=[WONG_BLUE, WONG_GREEN, WONG_RED, :black, :black],
-                    ),
+                    palette=(linestyle=linestyles, color=colors),
                     Axis=(aspect=nothing,),
                     Lines=(linewidth=3,),
                     Legend=(nbanks=1,),
                 ),
             ),
-            sim_labels=["25th Percentile", "50th Percentile", "75th Percentile", "Minimum", "Maximum"],
+            sim_labels=labels,
         )
 
     end
