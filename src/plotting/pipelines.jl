@@ -26,7 +26,7 @@ Some of the features are:
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`.
-  - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref). Which data blocks are needed depends on the argument `da_functions`.
+  - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref). Which data blocks are needed depends on `da_functions`.
   - `plot_functions::Vector{<:Function}`: Vector of plotting functions from [Makie](https://docs.makie.org/stable/). This sets the type of plot for each simulation.
     The supported functions are:
 

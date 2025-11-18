@@ -7492,20 +7492,69 @@ end
         <keyword arguments>
     )::Nothing
 
-Write a text file with information about a given quantity.
+Write a text file with information about a given `quantity`.
 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be written for each simulation.
-  - `quantity::Symbol`: Target quantity. Has to be one of the valid quantities for [`scatterQty`](@ref).
+  - `quantity::Symbol`: Target quantity. Has to be one of the valid quantities of [`scatterQty`](@ref).
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be analysed. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
-  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be considered in the "filtered" section of the report. For options see [`selectFilter`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
 """
 function quantityReport(
     simulation_paths::Vector{String},
     quantity::Symbol;
+    slice::IndexType=(:),
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+)::Nothing
+
+    plot_params = plotParams(quantity)
+
+    da_function = dd -> uconvert.(plot_params.unit, scatterQty(dd, quantity))
+
+    return quantityReport(
+        simulation_paths,
+        plot_params.request;
+        da_function,
+        slice,
+        output_path,
+        trans_mode,
+        filter_mode,
+    )
+
+end
+
+"""
+    quantityReport(
+        simulation_paths::Vector{String},
+        base_request::Dict{Symbol,Vector{String}};
+        <keyword arguments>
+    )::Nothing
+
+Write a text file with information about a the results of applying `da_function` to each snapshot.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be written for each simulation.
+  - `base_request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref). Which data blocks are needed depends on `da_function`.
+  - `da_function::Function=getNothing`: Data analysis function. It must have the same signature as the examples in `./src/analysis/data_analysis.jl`, but it should only return an Array.
+  - `da_arg::Tuple=()`: Psitional arguments for the data analysis function.
+  - `da_kwarg::NamedTuple=(;)`: Keyword arguments for the data analysis function.
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be analysed. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+"""
+function quantityReport(
+    simulation_paths::Vector{String},
+    base_request::Dict{Symbol,Vector{String}};
+    da_function::Function=getNothing,
+    da_arg::Tuple=(),
+    da_kwarg::NamedTuple=(;),
     slice::IndexType=(:),
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -7535,7 +7584,7 @@ function quantityReport(
         # Check that there is at least one snapshot
         (
             !iszero(snapshot_n) ||
-            throw(ArgumentError("simulationReport: There are no snapshots in $(simulation_path)"))
+            throw(ArgumentError("quantityReport: There are no snapshots in $(simulation_path)"))
         )
 
         # Compute the number of group catalog files in the folder
@@ -7547,7 +7596,7 @@ function quantityReport(
         # Check that the snapshots for `slice` exist
         (
             !isempty(snapshot_paths) ||
-            throw(ArgumentError("snapshotReport: There are no snapshots for the slice \
+            throw(ArgumentError("quantityReport: There are no snapshots for the slice \
             $(slice), for the simulation $(simulation_path)"))
         )
 
@@ -7558,13 +7607,14 @@ function quantityReport(
         snapshot_numbers = safeSelect(simulation_table[!, :numbers], slice)
 
         # Create the output file
-        filename = "$(quantity)_of_$(basename(simulation_path))"
-        file = open(joinpath(mkpath(output_path), "report_for_$(filename).txt"), "w")
-
-        plot_params = plotParams(quantity)
+        file = open(
+            joinpath(mkpath(output_path),
+            "quantity_report_for_$(basename(simulation_path)).txt"),
+            "w",
+        )
 
         # Select the filter function, translation, rotation, and request dictionary
-        translation, rotation, trans_request = selectTransformation(trans_mode, plot_params.request)
+        translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
         filter_function, request = selectFilter(filter_mode, trans_request)
 
         ############################################################################################
@@ -7590,10 +7640,6 @@ function quantityReport(
 
         println(file, "#"^100)
 
-        println(file, "\nQuantity: :$(quantity)\n")
-
-        println(file, "#"^100)
-
         println(file)
 
         ############################################################################################
@@ -7614,12 +7660,26 @@ function quantityReport(
             # Create the data dictionary
             data_dict = makeDataDict(simulation_path, global_index, request, simulation_table)
 
+            # Translate, rotate, and filter the data
             translateData!(data_dict, translation...)
             rotateData!(data_dict, rotation...)
             filterData!(data_dict; filter_function)
 
-            quantity_values = scatterQty(data_dict, quantity)
+            # Apply the data analysis function
+            quantity_values = da_function(data_dict; da_arg..., da_kwarg...)
 
+            if isnothing(quantity_values)
+                println(file, "\tThe data analysis function returned `nothing`!\n")
+                continue
+            end
+
+            (
+                isa(quantity_values, AbstractArray) ||
+                throw(ArgumentError("quantityReport: `da_function` must return an array, but I got \
+                $(typeof(quantity_values)) instead."))
+            )
+
+            # Ignore NaN and Inf values
             filter!(!isnan, quantity_values)
             filter!(!isinf, quantity_values)
 
@@ -7627,9 +7687,9 @@ function quantityReport(
 
                 println(file, "\t# data points:    $(length(quantity_values))")
 
-                mean_qty  = uconvert(plot_params.unit, mean(quantity_values))
-                std_qty   = uconvert(plot_params.unit, std(quantity_values))
-                extre_qty = uconvert.(plot_params.unit, extrema(quantity_values))
+                mean_qty  = mean(quantity_values)
+                std_qty   = std(quantity_values)
+                extre_qty = extrema(quantity_values)
 
                 println(file, "\tMean:             $(round(mean_qty; digits=2))")
                 println(file, "\tSTD:              $(round(std_qty; digits=2))")
@@ -7637,7 +7697,7 @@ function quantityReport(
                 println(file, "\tMaximum:          $(round(extre_qty[2]; digits=2))\n")
 
                 for p in [10, 25, 50, 75, 90]
-                    percentile_qty = uconvert(plot_params.unit, percentile(quantity_values, p))
+                    percentile_qty = percentile(quantity_values, p)
                     println(file, "\tPercentile $(p)%:   $(round(percentile_qty; digits=2))")
                 end
 
