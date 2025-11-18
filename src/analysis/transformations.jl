@@ -121,6 +121,10 @@ function rotateData!(
     rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}},
 )::Nothing
 
+    if rotation_matrix === I
+        return nothing
+    end
+
     for component in snapshotTypes(data_dict)
 
         data = data_dict[component]
@@ -178,7 +182,7 @@ function computeRotation(
     filter_function::Function,
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
-    z_axis == :zero && return nothing
+    z_axis == :zero && return I
 
     filtered_dd = filterData(data_dict; filter_function)
 
@@ -269,6 +273,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
       + :box     -> Whole simulation box
       + :halo    -> Main halo
       + :subhalo -> Main subhalo
+    Alternatively, it can be :zero, in which case no translation nor rotation is applied.
   - `base_request::Dict{Symbol,Vector{String}}`: Base request dictionary.
 
 # Returns
@@ -283,6 +288,10 @@ function selectTransformation(
     trans_mode::Symbol,
     base_request::Dict{Symbol,Vector{String}},
 )::Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}
+
+    if trans_mode == :zero
+        return :zero, (:zero, :zero, filterNothing), base_request
+    end
 
     (
         trans_mode ∈ TRANSFORM_LIST ||

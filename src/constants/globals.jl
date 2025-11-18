@@ -393,8 +393,13 @@ const ReducedIndexType = Union{
 """
 Default colors.
 """
-const WONG_RED = Makie.wong_colors()[6]
-const WONG_ORANGE = Makie.wong_colors()[2]
+const WONG_BLUE    = Makie.wong_colors()[1]
+const WONG_ORANGE  = Makie.wong_colors()[2]
+const WONG_GREEN   = Makie.wong_colors()[3]
+const WONG_PINK    = Makie.wong_colors()[4]
+const WONG_CELESTE = Makie.wong_colors()[5]
+const WONG_RED     = Makie.wong_colors()[6]
+const WONG_YELLOW  = Makie.wong_colors()[7]
 
 """
 Default list of marker types.
@@ -482,7 +487,7 @@ const DEFAULT_THEME = Theme(
         labelsize=30,
         linewidth=5,
         markersize=28,
-        patchsize=(30, 30),
+        patchsize=(40, 40),
     ),
     Lines=(linewidth=5, cycle=CYCLE),
     VLines=(linewidth=3, cycle=CYCLE),

@@ -625,7 +625,9 @@ function integrateQty(
 
                 logging[] && @warn("integrateQty: :$(quantity) is empty, so I will return NaN")
 
-                integrated_qty = NaN
+                unit = plotParams(quantity).unit
+
+                integrated_qty = NaN * unit
 
             else
 

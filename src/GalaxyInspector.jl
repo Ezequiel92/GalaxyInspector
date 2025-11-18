@@ -101,6 +101,7 @@ export scatterDensityMap
 export atomicMolecularTransition
 export gasBarPlot
 export timeSeries
+export statisticsEvolution
 export gasEvolution
 export virialAccretionEvolution
 export discAccretionEvolution

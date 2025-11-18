@@ -1198,7 +1198,7 @@ function compareMolla2015(
         theme=merge(
             theme,
             Theme(
-                size=(1500, 880),
+                size=(1400, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing,),
@@ -1298,7 +1298,7 @@ function compareAgertz2021(
         post_processing=ppAgertz2021!,
         pp_kwargs=(;
             galaxies=[:all, "MW"],
-            colors=[Makie.wong_colors()[4], Makie.wong_colors()[1]],
+            colors=[WONG_PINK, WONG_BLUE],
             linestyle=:dash,
             y_unit=plot_params.unit,
         ),
@@ -2196,6 +2196,119 @@ function timeSeries(
 
 end
 
+function statisticsEvolution(
+    simulation_paths::Vector{String},
+    x_quantity::Symbol,
+    y_quantity::Symbol;
+    slice::IndexType=(:),
+    xlog::Bool=false,
+    ylog::Bool=false,
+    cumulative::Bool=false,
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    smooth::Int=0,
+    backup_results::Bool=false,
+    theme::Attributes=Theme(),
+)::Nothing
+
+    x_plot_params = plotParams(x_quantity)
+    y_plot_params = plotParams(y_quantity)
+
+    # Set arguments for the x axis
+    if xlog
+        x_log        = x_plot_params.unit
+        x_unit       = Unitful.NoUnits
+        x_exp_factor = 0
+        xaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, x_plot_params.unit)
+    else
+        x_log        = nothing
+        x_unit       = x_plot_params.unit
+        x_exp_factor = x_plot_params.exp_factor
+        xaxis_label  = x_plot_params.axis_label
+    end
+
+    # Set arguments for the y axis
+    if ylog
+        y_log        = y_plot_params.unit
+        y_unit       = Unitful.NoUnits
+        y_exp_factor = 0
+        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
+    else
+        y_log        = nothing
+        y_unit       = y_plot_params.unit
+        y_exp_factor = y_plot_params.exp_factor
+        yaxis_label  = y_plot_params.axis_label
+    end
+
+    y_agg_functions = [
+        (dd, qty)->integrateQty(dd, qty; agg_function=x->percentile(x, 25)),
+        (dd, qty)->integrateQty(dd, qty; agg_function=median),
+        (dd, qty)->integrateQty(dd, qty; agg_function=x->percentile(x, 75)),
+        (dd, qty)->integrateQty(dd, qty; agg_function=minimum),
+        (dd, qty)->integrateQty(dd, qty; agg_function=maximum),
+    ]
+
+    da_kwargs=[
+        (;
+            integration_functions=(integrateQty, y_agg_function),
+            trans_mode,
+            filter_mode,
+            extra_filter=da_ff,
+            ff_request,
+            x_log,
+            y_log,
+            smooth,
+            cumulative,
+        ) for y_agg_function in y_agg_functions
+    ]
+
+    for simulation_path in simulation_paths
+
+        plotTimeSeries(
+            fill(simulation_path, 5),
+            [lines!];
+            output_path,
+            filename="$(basename(simulation_path))_$(y_quantity)_vs_$(x_quantity)",
+            slice,
+            da_functions=fill(daEvolution, 5),
+            da_args=[(x_quantity, y_quantity)],
+            da_kwargs,
+            x_unit,
+            y_unit,
+            x_exp_factor,
+            y_exp_factor,
+            xaxis_label,
+            yaxis_label,
+            xaxis_var_name=x_plot_params.var_name,
+            yaxis_var_name=y_plot_params.var_name,
+            save_figures=!backup_results,
+            backup_results,
+            theme=merge(
+                theme,
+                Theme(
+                    size=(1400, 880),
+                    figure_padding=(10, 15, 5, 15),
+                    palette=(
+                        linestyle=[:solid, :solid, :solid, :dash, :dash],
+                        color=[WONG_BLUE, WONG_GREEN, WONG_RED, :black, :black],
+                    ),
+                    Axis=(aspect=nothing,),
+                    Lines=(linewidth=3,),
+                    Legend=(nbanks=1,),
+                ),
+            ),
+            sim_labels=["25th Percentile", "50th Percentile", "75th Percentile", "Minimum", "Maximum"],
+        )
+
+    end
+
+    return nothing
+
+end
+
 """
     gasEvolution(
         simulation_paths::Vector{String};
@@ -2294,7 +2407,7 @@ function gasEvolution(
             theme=merge(
                 theme,
                 Theme(
-                    size=(1500, 880),
+                    size=(1400, 880),
                     figure_padding=(10, 15, 5, 15),
                     palette=(linestyle=[:solid],),
                     Axis=(aspect=nothing, xticks=0:14),
@@ -2375,7 +2488,7 @@ function sfrTXT(
         theme=merge(
             theme,
             Theme(
-                size=(1500, 880),
+                size=(1400, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing, xticks=0:14),
@@ -2483,7 +2596,7 @@ function cpuTXT(
         theme=merge(
             theme,
             Theme(
-                size=(1500, 880),
+                size=(1400, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing,),
@@ -3845,7 +3958,7 @@ function massProfile(
             theme=merge(
                 theme,
                 Theme(
-                    size=(1500, 880),
+                    size=(1400, 880),
                     figure_padding=(10, 15, 5, 15),
                     palette=(linestyle=[:solid],),
                     Axis=(aspect=nothing,),
@@ -3942,7 +4055,7 @@ function velocityProfile(
         theme=merge(
             theme,
             Theme(
-                size=(1500, 880),
+                size=(1400, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing,),
@@ -4139,7 +4252,7 @@ function compareFeldmann2020(
         theme=merge(
             theme,
             Theme(
-                size=(1500, 880),
+                size=(1400, 880),
                 figure_padding=(10, 15, 5, 15),
                 Axis=(aspect=nothing,),
                 Legend=(halign=:left, valign=:top, nbanks=1, margin=(10, 0, 0, 10)),
@@ -5098,7 +5211,7 @@ function virialAccretionEvolution(
         theme=merge(
             theme,
             Theme(
-                size=(1500, 880),
+                size=(1400, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing, xticks=0:14),
@@ -5193,7 +5306,7 @@ function discAccretionEvolution(
         theme=merge(
             theme,
             Theme(
-                size=(1500, 880),
+                size=(1400, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing, xticks=0:14),
@@ -5276,7 +5389,7 @@ function fitVSFLaw(
         [simulation_path],
         request,
         [scatter!];
-        pf_kwargs=[(; color=Makie.wong_colors()[1], markersize=6, marker=:circle)],
+        pf_kwargs=[(; color=WONG_BLUE, markersize=6, marker=:circle)],
         output_path,
         base_filename="$(basename(simulation_path))_$(component)_vsf_law",
         slice,
@@ -6068,20 +6181,20 @@ function gasFractionsEvolution(
             quantities = [:ode_ionized, :ode_atomic, :ode_molecular, :ode_metals, :ode_dust]
             labels     = ["Ionized", "Atomic", "Molecular", "Dust", "Metals"]
             colors     = [
-                Makie.wong_colors()[1],
-                Makie.wong_colors()[4],
-                Makie.wong_colors()[3],
-                Makie.wong_colors()[5],
-                Makie.wong_colors()[6],
+                WONG_BLUE,
+                WONG_PINK,
+                WONG_GREEN,
+                WONG_CELESTE,
+                WONG_RED,
             ]
         else
             quantities = [:ionized, :br_atomic, :br_molecular, :Z_gas]
             labels     = ["Ionized", "Atomic", "Molecular", "Metals"]
             colors     = [
-                Makie.wong_colors()[1],
-                Makie.wong_colors()[4],
-                Makie.wong_colors()[3],
-                Makie.wong_colors()[5],
+                WONG_BLUE,
+                WONG_PINK,
+                WONG_GREEN,
+                WONG_CELESTE,
             ]
         end
 
