@@ -3280,8 +3280,8 @@ function kennicuttSchmidtLaw(
             ylabel=LaTeXString(L"\log_{10} \, " * y_label),
         )
 
-        colors    = safeSelect(current_theme[:palette][:color][], 1:ns)
-        markers   = safeSelect(current_theme[:palette][:marker][], 1:ns)
+        colors    = current_theme[:palette][:color][]
+        markers   = current_theme[:palette][:marker][]
         fit_color = :gray20
         pp_color  = :darkslateblue
 
@@ -3429,7 +3429,7 @@ function kennicuttSchmidtLaw(
                         x_uncertainty = Measurements.uncertainty.(x_data)
                         y_uncertainty = Measurements.uncertainty.(y_data)
 
-                        color = colors[sim_idx]
+                        color = ring(colors, sim_idx)
 
                         scatter!(ax, x_values, y_values; color)
                         errorbars!(ax, x_values, y_values, x_uncertainty; color, direction=:x)
@@ -3439,7 +3439,7 @@ function kennicuttSchmidtLaw(
 
                         if isnothing(gas_weights)
 
-                            color = colors[sim_idx]
+                            color = ring(colors, sim_idx)
 
                         else
 
@@ -3550,15 +3550,15 @@ function kennicuttSchmidtLaw(
 
             if !isnothing(gas_weights) && !integrated
 
-                markers = [
-                    MarkerElement(; color=colors[1], marker=markers[1])
+                marker_elements = [
+                    MarkerElement(; color=first(colors), marker=first(markers))
                     for _ in eachindex(sim_labels)
                 ]
 
             else
 
-                markers = [
-                    MarkerElement(; color, marker) for (color, marker) in zip(colors, markers)
+                marker_elements = [
+                    MarkerElement(; color=ring(colors, i), marker=ring(markers, i)) for i in 1:ns
                 ]
 
             end
@@ -3576,7 +3576,7 @@ function kennicuttSchmidtLaw(
 
                 Makie.Legend(
                     figure[1, 1],
-                    vcat(markers, pp_legend[1]),
+                    vcat(marker_elements, pp_legend[1]),
                     vcat(sim_labels, pp_legend[2]),
                 )
 
@@ -3586,7 +3586,7 @@ function kennicuttSchmidtLaw(
 
             if !isnothing(sim_labels) && plot_type == :scatter
 
-                Makie.Legend(figure[1, 1], markers, sim_labels)
+                Makie.Legend(figure[1, 1], marker_elements, sim_labels)
 
             end
 
