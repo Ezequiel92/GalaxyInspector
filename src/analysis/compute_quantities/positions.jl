@@ -166,8 +166,10 @@ function computePARotationMatrix(
     masses::Vector{<:Unitful.Mass},
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
+    N = size(positions, 2)
+
     # Check for missing data
-    if size(positions, 2) < 2
+    if N < 2
         (
             logging[] &&
             @warn("computePARotationMatrix: I got less than two valid positions. I cannot compute \
@@ -176,27 +178,47 @@ function computePARotationMatrix(
         return I
     end
 
-    # Center the data (subtract the mean of each row)
-    mean_point = mean(positions, dims=2)
-    centered_pos = positions .- mean_point
+    # Reinterpret positions as Float64 for performance
+    pos_raw = ustrip(positions)
 
-    # Compute the covariance matrix (principal axis operator)
-    R = ustrip.(cov(centered_pos; dims=2))
+    # Compute the mean vector μ = (1/N) Σ X_i
+    μ_vec = SVector{3, Float64}(sum(pos_raw, dims=2)) / N
+
+    # Compute the scatter matrix (X * X')
+    scatter_buf = Matrix{Float64}(undef, 3, 3)
+    mul!(scatter_buf, pos_raw, pos_raw')
+
+    # Combine to get covariance matrix (principal axis operator)
+    R_static = SMatrix{3,3}((scatter_buf .- (N .* (μ_vec * μ_vec'))) ./ (N - 1))
+
+    # Compute the eigenvectors of the covariance matrix
+    E = eigen(R_static).vectors
 
     # Reverse the order of the eigenvectors, making the last column the eigenvector
     # with the largest eigenvalue, which should correspond to the new z axis
-    pa = eigvecs(R)[:, end:-1:1]
+    pa = hcat(E[:, 3], E[:, 2], E[:, 1])
 
     # Compute the total angular momentum
-    L = computeTotalAngularMomentum(positions, velocities, masses; normal=true)
+    L_qty = computeTotalAngularMomentum(positions, velocities, masses; normal=true)
+    L     = SVector{3, Float64}(L_qty)
 
     # 3rd principal axis ≡ new z axis
     pa_z = pa[:, 3]
 
-    # Rotate the principal axis to align the third component with the angular momentum
-    θ = acos(L ⋅ pa_z)
-    n = cross(pa_z, L)
-    aligned_pa = AngleAxis(θ, n...) * pa
+    # Because L and pa_z are both normalized, dot product = cos(theta) directly
+    val = clamp(dot(L, pa_z), -1.0, 1.0)
+    θ = acos(val)
+
+    n_cross = cross(pa_z, L)
+    n_norm = norm(n_cross)
+
+    # We still must normalize n_cross because its length is sin(θ), not 1.
+    if n_norm < 1e-8
+        aligned_pa = pa
+    else
+        n = n_cross / n_norm
+        aligned_pa = AngleAxis(θ, n...) * pa
+    end
 
     # The rotation matrix has the principal axis as rows
     rotation_matrix = aligned_pa'
@@ -207,10 +229,14 @@ function computePARotationMatrix(
         # this as a rotation, the z axis will be flipped. So, in this case we swap the x and y
         # axis to get a right-handed Cartesian reference system (x × y = z) and generate the
         # correct rotation
-        rotation_matrix[[1, 2], :] = rotation_matrix[[2, 1], :]
+        rotation_matrix = SMatrix{3,3}(
+            rotation_matrix[2, 1], rotation_matrix[1, 1], rotation_matrix[3, 1],
+            rotation_matrix[2, 2], rotation_matrix[1, 2], rotation_matrix[3, 2],
+            rotation_matrix[2, 3], rotation_matrix[1, 3], rotation_matrix[3, 3]
+        )
     end
 
-    return Matrix{Float64}(rotation_matrix)
+    return Matrix(rotation_matrix)
 
 end
 

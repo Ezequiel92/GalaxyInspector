@@ -3283,7 +3283,7 @@ function kennicuttSchmidtLaw(
         colors    = current_theme[:palette][:color][]
         markers   = current_theme[:palette][:marker][]
         fit_color = :gray20
-        pp_color  = :darkslateblue
+        pp_color  = :darkgoldenrod1
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
@@ -6403,6 +6403,8 @@ Make a video of how the projected density (xy and xz planes) evolves through tim
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+  - `save_data::Bool=false`: If the density maps data will be saved in JLD2 files.
 """
 function evolutionVideo(
     simulation_paths::Vector{String},
@@ -6418,6 +6420,8 @@ function evolutionVideo(
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     theme::Attributes=Theme(),
+    show_progress::Bool=true,
+    save_data::Bool=false,
 )::Nothing
 
     ################################################################################################
@@ -6629,6 +6633,7 @@ function evolutionVideo(
             desc="Analyzing and plotting the data... ",
             color=:blue,
             barglyphs=BarGlyphs("|#  |"),
+            enabled=show_progress,
         )
 
         current_theme = merge(
@@ -6734,7 +6739,9 @@ function evolutionVideo(
 
         end
 
-        rm(temp_folder; recursive=true)
+        if !save_data
+            rm(temp_folder; recursive=true)
+        end
 
     end
 
@@ -6796,6 +6803,7 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
 
         println(file, "#"^100)
         println(file, "\nSimulation name:  $(basename(simulation_path))")
+        println(file, "Simulation path:  $(simulation_path)")
 
         if cosmological
             println(file, "Cosmological:     Yes")
@@ -6811,15 +6819,10 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
 
         println(file, "#"^100)
         println(file, "\nNumber of snapshots:       $(snapshot_n)")
-        println(file, "Number of group catalogs:  $(groupcat_n)")
+        println(file, "Number of group catalogs:  $(groupcat_n)\n")
+        println(file, "#"^100)
 
-        if isfile(cpu_txt_path)
-            cpu_txt_data = readCpuFile(cpu_txt_path, ["total"])["total"]
-            run_time     = cpu_txt_data[end, 5]
-            println(file, "Run time:                  $(format_seconds(run_time))\n")
-        else
-            println(file, "Run time:                  Missing $(cpu_txt_path) file!\n")
-        end
+        println(file)
 
         ############################################################################################
         # Print the time ranges
@@ -6845,6 +6848,14 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
                 println(file, "Scale factor:   $(min_a) - $(max_a)")
                 println(file, "Redshift:       $(max_z) - $(min_z)")
 
+            end
+
+            if isfile(cpu_txt_path)
+                cpu_txt_data = readCpuFile(cpu_txt_path, ["total"])["total"]
+                run_time     = cpu_txt_data[end, 5]
+                println(file, "Run time:       $(format_seconds(run_time))")
+            else
+                println(file, "Run time:       Missing cpu.txt file!")
             end
 
             println(file)
@@ -7466,31 +7477,10 @@ function snapshotReport(
         file = open(joinpath(mkpath(output_path), "report_for_$(filename).txt"), "w")
 
         println(file, "#"^100)
-        println(file, "\nSimulation name:     $(basename(simulation_path))\n")
-        println(file, "Physical time:       $(physical_time) Gyr")
+        println(file, "\nSimulation name:     $(basename(simulation_path))")
 
-        if cosmological
-            # For cosmological simulations print the scale factor and the redshift
-            scale_factor = round(snapshot_row[:scale_factors], digits=3)
-            redshift     = round(snapshot_row[:redshifts], digits=3)
-
-            println(file, "Scale factor:        $(scale_factor)")
-            println(file, "Redshift:            $(redshift)\n")
-            println(file, "Cosmological:        Yes")
-        else
-            println(file)
-            println(file, "Cosmological:        No")
-        end
-
-        if !PHYSICAL_UNITS && cosmological
-            println(file, "Lenght units:        Comoving\n")
-        else
-            println(file, "Lenght units:        Physical\n")
-        end
-
-        println(file, "#"^100)
-        println(file, "\nSnapshot number:     $(slice) (of $(snapshot_length))")
-        println(file, "Snapshot path:       $(snapshot_path)\n")
+        println(file, "Snapshot path:       $(snapshot_path)")
+        println(file, "Snapshot number:     $(slice) (of $(snapshot_length))\n")
 
         if isSubfindActive(groupcat_path)
 
@@ -7498,12 +7488,34 @@ function snapshotReport(
             gc_data        = readGroupCatalog(groupcat_path, snapshot_path, Dict(:group => ["G_Nsubs"]))
             n_subfinds     = gc_data[:group]["G_Nsubs"][1]
 
-            println(file, "Subfind number:      $(slice) (of $(groupcat_length))")
-            println(file, "Subfind path:        $(groupcat_path)\n")
+            println(file, "Subfind path:        $(groupcat_path)")
+            println(file, "Subfind number:      $(slice) (of $(groupcat_length))\n")
 
             println(file, "Number of halos:     $(n_groups_total)")
             println(file, "Number of subhalos:  $(n_subfinds) (in the main halo)\n")
 
+        end
+
+        println(file, "#"^100)
+
+        if cosmological
+            # For cosmological simulations print the scale factor and the redshift
+            scale_factor = round(snapshot_row[:scale_factors], digits=3)
+            redshift     = round(snapshot_row[:redshifts], digits=3)
+            println(file, "Cosmological:        Yes")
+            println(file, "Scale factor:        $(scale_factor)")
+            println(file, "Redshift:            $(redshift)")
+        else
+            println(file)
+            println(file, "Cosmological:        No")
+        end
+
+        println(file, "Physical time:       $(physical_time) Gyr")
+
+        if !PHYSICAL_UNITS && cosmological
+            println(file, "Lenght units:        Comoving\n")
+        else
+            println(file, "Lenght units:        Physical\n")
         end
 
         ######################################
@@ -7517,6 +7529,7 @@ function snapshotReport(
             iMs = sum(data_dict[:stellar]["MASS"][insitu_idx]; init=0.0u"Msun")
             tMs = sum(data_dict[:stellar]["MASS"]; init=0.0u"Msun")
             insitu_fraction = round(uconvert.(Unitful.NoUnits, (iMs / tMs) * 100); sigdigits=2)
+
 
             println(file, "#"^100)
 
@@ -7700,6 +7713,7 @@ Write a text file with information about a the results of applying `da_function`
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `show_progress::Bool=true`: If a progress bar will be shown.
 """
 function quantityReport(
     simulation_paths::Vector{String},
@@ -7711,9 +7725,12 @@ function quantityReport(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    show_progress::Bool=true,
 )::Nothing
 
     for simulation_path in simulation_paths
+
+        simulation_name = basename(simulation_path)
 
         ############################################################################################
         # Load the relevant values and check for missing files
@@ -7761,7 +7778,7 @@ function quantityReport(
         # Create the output file
         file = open(
             joinpath(mkpath(output_path),
-            "quantity_report_for_$(basename(simulation_path)).txt"),
+            "quantity_report_for_$(simulation_name).txt"),
             "w",
         )
 
@@ -7774,7 +7791,7 @@ function quantityReport(
         ############################################################################################
 
         println(file, "#"^100)
-        println(file, "\nSimulation name:  $(basename(simulation_path))")
+        println(file, "\nSimulation name:  $(simulation_name)")
 
         println(file, "\nNumber of snapshots:       $(snapshot_n)")
         println(file, "Number of group catalogs:  $(groupcat_n)\n")
@@ -7800,10 +7817,20 @@ function quantityReport(
 
         iterator = zip(snapshot_paths, global_indices, snapshot_numbers)
 
+        prog_bar = Progress(
+            length(iterator),
+            dt=0.5,
+            desc="Writing the quantity report for simulation $(simulation_name)... ",
+            color=:blue,
+            barglyphs=BarGlyphs("|#  |"),
+            enabled=show_progress,
+        )
+
         for (snapshot_path, global_index, snapshot_number) in iterator
 
             if ismissing(snapshot_path)
                 println(file, "Snapshot: snap_$(lpad(snapshot_number, 3, '0')).hdf5 is missing!\n")
+                next!(prog_bar)
                 continue
             else
                 println(file, "Snapshot: $(snapshot_path)\n")
@@ -7822,6 +7849,7 @@ function quantityReport(
 
             if isnothing(quantity_values)
                 println(file, "\tThe data analysis function returned `nothing`!\n")
+                next!(prog_bar)
                 continue
             end
 
@@ -7860,6 +7888,8 @@ function quantityReport(
             end
 
             println(file)
+
+            next!(prog_bar)
 
         end
 

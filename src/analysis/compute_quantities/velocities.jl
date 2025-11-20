@@ -336,12 +336,33 @@ function computeTotalAngularMomentum(
         return [0.0, 0.0, 1.0]
     end
 
-    iterator = zip(masses, eachcol(positions), eachcol(velocities))
+    unit_L = unit(eltype(masses)) * unit(eltype(positions)) * unit(eltype(velocities))
 
-    # Compute the total angular momentum
-    L = mapreduce(((m, r, v),) -> m .* cross(r, v), +, iterator)
+    Lx = 0.0 * unit_L
+    Ly = 0.0 * unit_L
+    Lz = 0.0 * unit_L
 
-    return normal ? normalize!(ustrip.(L)) : L
+    # Unroll the cross product manually: L = m * (r × v)
+    # Lx = m * (ry * vz - rz * vy)
+    # Ly = m * (rz * vx - rx * vz)
+    # Lz = m * (rx * vy - ry * vx)
+    @inbounds @simd for i in eachindex(masses)
+        m = masses[i]
+
+        rx = positions[1, i]
+        ry = positions[2, i]
+        rz = positions[3, i]
+
+        vx = velocities[1, i]
+        vy = velocities[2, i]
+        vz = velocities[3, i]
+
+        Lx += m * (ry * vz - rz * vy)
+        Ly += m * (rz * vx - rx * vz)
+        Lz += m * (rx * vy - ry * vx)
+    end
+
+    return normal ? normalize!(ustrip.([Lx, Ly, Lz])) : [Lx, Ly, Lz]
 
 end
 
