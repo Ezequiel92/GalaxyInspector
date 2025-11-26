@@ -6502,6 +6502,14 @@ function evolutionVideo(
 
             for projection_plane in projection_planes
 
+                if save_data
+
+                    jld2_file = joinpath(temp_folder, "$(quantity)_$(projection_plane).jld2")
+
+                    isfile(jld2_file) && continue
+
+                end
+
                 plotSnapshot(
                     [simulation_path],
                     request,
