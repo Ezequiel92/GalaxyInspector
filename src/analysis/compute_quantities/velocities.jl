@@ -442,7 +442,8 @@ function computeSpinParameter(
     )
 
     # Find the cells/particles within `R`
-    idx = map(x -> x <= R, computeDistance(positions))
+    distances = colwise(Euclidean(), positions, zeros(eltype(positions), size(positions, 1)))
+    idx = map(x -> x <= R, distances)
 
     # Compute the total mass within `R`
     M = sum(masses[idx]; init=0.0u"Msun")
@@ -806,7 +807,8 @@ function computeVcirc(
     end
 
     # Compute the radial distance to each cell/particle
-    rs = computeDistance(data_dict[type]["POS "])
+    positions = data_dict[type]["POS "]
+    rs = colwise(Euclidean(), positions, zeros(eltype(positions), size(positions, 1)))
 
     snap_types = snapshotTypes(data_dict)
 
@@ -815,11 +817,19 @@ function computeVcirc(
     filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
     # Concatenate the distances and masses of all the cells and particles in the system
-    distances = vcat([computeDistance(data_dict[st]["POS "]) for st in snap_types]...)
-    masses    = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+    distances = Vector{eltype(positions)}()
+    masses    = Vector{typeof(1.0u"Msun")}()
+    for st in snap_types
+        pos_data  = data_dict[st]["POS "]
+        mass_data = data_dict[st]["MASS"]
+
+        dists = colwise(Euclidean(), pos_data, zeros(eltype(pos_data), size(pos_data, 1)))
+
+        append!(distances, dists)
+        append!(masses, mass_data)
+    end
 
     return computeVcirc(distances, masses, rs)
-
 
 end
 

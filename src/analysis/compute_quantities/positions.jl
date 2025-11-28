@@ -7,51 +7,6 @@
 #################
 
 """
-    computeDistance(
-        positions::Matrix{<:Number};
-        <keyword arguments>
-    )::Vector{<:Number}
-
-Compute the distance of a group of cells/particles to a `center`.
-
-# Arguments
-
-  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `center::Union{Vector{<:Number},Nothing}=nothing`: Origin used to compute the distances. If set to `nothing`, 0 is used.
-
-# Returns
-
-  - The distance of every point to `center`.
-"""
-function computeDistance(
-    positions::Matrix{<:Number};
-    center::Union{Vector{<:Number},Nothing}=nothing,
-)::Vector{<:Number}
-
-    if isempty(positions)
-        (
-            logging[] &&
-            @warn("computeDistance: `positions` is empty, so I will return an empty vector")
-        )
-        return positions
-    end
-
-    if center === nothing
-        return [norm(col) for col in eachcol(positions)]
-    end
-
-    (
-        length(center) == size(positions, 1) ||
-        throw(ArgumentError("computeDistance: `center` must have as many elements as `positions` \
-        has rows, but I got $(length(center)) elements for `center` and $(size(positions, 1)) rows \
-        for `positions`"))
-    )
-
-    return [norm(col .- center) for col in eachcol(positions)]
-
-end
-
-"""
     computeCenterOfMass(
         positions::Matrix{<:Unitful.Length},
         masses::Vector{<:Unitful.Mass},
@@ -532,7 +487,7 @@ function computeXYDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful
         return Unitful.Length[]
     end
 
-    return computeDistance(positions[1:2, :])
+    return colwise(Euclidean(), positions[1:2, :], zeros(eltype(positions), 2))
 
 end
 
@@ -579,7 +534,7 @@ function computeRadialDistance(data_dict::Dict, component::Symbol)::Vector{<:Uni
         return Unitful.Length[]
     end
 
-    return computeDistance(positions)
+    return colwise(Euclidean(), positions, zeros(eltype(positions), size(positions, 1)))
 
 end
 
