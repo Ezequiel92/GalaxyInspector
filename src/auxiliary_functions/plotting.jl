@@ -2098,10 +2098,10 @@ function plotParams(quantity::Symbol)::PlotParams
         # See computeVirialAccretion() and computeDiscAccretion() in ./src/analysis/compute_quantities/masses.jl
         plot_params = PlotParams(;
             request  = Dict(
-                :gas         => ["ID  ", "POS "],
-                :stellar     => ["ID  ", "POS "],
-                :black_hole  => ["ID  ", "POS "],
-                :dark_matter => ["ID  ", "POS "],
+                :gas         => ["ID  ", "POS ", "MASS"],
+                :stellar     => ["ID  ", "POS ", "MASS"],
+                :black_hole  => ["ID  ", "POS ", "MASS"],
+                :dark_matter => ["ID  ", "POS ", "MASS"],
                 :group       => ["G_R_Crit200", "G_M_Crit200", "G_Nsubs", "G_Pos"],
                 :subhalo     => ["S_Pos"],
                 :tracer      => ["PAID", "TRID", "POS "],

@@ -774,9 +774,9 @@ function computeProfile(
 
     # Compute the distances of the cells/particles to the center of the grid
     if flat
-        distances = computeDistance(positions[1:2, :]; center=grid.center[1:2])
+        distances = colwise(Euclidean(), positions[1:2, :], grid.center[1:2])
     else
-        distances = computeDistance(positions; center=grid.center)
+        distances = colwise(Euclidean(), positions, grid.center)
     end
 
     # Compute the histogram of `quantity`
@@ -861,9 +861,9 @@ function computeBandProfile(
 
     # Compute the distances of the cells/particles to the center of the grid
     if flat
-        distances = computeDistance(positions[1:2, :]; center=grid.center[1:2])
+        distances = colwise(Euclidean(), positions[1:2, :], grid.center[1:2])
     else
-        distances = computeDistance(positions; center=grid.center)
+        distances = colwise(Euclidean(), positions, grid.center)
     end
 
     # Compute the histogram of `quantity`

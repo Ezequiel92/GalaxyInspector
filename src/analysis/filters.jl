@@ -271,7 +271,7 @@ function filterBySphere(
         positions = data_dict[component]["POS "]
 
         if !isempty(positions)
-            distances = computeDistance(positions; center)
+            distances = colwise(Euclidean(), positions, center)
             filter_dict[component] = map(x -> min_r < x <= max_r, distances)
         end
 
@@ -324,7 +324,7 @@ function filterByCylinder(
         positions = data_dict[component]["POS "]
 
         if !isempty(positions)
-            distances = computeDistance(positions; center)
+            distances = colwise(Euclidean(), positions, center)
             heights = abs.(positions[3, :])
             filter_dict[component] = map(r -> r <= max_r, distances) ∩ map(z -> z <= max_z, heights)
         end

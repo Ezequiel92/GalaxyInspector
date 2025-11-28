@@ -415,8 +415,8 @@ function plotSnapshot(
 
             if plot_function isa typeof(hist!) && x_flag
                 # For histograms, if the scale is not linear, recompute the bin edges accordingly
-                n_bins = haskey(pf_kwarg, :bins) ? pf_kwarg.bins : 10
-                bins = scaledBins(axis_data[1], n_bins; scaling=x_scale_func)
+                n_bins   = haskey(pf_kwarg, :bins) ? pf_kwarg.bins : 10
+                bins     = scaledBins(axis_data[1], n_bins; scaling=x_scale_func)
                 pf_kwarg = merge(pf_kwarg, (; bins))
             end
 

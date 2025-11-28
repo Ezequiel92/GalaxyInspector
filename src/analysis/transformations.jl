@@ -18,6 +18,8 @@ Translate a system of points, moving `origin` to [0, 0, 0].
 """
 function translatePoints!(points::Matrix{<:Number}, origin::Vector{<:Number})::Nothing
 
+    isempty(points) && return nothing
+
     all(iszero, origin) && return nothing
 
     Threads.@threads for i in axes(points, 2)
@@ -57,13 +59,14 @@ function translateData!(
 
         data = data_dict[component]
 
-        if haskey(data, "POS ") && !isempty(data["POS "])
-            translatePoints!(data["POS "], origin)
-        end
+        (
+            !(haskey(data, "POS ") && haskey(data, "VEL ")) &&
+            throw(ArgumentError("translateData!: The position and/or velocity blocks are missing \
+            for component $(component) in $(data_dict[:snap_data].path)"))
+        )
 
-        if haskey(data, "VEL ") && !isempty(data["VEL "])
-            translatePoints!(data["VEL "], vcm)
-        end
+        translatePoints!(data["POS "], origin)
+        translatePoints!(data["VEL "], vcm)
 
     end
 
@@ -121,19 +124,23 @@ function rotateData!(
     rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}},
 )::Nothing
 
-    if rotation_matrix === I
-        return nothing
-    end
+    rotation_matrix === I && return nothing
 
     for component in snapshotTypes(data_dict)
 
         data = data_dict[component]
 
-        if haskey(data, "POS ") && !isempty(data["POS "])
+        (
+            !(haskey(data, "POS ") && haskey(data, "VEL ")) &&
+            throw(ArgumentError("rotateData!: The position and/or velocity blocks are missing \
+            for component $(component) in $(data_dict[:snap_data].path)"))
+        )
+
+        if !isempty(data["POS "])
             data["POS "] = rotation_matrix * data["POS "]
         end
 
-        if haskey(data, "VEL ") && !isempty(data["VEL "])
+        if !isempty(data["VEL "])
             data["VEL "] = rotation_matrix * data["VEL "]
         end
 

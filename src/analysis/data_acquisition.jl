@@ -540,8 +540,8 @@ function readGoupCatBlocks(
 
                 (
                     logging[] &&
-                    @warn("readGoupCatBlocks: The group catalog type \
-                    :$(component) in $(file_path) is missing")
+                    @warn("readGoupCatBlocks: The group catalog type :$(component) in $(file_path) \
+                    is missing")
                 )
 
                 # Return an empty array for every missing block
@@ -701,8 +701,8 @@ function readSnapBlocks(
 
                 (
                     logging[] &&
-                    @warn("readSnapBlocks: The cell/particle type \
-                    :$(component) in $(file_path) is missing")
+                    @warn("readSnapBlocks: The cell/particle type :$(component) in $(file_path) is \
+                    missing")
                 )
 
                 for block in blocks
@@ -1634,10 +1634,10 @@ function findRealStars(path::String)::Vector{Bool}
         )
 
         time_of_birth = h5open(path, "r") do snapshot
-            if !haskey(snapshot, PARTICLE_CODE_NAME[:stellar])
-                Float64[]
-            else
+            if haskey(snapshot, PARTICLE_CODE_NAME[:stellar])
                 read(snapshot[PARTICLE_CODE_NAME[:stellar]], QUANTITIES["GAGE"].hdf5_name)
+            else
+                Float64[]
             end
         end
 
