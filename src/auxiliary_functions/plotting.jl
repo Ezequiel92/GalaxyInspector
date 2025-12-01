@@ -2095,16 +2095,16 @@ function plotParams(quantity::Symbol)::PlotParams
 
     elseif quantity == :mass_accretion
 
-        # See computeVirialAccretion() and computeDiscAccretion() in ./src/analysis/compute_quantities/masses.jl
+        # See computeVirialAccretion() and computeDiskAccretion() in ./src/analysis/compute_quantities/masses.jl
         plot_params = PlotParams(;
             request  = Dict(
                 :gas         => ["ID  ", "POS ", "MASS"],
                 :stellar     => ["ID  ", "POS ", "MASS"],
                 :black_hole  => ["ID  ", "POS ", "MASS"],
                 :dark_matter => ["ID  ", "POS ", "MASS"],
-                :group       => ["G_R_Crit200", "G_M_Crit200", "G_Nsubs", "G_Pos"],
+                :group       => ["G_R_Crit200", "G_Nsubs", "G_Pos"],
                 :subhalo     => ["S_Pos"],
-                :tracer      => ["PAID", "TRID", "POS "],
+                :tracer      => ["PAID", "TRID"],
             ),
             var_name = L"\dot{M}_\text{acc}",
             unit     = u"Msun * yr^-1",

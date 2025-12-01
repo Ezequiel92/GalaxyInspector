@@ -1378,7 +1378,7 @@ end
         <keyword arguments>
     )::NTuple{3,Unitful.Mass}
 
-Compute the inflow, outflow, and net gain of mass for a given halo virial radius (``R_{200}``), between two snapshots.
+Compute the inflow, outflow, or net gain of mass for a given halo virial radius (``R_{200}``), between two snapshots.
 
 # Arguments
 
@@ -1461,28 +1461,43 @@ function computeVirialAccretion(
 end
 
 """
-    computeDiscAccretion(
+    computeDiskAccretion(
         present_dd::Dict,
         past_dd::Dict;
         <keyword arguments>
     )::NTuple{3,Unitful.Mass}
 
-Compute the inflow, outflow, and net gain of mass for a given cylinder, between two snapshots.
+Compute the inflow, outflow, or net gain of mass for a given galactic disk, between two snapshots.
+
+!!! note
+
+    It is assumed that the center of the disk is the origin.
 
 # Arguments
 
   - `present_dd::Dict`: Data dictionary, for the present snapshot (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
-      + `cell/particle type` => ["POS ", "ID  "]
+      + `cell/particle type` => ["POS ", "ID  ", "MASS"]
+      + `:group`             => ["G_R_Crit200", "G_Nsubs", "G_Pos"]
+      + `:subhalo`           => ["S_Pos"]
       + `:tracer`            => ["PAID", "TRID"]
   - `past_dd::Dict`: Data dictionary, for the past snapshot (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
-      + `cell/particle type` => ["POS ", "ID  "]
+      + `cell/particle type` => ["POS ", "ID  ", "MASS"]
+      + `:group`             => ["G_R_Crit200", "G_Nsubs", "G_Pos"]
+      + `:subhalo`           => ["S_Pos"]
       + `:tracer`            => ["PAID", "TRID"]
-  - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
-  - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the cylinder.
+  - `component::Symbol`: Component to compute the accreted mass for. The options are:
+
+      + `:dark_matter` -> Dark matter.
+      + `:black_hole`  -> Black holes.
+      + `:gas`         -> Gas.
+      + `:stellar`     -> Stars.
+  - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
+  - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
+  - `tracers::Bool=false`: Whether to compute the accretion using tracer particles (true) or the actual component particles (false).
 
 # Returns
 
@@ -1492,33 +1507,46 @@ Compute the inflow, outflow, and net gain of mass for a given cylinder, between 
       + The inflow mass.
       + The outflow mass.
 """
-function computeDiscAccretion(
+function computeDiskAccretion(
     present_dd::Dict,
-    past_dd::Dict;
+    past_dd::Dict,
+    component::Symbol;
     max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
+    tracers::Bool=false,
 )::NTuple{3,Unitful.Mass}
 
-    # Find the tracers inside the cylinder in the present snapshot
-    present_tracer_ids = tracersWithinDisc(present_dd; max_r, max_z)
+    (
+        component ∈ [:dark_matter, :black_hole, :gas, :stellar] ||
+        throw(ArgumentError("computeDiskAccretion: `component` can only be :dark_matter, \
+        :black_hole, :gas or :stellar, but I got :$(component)"))
+    )
 
-    # Find the tracers inside the cylinder in the past snapshot
-    past_tracer_ids = tracersWithinDisc(past_dd; max_r, max_z)
+    # Find the IDs of the component particles inside R200 in the present snapshot
+    present_ids = idWithinDisk(present_dd, component, max_r, max_z, :zero)
 
-    # Find the tracers that are inside the cylinder now, but were outside in the past
-    inflow_ids = setdiff(present_tracer_ids, past_tracer_ids)
+    # Find the IDs of the component particles inside R200 in the past snapshot
+    past_ids = idWithinDisk(past_dd, component, max_r, max_z, :zero)
 
-    # Find the tracers that were inside the cylinder in the past, but are now outside
-    outflow_ids = setdiff(past_tracer_ids, present_tracer_ids)
+    # Filter out IDs of component particles that are new to the present snapshot
+    # i.e., filter out created particles
+    filterExistIDs!(past_dd, component, present_ids)
 
-    # Compute the mass of each tracer in physical units
-    tracer_mass = TRACER_MASS * internalUnits("MASS", present_dd[:snap_data].path)
+    # Filter out IDs of component particles that are unique to the past snapshot
+    # i.e., filter out destroyed particles
+    filterExistIDs!(present_dd, component, past_ids)
+
+    # Find the IDs of the component particles that are inside R200 now, but were outside R200 in the past
+    inflow_ids = setdiff(present_ids, past_ids)
+
+    # Find the IDs of the component particles that were inside R200 in the past, but are now outside R200
+    outflow_ids = setdiff(past_ids, present_ids)
 
     # Compute the inflow mass
-    inflow_mass = length(inflow_ids) * tracer_mass
+    inflow_mass = idMass!(present_dd, component, inflow_ids; tracers)
 
     # Compute the outflow mass
-    outflow_mass = length(outflow_ids) * tracer_mass
+    outflow_mass = idMass!(present_dd, component, outflow_ids; tracers)
 
     # Compute the net mass
     net_mass_increase = inflow_mass - outflow_mass

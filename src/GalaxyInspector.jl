@@ -106,6 +106,7 @@ export timeSeries
 export statisticsEvolution
 export gasEvolution
 export virialAccretionEvolution
+export diskAccretionEvolution
 export discAccretionEvolution
 export rotationCurve
 export radialProfile

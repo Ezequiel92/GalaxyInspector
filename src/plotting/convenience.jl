@@ -5199,29 +5199,56 @@ function virialAccretionEvolution(
     x_plot_params = plotParams(:physical_time)
     y_plot_params = plotParams(:mass_accretion)
 
-    if flux_direction == :net_mass
+    if component == :stellar
 
-        yaxis_var_name = L"\dot{M}_\text{net}^\text{R200}"
+        c_label = "\\star"
 
-    elseif flux_direction == :inflow_mass
+    elseif component == :dark_matter
 
-        yaxis_var_name = L"\dot{M}_\text{in}^\text{R200}"
+        c_label = "\\text{DM}"
 
-    elseif flux_direction == :outflow_mass
+    elseif component == :black_hole
 
-        yaxis_var_name = L"\dot{M}_\text{out}^\text{R200}"
+        c_label = "\\text{BH}"
+
+    elseif component == :gas
+
+        c_label = "\\text{gas}"
+
+    elseif component == :all
+
+        c_label = "\\text{total}"
 
     else
 
-        throw(ArgumentError("discAccretionEvolution: `flux_direction` can only be :net_mass, \
+        throw(ArgumentError("virialAccretionEvolution: `component` can only be :gas, :stellar, \
+        :dark_matter, :black_hole or :all, but I got :$(component)"))
+
+    end
+
+    if flux_direction == :net_mass
+
+        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{, net}}^\text{R200}"
+
+    elseif flux_direction == :inflow_mass
+
+        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{, inflow}}^\text{R200}"
+
+    elseif flux_direction == :outflow_mass
+
+        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{, outflow}}^\text{R200}"
+
+    else
+
+        throw(ArgumentError("virialAccretionEvolution: `flux_direction` can only be :net_mass, \
         :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
 
     end
 
     if tracers
-        filename="virial_$(flux_direction)_$(component)_accretion_with_tracers"
+        filename="$(component)_$(flux_direction)_virial_accretion_with_tracers"
     else
-        filename="virial_$(flux_direction)_$(component)_accretion"
+        filename="$(component)_$(flux_direction)_virial_accretion"
     end
 
     plotTimeSeries(
@@ -5261,7 +5288,7 @@ function virialAccretionEvolution(
 end
 
 """
-    discAccretionEvolution(
+    diskAccretionEvolution(
         simulation_paths::Vector{String};
         <keyword arguments>
     )::Nothing
@@ -5280,18 +5307,28 @@ Plot a time series of the accreted mass into a given disc.
   - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles. For options see [`selectTransformation`](@ref).
+  - `component::Symbol=:all`: Component to compute the accreted mass for. The options are:
+
+      + `:dark_matter` -> Dark matter.
+      + `:black_hole`  -> Black holes.
+      + `:gas`         -> Gas.
+      + `:stellar`     -> Stars.
+      + `:all`         -> All the matter.
+  - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="."`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
-function discAccretionEvolution(
+function diskAccretionEvolution(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
     flux_direction::Symbol=:net_mass,
     max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    component::Symbol=:all,
+    tracers::Bool=false,
     smooth::Int=0,
     output_path::String=".",
     sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
@@ -5301,33 +5338,67 @@ function discAccretionEvolution(
     x_plot_params = plotParams(:physical_time)
     y_plot_params = plotParams(:mass_accretion)
 
-    if flux_direction == :net_mass
+    if component == :stellar
 
-        yaxis_var_name = L"\dot{M}_\text{net}^\text{disk}"
+        c_label = "\\star"
 
-    elseif flux_direction == :inflow_mass
+    elseif component == :dark_matter
 
-        yaxis_var_name = L"\dot{M}_\text{in}^\text{disk}"
+        c_label = "\\text{DM}"
 
-    elseif flux_direction == :outflow_mass
+    elseif component == :black_hole
 
-        yaxis_var_name = L"\dot{M}_\text{out}^\text{disk}"
+        c_label = "\\text{BH}"
+
+    elseif component == :gas
+
+        c_label = "\\text{gas}"
+
+    elseif component == :all
+
+        c_label = "\\text{total}"
 
     else
 
-        throw(ArgumentError("discAccretionEvolution: `flux_direction` can only be :net_mass, \
+        throw(ArgumentError("diskAccretionEvolution: `component` can only be :gas, :stellar, \
+        :dark_matter, :black_hole or :all, but I got :$(component)"))
+
+    end
+
+    if flux_direction == :net_mass
+
+        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{, net}}^\text{disk}"
+
+    elseif flux_direction == :inflow_mass
+
+        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{, inflow}}^\text{disk}"
+
+    elseif flux_direction == :outflow_mass
+
+        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{, outflow}}^\text{disk}"
+
+    else
+
+        throw(ArgumentError("diskAccretionEvolution: `flux_direction` can only be :net_mass, \
         :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
 
+    end
+
+    if tracers
+        filename="$(component)_$(flux_direction)_disk_accretion_with_tracers"
+    else
+        filename="$(component)_$(flux_direction)_disk_accretion"
     end
 
     plotTimeSeries(
         simulation_paths,
         [lines!];
         output_path,
-        filename="disc_$(flux_direction)_accretion_with_tracers",
+        filename,
         slice,
-        da_functions=[daDiscAccretion],
-        da_kwargs=[(; flux_direction, max_r, max_z, trans_mode, smooth)],
+        da_functions=[daDiskAccretion],
+        da_args=[(component,)],
+        da_kwargs=[(; flux_direction, max_r, max_z, trans_mode, tracers, smooth)],
         post_processing=ppHorizontalFlags!,
         pp_args=([0.0],),
         pp_kwargs=(; colors=[:gray65], line_styles=[:solid]),

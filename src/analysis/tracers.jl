@@ -304,7 +304,7 @@ function idWithinR200(data_dict::Dict, component::Symbol; halo_idx::Int=1)::Vect
 end
 
 """
-    idWithinDisc(
+    idWithinDisk(
         data_dict::Dict,
         component::Symbol,
         max_r::Unitful.Length,
@@ -326,7 +326,7 @@ Find the IDs the the cell/particles of `component` that are within the given gal
 
   - A vector with the IDs.
 """
-function idWithinDisc(
+function idWithinDisk(
     data_dict::Dict,
     component::Symbol,
     max_r::Unitful.Length,
@@ -336,7 +336,7 @@ function idWithinDisc(
 
     (
         isPositive([max_r, max_z]) ||
-        throw(ArgumentError("idWithinDisc: `max_r` and `max_z` should be larger than 0, \
+        throw(ArgumentError("idWithinDisk: `max_r` and `max_z` should be larger than 0, \
         but I got `max_r` = $(max_r) and `max_z` = $(max_z)"))
     )
 
@@ -348,7 +348,7 @@ function idWithinDisc(
 
     (
         !(haskey(data, "ID  ") && haskey(data, "POS ")) &&
-        throw(ArgumentError("idWithinDisc: The ID and/or position blocks are missing for component \
+        throw(ArgumentError("idWithinDisk: The ID and/or position blocks are missing for component \
         $(component) in $(data_dict[:snap_data].path)"))
     )
 

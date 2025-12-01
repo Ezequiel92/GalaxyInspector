@@ -2831,6 +2831,13 @@ Compute the evolution of the accreted mass into a sphere with the virial radius.
 # Arguments
 
   - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `component::Symbol`: Component to compute the accreted mass for. The options are:
+
+      + `:dark_matter` -> Dark matter.
+      + `:black_hole`  -> Black holes.
+      + `:gas`         -> Gas.
+      + `:stellar`     -> Stars.
+      + `:all`         -> All the matter.
   - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
 
       + `:net_mass`     -> Net accreted mass.
@@ -2849,7 +2856,8 @@ Compute the evolution of the accreted mass into a sphere with the virial radius.
       + A Vector with the accreted mass at each time.
 """
 function daVirialAccretion(
-    sim_data::Simulation;
+    sim_data::Simulation,
+    component::Symbol;
     flux_direction::Symbol=:net,
     halo_idx::Int=1,
     tracers::Bool=false,
@@ -2890,7 +2898,7 @@ function daVirialAccretion(
 
     n_frames = length(iterator) - 1
 
-    Δm = Vector{Unitful.Mass}(undef, n_frames)
+    Δm = Vector{typeof(1.0u"Msun")}(undef, n_frames)
 
     # Initialize the progress bar
     prog_bar = Progress(
@@ -2911,53 +2919,94 @@ function daVirialAccretion(
             sim_data.snapshot_table,
         )
 
-        if tracers
+        if component == :all
 
-            δm, m_in, m_out = computeVirialAccretion(present_dd, past_dd; halo_idx)
+            _, m_in_gas, m_out_gas = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                :gas;
+                halo_idx,
+                tracers=true,
+            )
 
-            if flux_direction == :net_mass
+            _, m_in_stars, m_out_stars = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                :stellar;
+                halo_idx,
+                tracers=false,
+            )
 
-                Δm[slice_index] = δm
+            _, m_in_dm, m_out_dm = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                :dark_matter;
+                halo_idx,
+                tracers=false,
+            )
 
-            elseif flux_direction == :inflow_mass
+            _, m_in_bh, m_out_bh = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                :black_hole;
+                halo_idx,
+                tracers=false,
+            )
 
-                Δm[slice_index] = m_in
+            m_in  = m_in_gas + m_in_stars + m_in_dm + m_in_bh
+            m_out = m_out_gas + m_out_stars + m_out_dm + m_out_bh
+            δm    = m_in - m_out
 
-            elseif flux_direction == :outflow_mass
+        elseif component ∈ [:gas, :stellar, :dark_matter, :black_hole]
 
-                Δm[slice_index] = m_out
-
-            else
-
-                throw(ArgumentError("daVirialAccretion: `flux_direction` can only be :net_mass, \
-                :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
-
-            end
+            δm, m_in, m_out = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                component;
+                halo_idx,
+                tracers,
+            )
 
         else
 
-            if flux_direction != :net_mass
-
-                throw(ArgumentError("daVirialAccretion: If `tracers` is set to false, \
-                `flux_direction` can only be :net_mass, but I got :$(flux_direction)"))
-
-            end
-
-            if isempty(past_dd[:group]["G_M_Crit200"])
-                m_past = 0.0u"Msun"
-            else
-                m_past = past_dd[:group]["G_M_Crit200"][halo_idx]
-            end
-
-            if isempty(present_dd[:group]["G_M_Crit200"])
-                m_present = 0.0u"Msun"
-            else
-                m_present = present_dd[:group]["G_M_Crit200"][halo_idx]
-            end
-
-            Δm[slice_index] = m_present -  m_past
+            throw(ArgumentError("daVirialAccretion: `component` can only be :gas, :stellar, \
+            :dark_matter, :black_hole or :all, but I got :$(component)"))
 
         end
+
+        if flux_direction == :net_mass
+
+            Δm[slice_index] = δm
+
+        elseif flux_direction == :inflow_mass
+
+            Δm[slice_index] = m_in
+
+        elseif flux_direction == :outflow_mass
+
+            Δm[slice_index] = m_out
+
+        else
+
+            throw(ArgumentError("daVirialAccretion: `flux_direction` can only be :net_mass, \
+            :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
+
+        end
+
+                # if isempty(past_dd[:group]["G_M_Crit200"])
+                #     m_past = 0.0u"Msun"
+                # else
+                #     m_past = past_dd[:group]["G_M_Crit200"][halo_idx]
+                # end
+
+                # if isempty(present_dd[:group]["G_M_Crit200"])
+                #     m_present = 0.0u"Msun"
+                # else
+                #     m_present = present_dd[:group]["G_M_Crit200"][halo_idx]
+                # end
+
+                # Δm[slice_index] = m_present -  m_past
+
 
         past_dd = present_dd
 
@@ -2980,19 +3029,23 @@ function daVirialAccretion(
 end
 
 """
-    daDiscAccretion(
+    daDiskAccretion(
         sim_data::Simulation;
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
-Compute the evolution of the accreted mass into a given disc.
-
-!!!note
-    This metthod uses the tracer particles to compute the accreted mass.
+Compute the evolution of the accreted mass into a given galactic disc.
 
 # Arguments
 
   - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `component::Symbol`: Component to compute the accreted mass for. The options are:
+
+      + `:dark_matter` -> Dark matter.
+      + `:black_hole`  -> Black holes.
+      + `:gas`         -> Gas.
+      + `:stellar`     -> Stars.
+      + `:all`         -> All the matter.
   - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
 
       + `:net_mass`     -> Net accreted mass.
@@ -3001,6 +3054,7 @@ Compute the evolution of the accreted mass into a given disc.
   - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
@@ -3011,12 +3065,14 @@ Compute the evolution of the accreted mass into a given disc.
       + A Vector with the physical times.
       + A Vector with the accreted mass at each time.
 """
-function daDiscAccretion(
-    sim_data::Simulation;
-    flux_direction::Symbol=:net_mass,
+function daDiskAccretion(
+    sim_data::Simulation,
+    component::Symbol;
+    flux_direction::Symbol=:net,
     max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    tracers::Bool=false,
     smooth::Int=0,
     show_progress::Bool=true,
 )::NTuple{2,Vector{<:Number}}
@@ -3037,8 +3093,8 @@ function daDiscAccretion(
     # Check that there are at least 2 snapshots left
     (
         length(iterator) >= 2 ||
-        throw(ArgumentError("daDiscAccretion: The given slice, $(sim_data.slice), selected for \
-        less than two snapshots. I need at least two snapshots to compute a time series of gas \
+        throw(ArgumentError("daDiskAccretion: The given slice, $(sim_data.slice), selected for \
+        less than two snapshots. I need at least two snapshots to compute a time series of mass \
         accretion"))
     )
 
@@ -3062,7 +3118,7 @@ function daDiscAccretion(
 
     n_frames = length(iterator) - 1
 
-    Δm = Vector{Unitful.Mass}(undef, n_frames)
+    Δm = Vector{typeof(1.0u"Msun")}(undef, n_frames)
 
     # Initialize the progress bar
     prog_bar = Progress(
@@ -3089,7 +3145,65 @@ function daDiscAccretion(
         # Rotate the data
         rotateData!(present_dd, rotation...)
 
-        δm, m_in, m_out = computeDiscAccretion(present_dd, past_dd; max_r, max_z)
+        if component == :all
+
+            _, m_in_gas, m_out_gas = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                :gas;
+                max_r,
+                max_z,
+                tracers=true,
+            )
+
+            _, m_in_stars, m_out_stars = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                :stellar;
+                max_r,
+                max_z,
+                tracers=false,
+            )
+
+            _, m_in_dm, m_out_dm = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                :dark_matter;
+                max_r,
+                max_z,
+                tracers=false,
+            )
+
+            _, m_in_bh, m_out_bh = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                :black_hole;
+                max_r,
+                max_z,
+                tracers=false,
+            )
+
+            m_in  = m_in_gas + m_in_stars + m_in_dm + m_in_bh
+            m_out = m_out_gas + m_out_stars + m_out_dm + m_out_bh
+            δm    = m_in - m_out
+
+        elseif component ∈ [:gas, :stellar, :dark_matter, :black_hole]
+
+            δm, m_in, m_out = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                component;
+                max_r,
+                max_z,
+                tracers,
+            )
+
+        else
+
+            throw(ArgumentError("daDiskAccretion: `component` can only be :gas, :stellar, \
+            :dark_matter, :black_hole or :all, but I got :$(component)"))
+
+        end
 
         if flux_direction == :net_mass
 
@@ -3105,7 +3219,7 @@ function daDiscAccretion(
 
         else
 
-            throw(ArgumentError("daDiscAccretion: `flux_direction` can only be :net_mass, \
+            throw(ArgumentError("daDiskAccretion: `flux_direction` can only be :net_mass, \
             :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
 
         end
@@ -3366,7 +3480,7 @@ function daClumpingFactorProfile(
     positions = filtered_dd[:gas]["POS "]
 
     # Compute the radial distance of each cell/particle
-    distances = computeDistance(positions[1:2, :]; center=grid.center[1:2])
+    distances = colwise(Euclidean(), positions[1:2, :], grid.center[1:2])
 
     # Find which cells/particles fall within each bin of `grid`
     n_profile = listHistogram1D(distances, number_densities, grid)
