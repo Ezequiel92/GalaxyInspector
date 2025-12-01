@@ -2993,21 +2993,6 @@ function daVirialAccretion(
 
         end
 
-                # if isempty(past_dd[:group]["G_M_Crit200"])
-                #     m_past = 0.0u"Msun"
-                # else
-                #     m_past = past_dd[:group]["G_M_Crit200"][halo_idx]
-                # end
-
-                # if isempty(present_dd[:group]["G_M_Crit200"])
-                #     m_present = 0.0u"Msun"
-                # else
-                #     m_present = present_dd[:group]["G_M_Crit200"][halo_idx]
-                # end
-
-                # Δm[slice_index] = m_present -  m_past
-
-
         past_dd = present_dd
 
         next!(prog_bar)
