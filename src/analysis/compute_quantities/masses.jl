@@ -171,7 +171,7 @@ function computeMassRadius(
     mass_limit = sum(masses) * (percent / 100.0)
 
     # Compute the radial distance of each cell/particle to the origin
-    radial_distances = computeDistance(positions)
+    radial_distances = colwise(Euclidean(), positions, zeros(eltype(positions), size(positions, 1)))
 
     sort_idxs = sortperm(radial_distances)
 
@@ -1385,18 +1385,25 @@ Compute the inflow, outflow, and net gain of mass for a given halo virial radius
   - `present_dd::Dict`: Data dictionary, for the present snapshot (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
-      + `cell/particle type` => ["POS ", "ID  "]
-      + `:group`             => ["G_R_Crit200", "G_M_Crit200", "G_Nsubs", "G_Pos"]
+      + `cell/particle type` => ["POS ", "ID  ", "MASS"]
+      + `:group`             => ["G_R_Crit200", "G_Nsubs", "G_Pos"]
       + `:subhalo`           => ["S_Pos"]
-      + `:tracer`            => ["PAID", "TRID", "POS "]
+      + `:tracer`            => ["PAID", "TRID"]
   - `past_dd::Dict`: Data dictionary, for the past snapshot (see [`makeDataDict`](@ref) for the canonical description).
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
-      + `cell/particle type` => ["POS ", "ID  "]
-      + `:group`             => ["G_R_Crit200", "G_M_Crit200", "G_Nsubs", "G_Pos"]
+      + `cell/particle type` => ["POS ", "ID  ", "MASS"]
+      + `:group`             => ["G_R_Crit200", "G_Nsubs", "G_Pos"]
       + `:subhalo`           => ["S_Pos"]
-      + `:tracer`            => ["PAID", "TRID", "POS "]
+      + `:tracer`            => ["PAID", "TRID"]
+  - `component::Symbol`: Component to compute the accreted mass for. The options are:
+
+      + `:dark_matter` -> Dark matter.
+      + `:black_hole`  -> Black holes.
+      + `:gas`         -> Gas.
+      + `:stellar`     -> Stars.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `tracers::Bool=false`: Whether to compute the accretion using tracer particles (true) or the actual component particles (false).
 
 # Returns
 
@@ -1408,30 +1415,43 @@ Compute the inflow, outflow, and net gain of mass for a given halo virial radius
 """
 function computeVirialAccretion(
     present_dd::Dict,
-    past_dd::Dict;
+    past_dd::Dict,
+    component::Symbol;
     halo_idx::Int=1,
+    tracers::Bool=false,
 )::NTuple{3,Unitful.Mass}
 
-    # Find the tracers inside R200 in the present snapshot
-    present_tracer_ids = tracersWithinR200(present_dd; halo_idx)
+    (
+        component ∈ [:dark_matter, :black_hole, :gas, :stellar] ||
+        throw(ArgumentError("computeVirialAccretion: `component` can only be :dark_matter, \
+        :black_hole, :gas or :stellar, but I got :$(component)"))
+    )
 
-    # Find the tracers inside R200 in the past snapshot
-    past_tracer_ids = tracersWithinR200(past_dd; halo_idx)
+    # Find the IDs of the component particles inside R200 in the present snapshot
+    present_ids = idWithinR200(present_dd, component; halo_idx)
 
-    # Find the tracers that are inside R200 now, but were outside R200 in the past
-    inflow_ids = setdiff(present_tracer_ids, past_tracer_ids)
+    # Find the IDs of the component particles inside R200 in the past snapshot
+    past_ids = idWithinR200(past_dd, component; halo_idx)
 
-    # Find the tracers that were inside R200 in the past, but are now outside R200
-    outflow_ids = setdiff(past_tracer_ids, present_tracer_ids)
+    # Filter out IDs of component particles that are new to the present snapshot
+    # i.e., filter out created particles
+    filterExistIDs!(past_dd, component, present_ids)
 
-    # Compute the mass of each tracer in physical units
-    tracer_mass = TRACER_MASS * internalUnits("MASS", present_dd[:snap_data].path)
+    # Filter out IDs of component particles that are unique to the past snapshot
+    # i.e., filter out destroyed particles
+    filterExistIDs!(present_dd, component, past_ids)
+
+    # Find the IDs of the component particles that are inside R200 now, but were outside R200 in the past
+    inflow_ids = setdiff(present_ids, past_ids)
+
+    # Find the IDs of the component particles that were inside R200 in the past, but are now outside R200
+    outflow_ids = setdiff(past_ids, present_ids)
 
     # Compute the inflow mass
-    inflow_mass = length(inflow_ids) * tracer_mass
+    inflow_mass = idMass!(present_dd, component, inflow_ids; tracers)
 
     # Compute the outflow mass
-    outflow_mass = length(outflow_ids) * tracer_mass
+    outflow_mass = idMass!(present_dd, component, outflow_ids; tracers)
 
     # Compute the net mass
     net_mass_increase = inflow_mass - outflow_mass

@@ -18,7 +18,7 @@ Find the tracer IDs given a list of parent IDs.
 
 # Returns
 
-  - A vector with the IDs of the tracers.
+  - A vector with the IDs of the tracers. There is no guarantee length or order for this vector.
 """
 function parentToTracerID(data_dict::Dict, target_ids::Vector{<:Unsigned})::Vector{UInt}
 
@@ -26,11 +26,19 @@ function parentToTracerID(data_dict::Dict, target_ids::Vector{<:Unsigned})::Vect
     parent_ids = data_dict[:tracer]["PAID"]
     tracer_ids = data_dict[:tracer]["TRID"]
 
-    # Find the indices of the target IDs in the parent ID list, ignoring invalid targets
-    idxs = filter!(!isnothing, indexin(target_ids, parent_ids))
+    # Convert targets to a Set for O(1) membership testing
+    target_set = Set(target_ids)
 
-    return tracer_ids[idxs]
+    found_tracers = Vector{UInt}()
 
+    # Find the indices of the target IDs in the parent ID list
+    for (i, tracer_id) in pairs(tracer_ids)
+        if parent_ids[i] in target_set
+            push!(found_tracers, tracer_id)
+        end
+    end
+
+    return found_tracers
 end
 
 """
@@ -45,7 +53,7 @@ Find the parent IDs given a list of tracer IDs.
 
 # Returns
 
-  - A vector with the IDs of the parents.
+  - A vector with the IDs of the parents. There is no guarantee length or order for this vector.
 """
 function tracerToParentID(data_dict::Dict, target_ids::Vector{<:Unsigned})::Vector{UInt}
 
@@ -53,22 +61,31 @@ function tracerToParentID(data_dict::Dict, target_ids::Vector{<:Unsigned})::Vect
     parent_ids = data_dict[:tracer]["PAID"]
     tracer_ids = data_dict[:tracer]["TRID"]
 
-    # Find the indices of the target IDs in the tracer ID list, ignoring invalid targets
-    idxs = filter!(!isnothing, indexin(target_ids, tracer_ids))
+    # Convert targets to a Set for O(1) membership testing
+    target_set = Set(target_ids)
 
-    return parent_ids[idxs]
+    found_parents = Vector{UInt}()
+
+    # Find the indices of the target IDs in the tracer ID list
+    for (i, parent_id) in pairs(parent_ids)
+        if tracer_ids[i] in target_set
+            push!(found_parents, parent_id)
+        end
+    end
+
+    return unique!(found_parents)
 
 end
 
 """
-    parentIDToIndex(data_dict::Dict, target_ids::Vector{<:Unsigned})::Dict{Symbol,Vector{Int}}
+    idToIndex(data_dict::Dict, target_ids::Vector{<:Unsigned})::Dict{Symbol,Vector{Int}}
 
 Find the indices of the cells/particles given their IDs.
 
 # Arguments
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `target_ids::Vector{<:Unsigned}`: List of parent IDs.
+  - `target_ids::Vector{<:Unsigned}`: List of IDs.
 
 # Returns
 
@@ -79,21 +96,40 @@ Find the indices of the cells/particles given their IDs.
       + `cell/particle type::Symbol` -> indices::Int
       + ...
 """
-function parentIDToIndex(data_dict::Dict, target_ids::Vector{<:Unsigned})::Dict{Symbol,Vector{Int}}
+function idToIndex(data_dict::Dict, target_ids::Vector{<:Unsigned})::Dict{Symbol,Vector{Int}}
 
-    index_dict = Dict(component => Int[] for component in snapshotTypes(data_dict))
+    index_dict = Dict{Symbol,Vector{Int}}()
+
+    # Convert targets to a Set for O(1) membership testing
+    target_set = Set(target_ids)
 
     for component in snapshotTypes(data_dict)
 
         data = data_dict[component]
 
-        if haskey(data, "ID  ") && !isempty(data["ID  "])
+        (
+            !haskey(data, "ID  ") &&
+            throw(ArgumentError("idToIndex: The ID block is missing for component $(component) in \
+            $(data_dict[:snap_data].path)"))
+        )
 
-            # Read the IDs of the cells/particles
-            parent_ids = data["ID  "]
+        # Read the IDs of the cells/particles
+        ids = data["ID  "]
 
-            # Find the indices of the target IDs in the cell/particle ID list, ignoring invalid targets
-            index_dict[component] = filter!(!isnothing, indexin(target_ids, parent_ids))
+        if !isempty(ids)
+
+            idxs = Vector{Int}()
+
+            # Find the indices of the target IDs in the cell/particle ID list
+            for (i, id) in pairs(ids)
+                if id in target_set
+                    push!(idxs, i)
+                end
+            end
+
+        else
+
+            index_dict[component] = Int[]
 
         end
 
@@ -134,138 +170,315 @@ function tracersToParentMass(
     parent_ids = tracerToParentID(data_dict, target_ids)
 
     # Find the index and cell/particle type of each parent
-    index_dict = parentIDToIndex(data_dict, parent_ids)
+    index_dict = idToIndex(data_dict, parent_ids)
 
     return Dict(component => data_dict[component]["MASS"][idx] for (component, idxs) in index_dict)
 
 end
 
-##################
-# Tracer tracking
-##################
-
 """
-    findTracers(data_dict::Dict; <keyword arguments>)::Vector{UInt}
+    parentToTracerMass(
+        data_dict::Dict,
+        target_ids::Vector{<:Unsigned},
+    )::Unitful.Mass
 
-Find the tracers whose parents are allowed by `filter_function`.
+Find the mass of tracers given a list of parent IDs, ignoring parents without tracers
 
 # Arguments
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `filter_function::Function=filterNothing`: Filter function. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `target_ids::Vector{<:Unsigned}`: List of parent IDs.
 
 # Returns
 
-  - A vector with the IDs of the tracers.
+  - The total mass of tracers.
 """
-function findTracers(data_dict::Dict; filter_function::Function=filterNothing)::Vector{UInt}
+function parentToTracerMass(
+    data_dict::Dict,
+    target_ids::Vector{<:Unsigned},
+)::Unitful.Mass
 
-    # Find the indices of the cells and particles that are allowed by `filter_function`
-    selected_indices = filter_function(data_dict)
+    # Read the full list of parent IDs
+    parent_ids = data_dict[:tracer]["PAID"]
 
-    parent_ids = UInt[]
+    # Convert targets to a Set for O(1) membership testing
+    target_set = Set(target_ids)
 
-    for component in snapshotTypes(data_dict)
+    tracer_count = count(in(target_set), parent_ids)
 
-        data = data_dict[component]
+    iszero(tracer_count) && return 0.0u"Msun"
 
-        if haskey(data, "ID  ") && !isempty(data["ID  "])
+    # Compute the mass of each tracer in physical units
+    tracer_mass = TRACER_MASS * internalUnits("MASS", data_dict[:snap_data].path)
 
-            # Read the IDs of the cells and particles that are allowed by `filter_function`
-            append!(parent_ids, data["ID  "][selected_indices[component]])
-
-        end
-
-    end
-
-    !isempty(parent_ids) || return UInt[]
-
-    # Find the IDs of the tracers whose parent are allowed by `filter_function`,
-    # ignoring cells and particles with no tracers
-    return parentToTracerID(data_dict, parent_ids)
+    return tracer_count * tracer_mass
 
 end
 
-"""
-    tracersWithinR200(data_dict::Dict; <keyword arguments>)::Vector{UInt}
+##############
+# ID tracking
+##############
 
-Find the tracers whose parents are within the virial radius (``R_{200}``) of a given halo.
+"""
+    idWithinR200(data_dict::Dict, component::Symbol; <keyword arguments>)::Vector{UInt}
+
+Find the IDs the the cell/particles of `component` that are within the virial radius of halo `halo_idx`.
 
 !!! note
 
-    The center of the target halo is its potential minimum in the simulation reference frame. This will not work if `data_dict` has been translated before calling this function.
+    This function assumes that no translation of the coordinate system has been done. It uses as the center of the halo the position given by the group catalog files, which are unaffected by coordinate transformation of the data.
+
 
 # Arguments
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
 
 # Returns
 
-  - A vector with the IDs of the tracers.
+  - A vector with the IDs.
 """
-function tracersWithinR200(data_dict::Dict; halo_idx::Int=1)::Vector{UInt}
+function idWithinR200(data_dict::Dict, component::Symbol; halo_idx::Int=1)::Vector{UInt}
 
     if isempty(data_dict[:group]["G_R_Crit200"])
 
         (
             logging[] &&
-            @warn("tracersWithinR200: There is missing group data in $(data_dict[:gc_data].path), \
-            so every tracer will be filtered out")
+            @warn("idWithinR200: There is missing group data in $(data_dict[:gc_data].path), \
+            so I will return an empty ID list")
         )
 
-        filter_function = filterAll
-
-    else
-
-        # Read the virial radius
-        r200 = data_dict[:group]["G_R_Crit200"][halo_idx]
-
-        if iszero(r200)
-
-            (
-                logging[] &&
-                @warn("tracersWithinR200: The virial radius of halo index $(halo_idx) is zero in \
-                $(data_dict[:gc_data].path), so every tracer will be filtered out")
-            )
-
-            return UInt[]
-
-        end
-
-        # Construct a filter function that only allows cells and particles within the virial radius
-        filter_function = dd -> filterBySphere(dd, 0.0u"kpc", r200, halo_idx, 0)
+        return UInt[]
 
     end
 
-    return findTracers(data_dict; filter_function)
+    # Read the virial radius
+    r200 = data_dict[:group]["G_R_Crit200"][halo_idx]
+
+    if iszero(r200)
+
+        (
+            logging[] &&
+            @warn("idWithinR200: The virial radius of halo index $(halo_idx) is zero in \
+            $(data_dict[:gc_data].path), so I will return an empty ID list")
+        )
+
+        return UInt[]
+
+    end
+
+    # Compute the center of the halo
+    center = computeCenter(data_dict, halo_idx, 0)
+
+    # Read the data of the given component
+    data = data_dict[component]
+
+    (
+        !(haskey(data, "ID  ") && haskey(data, "POS ")) &&
+        throw(ArgumentError("idWithinR200: The ID and/or position blocks are missing for component \
+        $(component) in $(data_dict[:snap_data].path)"))
+    )
+
+    # Read the positions of the cells and particles
+    positions = data["POS "]
+
+    # Read the IDs of the cells and particles
+    ids = data["ID  "]
+
+    if !isempty(positions) && !isempty(ids)
+
+        # Compute the distances of the cells and particles to the center of the halo
+        distances = colwise(Euclidean(), positions, center)
+
+        # Find the indices of the cells and particles within `r200`
+        idxs = map(x -> x <= r200, distances)
+
+        # Read the IDs of the cells and particles within `r200`
+        return ids[idxs]
+
+    end
+
+    return UInt[]
 
 end
 
 """
-    tracersWithinDisc(data_dict::Dict; <keyword arguments>)::Vector{UInt}
+    idWithinDisc(
+        data_dict::Dict,
+        component::Symbol,
+        max_r::Unitful.Length,
+        max_z::Unitful.Length,
+        origin...,
+    )::Vector{UInt}
 
-Find the tracers whose parents are within a given cylinder centered at the origin.
+Find the IDs the the cell/particles of `component` that are within the given galactic disk.
 
 # Arguments
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `max_r::Unitful.Length=DISK_R`: Radius of the cylinder.
-  - `max_z::Unitful.Length=DISK_HEIGHT`: Half height of the cylinder.
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+  - `max_r::Unitful.Length`: Radius of the disk.
+  - `max_z::Unitful.Length`: Half height of the disk.
+  - `origin...`: Center of the disk. It can be any number and type of argument compatible with the second to last arguments of a [`computeCenter`](@ref) method.
 
 # Returns
 
-  - A vector with the IDs of the tracers.
+  - A vector with the IDs.
 """
-function tracersWithinDisc(
-    data_dict::Dict;
-    max_r::Unitful.Length=DISK_R,
-    max_z::Unitful.Length=DISK_HEIGHT,
+function idWithinDisc(
+    data_dict::Dict,
+    component::Symbol,
+    max_r::Unitful.Length,
+    max_z::Unitful.Length,
+    origin...,
 )::Vector{UInt}
 
-    # Construct a filter function that only allows cells and particles within the given cylinder
-    filter_function = dd -> filterByCylinder(dd, max_r, max_z, :zero)
+    (
+        isPositive([max_r, max_z]) ||
+        throw(ArgumentError("idWithinDisc: `max_r` and `max_z` should be larger than 0, \
+        but I got `max_r` = $(max_r) and `max_z` = $(max_z)"))
+    )
 
-    return findTracers(data_dict; filter_function)
+    # Compute the position of the center of the disk
+    center = computeCenter(data_dict, origin...)
+
+    # Read the data of the given component
+    data = data_dict[component]
+
+    (
+        !(haskey(data, "ID  ") && haskey(data, "POS ")) &&
+        throw(ArgumentError("idWithinDisc: The ID and/or position blocks are missing for component \
+        $(component) in $(data_dict[:snap_data].path)"))
+    )
+
+    # Read the positions of the cells and particles
+    positions = data["POS "]
+
+    # Read the IDs of the cells and particles
+    ids = data["ID  "]
+
+    if !isempty(positions) && !isempty(ids)
+
+        # Compute the radial distances of the cells and particles to the center of the disk
+        distances = colwise(Euclidean(), positions[1:2, :], center[1:2])
+
+        # Compute the vertical distances of the cells and particles to the plane of the disk
+        heights = abs.(positions[3, :])
+
+        # Find the indices of the cells and particles within the disk
+        idxs = map(r -> r <= max_r, distances) ∩ map(z -> z <= max_z, heights)
+
+        # Read the IDs of the cells and particles within the disk
+        return ids[idxs]
+
+    end
+
+    return UInt[]
+
+end
+
+"""
+    filterExistIDs!(target_ids::Vector{UInt}, component::Symbol, data_dict::Dict)::Nothing
+
+Filter out IDs from `target_ids` that do not exist for `component`.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+  - `target_ids::Vector{UInt}`: IDs to be filtered.
+
+# Returns
+
+  - A vector with only the IDs of `target_ids` that exist for `component`.
+"""
+function filterExistIDs!(data_dict::Dict, component::Symbol, target_ids::Vector{UInt})::Nothing
+
+    data = data_dict[component]
+
+    (
+        !haskey(data, "ID  ") &&
+        throw(ArgumentError("filterExistIDs!: The ID block is missing for component $(component) \
+        in $(data_dict[:snap_data].path)"))
+    )
+
+    data_ids = data["ID  "]
+
+    if !isempty(data_ids)
+
+        valid_ids = Set{UInt}(data_ids)
+
+        filter!(id -> id in valid_ids, target_ids)
+
+    else
+
+        empty!(target_ids)
+
+    end
+
+    return nothing
+
+end
+
+"""
+    idMass!(
+        data_dict::Dict,
+        component::Symbol,
+        target_ids::Vector{UInt};
+        <keyword arguments>
+    )::Unitful.Mass
+
+Compute the total mass of the cells/particles with IDs given by `target_ids`.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+  - `target_ids::Vector{UInt}`: Target IDs.
+  - `tracers::Bool=false`: If the mass will be computed using tracers or the proper mass of each cell/particle.
+
+# Returns
+
+  - The total mass.
+"""
+function idMass!(
+    data_dict::Dict,
+    component::Symbol,
+    target_ids::Vector{UInt};
+    tracers::Bool=false,
+)::Unitful.Mass
+
+    isempty(target_ids) && return 0.0u"Msun"
+
+    tracers && return parentToTracerMass(data_dict, target_ids)
+
+    data = data_dict[component]
+
+    (
+        !(haskey(data, "ID  ") && haskey(data, "MASS")) &&
+        throw(ArgumentError("idMass!: The ID and/or mass blocks are missing for component \
+        $(component) in $(data_dict[:snap_data].path)"))
+    )
+
+    # Read the IDs and masses of the cells/particles
+    ids = data["ID  "]
+    masses = data["MASS"]
+
+    isempty(ids) && return 0.0u"Msun"
+    isempty(masses) && return 0.0u"Msun"
+
+    # Convert targets to a Set for O(1) membership testing
+    target_set = Set(target_ids)
+
+    total_mass = 0.0u"Msun"
+
+    @inbounds @simd for i in eachindex(ids)
+        if ids[i] in target_set
+            total_mass += masses[i]
+        end
+    end
+
+    return total_mass
 
 end

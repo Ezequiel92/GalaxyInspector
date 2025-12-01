@@ -5170,6 +5170,13 @@ Plot a time series of the gas mass flux into a sphere with the virial radius.
       + `:inflow_mass`  -> Inflow mass only.
       + `:outflow_mass` -> Outflow mass only.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `component::Symbol=:all`: Component to compute the accreted mass for. The options are:
+
+      + `:dark_matter` -> Dark matter.
+      + `:black_hole`  -> Black holes.
+      + `:gas`         -> Gas.
+      + `:stellar`     -> Stars.
+      + `:all`         -> All the matter.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="."`: Path to the output folder.
@@ -5181,24 +5188,13 @@ function virialAccretionEvolution(
     slice::IndexType=(:),
     flux_direction::Symbol=:net_mass,
     halo_idx::Int=1,
+    component::Symbol=:all,
     tracers::Bool=false,
     smooth::Int=0,
     output_path::String=".",
     sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
     theme::Attributes=Theme(),
 )::Nothing
-
-    if !tracers && flux_direction != :net_mass
-
-        (
-            logging[] &&
-            @warn("virialAccretionEvolution: If `tracers` is set to false, `flux_direction` can \
-            only be :net_mass, but I got :$(flux_direction). It will default to :net_mass.")
-        )
-
-        flux_direction = :net_mass
-
-    end
 
     x_plot_params = plotParams(:physical_time)
     y_plot_params = plotParams(:mass_accretion)
@@ -5223,9 +5219,9 @@ function virialAccretionEvolution(
     end
 
     if tracers
-        filename="virial_$(flux_direction)_accretion_with_tracers"
+        filename="virial_$(flux_direction)_$(component)_accretion_with_tracers"
     else
-        filename="virial_net_mass_change_evolution"
+        filename="virial_$(flux_direction)_$(component)_accretion"
     end
 
     plotTimeSeries(
@@ -5235,6 +5231,7 @@ function virialAccretionEvolution(
         filename,
         slice,
         da_functions=[daVirialAccretion],
+        da_args=[(component,)],
         da_kwargs=[(; flux_direction, halo_idx, tracers, smooth)],
         post_processing=ppHorizontalFlags!,
         pp_args=([0.0],),

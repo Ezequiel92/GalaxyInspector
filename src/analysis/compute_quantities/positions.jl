@@ -941,7 +941,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
         )
 
         # Get the birth index of the stars born in this snapshot
-        past_idxs = parentIDToIndex(past_data_dict, ids)[:stellar]
+        past_idxs = idToIndex(past_data_dict, ids)[:stellar]
 
         (
             length(ids) == length(past_idxs) ||
