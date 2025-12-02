@@ -1101,6 +1101,15 @@ function computePARotationMatrix(
             $(components)")
         )
 
+        if any(isempty, [positions, velocities, masses])
+            (
+                logging[] &&
+                @info("computePARotationMatrix: The positions, masses or velocities are empty. \
+                I will return the identity matrix")
+            )
+            return I
+        end
+
     elseif component ∈ snapshotTypes(data_dict)
 
         positions  = data_dict[component]["POS "]
@@ -1111,7 +1120,7 @@ function computePARotationMatrix(
             (
                 logging[] &&
                 @info("computePARotationMatrix: The positions, masses or velocities for component \
-                :$(component) are missing. I will return the identity matrix")
+                :$(component) are empty. I will return the identity matrix")
             )
             return I
         end
