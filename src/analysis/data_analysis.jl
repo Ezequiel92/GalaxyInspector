@@ -2926,7 +2926,7 @@ function daVirialAccretion(
                 past_dd,
                 :gas;
                 halo_idx,
-                tracers=true,
+                tracers=false,
             )
 
             _, m_in_stars, m_out_stars = computeVirialAccretion(

@@ -387,3 +387,66 @@ const RATIO_SPLITS = Dict(
     for qty_01 in QTY_GLOBAL_LIST
     for qty_2 in QTY_GLOBAL_LIST
 )
+
+###########################
+# Group catalog quantities
+###########################
+
+"""
+    parseHaloQuantity(s::Symbol)::Tuple{Symbol,Int}
+
+Takes a symbol for an halo (FoF group) quantity in the format `:quantity_haloidx` and splits it into
+the text part as a Symbol and the number part as an Int.
+
+# Arguments
+
+  - `s::Symbol`: Target halo and halo quantity, e.g., `:halo_mass_12`. The index of the target halo starts at 1 and the halo quantity has to be one of the keys of [`HALO_KEYS`](@ref).
+
+# Returns
+
+  - A Tuple with two elements:
+
+      + A Symbol for the target quantity.
+      + The index of the target halo.
+
+# Examples
+
+```julia-repl
+julia> parseHaloQuantity(:halo_mass_12)
+(:halo_mass, 12)
+
+julia> parseHaloQuantity(:halo_M200_1)
+(:halo_M200, 1)
+```
+"""
+function parseHaloQuantity(s::Symbol)::Tuple{Symbol,Int}
+
+    s_str = string(s)
+
+    m = match(r"^(.*)_(\d+)$", s_str)
+
+    (
+        isnothing(m) &&
+        throw(ArgumentError("Input symbol must be in the format :quantity_haloidx. Got $s"))
+    )
+
+    # Extract captured groups
+    prefix_str = m.captures[1]
+    number_str = m.captures[2]
+
+    # Convert prefix string back to Symbol
+    prefix_symbol = Symbol(prefix_str)
+
+    # Convert number string to Int
+    suffix_number = parse(Int, number_str)
+
+    return (prefix_symbol, suffix_number)
+
+end
+
+const HALO_KEYS = Dict(
+    :halo_mass       => "G_Mass",
+    :halo_n_subhalos => "G_Nsubs",
+    :halo_M200       => "G_M_Crit200",
+    :halo_R200       => "G_R_Crit200",
+)

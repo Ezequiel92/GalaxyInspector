@@ -487,6 +487,16 @@ function integrateQty(
                 integrated_qty = integrated_qty_01 / integrated_qty_02
             end
 
+        ###########################
+        # Group catalog quantities
+        ###########################
+
+        elseif !isnothing(match(r"^(.*)_(\d+)$", string(quantity)))
+
+            magnitude, halo_idx = parseHaloQuantity(quantity)
+
+            integrated_qty = data_dict[:group][HALO_KEYS[magnitude]][halo_idx]
+
         #################
         # SFR quantities
         #################

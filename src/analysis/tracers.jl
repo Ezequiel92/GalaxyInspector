@@ -198,6 +198,8 @@ function parentToTracerMass(
     target_ids::Vector{<:Unsigned},
 )::Unitful.Mass
 
+    @show "Tracers path"
+
     # Read the full list of parent IDs
     parent_ids = data_dict[:tracer]["PAID"]
 
@@ -206,10 +208,16 @@ function parentToTracerMass(
 
     tracer_count = count(in(target_set), parent_ids)
 
+    @show tracer_count
+
     iszero(tracer_count) && return 0.0u"Msun"
 
     # Compute the mass of each tracer in physical units
     tracer_mass = TRACER_MASS * internalUnits("MASS", data_dict[:snap_data].path)
+
+    @show tracer_mass
+    @show tracer_count * tracer_mass
+    println()
 
     return tracer_count * tracer_mass
 
@@ -449,9 +457,13 @@ function idMass!(
     tracers::Bool=false,
 )::Unitful.Mass
 
+    @show tracers
+
     isempty(target_ids) && return 0.0u"Msun"
 
     tracers && return parentToTracerMass(data_dict, target_ids)
+
+    @show "No tracers path"
 
     data = data_dict[component]
 
@@ -478,6 +490,9 @@ function idMass!(
             total_mass += masses[i]
         end
     end
+
+    @show total_mass
+    println()
 
     return total_mass
 

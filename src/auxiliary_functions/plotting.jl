@@ -663,13 +663,7 @@ Return the plotting parameters for a given `magnitude` of `component`.
 
 # Returns
 
-  - A [`PlotParams`](@ref) object, with entries:
-
-      + `request::Dict{Symbol,Vector{String}}` -> Data request for [`readSnapshot`](@ref).
-      + `var_name::AbstractString`             -> Name of the quantity for the plot axis.
-      + `exp_factor::Int`                      -> Numerical exponent to scale down the axis.
-      + `unit::Unitful.Units`                  -> Target unit for the axis.
-      + `axis_label::AbstractString`           -> Label for the axis.
+  - A [`PlotParams`](@ref) object.
 """
 function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
@@ -1518,13 +1512,7 @@ Return the plotting parameters for a given base code quantity of our SF model.
 
 # Returns
 
-  - A [`PlotParams`](@ref) object, with entries:
-
-      + `request::Dict{Symbol,Vector{String}}` -> Data request for [`readSnapshot`](@ref).
-      + `var_name::AbstractString`             -> Name of the quantity for the plot axis.
-      + `exp_factor::Int`                      -> Numerical exponent to scale down the axis.
-      + `unit::Unitful.Units`                  -> Target unit for the axis.
-      + `axis_label::AbstractString`           -> Label for the axis.
+  - A [`PlotParams`](@ref) object.
 """
 function sfmQtyPlotParams(quantity::Symbol)::PlotParams
 
@@ -1678,13 +1666,7 @@ Return the plotting parameters for a given derived code quantity of our SF model
 
 # Returns
 
-  - A [`PlotParams`](@ref) object, with entries:
-
-      + `request::Dict{Symbol,Vector{String}}` -> Data request for [`readSnapshot`](@ref).
-      + `var_name::AbstractString`             -> Name of the quantity for the plot axis.
-      + `exp_factor::Int`                      -> Numerical exponent to scale down the axis.
-      + `unit::Unitful.Units`                  -> Target unit for the axis.
-      + `axis_label::AbstractString`           -> Label for the axis.
+  - A [`PlotParams`](@ref) object.
 """
 function derivedSFMQtyPlotParams(quantity::Symbol)::PlotParams
 
@@ -1799,6 +1781,66 @@ function derivedSFMQtyPlotParams(quantity::Symbol)::PlotParams
 end
 
 """
+    haloQtyPlotParams(quantity::Symbol)::PlotParams
+
+Return the plotting parameters for a given halo magnitude.
+
+# Arguments
+
+  - `quantity::Symbol`: Target halo and halo quantity, e.g., `:halo_mass_12`. The index of the target halo starts at 1 and the halo quantity has to be one of the keys of [`HALO_KEYS`](@ref).
+
+# Returns
+
+  - A [`PlotParams`](@ref) object.
+"""
+function haloQtyPlotParams(quantity::Symbol)::PlotParams
+
+    magnitude, _ = parseHaloQuantity(quantity)
+
+    if magnitude == :halo_mass
+
+        # Halo mass
+        var_name   = L"M_\text{halo}"
+        unit       = u"Msun"
+        exp_factor = 10
+
+    elseif magnitude == :halo_n_subhalos
+
+        # Number of subhalos
+        var_name   = L"N_\text{subhalos}"
+        unit       = Unitful.NoUnits
+        exp_factor = 0
+
+    elseif magnitude == :halo_M200
+
+        # Virial mass
+        var_name   = L"M_{200}"
+        unit       = u"Msun"
+        exp_factor = 10
+
+    elseif magnitude == :halo_R200
+
+        # Virial radius
+        var_name   = L"R_{200}"
+        unit       = u"kpc"
+        exp_factor = 0
+
+    else
+
+        throw(ArgumentError("haloQtyPlotParams: I don't recognize the magnitude :$(magnitude), \
+        the options are the keys of `HALO_KEYS` (see `./src/constants/quantities.jl`)"))
+
+    end
+
+    cp_type = :group
+
+    request = Dict(cp_type => [HALO_KEYS[magnitude]])
+
+    return PlotParams(; request, var_name, exp_factor, unit, cp_type)
+
+end
+
+"""
     plotParams(quantity::Symbol)::PlotParams
 
 Return the plotting parameters for a given `quantity`.
@@ -1809,14 +1851,7 @@ Return the plotting parameters for a given `quantity`.
 
 # Returns
 
-  - A [`PlotParams`](@ref) object, with entries:
-
-      + `request::Dict{Symbol,Vector{String}}` -> Data request for [`readSnapshot`](@ref).
-      + `var_name::AbstractString`             -> Name of the quantity for the plot axis.
-      + `exp_factor::Int`                      -> Numerical exponent to scale down the axis.
-      + `unit::Unitful.Units`                  -> Target unit for the axis.
-      + `axis_label::AbstractString`           -> Label for the axis.
-      + `cp_type::Union{Symbol,Nothing}`       ->  Cell/particle type corresponding to the quantity.
+  - A [`PlotParams`](@ref) object.
 """
 function plotParams(quantity::Symbol)::PlotParams
 
@@ -1863,6 +1898,14 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = mergeRequests(request_01, request_02),
             var_name = LaTeXString(var_name_01 * L"\, / \," * var_name_02),
         )
+
+    ###########################
+    # Group catalog quantities
+    ###########################
+
+    elseif !isnothing(match(r"^(.*)_(\d+)$", string(quantity)))
+
+        plot_params = haloQtyPlotParams(quantity)
 
     #################
     # Gas quantities
