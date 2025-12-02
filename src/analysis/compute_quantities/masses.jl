@@ -1456,13 +1456,6 @@ function computeVirialAccretion(
     # Compute the net mass
     net_mass_increase = inflow_mass - outflow_mass
 
-    @show net_mass_increase
-    @show inflow_mass
-    @show outflow_mass
-
-    println()
-    println()
-
     return net_mass_increase, inflow_mass, outflow_mass
 
 end

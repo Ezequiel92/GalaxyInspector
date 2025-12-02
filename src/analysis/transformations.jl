@@ -65,8 +65,8 @@ function translateData!(
             for component $(component) in $(data_dict[:snap_data].path)"))
         )
 
-        translatePoints!(data["POS "], origin)
-        translatePoints!(data["VEL "], vcm)
+        isempty(data["POS "]) || translatePoints!(data["POS "], origin)
+        isempty(data["VEL "]) || translatePoints!(data["VEL "], vcm)
 
     end
 
