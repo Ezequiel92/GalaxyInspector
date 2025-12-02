@@ -444,6 +444,9 @@ function parseHaloQuantity(s::Symbol)::Tuple{Symbol,Int}
 
 end
 
+"""
+Dictionary mapping each halo quantity with its [`QUANTITIES`](@ref) key.
+"""
 const HALO_KEYS = Dict(
     :halo_mass       => "G_Mass",
     :halo_n_subhalos => "G_Nsubs",
