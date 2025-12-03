@@ -360,16 +360,28 @@ function idWithinDisk(
 
     if !isempty(positions) && !isempty(ids)
 
-        # Compute the radial distances of the cells and particles to the center of the disk
-        distances = colwise(Euclidean(), positions[1:2, :], center[1:2])
+        # Use the square of the maximum distance to avoid sqrt() computation
+        max_r_sq = max_r^2
 
-        # Compute the vertical distances of the cells and particles to the plane of the disk
-        heights = abs.(positions[3, :])
+        idxs = BitVector(undef, size(positions, 2))
 
-        # Find the indices of the cells and particles within the disk
-        idxs = map(r -> r <= max_r, distances) ∩ map(z -> z <= max_z, heights)
+        Threads.@threads for i in axes(positions, 2)
 
-        # Read the IDs of the cells and particles within the disk
+            if abs(positions[3, i]) <= max_z
+
+                dx = positions[1, i] - center[1]
+                dy = positions[2, i] - center[2]
+
+                idxs[i] = (dx^2 + dy^2 <= max_r_sq)
+
+            else
+
+                idxs[i] = false
+
+            end
+
+        end
+
         return ids[idxs]
 
     end

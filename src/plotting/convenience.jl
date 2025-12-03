@@ -5340,23 +5340,23 @@ function diskAccretionEvolution(
 
     if component == :stellar
 
-        c_label = "\\star"
+        c_label = "\\star, \\,\\,"
 
     elseif component == :dark_matter
 
-        c_label = "\\text{DM}"
+        c_label = "\\text{DM, }"
 
     elseif component == :black_hole
 
-        c_label = "\\text{BH}"
+        c_label = "\\text{BH, }"
 
     elseif component == :gas
 
-        c_label = "\\text{gas}"
+        c_label = "\\text{gas, }"
 
     elseif component == :all
 
-        c_label = "\\text{total}"
+        c_label = ""
 
     else
 
@@ -5367,15 +5367,15 @@ function diskAccretionEvolution(
 
     if flux_direction == :net_mass
 
-        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{, net}}^\text{disk}"
+        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{net}}^\text{disk}"
 
     elseif flux_direction == :inflow_mass
 
-        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{, inflow}}^\text{disk}"
+        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{inflow}}^\text{disk}"
 
     elseif flux_direction == :outflow_mass
 
-        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{, outflow}}^\text{disk}"
+        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{outflow}}^\text{disk}"
 
     else
 
