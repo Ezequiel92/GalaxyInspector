@@ -2845,6 +2845,7 @@ Compute the evolution of the accreted mass into a sphere with the virial radius.
       + `:outflow_mass` -> Outflow mass only.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeVirialAccretion`](@ref) is left as is.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
@@ -2861,6 +2862,7 @@ function daVirialAccretion(
     flux_direction::Symbol=:net,
     halo_idx::Int=1,
     tracers::Bool=false,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
     smooth::Int=0,
     show_progress::Bool=true,
 )::NTuple{2,Vector{<:Number}}
@@ -3005,10 +3007,28 @@ function daVirialAccretion(
     # Compure the time axis
     Δt = diff(t)
 
+    x_axis = t[2:end]
+    y_values = Δm ./ Δt
+
+    delete_idxs = isnothing(y_log) ? Int64[] : map(iszero, y_values)
+
+    deleteat!(x_axis, delete_idxs)
+    deleteat!(y_values, delete_idxs)
+
+    if any(isempty, [x_axis, y_values])
+
+        logging[] && @warn("daVirialAccretion: The results of `computeVirialAccretion` are empty")
+
+        return Float64[], Float64[]
+
+    end
+
+    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
+
     if iszero(smooth)
-        return t[2:end], Δm ./ Δt
+        return x_axis, y_axis
     else
-        return smoothWindow(t[2:end], Δm ./ Δt, smooth)
+        return smoothWindow(x_axis, y_axis, smooth)
     end
 
 end
@@ -3040,6 +3060,7 @@ Compute the evolution of the accreted mass into a given galactic disc.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeDiskAccretion`](@ref) is left as is.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
@@ -3058,6 +3079,7 @@ function daDiskAccretion(
     max_z::Unitful.Length=5.0u"kpc",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     tracers::Bool=false,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
     smooth::Int=0,
     show_progress::Bool=true,
 )::NTuple{2,Vector{<:Number}}
@@ -3221,10 +3243,28 @@ function daDiskAccretion(
     # Compure the time axis
     Δt = diff(t)
 
+    x_axis = t[2:end]
+    y_values = Δm ./ Δt
+
+    delete_idxs = isnothing(y_log) ? Int64[] : map(iszero, y_values)
+
+    deleteat!(x_axis, delete_idxs)
+    deleteat!(y_values, delete_idxs)
+
+    if any(isempty, [x_axis, y_values])
+
+        logging[] && @warn("computeDiskAccretion: The results of `computeVirialAccretion` are empty")
+
+        return Float64[], Float64[]
+
+    end
+
+    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
+
     if iszero(smooth)
-        return t[2:end], Δm ./ Δt
+        return x_axis, y_axis
     else
-        return smoothWindow(t[2:end], Δm ./ Δt, smooth)
+        return smoothWindow(x_axis, y_axis, smooth)
     end
 
 end

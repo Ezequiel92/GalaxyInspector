@@ -5158,7 +5158,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot a time series of the gas mass flux into a sphere with the virial radius.
+Plot a time series of the integrated mass flux into a sphere with the virial radius.
 
 # Arguments
 
@@ -5178,6 +5178,7 @@ Plot a time series of the gas mass flux into a sphere with the virial radius.
       + `:stellar`     -> Stars.
       + `:all`         -> All the matter.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
+  - `ylog::Bool=false`: If true, sets the y axis to the ``\\log_{10}`` of the mass flux.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="."`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
@@ -5190,6 +5191,7 @@ function virialAccretionEvolution(
     halo_idx::Int=1,
     component::Symbol=:all,
     tracers::Bool=false,
+    ylog::Bool=false,
     smooth::Int=0,
     output_path::String=".",
     sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
@@ -5245,6 +5247,30 @@ function virialAccretionEvolution(
 
     end
 
+    if ylog
+
+        y_log        = y_plot_params.unit
+        y_unit       = Unitful.NoUnits
+        y_exp_factor = 0
+        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
+
+        post_processing = getNothing
+        pp_args         = ()
+        pp_kwargs       = (;)
+
+    else
+
+        y_log        = nothing
+        y_unit       = y_plot_params.unit
+        y_exp_factor = y_plot_params.exp_factor
+        yaxis_label  = y_plot_params.axis_label
+
+        post_processing = ppHorizontalFlags!
+        pp_args         = ([0.0],)
+        pp_kwargs       = (; colors=[:gray65], line_styles=[:solid])
+
+    end
+
     if tracers
         filename="$(component)_$(flux_direction)_virial_accretion_with_tracers"
     else
@@ -5259,16 +5285,16 @@ function virialAccretionEvolution(
         slice,
         da_functions=[daVirialAccretion],
         da_args=[(component,)],
-        da_kwargs=[(; flux_direction, halo_idx, tracers, smooth)],
-        post_processing=ppHorizontalFlags!,
-        pp_args=([0.0],),
-        pp_kwargs=(; colors=[:gray65], line_styles=[:solid]),
+        da_kwargs=[(; flux_direction, halo_idx, tracers, y_log, smooth)],
+        post_processing,
+        pp_args,
+        pp_kwargs,
         x_unit=x_plot_params.unit,
-        y_unit=y_plot_params.unit,
+        y_unit,
         x_exp_factor=x_plot_params.exp_factor,
-        y_exp_factor=y_plot_params.exp_factor,
+        y_exp_factor,
         xaxis_label=x_plot_params.axis_label,
-        yaxis_label=y_plot_params.axis_label,
+        yaxis_label,
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name,
         theme=merge(
@@ -5293,7 +5319,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot a time series of the accreted mass into a given disc.
+Plot a time series of the integrated mass flux into a given disk.
 
 # Arguments
 
@@ -5315,6 +5341,7 @@ Plot a time series of the accreted mass into a given disc.
       + `:stellar`     -> Stars.
       + `:all`         -> All the matter.
   - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
+  - `ylog::Bool=false`: If true, sets the y axis to the ``\\log_{10}`` of the mass flux.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="."`: Path to the output folder.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
@@ -5329,6 +5356,7 @@ function diskAccretionEvolution(
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     component::Symbol=:all,
     tracers::Bool=false,
+    ylog::Bool=false,
     smooth::Int=0,
     output_path::String=".",
     sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
@@ -5384,6 +5412,30 @@ function diskAccretionEvolution(
 
     end
 
+    if ylog
+
+        y_log        = y_plot_params.unit
+        y_unit       = Unitful.NoUnits
+        y_exp_factor = 0
+        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
+
+        post_processing = getNothing
+        pp_args         = ()
+        pp_kwargs       = (;)
+
+    else
+
+        y_log        = nothing
+        y_unit       = y_plot_params.unit
+        y_exp_factor = y_plot_params.exp_factor
+        yaxis_label  = y_plot_params.axis_label
+
+        post_processing = ppHorizontalFlags!
+        pp_args         = ([0.0],)
+        pp_kwargs       = (; colors=[:gray65], line_styles=[:solid])
+
+    end
+
     if tracers
         filename="$(component)_$(flux_direction)_disk_accretion_with_tracers"
     else
@@ -5398,16 +5450,16 @@ function diskAccretionEvolution(
         slice,
         da_functions=[daDiskAccretion],
         da_args=[(component,)],
-        da_kwargs=[(; flux_direction, max_r, max_z, trans_mode, tracers, smooth)],
-        post_processing=ppHorizontalFlags!,
-        pp_args=([0.0],),
-        pp_kwargs=(; colors=[:gray65], line_styles=[:solid]),
+        da_kwargs=[(; flux_direction, max_r, max_z, trans_mode, tracers, y_log, smooth)],
+        post_processing,
+        pp_args,
+        pp_kwargs,
         x_unit=x_plot_params.unit,
-        y_unit=y_plot_params.unit,
+        y_unit,
         x_exp_factor=x_plot_params.exp_factor,
-        y_exp_factor=y_plot_params.exp_factor,
+        y_exp_factor,
         xaxis_label=x_plot_params.axis_label,
-        yaxis_label=y_plot_params.axis_label,
+        yaxis_label,
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name,
         theme=merge(
