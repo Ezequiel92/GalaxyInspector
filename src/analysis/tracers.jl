@@ -116,9 +116,9 @@ function idToIndex(data_dict::Dict, target_ids::Vector{<:Unsigned})::Dict{Symbol
         # Read the IDs of the cells/particles
         ids = data["ID  "]
 
-        if !isempty(ids)
+        idxs = Int[]
 
-            idxs = Vector{Int}()
+        if !isempty(ids)
 
             # Find the indices of the target IDs in the cell/particle ID list
             for (i, id) in pairs(ids)
@@ -127,11 +127,9 @@ function idToIndex(data_dict::Dict, target_ids::Vector{<:Unsigned})::Dict{Symbol
                 end
             end
 
-        else
-
-            index_dict[component] = Int[]
-
         end
+
+        index_dict[component] = idxs
 
     end
 
