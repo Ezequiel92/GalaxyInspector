@@ -449,14 +449,10 @@ function histogram2D(
     # Compute half of the bin size
     h_bin_width = grid.bin_width * 0.5
 
-    x_edges = collect(
-        (grid.x_bins[1] - h_bin_width):grid.bin_width:(grid.x_bins[end] + h_bin_width)
-    )
-    y_edges = collect(
-        (grid.y_bins[1] - h_bin_width):grid.bin_width:(grid.y_bins[end] + h_bin_width)
-    )
+    x_edges = range(grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width, grid.n_bins + 1)
+    y_edges = range(grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width, grid.n_bins + 1)
 
-    return histogram2D(positions, values, x_edges, y_edges; total, empty_nan)
+    return histogram2D(positions, values, collect(x_edges), collect(y_edges); total, empty_nan)
 
 end
 
@@ -561,9 +557,9 @@ function listHistogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Ve
     z_borders = (grid.z_bins[1] - h_bin_width, grid.z_bins[end] + h_bin_width)
 
     # Compute the edges of the grid
-    x_edges = collect(x_borders[1]:grid.bin_width:x_borders[end])
-    y_edges = collect(y_borders[1]:grid.bin_width:y_borders[end])
-    z_edges = collect(z_borders[1]:grid.bin_width:z_borders[end])
+    x_edges = range(x_borders[1], x_borders[end], grid.n_bins + 1)
+    y_edges = range(y_borders[1], y_borders[end], grid.n_bins + 1)
+    z_edges = range(z_borders[1], z_borders[end], grid.n_bins + 1)
 
     histogram = Array{Vector{Int}}(undef, size(grid.grid))
     for i in eachindex(histogram)
@@ -655,9 +651,9 @@ function histogram3D(
     z_borders = (grid.z_bins[1] - h_bin_width, grid.z_bins[end] + h_bin_width)
 
     # Compute the edges of the grid
-    x_edges = collect(x_borders[1]:grid.bin_width:x_borders[end])
-    y_edges = collect(y_borders[1]:grid.bin_width:y_borders[end])
-    z_edges = collect(z_borders[1]:grid.bin_width:z_borders[end])
+    x_edges = range(x_borders[1], x_borders[end], grid.n_bins + 1)
+    y_edges = range(y_borders[1], y_borders[end], grid.n_bins + 1)
+    z_edges = range(z_borders[1], z_borders[end], grid.n_bins + 1)
 
     histogram = zeros(typeof(first(values)), size(grid.grid))
     counts = zeros(Int, size(grid.grid))

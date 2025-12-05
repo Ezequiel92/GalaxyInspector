@@ -59,14 +59,13 @@ function translateData!(
 
         data = data_dict[component]
 
-        (
-            !(haskey(data, "POS ") && haskey(data, "VEL ")) &&
-            throw(ArgumentError("translateData!: The position and/or velocity blocks are missing \
-            for component $(component) in $(data_dict[:snap_data].path)"))
-        )
+        if haskey(data, "POS ") && !isempty(data["POS "])
+            translatePoints!(data["POS "], origin)
+        end
 
-        isempty(data["POS "]) || translatePoints!(data["POS "], origin)
-        isempty(data["VEL "]) || translatePoints!(data["VEL "], vcm)
+        if haskey(data, "VEL ") && !isempty(data["VEL "])
+            translatePoints!(data["VEL "], vcm)
+        end
 
     end
 
@@ -130,17 +129,11 @@ function rotateData!(
 
         data = data_dict[component]
 
-        (
-            !(haskey(data, "POS ") && haskey(data, "VEL ")) &&
-            throw(ArgumentError("rotateData!: The position and/or velocity blocks are missing \
-            for component $(component) in $(data_dict[:snap_data].path)"))
-        )
-
-        if !isempty(data["POS "])
+        if haskey(data, "POS ") && !isempty(data["POS "])
             data["POS "] = rotation_matrix * data["POS "]
         end
 
-        if !isempty(data["VEL "])
+        if haskey(data, "VEL ") && !isempty(data["VEL "])
             data["VEL "] = rotation_matrix * data["VEL "]
         end
 

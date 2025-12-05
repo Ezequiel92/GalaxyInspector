@@ -95,8 +95,8 @@ function reduceMatrix(hr_matrix::Matrix{<:Number}, factor::Int; total::Bool=fals
 
     (
         r % factor == 0 ||
-        throw(ArgumentError("reduceMatrix: `factor` must divide the size of `hr_matrix` \
-        exactly, but I got number of rows / `factor` = $(r / factor)"))
+        throw(ArgumentError("reduceMatrix: `factor` = $(factor) must divide the number of rows of \
+        `hr_matrix` ($(r))  exactly, but I got number of rows / `factor` = $(r / factor)"))
     )
 
     # Compute the size of the new matrix
