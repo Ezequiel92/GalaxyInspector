@@ -3283,7 +3283,7 @@ function kennicuttSchmidtLaw(
         colors    = current_theme[:palette][:color][]
         markers   = current_theme[:palette][:marker][]
         fit_color = :gray20
-        pp_color  = :darkgoldenrod1
+        pp_color  = :darkgoldenrod3
 
         for (sim_idx, simulation) in pairs(simulation_paths)
 
@@ -3449,15 +3449,6 @@ function kennicuttSchmidtLaw(
 
                         scatter!(ax, x_data, y_data; color)
 
-                        if fit
-                            ppFitLine!(
-                                figure;
-                                text_position=(0.98, 0.12),
-                                text_align=(:right, :bottom),
-                                color=fit_color,
-                            )
-                        end
-
                     end
 
                 end
@@ -3546,7 +3537,18 @@ function kennicuttSchmidtLaw(
         # Apply the post processing function
         ############################################################################################
 
-        if !isnothing(sim_labels) && plot_type == :scatter
+        scatter_legend = (!isnothing(sim_labels) && plot_type == :scatter)
+
+        if fit
+            fit_legend = ppFitLine!(
+                figure;
+                text_position=(0.98, 0.12),
+                text_align=(:right, :bottom),
+                color=fit_color,
+            )
+        end
+
+        if scatter_legend
 
             if !isnothing(gas_weights) && !integrated
 
@@ -3567,28 +3569,25 @@ function kennicuttSchmidtLaw(
 
         # Force consistent units and colors
         pp_kwargs = merge(pp_kwargs, (; x_unit=Σg_unit, y_unit=Σs_unit, color=pp_color))
-
         pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
-        if !isnothing(pp_legend)
+        if scatter_legend && !isnothing(pp_legend)
 
-            if !isnothing(sim_labels) && plot_type == :scatter
+            marker_elements = vcat(marker_elements, pp_legend[1])
+            sim_labels      = vcat(sim_labels, pp_legend[2])
 
-                Makie.Legend(
-                    figure[1, 1],
-                    vcat(marker_elements, pp_legend[1]),
-                    vcat(sim_labels, pp_legend[2]),
-                )
+        end
 
-            end
+        if scatter_legend && fit && !isnothing(fit_legend)
 
-        else
+            marker_elements = vcat(marker_elements, fit_legend[1])
+            sim_labels      = vcat(sim_labels, fit_legend[2])
 
-            if !isnothing(sim_labels) && plot_type == :scatter
+        end
 
-                Makie.Legend(figure[1, 1], marker_elements, sim_labels)
+        if scatter_legend
 
-            end
+            Makie.Legend(figure[1, 1], marker_elements, sim_labels)
 
         end
 

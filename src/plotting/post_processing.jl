@@ -464,7 +464,10 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
 
       + `:std_error`     -> mean ± standard_error.
       + `:conf_interval` -> mean ± max(upper$_{95\%}$ - mean, mean - lower$_{95\%}$).
+  - `interval::Symbol=:prediction`: Type of prediction band for the linear fit. The options are:
 
+      + `:confidence`: Confidence interval.
+      + `:prediction`: Prediction interval.
   - `color::ColorType=WONG_RED`: Color of the line.
   - `linestyle::LineStyleType=:solid`: Style of the line.
   - `linewidth::Int=3`: Line width.
@@ -482,10 +485,11 @@ function ppFitLine!(
     text_align::NTuple{2,Symbol}=(:left, :top),
     wts::Union{Vector{Float64},Nothing}=nothing,
     error_formating::Symbol=:std_error,
+    interval::Symbol=:prediction,
     color::ColorType=WONG_RED,
     linestyle::LineStyleType=:solid,
     linewidth::Int=3,
-)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+)::Union{Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -541,15 +545,38 @@ function ppFitLine!(
     y_limits = [extrema(y_points)...]
     x_limits = @. (y_limits - intercept_mean) / slope_mean
 
+    # Values to sample the linear model and compute the uncertainty bands
+    x_band = range(x_limits..., 100)
+    X_band = [ones(length(x_band)) x_band]
+
+    # Compute the prediction of the linear model
+    central, low, upper = predict(linear_model, X_band; interval, level=0.95)
+
     # Plot the linear fit
     lp = lines!(
         figure.current_axis.x,
-        Makie.inverse_transform(x_scaling).(x_limits),
-        Makie.inverse_transform(y_scaling).(y_limits);
+        Makie.inverse_transform(x_scaling).(x_band),
+        Makie.inverse_transform(y_scaling).(central);
         color,
         linestyle,
         linewidth,
     )
+
+    ################################################################################################
+    # Band
+    ################################################################################################
+
+    # Draw the uncertainty band
+    bp = band!(
+        figure.current_axis.x,
+        Makie.inverse_transform(x_scaling).(x_band),
+        Makie.inverse_transform(y_scaling).(low),
+        Makie.inverse_transform(y_scaling).(upper);
+        color,
+    )
+
+    translate!(Accum, bp, 0, 0, -10)
+    translate!(Accum, lp, 0, 0, -10)
 
     ################################################################################################
     # Annotation
@@ -591,34 +618,15 @@ function ppFitLine!(
         space=:relative,
     )
 
-    ################################################################################################
-    # Band
-    ################################################################################################
-
-    # Compute the intercept and slope as numbers with uncertainties
-    band_intercept = intercept_mean ± intercept_error
-    band_slope     = slope_mean ± slope_error
-
-    # Compute the values of the y axis as numbers with uncertainties
-    x_band = collect(range(x_limits[1], x_limits[2], 100))
-    y_band = @. Makie.inverse_transform(y_scaling)(x_band * band_slope + band_intercept)
-
-    values        = Measurements.value.(y_band)
-    uncertainties = Measurements.uncertainty.(y_band)
-
-    # Draw the uncertainty band
-    bp = band!(
-        figure.current_axis.x,
-        x_band,
-        values .- uncertainties,
-        values .+ uncertainties;
-        color,
+    return (
+        [
+            [
+                PolyElement(; color=(color, Makie.current_default_theme().Band.alpha)),
+                LineElement(; color, linestyle),
+            ]
+        ],
+        [L"95\% \,\, \text{confidence band}"],
     )
-
-    translate!(Accum, bp, 0, 0, -10)
-    translate!(Accum, lp, 0, 0, -10)
-
-    return nothing
 
 end
 
