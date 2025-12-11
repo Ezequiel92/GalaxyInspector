@@ -142,7 +142,7 @@ Compute the kinetic energy.
           * `:gas` => ["VEL ", "MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["VEL ", "MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["VEL ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["VEL ", "MASS", "FRAC", "RHO "]
@@ -196,7 +196,7 @@ Compute the gravitational potencial energy.
           * `:gas` => ["POT ", "MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["POT ", "MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["POT ", "MASS", "FRAC", "RHO "]
@@ -251,7 +251,7 @@ Compute the total energy (kinetic + potential).
           * `:gas` => ["VEL ", "POT ", "MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["VEL ", "POT ", "MASS", "FRAC", "RHO "]

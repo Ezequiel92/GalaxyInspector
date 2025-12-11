@@ -672,7 +672,7 @@ function filterBySFM(data_dict::Dict)::Dict{Symbol,IndexType}
     if isempty(fractions)
         filter_dict[:gas] = Int[]
     else
-        filter_dict[:gas] = map(!isnan, fractions[SFM_IDX[:ode_ionized], :])
+        filter_dict[:gas] = map(!isnan, fractions[1, :])
     end
 
     return filter_dict

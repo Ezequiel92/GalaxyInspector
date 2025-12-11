@@ -374,7 +374,7 @@ Compute the fraction of a given `component` in each cell/particle.
           * `:gas` => ["MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
@@ -892,6 +892,48 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
+    ################################################################################################
+    # Cold gas (everything but atomic and ionized, according to our SF model)
+    ################################################################################################
+
+    elseif component == :ode_cold
+
+        frac = dg["FRAC"]
+        ρc   = dg["RHO "]
+        Z    = dg["GZ  "]
+
+        if any(isempty, [frac, ρc, Z])
+
+            logging[] && @warn("computeFraction: I could not compute the ODE neutral fraction")
+
+            fractions = Float64[]
+
+        else
+
+            fi = view(frac, SFM_IDX[:ode_ionized], :)
+            fa = view(frac, SFM_IDX[:ode_atomic], :)
+
+            fractions = Vector{Float64}(undef, n_cells)
+
+            Threads.@threads for i in eachindex(fractions)
+
+                if !isnan(fa[i]) && ρc[i] >= THRESHOLD_DENSITY
+
+                    # Fraction of cold hydrogen according to our SF model
+                    fractions[i] = 1.0 - fa[i] - fi[i]
+
+                else
+
+                    # When there is no data from the model or the density is below the SF threshold,
+                    # use the initial condition of the model
+                    fractions[i] = setPositive(Z[i])
+
+                end
+
+            end
+
+        end
+
     end
 
     return fractions
@@ -924,7 +966,7 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
           * `:gas` => ["MASS", "NH  ", "NHP ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
@@ -982,7 +1024,7 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "PRES", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]
@@ -1044,7 +1086,7 @@ Compute the mass in each cell/particle of a given `component`.
           * `:gas` => ["MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
@@ -1121,7 +1163,7 @@ Compute the mass density of a given gas `component` for each cell.
           * `:gas` => ["MASS", "NH  ", "NHP ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
@@ -1199,7 +1241,7 @@ Compute the number density of a given gas `component` for each cell.
           * `:gas` => ["MASS", "NH  ", "NHP ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
@@ -1289,7 +1331,7 @@ Compute the number of a given `component`.
           * `:gas` => ["MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
@@ -1774,7 +1816,7 @@ Sample the 3D density field of a given quantity using a cubic grid.
           * `:gas` => ["MASS", "NH  ", "NHP ", "POS ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "POS ", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "POS "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO ", "POS "]
@@ -1957,7 +1999,7 @@ Sample the 3D density field of a given quantity using a cubic grid and then proj
           * `:gas` => ["MASS", "NH  ", "NHP ", "POS ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "POS ", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "POS "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO ", "POS "]

@@ -423,7 +423,7 @@ t_\mathrm{ff} = \frac{M_\mathrm{gas}}{\dot{M}_\star} \, .
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]:
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar]:
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]

@@ -162,6 +162,7 @@ const COMPONENTS = [
     :ode_metals,    # Metals
     :ode_dust,      # Dust
     :ode_neutral,   # Neutral gas
+    :ode_cold,      # Cold gas (everything but atomic and ionized)
 ]
 
 """
