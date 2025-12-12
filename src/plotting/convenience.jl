@@ -26,6 +26,12 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function scatterPlot(
@@ -40,6 +46,7 @@ function scatterPlot(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -103,6 +110,7 @@ function scatterPlot(
             xaxis_var_name=x_plot_params.var_name,
             yaxis_var_name=y_plot_params.var_name,
             theme,
+            title,
         )
 
     end
@@ -139,6 +147,12 @@ Plot two quantities as a density scatter plot (2D histogram).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
   - `colorbar::Bool=false`: If a colorbar will be added.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function scatterDensityMap(
@@ -157,6 +171,7 @@ function scatterDensityMap(
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     colorbar::Bool=false,
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -219,6 +234,7 @@ function scatterDensityMap(
             xaxis_var_name=x_plot_params.var_name,
             yaxis_var_name=y_plot_params.var_name,
             theme=merge(theme, Theme(size=(880, 720), Colorbar=(label=L"\log_{10} \, #",))),
+            title,
             colorbar,
         )
 
@@ -259,6 +275,12 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
   - `colorbar::Bool=false`: If a colorbar will be added.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function scatterDensityMap(
@@ -279,6 +301,7 @@ function scatterDensityMap(
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     colorbar::Bool=false,
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -352,6 +375,7 @@ function scatterDensityMap(
             xaxis_var_name=x_plot_params.var_name,
             yaxis_var_name=y_plot_params.var_name,
             theme=merge(theme, Theme(size=(880, 720), Colorbar=(label=colorbar_label,))),
+            title,
             colorbar,
         )
 
@@ -394,6 +418,12 @@ Plot a radial profile.
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function radialProfile(
@@ -414,6 +444,7 @@ function radialProfile(
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -492,6 +523,7 @@ function radialProfile(
             ),
         ),
         sim_labels,
+        title,
     )
 
     return nothing
@@ -533,6 +565,12 @@ Plot a density profile.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function radialProfile(
@@ -554,7 +592,8 @@ function radialProfile(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    theme::Attributes=Theme()
+    title::Union{Symbol,<:AbstractString}="",
+    theme::Attributes=Theme(),
 )::Nothing
 
     requests = [plotParams(quantity).request for quantity in quantities]
@@ -628,6 +667,7 @@ function radialProfile(
                 ),
             ),
             sim_labels=string.(quantities),
+            title,
         )
 
     end
@@ -772,7 +812,13 @@ Plot a histogram of `quantity`.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
-  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.ç
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function histogram(
@@ -790,6 +836,7 @@ function histogram(
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -851,6 +898,7 @@ function histogram(
         yaxis_var_name,
         theme=merge(theme, Theme(Legend=(nbanks=1, valign=:top, margin=(0, 10, 0, 0)),)),
         sim_labels,
+        title,
     )
 
     return nothing
@@ -877,6 +925,12 @@ Plot the rotation curve of several simulations.
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function rotationCurve(
@@ -889,6 +943,7 @@ function rotationCurve(
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -933,9 +988,9 @@ function rotationCurve(
         yaxis_label=y_plot_params.axis_label,
         xaxis_var_name=x_plot_params.var_name,
         yaxis_var_name=y_plot_params.var_name,
-        theme=merge(theme, Theme(size=(1200, 880), Axis=(aspect=nothing,)),
-        ),
+        theme=merge(theme, Theme(size=(1200, 880), Axis=(aspect=nothing,))),
         sim_labels,
+        title,
     )
 
     return nothing
@@ -966,6 +1021,12 @@ Plot a bar plot of the gas fractions, where the bins are a given gas `quantity`.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function gasBarPlot(
@@ -980,6 +1041,7 @@ function gasBarPlot(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -1066,6 +1128,7 @@ function gasBarPlot(
             xaxis_label=L"\text{Mass fraction} \,\, [%]",
             yaxis_var_name=plot_params.var_name,
             theme=current_theme,
+            title,
         )
 
     end
@@ -3912,6 +3975,12 @@ Plot a mass profile.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_filter::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function massProfile(
@@ -3927,6 +3996,7 @@ function massProfile(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     da_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -4004,6 +4074,7 @@ function massProfile(
                 ),
             ),
             sim_labels,
+            title,
         )
 
     end
@@ -4039,6 +4110,12 @@ Plot a velocity profile.
   - `da_filter::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function velocityProfile(
@@ -4053,6 +4130,7 @@ function velocityProfile(
     da_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -4101,6 +4179,7 @@ function velocityProfile(
             ),
         ),
         sim_labels,
+        title,
     )
 
     return nothing
@@ -5596,6 +5675,12 @@ Plot the clumping factor of `component` for different volume scales.
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function clumpingFactor(
@@ -5613,6 +5698,7 @@ function clumpingFactor(
     da_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -5678,6 +5764,7 @@ function clumpingFactor(
         yaxis_var_name=plot_params.var_name,
         theme,
         sim_labels,
+        title,
     )
 
     return nothing
@@ -5846,6 +5933,12 @@ Plot two histogram of the efficiency per free-fall time, for each simulation. On
   - `gas_ff::Function=filterNothing`: Filter function to be applied to the gas histogram after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `stellar_ff` and `gas_ff`.
   - `labels::Vector{<:AbstractString}=["Stars", "Gas"]`: Legend for the stellar and gas histograms, respectively.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function efficiencyHistogram(
@@ -5859,6 +5952,7 @@ function efficiencyHistogram(
     gas_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     labels::Vector{<:AbstractString}=["Stars", "Gas"],
+    title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -5870,6 +5964,10 @@ function efficiencyHistogram(
     filter_function, request = selectFilter(filter_mode, trans_request)
 
     grid = LinearGrid(range..., 100; log=true)
+
+    # Set nice margins for the legend
+    l_margin = isempty(title) ? 10 : 25
+    t_margin = isempty(title) ? 5 : 10
 
     for simulation_path in simulation_paths
 
@@ -5894,10 +5992,11 @@ function efficiencyHistogram(
                 theme,
                 Theme(
                     palette=(linestyle=[:solid], color=[WONG_ORANGE, :black]),
-                    Legend=(nbanks=1, halign=:left, valign=:top, margin=(10, 0, 0, 10)),
+                    Legend=(nbanks=1, halign=:left, valign=:top, margin=(l_margin, 0, 0, t_margin)),
                 ),
             ),
             sim_labels=labels,
+            title,
         )
 
     end

@@ -354,6 +354,111 @@ function computeFractionWithin(
 
 end
 
+# function generateODEIC(data_dict::Dict, component::Symbol)::Function
+
+#     if component == :ode_ionized
+
+#         ode_ic = function ionized_ic(data_dict::Dict, i::Int)::Float64
+
+#             nh  = data_dict[:gas]["NH  "][i]
+#             nhp = data_dict[:gas]["NHP "][i]
+#             Z   = data_dict[:gas]["GZ  "][i]
+
+#             return (1.0 - setPositive(Z)) * nhp / (nhp + nh)
+
+#         end
+
+#     ################################################################################################
+#     # Atomic gas or neutral gas
+#     ################################################################################################
+
+#     elseif component == :ode_atomic || component == :ode_neutral
+
+#         ode_ic = function atomic_ic(data_dict::Dict, i::Int)::Float64
+
+#             nh  = data_dict[:gas]["NH  "][i]
+#             nhp = data_dict[:gas]["NHP "][i]
+#             Z   = data_dict[:gas]["GZ  "][i]
+
+#             return (1.0 - setPositive(Z)) * nh / (nhp + nh)
+
+#         end
+
+#     ################################################################################################
+#     # Molecular gas or stars
+#     ################################################################################################
+
+#     elseif component == :ode_molecular || component == :ode_stellar
+
+#         ode_ic = function molecula_ic(data_dict::Dict, i::Int)::Float64
+
+#             return 0.0
+
+#         end
+
+#     ################################################################################################
+#     # Metals
+#     ################################################################################################
+
+#     elseif component == :ode_metals
+
+#         ode_ic = function metals_ic(data_dict::Dict, i::Int)::Float64
+
+#             nh  = data_dict[:gas]["NH  "][i]
+#             nhp = data_dict[:gas]["NHP "][i]
+#             Z   = data_dict[:gas]["GZ  "][i]
+
+#             metallicity = setPositive(Z)
+#             fa = (1 - metallicity) * nh / (nhp + nh)
+
+#             return metallicity * (1.0 - Cxd * fa)
+
+#         end
+
+#     ################################################################################################
+#     # Dust
+#     ################################################################################################
+
+#     elseif component == :ode_dust
+
+#         ode_ic = function dust_ic(data_dict::Dict, i::Int)::Float64
+
+#             nh  = data_dict[:gas]["NH  "][i]
+#             nhp = data_dict[:gas]["NHP "][i]
+#             Z   = data_dict[:gas]["GZ  "][i]
+
+#             metallicity = setPositive(Z)
+#             fa = (1.0 - metallicity) * nh / (nhp + nh)
+
+#             return metallicity * Cxd * fa
+
+#         end
+
+#     ################################################################################################
+#     # Cold gas (everything but atomic and ionized, according to our SF model)
+#     ################################################################################################
+
+#     elseif component == :ode_cold
+
+#         ode_ic = function cold_ic(data_dict::Dict, i::Int)::Float64
+
+#             Z = data_dict[:gas]["GZ  "][i]
+
+#             return setPositive(Z)
+
+#         end
+
+#     else
+
+#         throw(ArgumentError("computeFraction: `component` can only be one of the :ode elements of \
+#         `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+
+#     end
+
+#     return ode_ic
+
+# end
+
 """
     computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
@@ -939,6 +1044,555 @@ function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
     return fractions
 
 end
+
+# function computeFraction2(data_dict::Dict, component::Symbol)::Vector{Float64}
+
+#     if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole]
+#         throw(ArgumentError("computeFraction: `component` can only be one of the elements of \
+#         `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+#     end
+
+#     ################################################################################################
+#     # Stellar metallicity
+#     ################################################################################################
+
+#     if component == :Z_stellar
+
+#         Z = data_dict[:stellar]["GZ2 "]
+
+#         if isempty(Z)
+
+#             logging[] && @warn("computeFraction: I could not compute the stellar metallicity")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fractions = setPositive(Z)
+
+#         end
+
+#     else
+
+#         dg   = data_dict[:gas]
+#         mass = dg["MASS"]
+
+#         # If there is no gas, return an empty array
+#         if isempty(mass)
+
+#             logging[] && @warn("computeFraction: There is no data for the gas cells!")
+
+#             return Float64[]
+
+#         end
+
+#         # Compute the number of gas cells
+#         n_cells = length(mass)
+
+#     end
+
+#     ################################################################################################
+#     # Total gas
+#     ################################################################################################
+
+#     if component == :gas
+
+#         fractions = ones(n_cells)
+
+#     ################################################################################################
+#     # Hydrogen
+#     ################################################################################################
+
+#     elseif component == :hydrogen
+
+#         fractions = fill(HYDROGEN_MASSFRAC, n_cells)
+
+#     ################################################################################################
+#     # Helium
+#     ################################################################################################
+
+#     elseif component == :helium
+
+#         fractions = fill(1.0 - HYDROGEN_MASSFRAC, n_cells)
+
+#     ################################################################################################
+#     # Gas metallicity
+#     ################################################################################################
+
+#     elseif component == :Z_gas
+
+#         Z = dg["GZ  "]
+
+#         if isempty(Z)
+
+#             logging[] && @warn("computeFraction: I could not compute the gas metallicity")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fractions = setPositive(Z)
+
+#         end
+
+#     ################################################################################################
+#     # Ionized gas (using the Arepo data)
+#     ################################################################################################
+
+#     elseif component == :ionized
+
+#         nh  = dg["NH  "]
+#         nhp = dg["NHP "]
+
+#         if any(isempty, [nh, nhp])
+
+#             logging[] && @warn("computeFraction: I could not compute the ionized fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fractions = @. nhp / (nhp + nh)
+
+#         end
+
+#     ################################################################################################
+#     # Neutral gas (using the Arepo data)
+#     ################################################################################################
+
+#     elseif component == :neutral
+
+#         nh  = dg["NH  "]
+#         nhp = dg["NHP "]
+
+#         if any(isempty, [nh, nhp])
+
+#             logging[] && @warn("computeFraction: I could not compute the neutral fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fractions = @. nh / (nhp + nh)
+
+#         end
+
+#     ################################################################################################
+#     # Atomic gas (using the Blitz et al. (2006) relation)
+#     ################################################################################################
+
+#     elseif component == :br_atomic
+
+#         nh  = dg["NH  "]
+#         nhp = dg["NHP "]
+#         P   = dg["PRES"]
+
+#         if any(isempty, [nh, nhp, P])
+
+#             logging[] && @warn("computeFraction: I could not compute the BR atomic fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             relative_pressure = @. uconvert(Unitful.NoUnits, P / P0)^ALPHA_BLITZ
+
+#             # Compute the fraction of neutral gas that is atomic hydrogen according
+#             # to the pressure relation in Blitz et al. (2006)
+#             fa = @. relative_pressure / (1.0 + relative_pressure)
+
+#             # Compute the fraction of neutral gas according to Arepo
+#             fn = @. nh / (nhp + nh)
+
+#             fractions = fa .* fn
+
+#         end
+
+#     ################################################################################################
+#     # Molecular gas (using the Blitz et al. (2006) relation)
+#     ################################################################################################
+
+#     elseif component == :br_molecular
+
+#         nh  = dg["NH  "]
+#         nhp = dg["NHP "]
+#         P   = dg["PRES"]
+
+#         if any(isempty, [nh, nhp, P])
+
+#             logging[] && @warn("computeFraction: I could not compute the BR molecular fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             relative_pressure = @. uconvert(Unitful.NoUnits, P / P0)^ALPHA_BLITZ
+
+#             # Compute the fraction of neutral gas that is molecular hydrogen according
+#             # to the pressure relation in Blitz et al. (2006)
+#             fm = @. 1.0 / (1.0 + relative_pressure)
+
+#             # Compute the fraction of neutral gas according to Arepo
+#             fn = @. nh / (nhp + nh)
+
+#             fractions = fm .* fn
+
+#         end
+
+#     ################################################################################################
+#     # Ionized gas (according to our SF model)
+#     ################################################################################################
+
+#     elseif component == :ode_ionized
+
+#         frac = dg["FRAC"]
+#         ρc   = dg["RHO "]
+
+#         if any(isempty, [frac, ρc])
+
+#             logging[] && @warn("computeFraction: I could not compute the ODE ionized fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fi = view(frac, SFM_IDX[component], :)
+
+#             fractions = Vector{Float64}(undef, n_cells)
+
+#             # Initial condition of the model
+#             ode_ic = generateODEIC(data_dict, component)
+
+#             Threads.@threads for i in eachindex(fractions)
+
+#                 if !isnan(fi[i]) && ρc[i] >= THRESHOLD_DENSITY
+
+#                     # Fraction of ionized hydrogen according to our SF model
+#                     fractions[i] = fi[i]
+
+#                 else
+
+#                     # When there is no data from the model or the density is below the SF threshold,
+#                     # use the initial condition of the model
+#                     fractions[i] = ode_ic(data_dict, i)
+
+#                 end
+
+#             end
+
+#         end
+
+#     ################################################################################################
+#     # Atomic gas (according to our SF model)
+#     ################################################################################################
+
+#     elseif component == :ode_atomic
+
+#         frac = dg["FRAC"]
+#         ρc   = dg["RHO "]
+
+#         if any(isempty, [frac, ρc])
+
+#             logging[] && @warn("computeFraction: I could not compute the ODE atomic fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fa = view(frac, SFM_IDX[component], :)
+
+#             fractions = Vector{Float64}(undef, n_cells)
+
+#             # Initial condition of the model
+#             ode_ic = generateODEIC(data_dict, component)
+
+#             Threads.@threads for i in eachindex(fractions)
+
+#                 if !isnan(fa[i]) && ρc[i] >= THRESHOLD_DENSITY
+
+#                     # Fraction of atomic hydrogen according to our SF model
+#                     fractions[i] = fa[i]
+
+#                 else
+
+#                     # When there is no data from the model or the density is below the SF threshold,
+#                     # use the initial condition of the model
+#                     fractions[i] = ode_ic(data_dict, i)
+
+#                 end
+
+#             end
+
+#         end
+
+#     ################################################################################################
+#     # Molecular gas (according to our SF model)
+#     ################################################################################################
+
+#     elseif component == :ode_molecular
+
+#         frac = dg["FRAC"]
+#         ρc   = dg["RHO "]
+
+#         if any(isempty, [frac, ρc])
+
+#             logging[] && @warn("computeFraction: I could not compute the ODE molecular fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fm = view(frac, SFM_IDX[component], :)
+#             fs = view(frac, SFM_IDX[:ode_stellar], :)
+
+#             fractions = Vector{Float64}(undef, n_cells)
+
+#             # Initial condition of the model
+#             ode_ic = generateODEIC(data_dict, component)
+
+#             Threads.@threads for i in eachindex(fractions)
+
+#                 if !isnan(fm[i]) && ρc[i] >= THRESHOLD_DENSITY
+
+#                     # Fraction of molecular hydrogen according to our SF model
+#                     fractions[i] = fm[i] + fs[i]
+
+#                 else
+
+#                     # When there is no data from the model or the density is below the SF threshold,
+#                     # use the initial condition of the model
+#                     fractions[i] = ode_ic(data_dict, i)
+
+#                 end
+
+#             end
+
+#         end
+
+#     ################################################################################################
+#     # Stars (according to our SF model)
+#     ################################################################################################
+
+#     elseif component == :ode_stellar
+
+#         frac = dg["FRAC"]
+#         ρc   = dg["RHO "]
+
+#         if any(isempty, [frac, ρc])
+
+#             logging[] && @warn("computeFraction: I could not compute the ODE stellar fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fs = view(frac, SFM_IDX[component], :)
+
+#             fractions = Vector{Float64}(undef, n_cells)
+
+#             # Initial condition of the model
+#             ode_ic = generateODEIC(data_dict, component)
+
+#             Threads.@threads for i in eachindex(fractions)
+
+#                 if !isnan(fs[i]) && ρc[i] >= THRESHOLD_DENSITY
+
+#                     # Fraction of stars according to our SF model
+#                     fractions[i] = fs[i]
+
+#                 else
+
+#                     # When there is no data from the model or the density is below the SF threshold,
+#                     # use the initial condition of the model
+#                     fractions[i] = ode_ic(data_dict, i)
+
+#                 end
+
+#             end
+
+#         end
+
+#     ################################################################################################
+#     # Metals (according to our SF model)
+#     ################################################################################################
+
+#     elseif component == :ode_metals
+
+#         frac = dg["FRAC"]
+#         ρc   = dg["RHO "]
+
+#         if any(isempty, [frac, ρc])
+
+#             logging[] && @warn("computeFraction: I could not compute the ODE metals fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fZ = view(frac, SFM_IDX[component], :)
+
+#             fractions = Vector{Float64}(undef, n_cells)
+
+#             # Initial condition of the model
+#             ode_ic = generateODEIC(data_dict, component)
+
+#             Threads.@threads for i in eachindex(fractions)
+
+#                 if !isnan(fZ[i]) && ρc[i] >= THRESHOLD_DENSITY
+
+#                     # Fraction of metals according to our SF model
+#                     fractions[i] = fZ[i]
+
+#                 else
+
+#                     # When there is no data from the model or the density is below the SF threshold,
+#                     # use the initial condition of the model
+#                     fractions[i] = ode_ic(data_dict, i)
+
+#                 end
+
+#             end
+
+#         end
+
+#     ################################################################################################
+#     # Dust (according to our SF model)
+#     ################################################################################################
+
+#     elseif component == :ode_dust
+
+#         frac = dg["FRAC"]
+#         ρc   = dg["RHO "]
+
+#         if any(isempty, [frac, ρc])
+
+#             logging[] && @warn("computeFraction: I could not compute the ODE dust fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fd = view(frac, SFM_IDX[component], :)
+
+#             fractions = Vector{Float64}(undef, n_cells)
+
+#             # Initial condition of the model
+#             ode_ic = generateODEIC(data_dict, component)
+
+#             Threads.@threads for i in eachindex(fractions)
+
+#                 if !isnan(fd[i]) && ρc[i] >= THRESHOLD_DENSITY
+
+#                     # Fraction of dust according to our SF model
+#                     fractions[i] = fd[i]
+
+#                 else
+
+#                     # When there is no data from the model or the density is below the SF threshold,
+#                     # use the initial condition of the model
+#                     fractions[i] = ode_ic(data_dict, i)
+
+#                 end
+
+#             end
+
+#         end
+
+#     ################################################################################################
+#     # Neutral gas (according to our SF model)
+#     ################################################################################################
+
+#     elseif component == :ode_neutral
+
+#         frac = dg["FRAC"]
+#         ρc   = dg["RHO "]
+
+#         if any(isempty, [frac, ρc])
+
+#             logging[] && @warn("computeFraction: I could not compute the ODE neutral fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fa = view(frac, SFM_IDX[:ode_atomic], :)
+#             fm = view(frac, SFM_IDX[:ode_molecular], :)
+#             fs = view(frac, SFM_IDX[:ode_stellar], :)
+
+#             fractions = Vector{Float64}(undef, n_cells)
+
+#             # Initial condition of the model
+#             ode_ic = generateODEIC(data_dict, component)
+
+#             Threads.@threads for i in eachindex(fractions)
+
+#                 if !isnan(fa[i]) && ρc[i] >= THRESHOLD_DENSITY
+
+#                     # Fraction of neutral hydrogen according to our SF model
+#                     fractions[i] = fa[i] + fm[i] + fs[i]
+
+#                 else
+
+#                     # When there is no data from the model or the density is below the SF threshold,
+#                     # use the initial condition of the model
+#                     fractions[i] = ode_ic(data_dict, i)
+
+#                 end
+
+#             end
+
+#         end
+
+#     ################################################################################################
+#     # Cold gas (everything but atomic and ionized, according to our SF model)
+#     ################################################################################################
+
+#     elseif component == :ode_cold
+
+#         frac = dg["FRAC"]
+#         ρc   = dg["RHO "]
+
+#         if any(isempty, [frac, ρc])
+
+#             logging[] && @warn("computeFraction: I could not compute the ODE neutral fraction")
+
+#             fractions = Float64[]
+
+#         else
+
+#             fi = view(frac, SFM_IDX[:ode_ionized], :)
+#             fa = view(frac, SFM_IDX[:ode_atomic], :)
+
+#             fractions = Vector{Float64}(undef, n_cells)
+
+#             # Initial condition of the model
+#             ode_ic = generateODEIC(data_dict, component)
+
+#             Threads.@threads for i in eachindex(fractions)
+
+#                 if !isnan(fa[i]) && ρc[i] >= THRESHOLD_DENSITY
+
+#                     # Fraction of cold hydrogen according to our SF model
+#                     fractions[i] = 1.0 - fa[i] - fi[i]
+
+#                 else
+
+#                     # When there is no data from the model or the density is below the SF threshold,
+#                     # use the initial condition of the model
+#                     fractions[i] = ode_ic(data_dict, i)
+
+#                 end
+
+#             end
+
+#         end
+
+#     end
+
+#     return fractions
+
+# end
+
 
 ###################
 # Derive functions

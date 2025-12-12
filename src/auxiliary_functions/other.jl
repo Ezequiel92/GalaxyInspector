@@ -5,7 +5,7 @@
 """
 Return a copy of `list` with every negative value set to 0.
 """
-setPositive(list::VecOrMat{<:Number}) = replace(x -> x >= zero(x) ? x : zero(x), list)
+setPositive(list::AbstractArray) = replace(x -> x >= zero(x) ? x : zero(x), list)
 setPositive(x::Number) = x >= zero(x) ? x : zero(x)
 
 """
