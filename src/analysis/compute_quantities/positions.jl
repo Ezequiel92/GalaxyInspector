@@ -421,11 +421,11 @@ Compute a characteristic center of mass for the system.
     This function requires the following blocks to be present, depending on the value of `cm_type`:
 
       + If `cm_type` == `:all`:
-          - ["POS ", "MASS"] for every cell/particle type in the snapshot (see [`computeCenterOfMass`](@ref)).
+          * ["POS ", "MASS"] for every cell/particle type in the snapshot (see [`computeCenterOfMass`](@ref)).
       + If haskey(`PARTICLE_INDEX`, `cm_type`):
-          - `cm_type` => ["POS ", "MASS"].
+          * `cm_type` => ["POS ", "MASS"].
       + If `cm_type` == `:zero`:
-          - No blocks are required.
+          * No blocks are required.
   - `cm_type::Symbol`: It can be:
 
       + `:all`         -> Center of mass of the whole system.
