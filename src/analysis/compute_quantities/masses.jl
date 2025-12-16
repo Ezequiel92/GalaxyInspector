@@ -368,7 +368,7 @@ Generate a function that gives the initial condition of `component` for the `i`-
           * `:gas` => ["NH  ", "NHP ", "GZ  "]
       + If `component` ∈ [:ode_cold]:
           * `:gas` => ["GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :Z_stellar, :gas, :hydrogen, :helium, :Z_gas, :ionized, :neutral, :br_atomic, :br_molecular]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar, :Z_stellar, :gas, :hydrogen, :helium, :Z_gas, :ionized, :neutral, :br_atomic, :br_molecular]:
           * No blocks are required.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
@@ -422,9 +422,9 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
     # Molecular gas or stars
     ################################################################################################
 
-    elseif component == :ode_molecular || component == :ode_stellar
+    elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
 
-        ode_ic = function molecula_ic(i::Int)::Float64
+        ode_ic = function molecular_ic(i::Int)::Float64
 
             return 0.0
 
@@ -537,7 +537,7 @@ Compute the fraction of a given `component` in each cell/particle.
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) (except :stellar, :dark_matter, and :black_hole).
 
@@ -596,9 +596,9 @@ L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressu
 """
 function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
-    ################################################################################################
+    ######################
     # Stellar metallicity
-    ################################################################################################
+    ######################
 
     if component == :Z_stellar
 
@@ -635,33 +635,33 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
     # Compute the number of gas cells
     n_cells = length(mass)
 
-    ################################################################################################
+    ############
     # Total gas
-    ################################################################################################
+    ############
 
     if component == :gas
 
         fractions = ones(n_cells)
 
-    ################################################################################################
+    ###########
     # Hydrogen
-    ################################################################################################
+    ###########
 
     elseif component == :hydrogen
 
         fractions = fill(HYDROGEN_MASSFRAC, n_cells)
 
-    ################################################################################################
+    #########
     # Helium
-    ################################################################################################
+    #########
 
     elseif component == :helium
 
         fractions = fill(1.0 - HYDROGEN_MASSFRAC, n_cells)
 
-    ################################################################################################
+    ##################
     # Gas metallicity
-    ################################################################################################
+    ##################
 
     elseif component == :Z_gas
 
@@ -679,9 +679,9 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
+    #####################################
     # Ionized gas (using the Arepo data)
-    ################################################################################################
+    #####################################
 
     elseif component == :ionized
 
@@ -700,9 +700,9 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
+    #####################################
     # Neutral gas (using the Arepo data)
-    ################################################################################################
+    #####################################
 
     elseif component == :neutral
 
@@ -721,9 +721,9 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
+    ######################################################
     # Atomic gas (using the Blitz et al. (2006) relation)
-    ################################################################################################
+    ######################################################
 
     elseif component == :br_atomic
 
@@ -752,9 +752,9 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         end
 
-    ################################################################################################
+    #########################################################
     # Molecular gas (using the Blitz et al. (2006) relation)
-    ################################################################################################
+    #########################################################
 
     elseif component == :br_molecular
 
@@ -812,7 +812,7 @@ Compute the fraction of a given :ode `component` in each cell/particle.
 
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the :ode elements of [`COMPONENTS`](@ref).
   - `ode_ic::F`: Fuction that gives the initial value of `component` for the `i`-th cell/particle. It must have the signature `ode_ic(i::Int)::Float64`.
@@ -842,11 +842,11 @@ function _compute_fraction(
     # Compute the number of gas cells
     n_cells = length(mass)
 
-    ################################################################################################
-    # Ionized, atomic, stellar, metals, and dust fractions (according to our SF model)
-    ################################################################################################
+    ##############################################################################################
+    # Ionized, atomic, molecular, stellar, metals, and dust fractions (according to our SF model)
+    ##############################################################################################
 
-    if component ∈ [:ode_ionized, :ode_atomic, :ode_stellar, :ode_metals, :ode_dust]
+    if component ∈ [:ode_ionized, :ode_atomic, :ode_molecular, :ode_stellar, :ode_metals, :ode_dust]
 
         frac = dg["FRAC"]
         ρc   = dg["RHO "]
@@ -882,18 +882,21 @@ function _compute_fraction(
 
         end
 
-    ################################################################################################
-    # Molecular fraction (according to our SF model)
-    ################################################################################################
+    #########################################################
+    # Molecular-stellar fraction (according to our SF model)
+    #########################################################
 
-    elseif component == :ode_molecular
+    elseif component == :ode_molecular_stellar
 
         frac = dg["FRAC"]
         ρc   = dg["RHO "]
 
         if any(isempty, [frac, ρc])
 
-            logging[] && @warn("_compute_fraction: I could not compute the ODE molecular fraction")
+            (
+                logging[] &&
+                @warn("_compute_fraction: I could not compute the ODE molecular-stellar fraction")
+            )
 
             fractions = Float64[]
 
@@ -923,9 +926,9 @@ function _compute_fraction(
 
         end
 
-    ################################################################################################
-    # Neutral fraction (according to our SF model)
-    ################################################################################################
+    ####################################################################################
+    # Neutral fraction (everything but the ionized fraction, according to our SF model)
+    ####################################################################################
 
     elseif component == :ode_neutral
 
@@ -940,18 +943,18 @@ function _compute_fraction(
 
         else
 
-            fa = view(frac, SFM_IDX[:ode_atomic], :)
-            fm = view(frac, SFM_IDX[:ode_molecular], :)
-            fs = view(frac, SFM_IDX[:ode_stellar], :)
+            fi = view(frac, SFM_IDX[:ode_ionized], :)
+            fZ = view(frac, SFM_IDX[:ode_metals], :)
+            fd = view(frac, SFM_IDX[:ode_dust], :)
 
             fractions = Vector{Float64}(undef, n_cells)
 
             Threads.@threads for i in eachindex(fractions)
 
-                if !isnan(fa[i]) && ρc[i] >= THRESHOLD_DENSITY
+                if !isnan(fi[i]) && ρc[i] >= THRESHOLD_DENSITY
 
                     # Fraction of neutral hydrogen according to our SF model
-                    fractions[i] = fa[i] + fm[i] + fs[i]
+                    fractions[i] = 1.0 - fi[i] - fZ[i] - fd[i]
 
                 else
 
@@ -965,9 +968,9 @@ function _compute_fraction(
 
         end
 
-    ################################################################################################
+    #############################################################################################
     # Cold fraction (everything but the atomic and ionized fractions, according to our SF model)
-    ################################################################################################
+    #############################################################################################
 
     elseif component == :ode_cold
 
@@ -1045,7 +1048,7 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
 
@@ -1103,7 +1106,7 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
 
@@ -1165,7 +1168,7 @@ Compute the mass in each cell/particle of a given `component`.
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
@@ -1242,7 +1245,7 @@ Compute the mass density of a given gas `component` for each cell.
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
 
@@ -1320,7 +1323,7 @@ Compute the number density of a given gas `component` for each cell.
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
 
@@ -1334,7 +1337,7 @@ L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressu
 """
 function computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:NumberDensity}
 
-    if component ∈ [:helium, :br_molecular, :ode_molecular]
+    if component ∈ [:helium, :br_molecular, :ode_molecular, :ode_molecular_stellar]
 
         ############################################################################################
         # Number density as the amount of elements (atoms/molecules) per unit volume
@@ -1343,17 +1346,6 @@ function computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:Numb
         ρ = computeMassDensity(data_dict, component)
 
         n = ρ / (2.0 * Unitful.mp)
-
-    elseif component == :ode_neutral
-
-        ############################################################################################
-        # Number density as the amount of elements (atoms/molecules) per unit volume
-        ############################################################################################
-
-        ρm = computeMassDensity(data_dict, :ode_molecular)
-        ρa = computeMassDensity(data_dict, :ode_atomic)
-
-        n = (ρm / (2.0 * Unitful.mp)) .+ (ρa / Unitful.mp)
 
     else
 
@@ -1410,7 +1402,7 @@ Compute the number of a given `component`.
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
@@ -1445,7 +1437,7 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Int64}
 
         N = [lenght(data_dict[:stellar]["MASS"])]
 
-    elseif component ∈ [:helium, :br_molecular, :ode_molecular]
+    elseif component ∈ [:helium, :br_molecular, :ode_molecular, :ode_molecular_stellar]
 
         ############################################################################################
         # Number as the amount of elements (atoms/molecules) in each cell
@@ -1454,17 +1446,6 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Int64}
         M = computeMass(data_dict, component)
 
         N = M / (2.0 * Unitful.mp)
-
-    elseif component == :ode_neutral
-
-        ############################################################################################
-        # Number as the amount of elements (atoms/molecules) in each cell
-        ############################################################################################
-
-        Mm = computeMassDensity(data_dict, :ode_molecular)
-        Ma = computeMassDensity(data_dict, :ode_atomic)
-
-        N = (Mm / (2.0 * Unitful.mp)) + (Ma / Unitful.mp)
 
     else
 
@@ -1895,7 +1876,7 @@ Sample the 3D density field of a given quantity using a cubic grid.
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "POS ", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "POS "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO ", "POS "]
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
@@ -2078,7 +2059,7 @@ Sample the 3D density field of a given quantity using a cubic grid and then proj
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "POS ", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "POS "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO ", "POS "]
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).

@@ -773,9 +773,14 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         c_label = "\\text{ODE d}"
         cp_type = :gas
 
+    elseif component == :ode_molecular_stellar
+
+        c_label = "{\\text{ODE }\\mathrm{m + s}}"
+        cp_type = :gas
+
     elseif component == :ode_neutral
 
-        c_label = "\\mathrm{ODE a + m}"
+        c_label = "{\\text{ODE }\\mathrm{a + m}}"
         cp_type = :gas
 
     elseif component == :ode_cold
@@ -823,7 +828,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["MASS", "FRAC", "RHO "])
         else
             # Generic component
@@ -858,7 +863,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["MASS", "FRAC", "RHO "])
         elseif component == :generic
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
@@ -891,7 +896,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["MASS", "FRAC", "RHO "])
         elseif component == :generic
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
@@ -928,7 +933,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES", "POS ", "RHO "])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "POS "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["MASS", "FRAC", "RHO ", "POS "])
         else
             # Generic component
@@ -967,7 +972,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["MASS", "FRAC", "RHO "])
         else
             request = Dict(
@@ -1003,7 +1008,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["MASS", "FRAC", "RHO "])
         elseif component == :generic
             request = Dict(
@@ -1041,7 +1046,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["SFR ", "MASS", "RHO ", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["SFR ", "MASS", "FRAC", "RHO "])
         elseif component == :generic
             request = Dict(
@@ -1077,7 +1082,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["MASS", "FRAC", "RHO "])
         elseif component == :generic
             request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
@@ -1308,7 +1313,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["VEL ", "MASS", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["VEL ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["VEL ", "MASS", "FRAC", "RHO "])
         else
             # Generic component
@@ -1347,7 +1352,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["POT ", "MASS", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["POT ", "MASS", "FRAC", "RHO "])
         else
             # Generic component
@@ -1386,7 +1391,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["VEL ", "POT ", "MASS", "FRAC", "RHO "])
         else
             # Generic component
@@ -1425,7 +1430,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
             request = Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "PRES"])
         elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
             request = Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar]
+        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
             request = Dict(:gas => ["SFR ", "MASS", "FRAC", "RHO "])
         else
             # Generic component

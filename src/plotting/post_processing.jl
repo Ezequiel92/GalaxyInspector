@@ -1535,13 +1535,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure.
-  - `quantity::Symbol`: Quantity for the y axis. The options are:
-
-      + `:stellar_area_density`   -> Stellar mass surface density, as ``\\log10(\\Sigma_\\star)``.
-      + `:molecular_area_density` -> Molecular mass surface density, as ``\\log10(\\Sigma_\\text{H2})``.
-      + `:atomic_area_density`    -> Atomic mass surface density, as ``\\log10(\\Sigma_\\text{HI})``.
-      + `:sfr_area_density`       -> Star formation rate surface density, as ``\\log10(\\Sigma_\\text{SFR})``.
-      + `:X_stellar_abundance`    -> Stellar abundance of element ``\\mathrm{X}``, as [`ABUNDANCE_SHIFT`](@ref) + ``\\log_{10}(\\mathrm{X \\, / \\, H})``. ``\\mathrm{X}`` can be O (oxygen), N (nitrogen), or C (carbon).
+  - `quantity::Symbol`: Quantity for the y axis. See [`compareMolla2015`](@ref) for options.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for `quantity`.
   - `color::ColorType=WONG_RED`: Color of the line.
   - `linestyle::LineStyleType=:solid`: Style of the line.
@@ -1599,35 +1593,60 @@ function ppMolla2015!(
     # Select the quantity for the y axis
     ################################################################################################
 
-    if quantity == :stellar_area_density
-        # M⊙ pc^-2
-        factor = log10(ustrip(y_unit, 1.0u"Msun * pc^-2"))
-        y_data = (raw[!, "logΣ*"] .± raw[!, "logΣ* error"]) .+ factor
-    elseif quantity ∈ [:ode_molecular_area_density, :br_molecular_area_density]
-        # M⊙ pc^-2
-        factor = ustrip(y_unit, 1.0u"Msun * pc^-2")
-        y_data = log10.((raw[!, "ΣH2"] .± raw[!, "ΣH2 error"]) .* factor)
-    elseif quantity ∈ [:ode_atomic_area_density, :br_atomic_area_density]
-        # M⊙ pc^-2
-        factor = ustrip(y_unit, 1.0u"Msun * pc^-2")
-        y_data = log10.((raw[!, "ΣHI"] .± raw[!, "ΣHI error"]) .* factor)
-    elseif quantity == :sfr_area_density
-        # M⊙ pc^-2 Gyr^-1
-        factor = log10(ustrip(y_unit, 1.0u"Msun * pc^-2 * Gyr^-1"))
-        y_data = (raw[!, "logΣsfr"] .± raw[!, "logΣsfr error"]) .+ factor
-    elseif quantity == :O_stellar_abundance
-        # dimensionless
+    if quantity == :O_stellar_abundance
+
+        # Dimensionless
         y_data = @. (raw[!, "O/H"] - 12.0 + ABUNDANCE_SHIFT[:O]) ± raw[!, "ΔO/H"]
+
     elseif quantity == :N_stellar_abundance
-        # dimensionless
+
+        # Dimensionless
         y_data = @. (raw[!, "N/H"] - 12.0 + ABUNDANCE_SHIFT[:N]) ± raw[!, "ΔN/H"]
+
     elseif quantity == :C_stellar_abundance
-        # dimensionless
+
+        # Dimensionless
         y_data = @. (raw[!, "C/H"] - 12.0 + ABUNDANCE_SHIFT[:C]) ± raw[!, "ΔC/H"]
+
     else
-        throw(ArgumentError("ppMolla2015: `x_quantity` can only be  :stellar_area_density, \
-        :ode_molecular_area_density, :br_molecular_area_density, :ode_atomic_area_density, \
-        :br_atomic_area_density, :sfr_area_density, :O_stellar_abundance, :N_stellar_abundance or :C_stellar_abundance, but I got :$(quantity)"))
+
+        _, component = QUANTITY_SPLITS[quantity]
+
+        if component == :stellar
+
+            # M⊙ pc^-2
+            factor = log10(ustrip(y_unit, 1.0u"Msun * pc^-2"))
+            y_data = (raw[!, "logΣ*"] .± raw[!, "logΣ* error"]) .+ factor
+
+        elseif component ∈ [:ode_molecular, :ode_molecular_stellar, :br_molecular, :ode_cold]
+
+            # M⊙ pc^-2
+            factor = ustrip(y_unit, 1.0u"Msun * pc^-2")
+            y_data = log10.((raw[!, "ΣH2"] .± raw[!, "ΣH2 error"]) .* factor)
+
+        elseif component ∈ [:ode_atomic, :br_atomic]
+
+            # M⊙ pc^-2
+            factor = ustrip(y_unit, 1.0u"Msun * pc^-2")
+            y_data = log10.((raw[!, "ΣHI"] .± raw[!, "ΣHI error"]) .* factor)
+
+        elseif component == :sfr
+
+            # M⊙ pc^-2 Gyr^-1
+            factor = log10(ustrip(y_unit, 1.0u"Msun * pc^-2 * Gyr^-1"))
+            y_data = (raw[!, "logΣsfr"] .± raw[!, "logΣsfr error"]) .+ factor
+
+
+        else
+
+            throw(ArgumentError("ppMolla2015: `x_quantity` can only be :stellar_area_density, \
+            :ode_molecular_area_density, :ode_molecular_stellar_area_density, \
+            :br_molecular_area_density, :ode_cold_area_density, :ode_atomic_area_density, \
+            :br_atomic_area_density, :sfr_area_density, :O_stellar_abundance, :N_stellar_abundance \
+            or :C_stellar_abundance, but I got :$(quantity)"))
+
+        end
+
     end
 
     y_values = Measurements.value.(y_data)
@@ -1638,7 +1657,14 @@ function ppMolla2015!(
     ################################################################################################
 
     # Plot the mean values
-    slp = scatterlines!(figure.current_axis.x, x_values, y_values; color, linestyle, marker=:utriangle)
+    slp = scatterlines!(
+        figure.current_axis.x,
+        x_values,
+        y_values;
+        color,
+        linestyle,
+        marker=:utriangle,
+    )
 
     translate!(Accum, slp, 0, 0, -10)
 

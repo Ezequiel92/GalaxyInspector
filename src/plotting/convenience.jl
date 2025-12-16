@@ -1014,7 +1014,7 @@ Plot a bar plot of the gas fractions, where the bins are a given gas `quantity`.
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Target quantity. It can be any of the valid quantities of [`scatterQty`](@ref) with the cell/particle type `:gas`.
   - `edges::Vector{<:Number}`: A list of bin edges for `quantity`.
-  - `components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_molecular]`: List of gas components to be considered. The fractions will be normalized to this list of components. See [`COMPONENTS`](@ref) for options.
+  - `components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_molecular_stellar]`: List of gas components to be considered. The fractions will be normalized to this list of components. See [`COMPONENTS`](@ref) for options.
   - `ylog::Bool=false`: If true, sets everything so the y axis is ``\\log_{10}``(`quantity`).
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -1034,7 +1034,7 @@ function gasBarPlot(
     slice::IndexType,
     quantity::Symbol,
     edges::Vector{<:Number};
-    components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_molecular],
+    components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_molecular_stellar],
     ylog::Bool=false,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -1153,15 +1153,17 @@ Plot a profile with the corresponding experimental values of the Milky Way from 
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_area_density`       -> Stellar mass surface density.
-      + `:sfr_area_density`           -> Star formation rate surface density.
-      + `:ode_molecular_area_density` -> Molecular mass surface density.
-      + `:br_molecular_area_density`  -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006).
-      + `:ode_atomic_area_density`    -> Atomic mass surface density.
-      + `:br_atomic_area_density`     -> Atomic mass surface density, computed using the pressure relation in Blitz et al. (2006).
-      + `:O_stellar_abundance`        -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
-      + `:N_stellar_abundance`        -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
-      + `:C_stellar_abundance`        -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
+      + `:stellar_area_density`               -> Stellar mass surface density.
+      + `:sfr_area_density`                   -> Star formation rate surface density.
+      + `:ode_molecular_area_density`         -> Molecular mass surface density.
+      + `:ode_cold_area_density`              -> Cold mass (everything but ionized and atomic) surface density.
+      + `:ode_molecular_stellar_area_density` -> Molecular + stellar mass surface density.
+      + `:br_molecular_area_density`          -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006).
+      + `:ode_atomic_area_density`            -> Atomic mass surface density.
+      + `:br_atomic_area_density`             -> Atomic mass surface density, computed using the pressure relation in Blitz et al. (2006).
+      + `:O_stellar_abundance`                -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
+      + `:N_stellar_abundance`                -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
+      + `:C_stellar_abundance`                -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -1209,7 +1211,13 @@ function compareMolla2015(
 
         grid = CircularGrid(16.5u"kpc", 14; shift=2.5u"kpc")
 
-    elseif quantity ∈ [:ode_molecular_area_density, :br_molecular_area_density, :sfr_area_density]
+    elseif quantity ∈ [
+        :ode_molecular_area_density,
+        :ode_molecular_stellar_area_density,
+        :br_molecular_area_density,
+        :ode_cold_area_density,
+        :sfr_area_density,
+    ]
 
         grid = CircularGrid(19.5u"kpc", 20; shift=-0.5u"kpc")
 
@@ -1228,6 +1236,11 @@ function compareMolla2015(
     elseif quantity == :C_stellar_abundance
 
         grid = CircularGrid(15.5u"kpc", 16; shift=-0.5u"kpc")
+
+    else
+
+        throw(ArgumentError("compareMolla2015: I don't recognize the quantity :$(quantity) for \
+        Mollá et al. (2015)"))
 
     end
 
@@ -2419,6 +2432,10 @@ end
 
 Plot a time series of the gas components. Either their masses or their fractions.
 
+!!! note
+
+    The molecular component includes the molecular and stellar fractions from our star formation model.
+
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
@@ -2459,12 +2476,12 @@ function gasEvolution(
     y_plot_params = plotParams(quantity)
 
     quantities = Symbol.(
-        [:ode_ionized, :ode_atomic, :ode_molecular, :ode_metals, :ode_dust],
+        [:ode_ionized, :ode_atomic, :ode_molecular_stellar, :ode_metals, :ode_dust],
         :_,
         quantity,
     )
 
-    sim_labels = ["Ionized ", "Atomic ", "Molecular ", "Metal ", "Dust "] .* string(quantity)
+    sim_labels = ["Ionized ", "Atomic ", "Molecular + stars ", "Metal ", "Dust "] .* string(quantity)
 
     # Set arguments for the y axis
     if ylog
@@ -2713,6 +2730,7 @@ function cpuTXT(
 
 end
 
+#TODO
 """
     kennicuttSchmidtLaw(
         simulation_paths::Vector{String},
@@ -3783,6 +3801,7 @@ function stellarBirthHalos(
 
 end
 
+#TODO
 """
     atomicMolecularTransition(
         simulation_paths::Vector{String},
@@ -3825,7 +3844,7 @@ function atomicMolecularTransition(
 
 
             x_quantity = :ode_atomic_number_density
-            y_quantity = ratio(:ode_molecular_mass, :ode_neutral_mass)
+            y_quantity = ratio(:ode_cold, :ode_neutral_mass)
 
         else
 
@@ -4186,6 +4205,7 @@ function velocityProfile(
 
 end
 
+#TODO
 """
     compareFeldmann2020(
         simulation_paths::Vector{String},
@@ -4615,19 +4635,21 @@ The quantities in the HDF5 file for each voxel are:
 Column 01: x coordinate [`l_unit`]
 Column 02: y coordinate [`l_unit`]
 Column 03: z coordinate [`l_unit`]
-Column 04: Molecular hydrogen mass [`m_unit`]
+Column 04: Ionized hydrogen mass [`m_unit`]
 Column 05: Atomic hydrogen mass [`m_unit`]
-Column 06: Ionized hydrogen mass [`m_unit`]
-Column 07: Gas velocity in the x direction [`v_unit`]
-Column 08: Gas velocity in the y direction [`v_unit`]
-Column 09: Gas velocity in the z direction [`v_unit`]
-Column 10: Gas velocity dispersion in the x direction [`v_unit`]
-Column 11: Gas velocity dispersion in the y direction [`v_unit`]
-Column 12: Gas velocity dispersion in the z direction [`v_unit`]
+Column 06: Molecular hydrogen + stars mass [`m_unit`]
+Column 07: Metals mass [`m_unit`]
+Column 08: Dust mass [`m_unit`]
+Column 09: Gas velocity in the x direction [`v_unit`]
+Column 10: Gas velocity in the y direction [`v_unit`]
+Column 11: Gas velocity in the z direction [`v_unit`]
+Column 12: Gas velocity dispersion in the x direction [`v_unit`]
+Column 13: Gas velocity dispersion in the y direction [`v_unit`]
+Column 14: Gas velocity dispersion in the z direction [`v_unit`]
 
 For simulations with the gas represented by Voronoi cells (e.g. Arepo):
 
-The mass is the mass of molecular, atomic or ionized gas intersecting the voxel, so it only considers the cell that is closest to the center of the voxel. The velocity is given by the weighted mean of the velocities of the `n_neighbors` nearest cells. And the velocity dispersion, by the weighted standard deviation.
+The mass is the mass of cold, atomic or ionized gas intersecting the voxel, so it only considers the cell that is closest to the center of the voxel. The velocity is given by the weighted mean of the velocities of the `n_neighbors` nearest cells. And the velocity dispersion, by the weighted standard deviation.
 
 Notice that for Voronoi cells, the mass will be sample at a high sub-cell resolution (as long as voxel size < cell size), while the velocities are sample at a locally lower resolution (as long as `n_neighbors` > 1). The weights are given by the distance (in kpc) to each neighbor, using a Gaussian kernel.
 
@@ -4682,7 +4704,7 @@ function gasVelocityCubes(
 
     # Set the number of columns and rows
     n_rows = grid.n_bins^3
-    n_cols = 12
+    n_cols = 14
 
     base_request = mergeRequests(plotParams(:mass).request, Dict(:gas => ["POS ", "VEL "]))
 
@@ -4742,22 +4764,27 @@ function gasVelocityCubes(
             # Load the cell/particle velocities
             velocities = ustrip.(v_unit, gd["VEL "])
 
-            # Compute the mass of molecular, atomic, and ionized gas in each cell
+            # Compute the mass of cold, atomic, and ionized gas in each cell
             if isSimSFM(simulation_path)
 
-                mol_masses = scatterQty(data_dict, :ode_molecular_mass)
-                ato_masses = scatterQty(data_dict, :ode_atomic_mass)
-                ion_masses = scatterQty(data_dict, :ode_ionized_mass)
+
+                ion_masses  = scatterQty(data_dict, :ode_ionized_mass)
+                ato_masses  = scatterQty(data_dict, :ode_atomic_mass)
+                mol_masses  = scatterQty(data_dict, :ode_molecular_stellar_mass)
+                Z_masses    = scatterQty(data_dict, :ode_metals_mass)
+                dust_masses = scatterQty(data_dict, :ode_dust_mass)
 
             else
 
-                mol_masses = scatterQty(data_dict, :br_molecular_mass)
-                ato_masses = scatterQty(data_dict, :br_atomic_mass)
-                ion_masses = scatterQty(data_dict, :ionized_mass)
+                ion_masses  = scatterQty(data_dict, :ionized_mass)
+                ato_masses  = scatterQty(data_dict, :br_atomic_mass)
+                mol_masses  = scatterQty(data_dict, :br_molecular_mass)
+                Z_masses    = scatterQty(data_dict, :Z_gas_mass)
+                dust_masses = zeros(eltype(Z_masses), length(Z_masses))
 
             end
 
-            if any(isempty, [mol_masses, ato_masses, ion_masses, velocities, positions])
+            if any(isempty, [mol_masses, ato_masses, ion_masses, Z_masses, dust_masses, velocities, positions])
                 throw(ArgumentError("gasVelocityCubes: Some data is missing (there appears to be \
                 no gas in the snapshot), so I cannot construct the velocity cube"))
             end
@@ -4766,15 +4793,17 @@ function gasVelocityCubes(
             # Column 01: x coordinate [l_unit]
             # Column 02: y coordinate [l_unit]
             # Column 03: z coordinate [l_unit]
-            # Column 04: Molecular hydrogen mass [m_unit]
+            # Column 04: Ionized hydrogen mass [m_unit]
             # Column 05: Atomic hydrogen mass [m_unit]
-            # Column 06: Ionized hydrogen mass [m_unit]
-            # Column 07: Gas velocity in the x direction [v_unit]
-            # Column 08: Gas velocity in the y direction [v_unit]
-            # Column 09: Gas velocity in the z direction [v_unit]
-            # Column 10: Gas velocity dispersion in the x direction [v_unit]
-            # Column 11: Gas velocity dispersion in the y direction [v_unit]
-            # Column 12: Gas velocity dispersion in the z direction [v_unit]
+            # Column 06: Molecular hydrogen + stars mass [m_unit]
+            # Column 07: Metals mass [m_unit]
+            # Column 08: Dust mass [m_unit]
+            # Column 09: Gas velocity in the x direction [v_unit]
+            # Column 10: Gas velocity in the y direction [v_unit]
+            # Column 11: Gas velocity in the z direction [v_unit]
+            # Column 12: Gas velocity dispersion in the x direction [v_unit]
+            # Column 13: Gas velocity dispersion in the y direction [v_unit]
+            # Column 14: Gas velocity dispersion in the z direction [v_unit]
             data_matrix = Matrix{Float64}(undef, n_rows, n_cols)
 
             if gas_type == :cells
@@ -4783,9 +4812,11 @@ function gasVelocityCubes(
                 cell_volumes = gd["MASS"] ./ gd["RHO "]
 
                 # Compute the gas densities
-                mol_densities = ustrip.(m_unit * l_unit^-3, mol_masses ./ cell_volumes)
-                ato_densities = ustrip.(m_unit * l_unit^-3, ato_masses ./ cell_volumes)
-                ion_densities = ustrip.(m_unit * l_unit^-3, ion_masses ./ cell_volumes)
+                ion_densities  = ustrip.(m_unit * l_unit^-3, ion_masses ./ cell_volumes)
+                ato_densities  = ustrip.(m_unit * l_unit^-3, ato_masses ./ cell_volumes)
+                mol_densities  = ustrip.(m_unit * l_unit^-3, mol_masses ./ cell_volumes)
+                Z_densities    = ustrip.(m_unit * l_unit^-3, Z_masses ./ cell_volumes)
+                dust_densities = ustrip.(m_unit * l_unit^-3, dust_masses ./ cell_volumes)
 
                 # Load the volume of the voxels
                 voxel_volume = ustrip(l_unit^3, grid.bin_volume)
@@ -4801,26 +4832,30 @@ function gasVelocityCubes(
                     # Physical coordinates of the voxel [l_unit]
                     data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
 
-                    # Molecular hydrogen mass [m_unit]
-                    data_matrix[i, 4] = mol_densities[idxs[i][1]] * voxel_volume
+                    # Ionized hydrogen mass [m_unit]
+                    data_matrix[i, 4] = ion_densities[idxs[i][1]] * voxel_volume
                     # Atomic hydrogen mass [m_unit]
                     data_matrix[i, 5] = ato_densities[idxs[i][1]] * voxel_volume
-                    # Ionized hydrogen mass [m_unit]
-                    data_matrix[i, 6] = ion_densities[idxs[i][1]] * voxel_volume
+                    # Molecular hydrogen + stars mass [m_unit]
+                    data_matrix[i, 6] = mol_densities[idxs[i][1]] * voxel_volume
+                    # Metals mass [m_unit]
+                    data_matrix[i, 7] = Z_densities[idxs[i][1]] * voxel_volume
+                    # Dust mass [m_unit]
+                    data_matrix[i, 8] = dust_densities[idxs[i][1]] * voxel_volume
 
                     if isone(n_neighbors)
 
                         # Neighbor velocity in the x direction [v_unit]
-                        data_matrix[i, 7] = velocities[1, idxs[i]]
+                        data_matrix[i, 9]  = velocities[1, idxs[i]]
                         # Neighbor velocity in the y direction [v_unit]
-                        data_matrix[i, 8] = velocities[2, idxs[i]]
+                        data_matrix[i, 10] = velocities[2, idxs[i]]
                         # Neighbor velocity in the z direction [v_unit]
-                        data_matrix[i, 9] = velocities[3, idxs[i]]
+                        data_matrix[i, 11] = velocities[3, idxs[i]]
 
                         # For the case of only one neighbor, set the standard deviations to NaN
-                        data_matrix[i, 10] = NaN
-                        data_matrix[i, 11] = NaN
                         data_matrix[i, 12] = NaN
+                        data_matrix[i, 13] = NaN
+                        data_matrix[i, 14] = NaN
 
                     else
 
@@ -4835,11 +4870,11 @@ function gasVelocityCubes(
                         vzs = velocities[3, idxs[i]]
 
                         # Mean and standard deviation of the neighbor velocities in the x direction [v_unit]
-                        data_matrix[i, 7], data_matrix[i, 10] = mean_and_std(vxs, neighbor_weights)
+                        data_matrix[i, 9], data_matrix[i, 12]  = mean_and_std(vxs, neighbor_weights)
                         # Mean and standard deviation of the neighbor velocities in the y direction [v_unit]
-                        data_matrix[i, 8], data_matrix[i, 11] = mean_and_std(vys, neighbor_weights)
+                        data_matrix[i, 10], data_matrix[i, 13] = mean_and_std(vys, neighbor_weights)
                         # Mean and standard deviation of the neighbor velocities in the z direction [v_unit]
-                        data_matrix[i, 9], data_matrix[i, 12] = mean_and_std(vzs, neighbor_weights)
+                        data_matrix[i, 11], data_matrix[i, 14] = mean_and_std(vzs, neighbor_weights)
 
                     end
 
@@ -4855,38 +4890,42 @@ function gasVelocityCubes(
                     # Physical coordinates of the voxel [l_unit]
                     data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
 
-                    # Molecular hydrogen mass [m_unit]
-                    data_matrix[i, 4] = ustrip(m_unit, sum(mol_masses[idxs[i]]; init=0.0*m_unit))
+                    # Ionized hydrogen mass [m_unit]
+                    data_matrix[i, 4] = ustrip(m_unit, sum(ion_masses[idxs[i]]; init=0.0*m_unit))
                     # Atomic hydrogen mass [m_unit]
                     data_matrix[i, 5] = ustrip(m_unit, sum(ato_masses[idxs[i]]; init=0.0*m_unit))
-                    # Ionized hydrogen mass [m_unit]
-                    data_matrix[i, 6] = ustrip(m_unit, sum(ion_masses[idxs[i]]; init=0.0*m_unit))
+                    # Molecular hydrogen + stars mass [m_unit]
+                    data_matrix[i, 6] = ustrip(m_unit, sum(mol_masses[idxs[i]]; init=0.0*m_unit))
+                    # Metals mass [m_unit]
+                    data_matrix[i, 7] = ustrip(m_unit, sum(Z_masses[idxs[i]]; init=0.0*m_unit))
+                    # Dust mass [m_unit]
+                    data_matrix[i, 8] = ustrip(m_unit, sum(dust_masses[idxs[i]]; init=0.0*m_unit))
 
                     if isempty(idxs[i])
 
                         # If the voxel has no particles set the velocity to NaN
-                        data_matrix[i, 7] = NaN
-                        data_matrix[i, 8] = NaN
-                        data_matrix[i, 9] = NaN
-
-                        # If the voxel has no particles set the velocity dispersion to NaN
+                        data_matrix[i, 9]  = NaN
                         data_matrix[i, 10] = NaN
                         data_matrix[i, 11] = NaN
+
+                        # If the voxel has no particles set the velocity dispersion to NaN
                         data_matrix[i, 12] = NaN
+                        data_matrix[i, 13] = NaN
+                        data_matrix[i, 14] = NaN
 
                     elseif isone(length(idxs[i]))
 
                         # Velocity in the x direction [v_unit]
-                        data_matrix[i, 7] = velocities[1, idxs[i][1]]
+                        data_matrix[i, 9]  = velocities[1, idxs[i][1]]
                         # Velocity in the y direction [v_unit]
-                        data_matrix[i, 8] = velocities[2, idxs[i][1]]
+                        data_matrix[i, 10] = velocities[2, idxs[i][1]]
                         # Velocity in the z direction [v_unit]
-                        data_matrix[i, 9] = velocities[3, idxs[i][1]]
+                        data_matrix[i, 11] = velocities[3, idxs[i][1]]
 
                         # If the voxel has a single particle set the velocity dispersion to NaN
-                        data_matrix[i, 10] = NaN
-                        data_matrix[i, 11] = NaN
                         data_matrix[i, 12] = NaN
+                        data_matrix[i, 13] = NaN
+                        data_matrix[i, 14] = NaN
 
                     else
 
@@ -4898,11 +4937,11 @@ function gasVelocityCubes(
                         vzs = velocities[3, idxs[i]]
 
                         # Mean and standard deviation of the velocities in the x direction [v_unit]
-                        data_matrix[i, 7], data_matrix[i, 10] = mean_and_std(vxs)
+                        data_matrix[i, 9], data_matrix[i, 12]  = mean_and_std(vxs)
                         # Mean and standard deviation of the velocities in the y direction [v_unit]
-                        data_matrix[i, 8], data_matrix[i, 11] = mean_and_std(vys)
+                        data_matrix[i, 10], data_matrix[i, 13] = mean_and_std(vys)
                         # Mean and standard deviation of the velocities in the z direction [v_unit]
-                        data_matrix[i, 9], data_matrix[i, 12] = mean_and_std(vzs)
+                        data_matrix[i, 11], data_matrix[i, 14] = mean_and_std(vzs)
 
                     end
 
@@ -4951,18 +4990,20 @@ function gasVelocityCubes(
 
             # Write the column names
             attrs(hdf5_group["snap_$(snapshot_number)"])["Columns"] = [
-                "x",    # Column 01: x coordinate [l_unit]
-                "y",    # Column 02: y coordinate [l_unit]
-                "z",    # Column 03: z coordinate [l_unit]
-                "MH2",  # Column 04: Molecular hydrogen mass [m_unit]
-                "MHI",  # Column 05: Atomic hydrogen mass [m_unit]
-                "MHII", # Column 06: Ionized hydrogen mass [m_unit]
-                "Vx",   # Column 07: Gas velocity in the x direction [v_unit]
-                "Vy",   # Column 08: Gas velocity in the y direction [v_unit]
-                "Vz",   # Column 09: Gas velocity in the z direction [v_unit]
-                "Sx",   # Column 10: Gas velocity dispersion in the x direction [v_unit]
-                "Sy",   # Column 11: Gas velocity dispersion in the y direction [v_unit]
-                "Sz",   # Column 12: Gas velocity dispersion in the z direction [v_unit]
+                "x",     # Column 01: x coordinate [l_unit]
+                "y",     # Column 02: y coordinate [l_unit]
+                "z",     # Column 03: z coordinate [l_unit]
+                "MHII",  # Column 04: Ionized hydrogen mass [m_unit]
+                "MHI",   # Column 05: Atomic hydrogen mass [m_unit]
+                "MH2",   # Column 06: Molecular hydrogen + stars mass [m_unit]
+                "MZ",    # Column 07: Metals mass [m_unit]
+                "Mdust", # Column 08: Dust mass [m_unit]
+                "Vx",    # Column 09: Gas velocity in the x direction [v_unit]
+                "Vy",    # Column 10: Gas velocity in the y direction [v_unit]
+                "Vz",    # Column 11: Gas velocity in the z direction [v_unit]
+                "Sx",    # Column 12: Gas velocity dispersion in the x direction [v_unit]
+                "Sy",    # Column 13: Gas velocity dispersion in the y direction [v_unit]
+                "Sz",    # Column 14: Gas velocity dispersion in the z direction [v_unit]
             ]
 
             next!(prog_bar)
@@ -6238,9 +6279,24 @@ function gasDensityMaps(
         temp_folder = joinpath(output_path, "_gas_density_maps")
 
         if isSimSFM(simulation_path)
-            quantities = [:gas, :ode_molecular, :ode_atomic, :ode_ionized, :ode_dust]
+
+            quantities = [
+                :gas,
+                :ode_ionized,
+                :ode_atomic,
+                :ode_molecular_stellar,
+                :ode_metals,
+                :ode_dust,
+            ]
+
+            size = (2600, 1020)
+
         else
-            quantities = [:gas, :br_molecular, :br_atomic, :ionized, :Z_gas]
+
+            quantities = [:gas, :ionized, :br_atomic, :br_molecular, :Z_gas]
+
+            size = (2200, 1020)
+
         end
 
         n_rows = length(projection_planes)
@@ -6297,8 +6353,8 @@ function gasDensityMaps(
 
         current_theme = merge(
             theme,
-            Theme(
-                size=(2200, 1020),
+            Theme(;
+                size,
                 figure_padding=(5, 10, 5, 0),
                 Axis=(xticklabelsize=28, yticklabelsize=28),
                 Colorbar=(ticklabelsize=23, vertical=false, ticks=WilkinsonTicks(5)),
@@ -6400,6 +6456,7 @@ function gasDensityMaps(
 
 end
 
+#TODO
 """
     gasFractionsEvolution(
         simulation_paths::Vector{String};
@@ -6435,7 +6492,7 @@ function gasFractionsEvolution(
     for simulation_path in simulation_paths
 
         if isSimSFM(simulation_path)
-            quantities = [:ode_ionized, :ode_atomic, :ode_molecular, :ode_metals, :ode_dust]
+            quantities = [:ode_ionized, :ode_atomic, :ode_molecular_stellar, :ode_metals, :ode_dust]
             labels     = ["Ionized", "Atomic", "Molecular", "Dust", "Metals"]
             colors     = [
                 WONG_BLUE,
@@ -7184,47 +7241,47 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
                 println(file, header)
                 println(file, "#"^100)
 
-                println(file, "\n\tSnapshot:               $(basename(snapshot_path))")
+                println(file, "\nSnapshot:               $(basename(snapshot_path))")
 
-                println(file, "\tPhysical time:          $(physical_time) Gyr")
+                println(file, "Physical time:          $(physical_time) Gyr")
                 if cosmological
                     # For cosmological simulations print the scale factor and the redshift
-                    println(file, "\tScale factor:           $(scale_factor)")
-                    println(file, "\tRedshift:               $(redshift)")
+                    println(file, "Scale factor:           $(scale_factor)")
+                    println(file, "Redshift:               $(redshift)")
                 end
 
-                println(file, "\tTotal number of stars:  $(star_number)")
+                println(file, "Total number of stars:  $(star_number)")
 
                 if subfind_active
 
-                    println(file, "\tNumber of halos:        $(n_groups_total)")
+                    println(file, "Number of halos:        $(n_groups_total)")
 
-                    println(file, "\n\tMain subhalo properties:")
+                    println(file, "\nMain subhalo properties:")
 
-                    println(file, "\n\t\tNumber of stars:\n\n\t\t\t$(stellar_n_subhalo)\n")
+                    println(file, "\n\tNumber of stars:\n\n\t\t$(stellar_n_subhalo)\n")
 
-                    println(file, "\t\tCenter of mass:\n\n\t\t\t$(str_scm) $(u"Mpc")\n")
+                    println(file, "\tCenter of mass:\n\n\t\t$(str_scm) $(u"Mpc")\n")
                     println(
                         file,
-                        "\t\tPosition of the particle with the minimum gravitational potential energy: \
-                        \n\n\t\t\t$(str_spos) $(u"Mpc")\n",
+                        "\tPosition of the particle with the minimum gravitational potential energy: \
+                        \n\n\t\t$(str_spos) $(u"Mpc")\n",
                     )
                     println(
                         file,
-                        "\t\tSeparation between the minimum potential and the center of mass: \
-                        \n\n\t\t\t$(round(separation, sigdigits=6))\n",
+                        "\tSeparation between the minimum potential and the center of mass: \
+                        \n\n\t\t$(round(separation, sigdigits=6))\n",
                     )
 
-                    println(file, "\t\t", "#"^62)
-                    println(file, "\t\tNOTE: The number of stellar particles includes wind particles")
-                    println(file, "\t\t", "#"^62)
+                    println(file, "\t", "#"^62)
+                    println(file, "\tNOTE: The number of stellar particles includes wind particles")
+                    println(file, "\t", "#"^62)
 
-                    println(file, "\n\t\tCell/particle number:\n")
+                    println(file, "\n\tCell/particle number:\n")
 
                     for (i, len) in pairs(s_len_type)
 
                         component = PARTICLE_NAMES[INDEX_PARTICLE[i - 1]]
-                        println(file, "\t\t\t$(component):$(" "^(21 - length(component))) $(len)")
+                        println(file, "\t\t$(component):$(" "^(21 - length(component))) $(len)")
 
                     end
 
@@ -7508,12 +7565,42 @@ function snapshotReport(
                 println(file, "\tGas component masses ($(box_string)):\n")
 
                 if isSimSFM(simulation_path)
-                    gas_components = [:ode_ionized, :ode_atomic, :ode_molecular, :ode_metals, :ode_dust]
-                else
-                    gas_components = [:ionized, :br_atomic, :br_molecular, :Z_gas]
-                end
 
-                gas_labels = ["Ionized", "Atomic", "Molecular", "Metals", "Dust"]
+                    gas_components = [
+                        :ode_ionized,
+                        :ode_atomic,
+                        :ode_molecular,
+                        :ode_stellar,
+                        :ode_metals,
+                        :ode_dust,
+                        :ode_molecular_stellar,
+                        :ode_neutral,
+                        :ode_cold,
+                    ]
+
+                    gas_labels = [
+                        "ODE ionized",
+                        "ODE atomic",
+                        "ODE molecular",
+                        "ODE stellar",
+                        "ODE metals",
+                        "ODE dust",
+                        "ODE molecular + stellar",
+                        "ODE neutral",
+                        "ODE cold",
+                    ]
+
+                    r_pad = 30
+
+                else
+
+                    gas_components = [:ionized, :br_atomic, :br_molecular, :neutral, :Z_gas]
+
+                    gas_labels = ["Ionized", "BR atomic", "BR molecular", "Neutral", "Metals"]
+
+                    r_pad = 25
+
+                end
 
                 gas_mass = integrateQty(dd, :gas_mass)
 
@@ -7522,7 +7609,7 @@ function snapshotReport(
                     mass     = integrateQty(dd, Symbol(gas_component, :_mass))
                     percent  = round((mass / gas_mass) * 100, sigdigits=4)
                     str_mass = round(mass, sigdigits=3)
-                    title    = rpad("$(gas_label) mass:", 25)
+                    title    = rpad("$(gas_label) mass:", r_pad)
 
                     println(file, "\t\t$(title)$(str_mass ) ($(percent)% of the total gas mass)")
 
@@ -7725,6 +7812,7 @@ function snapshotReport(
         end
 
         println(file, "#"^100)
+        println(file)
 
         if cosmological
             # For cosmological simulations print the scale factor and the redshift
@@ -7734,7 +7822,6 @@ function snapshotReport(
             println(file, "Scale factor:        $(scale_factor)")
             println(file, "Redshift:            $(redshift)")
         else
-            println(file)
             println(file, "Cosmological:        No")
         end
 
@@ -7816,25 +7903,43 @@ function snapshotReport(
                     :ode_ionized,
                     :ode_atomic,
                     :ode_molecular,
+                    :ode_stellar,
                     :ode_metals,
                     :ode_dust,
+                    :ode_molecular_stellar,
+                    :ode_neutral,
+                    :ode_cold,
+                ]
+
+                labels = [
+                    "stellar",
+                    "total gas",
+                    "ODE ionized gas",
+                    "ODE atomic gas",
+                    "ODE molecular gas",
+                    "ODE stellar gas",
+                    "ODE metals",
+                    "ODE dust",
+                    "ODE molecular + stellar",
+                    "ODE neutral",
+                    "ODE cold",
                 ]
 
             else
 
-                components = [:stellar, :gas, :ionized, :br_atomic, :br_molecular, :Z_gas]
+                components = [:stellar, :gas, :ionized, :br_atomic, :br_molecular, :neutral, :Z_gas]
+
+                labels = [
+                    "stellar",
+                    "total gas",
+                    "ionized gas",
+                    "BR atomic gas",
+                    "BR molecular gas",
+                    "neutral gas",
+                    "metals",
+                ]
 
             end
-
-            labels = [
-                "stellar",
-                "total gas",
-                "ionized gas",
-                "atomic gas",
-                "molecular gas",
-                "metals",
-                "dust",
-            ]
 
             disc_idxs = filterBySphere(data_dict, 0.0u"kpc", DISK_R, :zero)
 

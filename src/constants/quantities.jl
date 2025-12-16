@@ -137,32 +137,33 @@ const COMPONENTS = [
     ############################
     # Particle-based components
     ############################
-    :stellar,       # Stellar particles
-    :dark_matter,   # Dark matter particles
-    :black_hole,    # Black hole particles
-    :Z_stellar,     # Metals in the stars
+    :stellar,     # Stellar particles
+    :dark_matter, # Dark matter particles
+    :black_hole,  # Black hole particles
+    :Z_stellar,   # Metals in the stars
     #######################
     # Gas-based components
     #######################
-    :gas,           # Gas cells
-    :hydrogen,      # Hydrogen
-    :helium,        # Helium
-    :Z_gas,         # Metals in the gas
-    :ionized,       # Ionized gas
-    :neutral,       # Neutral gas
-    :br_atomic,     # Atomic gas (using the Blitz et al. (2006) relation)
-    :br_molecular,  # Molecular gas (using the Blitz et al. (2006) relation)
+    :gas,          # Total gas
+    :hydrogen,     # Hydrogen
+    :helium,       # Helium
+    :Z_gas,        # Metals in the gas
+    :ionized,      # Ionized gas (using the Arepo data)
+    :neutral,      # Neutral gas (using the Arepo data)
+    :br_atomic,    # Atomic gas (using the Blitz et al. (2006) relation)
+    :br_molecular, # Molecular gas (using the Blitz et al. (2006) relation)
     ###############################
     # Components from our SF model
     ###############################
-    :ode_ionized,   # Ionized gas
-    :ode_atomic,    # Atomic gas
-    :ode_molecular, # Molecular gas
-    :ode_stellar,   # Stars
-    :ode_metals,    # Metals
-    :ode_dust,      # Dust
-    :ode_neutral,   # Neutral gas
-    :ode_cold,      # Cold gas (everything but atomic and ionized)
+    :ode_ionized,           # Ionized gas
+    :ode_atomic,            # Atomic gas
+    :ode_molecular,         # Molecular gas
+    :ode_stellar,           # Stars
+    :ode_metals,            # Metals
+    :ode_dust,              # Dust
+    :ode_neutral,           # Neutral gas (everything but ionized, metals, and dust)
+    :ode_molecular_stellar, # Molecular gas + stars
+    :ode_cold,              # Cold gas (everything but atomic and ionized)
 ]
 
 """
@@ -172,14 +173,14 @@ const MAGNITUDES = [
     #######################
     # Mass-like magnitudes
     #######################
-    :mass,                        # Total mass [M]
-    :mass_density,                # Volume mass density [M * L^-3]
-    :number_density,              # Number density [L^-3]
-    :area_density,                # Surface density [M * L^-2]
-    :number,                      # Number of elements [dimensionless]
-    :fraction,                    # Mass fraction [dimensionless]
-    :eff,                         # Star formation efficiency per free-fall time [dimensionless]
-    :clumping_factor,             # Clumping factor [dimensionless]
+    :mass,            # Total mass [M]
+    :mass_density,    # Volume mass density [M * L^-3]
+    :number_density,  # Number density [L^-3]
+    :area_density,    # Surface density [M * L^-2]
+    :number,          # Number of elements [dimensionless]
+    :fraction,        # Mass fraction [dimensionless]
+    :eff,             # Star formation efficiency per free-fall time [dimensionless]
+    :clumping_factor, # Clumping factor [dimensionless]
     #######################
     # Cinematic magnitudes
     #######################
@@ -197,9 +198,9 @@ const MAGNITUDES = [
     ########
     # Other
     ########
-    :depletion_time,              # Depletion time [T]
-    :xy_distance,                 # Proyected (to the xy plane) distance to the origin [L]
-    :radial_distance,             # Distance to the origin [L]
+    :depletion_time,  # Depletion time [T]
+    :xy_distance,     # Proyected (to the xy plane) distance to the origin [L]
+    :radial_distance, # Distance to the origin [L]
 ]
 
 """

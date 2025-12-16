@@ -1049,7 +1049,7 @@ Compute a bar plot, where the bins are for a given gas `quantity` and the height
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref) with the cell/particle type `:gas`.
   - `grid::LinearGrid`: Linear grid.
-  - `components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_molecular]`: List of gas components to be considered. The fractions will be normalized to this list of components. See [`COMPONENTS`](@ref) for options.
+  - `components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_cold]`: List of gas components to be considered. The fractions will be normalized to this list of components. See [`COMPONENTS`](@ref) for options.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1063,7 +1063,7 @@ function daBarGasFractions(
     data_dict::Dict,
     quantity::Symbol,
     grid::LinearGrid;
-    components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_molecular],
+    components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_cold],
     filter_function::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Number}},Nothing}
 
@@ -1162,15 +1162,15 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
   - `grid::CircularGrid`: Circular grid.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
-      + `:stellar_area_density`       -> Stellar mass surface density.
-      + `:sfr_area_density`           -> Star formation rate surface density.
-      + `:ode_molecular_area_density` -> Molecular mass surface density.
-      + `:br_molecular_area_density`  -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006).
-      + `:ode_atomic_area_density`    -> Atomic mass surface density.
-      + `:br_atomic_area_density`     -> Atomic mass surface density, computed using the pressure relation in Blitz et al. (2006).
-      + `:O_stellar_abundance`        -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
-      + `:N_stellar_abundance`        -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
-      + `:C_stellar_abundance`        -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
+      + `:stellar_area_density`               -> Stellar mass surface density.
+      + `:sfr_area_density`                   -> Star formation rate surface density.
+      + `:ode_molecular_stellar_area_density` -> Molecular mass surface density.
+      + `:br_molecular_area_density`          -> Molecular mass surface density, computed using the pressure relation in Blitz et al. (2006).
+      + `:ode_atomic_area_density`            -> Atomic mass surface density.
+      + `:br_atomic_area_density`             -> Atomic mass surface density, computed using the pressure relation in Blitz et al. (2006).
+      + `:O_stellar_abundance`                -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
+      + `:N_stellar_abundance`                -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
+      + `:C_stellar_abundance`                -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Unit for `quantity`.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
