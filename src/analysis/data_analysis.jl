@@ -1218,7 +1218,7 @@ function daMolla2015(
     else
 
         plot_params = plotParams(quantity)
-        component   = Symbol(replace(string(quantity), "_area_density" => "" ))
+        component   = Symbol(replace(string(quantity), "_area_density" => ""))
 
         if component == :sfr
             masses = scatterQty(filtered_dd, :observational_sfr)

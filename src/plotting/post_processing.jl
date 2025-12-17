@@ -1608,6 +1608,12 @@ function ppMolla2015!(
         # Dimensionless
         y_data = @. (raw[!, "C/H"] - 12.0 + ABUNDANCE_SHIFT[:C]) ± raw[!, "ΔC/H"]
 
+    elseif quantity == :sfr_area_density
+
+        # M⊙ pc^-2 Gyr^-1
+        factor = log10(ustrip(y_unit, 1.0u"Msun * pc^-2 * Gyr^-1"))
+        y_data = (raw[!, "logΣsfr"] .± raw[!, "logΣsfr error"]) .+ factor
+
     else
 
         _, component = QUANTITY_SPLITS[quantity]
@@ -1629,13 +1635,6 @@ function ppMolla2015!(
             # M⊙ pc^-2
             factor = ustrip(y_unit, 1.0u"Msun * pc^-2")
             y_data = log10.((raw[!, "ΣHI"] .± raw[!, "ΣHI error"]) .* factor)
-
-        elseif component == :sfr
-
-            # M⊙ pc^-2 Gyr^-1
-            factor = log10(ustrip(y_unit, 1.0u"Msun * pc^-2 * Gyr^-1"))
-            y_data = (raw[!, "logΣsfr"] .± raw[!, "logΣsfr error"]) .+ factor
-
 
         else
 
