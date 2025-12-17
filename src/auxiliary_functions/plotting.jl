@@ -780,7 +780,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
     elseif component == :ode_neutral
 
-        c_label = "{\\text{ODE }\\mathrm{a + m}}"
+        c_label = "{\\text{ODE }\\mathrm{a + m + s}}"
         cp_type = :gas
 
     elseif component == :ode_cold

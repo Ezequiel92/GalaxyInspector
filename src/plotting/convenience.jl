@@ -2542,6 +2542,194 @@ function gasEvolution(
 end
 
 """
+    gasFractionsEvolution(
+        simulation_paths::Vector{String};
+        <keyword arguments>
+    )::Nothing
+
+Plot time evolution of the masses and fractions of the gas components, in two panels.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `r_gas::Unitful.Length=DISK_R`: Radius of the gas sphere to consider.
+  - `output_path::String="."`: Path to the output folder.
+  - `mass_limits::NTuple{2,Float64}=(-4.2, 1.2)`: Limits for the masses, ``\\log_{10} M \\mathrm{[M_\\odot}``.
+  - `fraction_limits::NTuple{2,Float64}=(-5.2, 0.2)`: Limits for fractions, ``\\log_{10} f``.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function gasFractionsEvolution(
+    simulation_paths::Vector{String};
+    slice::IndexType=(:),
+    r_gas::Unitful.Length=DISK_R,
+    output_path::String=".",
+    mass_limits::NTuple{2,Float64}=(-4.2, 1.2),
+    fraction_limits::NTuple{2,Float64}=(-5.2, 0.2),
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    theme::Attributes=Theme(),
+)::Nothing
+
+    for simulation_path in simulation_paths
+
+        if isSimSFM(simulation_path)
+            quantities = [:ode_ionized, :ode_atomic, :ode_molecular_stellar, :ode_metals, :ode_dust]
+            labels = ["ODE ionized", "ODE atomic", "ODE molecular + stars", "ODE metals", "ODE dust"]
+        else
+            quantities = [:ionized, :br_atomic, :br_molecular, :Z_gas]
+            labels = ["Ionized", "BR atomic", "BR molecular", "Metals"]
+        end
+
+        colors = [WONG_BLUE, WONG_PINK, WONG_GREEN, WONG_CELESTE, WONG_RED]
+
+        x_plot_params = plotParams(:physical_time)
+        y_plot_params = plotParams(:fraction)
+
+        temp_folder = joinpath(output_path, "_gas_evolution")
+
+        plotTimeSeries(
+            fill(simulation_path, length(quantities)),
+            [lines!];
+            output_path=temp_folder,
+            slice,
+            filename="fraction_evolution",
+            da_functions=[daEvolution],
+            da_args=[(:physical_time, Symbol(quantity, :_fraction)) for quantity in quantities],
+            da_kwargs=[(;
+                trans_mode,
+                filter_mode,
+                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
+                ff_request=Dict(:gas => ["POS "]),
+            )],
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            save_figures=false,
+            backup_results=true,
+            sim_labels=string.(quantities),
+        )
+
+        fraction_label = LaTeXString(
+            L"\log_{10} \, " * getLabel(
+                y_plot_params.var_name,
+                y_plot_params.exp_factor,
+                y_plot_params.unit,
+            )
+        )
+
+        y_plot_params = plotParams(:mass)
+
+        plotTimeSeries(
+            fill(simulation_path, length(quantities)),
+            [lines!];
+            output_path=temp_folder,
+            slice,
+            filename="mass_evolution",
+            da_functions=[daEvolution],
+            da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
+            da_kwargs=[(;
+                trans_mode,
+                filter_mode,
+                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
+                ff_request=Dict(:gas => ["POS "]),
+            )],
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            save_figures=false,
+            backup_results=true,
+            sim_labels=string.(quantities),
+        )
+
+        mass_label = LaTeXString(
+            L"\log_{10} \, " * getLabel(
+                y_plot_params.var_name,
+                y_plot_params.exp_factor,
+                y_plot_params.unit,
+            )
+        )
+
+        jld2_paths = joinpath.(temp_folder, ["mass_evolution.jld2", "fraction_evolution.jld2"])
+
+        current_theme = merge(
+            theme,
+            Theme(
+                size=(880, 1650),
+                figure_padding=(5, 10, 5, 10),
+                palette=(linestyle=[:solid],),
+                Axis=(xticks=0:14,),
+            ),
+            DEFAULT_THEME,
+            theme_latexfonts(),
+        )
+
+        with_theme(current_theme) do
+
+            f = Figure()
+
+            ax_1 = CairoMakie.Axis(
+                f[1, 1];
+                xlabel=L"t \, [\mathrm{Gyr}]",
+                ylabel=mass_label,
+                xlabelvisible=false,
+                xticklabelsvisible=false,
+                limits=(-0.1, nothing, mass_limits...),
+            )
+
+            jldopen(jld2_paths[1], "r") do mass_evolution
+
+                for (quantity, color, label) in zip(quantities, colors, labels)
+
+                    x, y = mass_evolution["mass_evolution"][string(quantity)]
+
+                    lines!(ax_1, x, log10.(y); color, label)
+
+                end
+
+            end
+
+            axislegend(ax_1, position=:rb, framevisible=false, nbanks=2)
+
+            ax_2 = CairoMakie.Axis(
+                f[2, 1];
+                xlabel=L"t \, [\mathrm{Gyr}]",
+                ylabel=fraction_label,
+                aspect=nothing,
+                limits=(-0.1, nothing, fraction_limits...),
+            )
+
+            jldopen(jld2_paths[2], "r") do fraction_evolution
+
+                for (quantity, color) in zip(quantities, colors)
+
+                    x, y = fraction_evolution["fraction_evolution"][string(quantity)]
+
+                    lines!(ax_2, x, log10.(y); color)
+
+                end
+
+            end
+
+            linkxaxes!(ax_1, ax_2)
+
+            save(joinpath(output_path, "$(basename(simulation_path))_gas_evolution.png"), f)
+
+        end
+
+        rm(temp_folder; recursive=true)
+
+    end
+
+    return nothing
+
+end
+
+"""
     sfrTXT(
         simulation_paths::Vector{String},
         x_quantity::Symbol,
@@ -2730,7 +2918,6 @@ function cpuTXT(
 
 end
 
-#TODO
 """
     kennicuttSchmidtLaw(
         simulation_paths::Vector{String},
@@ -2747,6 +2934,10 @@ Plot the Kennicutt-Schmidt law.
 !!! note
 
     This function uses physical units regardless of the [`PHYSICAL_UNITS`](@ref) global setting.
+
+!!! note
+
+    For our model, the neutral component includes the molecular, atomic, and stellar fractions. And the molecular component includes the molecular and stellar fractions.
 
 # Arguments
 
@@ -3151,15 +3342,27 @@ function kennicuttSchmidtLaw(
 
         da_args=[(gas_grid, :gas, gas_type)]
 
-    elseif quantity ∈ [:molecular, :atomic]
+    elseif quantity == :molecular
 
         da_args = Vector{Tuple}(undef, length(simulation_paths))
 
         for (i, simulation_path) in pairs(simulation_paths)
             if isSimSFM(simulation_path)
-                da_args[i] = (gas_grid, Symbol(:ode_, quantity), gas_type)
+                da_args[i] = (gas_grid, :ode_molecular_stellar, gas_type)
             else
-                da_args[i] = (gas_grid, Symbol(:br_, quantity), gas_type)
+                da_args[i] = (gas_grid, :br_molecular, gas_type)
+            end
+        end
+
+    elseif quantity == :atomic
+
+        da_args = Vector{Tuple}(undef, length(simulation_paths))
+
+        for (i, simulation_path) in pairs(simulation_paths)
+            if isSimSFM(simulation_path)
+                da_args[i] = (gas_grid, :ode_atomic, gas_type)
+            else
+                da_args[i] = (gas_grid, :br_atomic, gas_type)
             end
         end
 
@@ -3291,11 +3494,11 @@ function kennicuttSchmidtLaw(
 
     elseif quantity == :molecular
 
-        x_label = getLabel(L"\Sigma_\mathrm{H2}", 0, Σg_unit)
+        x_label = getLabel(L"\Sigma_\text{H2}", 0, Σg_unit)
 
     elseif quantity == :atomic
 
-        x_label = getLabel(L"\Sigma_\mathrm{HI}", 0, Σg_unit)
+        x_label = getLabel(L"\Sigma_\text{HI}", 0, Σg_unit)
 
     elseif quantity == :neutral
 
@@ -3801,7 +4004,6 @@ function stellarBirthHalos(
 
 end
 
-#TODO
 """
     atomicMolecularTransition(
         simulation_paths::Vector{String},
@@ -3811,6 +4013,10 @@ end
     )::Nothing
 
 Plot the atomic to molecular gas transition for a set of metallicity ranges.
+
+!!! note
+
+    For our model, the neutral component includes the molecular, atomic, and stellar fractions. And the molecular component includes the molecular and stellar fractions.
 
 # Arguments
 
@@ -3842,9 +4048,8 @@ function atomicMolecularTransition(
         # Set some plotting parameters
         if isSimSFM(simulation_path)
 
-
             x_quantity = :ode_atomic_number_density
-            y_quantity = ratio(:ode_cold, :ode_neutral_mass)
+            y_quantity = ratio(:ode_molecular_stellar_mass, :ode_neutral_mass)
 
         else
 
@@ -4205,7 +4410,6 @@ function velocityProfile(
 
 end
 
-#TODO
 """
     compareFeldmann2020(
         simulation_paths::Vector{String},
@@ -4215,6 +4419,10 @@ end
     )::Nothing
 
 Plot a time series plus the corresponding experimental results from Feldmann (2020).
+
+!!! note
+
+    For our model, the molecular component includes the molecular and stellar fractions.
 
 # Arguments
 
@@ -4282,21 +4490,38 @@ function compareFeldmann2020(
         x_axis_label   = x_plot_params.axis_label
         xaxis_var_name = x_plot_params.var_name
 
-    elseif x_component ∈ [:molecular, :atomic]
+    elseif x_component  == :molecular
 
         x_quantities = Vector{Symbol}(undef, n_sims)
 
         for (i, simulation_path) in enumerate(simulation_paths)
             if isSimSFM(simulation_path)
-                x_quantities[i] = Symbol(:ode_, x_component, :_mass)
+                x_quantities[i] = :ode_molecular_stellar_mass
             else
-                x_quantities[i] = Symbol(:br_, x_component, :_mass)
+                x_quantities[i] = :br_molecular_mass
             end
         end
 
         xunit          = u"Msun"
         x_axis_label   = "auto_label"
-        c_label        = x_component == :molecular ? "\\mathrm{H2}" : "\\mathrm{HI}"
+        c_label        = "\\text{H2}"
+        xaxis_var_name = L"M_%$(c_label)"
+
+    elseif x_component == :atomic
+
+        x_quantities = Vector{Symbol}(undef, n_sims)
+
+        for (i, simulation_path) in enumerate(simulation_paths)
+            if isSimSFM(simulation_path)
+                x_quantities[i] = :ode_atomic_mass
+            else
+                x_quantities[i] = :br_atomic_mass
+            end
+        end
+
+        xunit          = u"Msun"
+        x_axis_label   = "auto_label"
+        c_label        = "\\text{HI}"
         xaxis_var_name = L"M_%$(c_label)"
 
     else
@@ -4322,21 +4547,38 @@ function compareFeldmann2020(
         y_axis_label   = y_plot_params.axis_label
         yaxis_var_name = y_plot_params.var_name
 
-    elseif y_component ∈ [:molecular, :atomic]
+    elseif y_component  == :molecular
 
         y_quantities = Vector{Symbol}(undef, n_sims)
 
         for (i, simulation_path) in enumerate(simulation_paths)
             if isSimSFM(simulation_path)
-                y_quantities[i] = Symbol(:ode_, y_component, :_mass)
+                y_quantities[i] = :ode_molecular_stellar_mass
             else
-                y_quantities[i] = Symbol(:br_, y_component, :_mass)
+                y_quantities[i] = :br_molecular_mass
             end
         end
 
         yunit          = u"Msun"
         y_axis_label   = "auto_label"
-        c_label        = y_component == :molecular ? "\\mathrm{H2}" : "\\mathrm{HI}"
+        c_label        = "\\text{H2}"
+        yaxis_var_name = L"M_%$(c_label)"
+
+    elseif y_component == :atomic
+
+        y_quantities = Vector{Symbol}(undef, n_sims)
+
+        for (i, simulation_path) in enumerate(simulation_paths)
+            if isSimSFM(simulation_path)
+                y_quantities[i] = :ode_atomic_mass
+            else
+                y_quantities[i] = :br_atomic_mass
+            end
+        end
+
+        yunit          = u"Msun"
+        y_axis_label   = "auto_label"
+        c_label        = "\\text{HI}"
         yaxis_var_name = L"M_%$(c_label)"
 
     else
@@ -6445,206 +6687,6 @@ function gasDensityMaps(
                 save(joinpath(output_path, filename), f)
 
             end
-
-        end
-
-        rm(temp_folder; recursive=true)
-
-    end
-
-    return nothing
-
-end
-
-#TODO
-"""
-    gasFractionsEvolution(
-        simulation_paths::Vector{String};
-        <keyword arguments>
-    )::Nothing
-
-Plot time evolution of the gas components mass and fraction, in two panels.
-
-# Arguments
-
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
-  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `r_gas::Unitful.Length=DISK_R`: Radius of the gas sphere to consider.
-  - `output_path::String="."`: Path to the output folder.
-  - `mass_limits::NTuple{2,Float64}=(-4.2, 1.2)`: Limits for the masses, ``\\log_{10} M \\mathrm{[M_\\odot}``.
-  - `fraction_limits::NTuple{2,Float64}=(-5.2, 0.2)`: Limits for fractions, ``\\log_{10} f``.
-  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
-  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-"""
-function gasFractionsEvolution(
-    simulation_paths::Vector{String};
-    slice::IndexType=(:),
-    r_gas::Unitful.Length=DISK_R,
-    output_path::String=".",
-    mass_limits::NTuple{2,Float64}=(-4.2, 1.2),
-    fraction_limits::NTuple{2,Float64}=(-5.2, 0.2),
-    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
-    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    theme::Attributes=Theme(),
-)::Nothing
-
-    for simulation_path in simulation_paths
-
-        if isSimSFM(simulation_path)
-            quantities = [:ode_ionized, :ode_atomic, :ode_molecular_stellar, :ode_metals, :ode_dust]
-            labels     = ["Ionized", "Atomic", "Molecular", "Dust", "Metals"]
-            colors     = [
-                WONG_BLUE,
-                WONG_PINK,
-                WONG_GREEN,
-                WONG_CELESTE,
-                WONG_RED,
-            ]
-        else
-            quantities = [:ionized, :br_atomic, :br_molecular, :Z_gas]
-            labels     = ["Ionized", "Atomic", "Molecular", "Metals"]
-            colors     = [
-                WONG_BLUE,
-                WONG_PINK,
-                WONG_GREEN,
-                WONG_CELESTE,
-            ]
-        end
-
-        x_plot_params = plotParams(:physical_time)
-        y_plot_params = plotParams(:fraction)
-
-        temp_folder = joinpath(output_path, "_gas_evolution")
-
-        plotTimeSeries(
-            fill(simulation_path, length(quantities)),
-            [lines!];
-            output_path=temp_folder,
-            slice,
-            filename="fraction_evolution",
-            da_functions=[daEvolution],
-            da_args=[(:physical_time, Symbol(quantity, :_fraction)) for quantity in quantities],
-            da_kwargs=[(;
-                trans_mode,
-                filter_mode,
-                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
-                ff_request=Dict(:gas => ["POS "]),
-            )],
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
-            save_figures=false,
-            backup_results=true,
-            sim_labels=string.(quantities),
-        )
-
-        fraction_label = LaTeXString(
-            L"\log_{10} \, " * getLabel(
-                y_plot_params.var_name,
-                y_plot_params.exp_factor,
-                y_plot_params.unit,
-            )
-        )
-
-        y_plot_params = plotParams(:mass)
-
-        plotTimeSeries(
-            fill(simulation_path, length(quantities)),
-            [lines!];
-            output_path=temp_folder,
-            slice,
-            filename="mass_evolution",
-            da_functions=[daEvolution],
-            da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
-            da_kwargs=[(;
-                trans_mode,
-                filter_mode,
-                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
-                ff_request=Dict(:gas => ["POS "]),
-            )],
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
-            save_figures=false,
-            backup_results=true,
-            sim_labels=string.(quantities),
-        )
-
-        mass_label = LaTeXString(
-            L"\log_{10} \, " * getLabel(
-                y_plot_params.var_name,
-                y_plot_params.exp_factor,
-                y_plot_params.unit,
-            )
-        )
-
-        jld2_paths = joinpath.(temp_folder, ["mass_evolution.jld2", "fraction_evolution.jld2"])
-
-        current_theme = merge(
-            theme,
-            Theme(
-                size=(880, 1650),
-                figure_padding=(5, 10, 5, 10),
-                palette=(linestyle=[:solid],),
-                Axis=(xticks=0:14,),
-            ),
-            DEFAULT_THEME,
-            theme_latexfonts(),
-        )
-
-        with_theme(current_theme) do
-
-            f = Figure()
-
-            ax_1 = CairoMakie.Axis(
-                f[1, 1];
-                xlabel=L"t \, [\mathrm{Gyr}]",
-                ylabel=mass_label,
-                xlabelvisible=false,
-                xticklabelsvisible=false,
-                limits=(-0.1, nothing, mass_limits...),
-            )
-
-            jldopen(jld2_paths[1], "r") do mass_evolution
-
-                for (quantity, color, label) in zip(quantities, colors, labels)
-
-                    x, y = mass_evolution["mass_evolution"][string(quantity)]
-
-                    lines!(ax_1, x, log10.(y); color, label)
-
-                end
-
-            end
-
-            axislegend(ax_1, position=:rb, framevisible=false, nbanks=2)
-
-            ax_2 = CairoMakie.Axis(
-                f[2, 1];
-                xlabel=L"t \, [\mathrm{Gyr}]",
-                ylabel=fraction_label,
-                aspect=nothing,
-                limits=(-0.1, nothing, fraction_limits...),
-            )
-
-            jldopen(jld2_paths[2], "r") do fraction_evolution
-
-                for (quantity, color) in zip(quantities, colors)
-
-                    x, y = fraction_evolution["fraction_evolution"][string(quantity)]
-
-                    lines!(ax_2, x, log10.(y); color)
-
-                end
-
-            end
-
-            linkxaxes!(ax_1, ax_2)
-
-            save(joinpath(output_path, "$(basename(simulation_path))_gas_evolution.png"), f)
 
         end
 
