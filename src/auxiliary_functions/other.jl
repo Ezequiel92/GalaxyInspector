@@ -50,7 +50,14 @@ New methods for `Base.union` to use with the `Vector{Bool}` type.
 """
 Base.union(a1::Vector{Bool}, a2::ReducedIndexType)::Vector{Int} = findall(a1) ∪ a2
 Base.union(a1::ReducedIndexType, a2::Vector{Bool})::Vector{Int} = a1 ∪ findall(a2)
-Base.union(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool} = Vector{Bool}(a1 .|| a2)
+function Base.union(a1::Vector{Bool}, a2::Vector{Bool})::Vector{Bool}
+
+    isempty(a1) && return a2
+    isempty(a2) && return a1
+
+    return Vector{Bool}(a1 .|| a2)
+
+end
 
 """
 New method for `Base.round` to use with the `Unitful.Quantity` type.

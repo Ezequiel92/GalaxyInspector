@@ -2577,10 +2577,10 @@ function gasFractionsEvolution(
 
         if isSimSFM(simulation_path)
             quantities = [:ode_ionized, :ode_atomic, :ode_molecular_stellar, :ode_metals, :ode_dust]
-            labels = ["ODE ionized", "ODE atomic", "ODE molecular + stars", "ODE metals", "ODE dust"]
+            labels = ["ODE HII", "ODE HI", "ODE H2 + stars", "ODE Z", "ODE dust"]
         else
             quantities = [:ionized, :br_atomic, :br_molecular, :Z_gas]
-            labels = ["Ionized", "BR atomic", "BR molecular", "Metals"]
+            labels = ["HII", "BR HI", "BR H2", "Z"]
         end
 
         colors = [WONG_BLUE, WONG_PINK, WONG_GREEN, WONG_CELESTE, WONG_RED]
@@ -2590,28 +2590,28 @@ function gasFractionsEvolution(
 
         temp_folder = joinpath(output_path, "_gas_evolution")
 
-        plotTimeSeries(
-            fill(simulation_path, length(quantities)),
-            [lines!];
-            output_path=temp_folder,
-            slice,
-            filename="fraction_evolution",
-            da_functions=[daEvolution],
-            da_args=[(:physical_time, Symbol(quantity, :_fraction)) for quantity in quantities],
-            da_kwargs=[(;
-                trans_mode,
-                filter_mode,
-                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
-                ff_request=Dict(:gas => ["POS "]),
-            )],
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
-            save_figures=false,
-            backup_results=true,
-            sim_labels=string.(quantities),
-        )
+        # plotTimeSeries(
+        #     fill(simulation_path, length(quantities)),
+        #     [lines!];
+        #     output_path=temp_folder,
+        #     slice,
+        #     filename="fraction_evolution",
+        #     da_functions=[daEvolution],
+        #     da_args=[(:physical_time, Symbol(quantity, :_fraction)) for quantity in quantities],
+        #     da_kwargs=[(;
+        #         trans_mode,
+        #         filter_mode,
+        #         extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
+        #         ff_request=Dict(:gas => ["POS "]),
+        #     )],
+        #     x_unit=x_plot_params.unit,
+        #     y_unit=y_plot_params.unit,
+        #     x_exp_factor=x_plot_params.exp_factor,
+        #     y_exp_factor=y_plot_params.exp_factor,
+        #     save_figures=false,
+        #     backup_results=true,
+        #     sim_labels=string.(quantities),
+        # )
 
         fraction_label = LaTeXString(
             L"\log_{10} \, " * getLabel(
@@ -2623,28 +2623,28 @@ function gasFractionsEvolution(
 
         y_plot_params = plotParams(:mass)
 
-        plotTimeSeries(
-            fill(simulation_path, length(quantities)),
-            [lines!];
-            output_path=temp_folder,
-            slice,
-            filename="mass_evolution",
-            da_functions=[daEvolution],
-            da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
-            da_kwargs=[(;
-                trans_mode,
-                filter_mode,
-                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
-                ff_request=Dict(:gas => ["POS "]),
-            )],
-            x_unit=x_plot_params.unit,
-            y_unit=y_plot_params.unit,
-            x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
-            save_figures=false,
-            backup_results=true,
-            sim_labels=string.(quantities),
-        )
+        # plotTimeSeries(
+        #     fill(simulation_path, length(quantities)),
+        #     [lines!];
+        #     output_path=temp_folder,
+        #     slice,
+        #     filename="mass_evolution",
+        #     da_functions=[daEvolution],
+        #     da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
+        #     da_kwargs=[(;
+        #         trans_mode,
+        #         filter_mode,
+        #         extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
+        #         ff_request=Dict(:gas => ["POS "]),
+        #     )],
+        #     x_unit=x_plot_params.unit,
+        #     y_unit=y_plot_params.unit,
+        #     x_exp_factor=x_plot_params.exp_factor,
+        #     y_exp_factor=y_plot_params.exp_factor,
+        #     save_figures=false,
+        #     backup_results=true,
+        #     sim_labels=string.(quantities),
+        # )
 
         mass_label = LaTeXString(
             L"\log_{10} \, " * getLabel(
@@ -2683,17 +2683,15 @@ function gasFractionsEvolution(
 
             jldopen(jld2_paths[1], "r") do mass_evolution
 
-                for (quantity, color, label) in zip(quantities, colors, labels)
+                for (quantity, color) in zip(quantities, colors)
 
                     x, y = mass_evolution["mass_evolution"][string(quantity)]
 
-                    lines!(ax_1, x, log10.(y); color, label)
+                    lines!(ax_1, x, log10.(y); color)
 
                 end
 
             end
-
-            axislegend(ax_1, position=:rb, framevisible=false, nbanks=2)
 
             ax_2 = CairoMakie.Axis(
                 f[2, 1];
@@ -2705,15 +2703,17 @@ function gasFractionsEvolution(
 
             jldopen(jld2_paths[2], "r") do fraction_evolution
 
-                for (quantity, color) in zip(quantities, colors)
+                for (quantity, color, label) in zip(quantities, colors, labels)
 
                     x, y = fraction_evolution["fraction_evolution"][string(quantity)]
 
-                    lines!(ax_2, x, log10.(y); color)
+                    lines!(ax_2, x, log10.(y); color, label)
 
                 end
 
             end
+
+            axislegend(ax_2, position=:rb, framevisible=false, nbanks=2)
 
             linkxaxes!(ax_1, ax_2)
 
@@ -2721,7 +2721,7 @@ function gasFractionsEvolution(
 
         end
 
-        rm(temp_folder; recursive=true)
+        # rm(temp_folder; recursive=true)
 
     end
 
@@ -8062,6 +8062,7 @@ function quantityReport(
         da_function,
         slice,
         output_path,
+        label=string(quantity),
         trans_mode,
         filter_mode,
     )
@@ -8086,6 +8087,7 @@ Write a text file with information about a the results of applying `da_function`
   - `da_kwarg::NamedTuple=(;)`: Keyword arguments for the data analysis function.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be analysed. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `output_path::String="."`: Path to the output folder.
+  - `label::Union{String,Nothing}=nothing``: Label for the output filename. If set to `nothing`, it will be `"quantity"`.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `show_progress::Bool=true`: If a progress bar will be shown.
@@ -8098,6 +8100,7 @@ function quantityReport(
     da_kwarg::NamedTuple=(;),
     slice::IndexType=(:),
     output_path::String=".",
+    label::Union{String,Nothing}=nothing,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     show_progress::Bool=true,
@@ -8106,6 +8109,7 @@ function quantityReport(
     for simulation_path in simulation_paths
 
         simulation_name = basename(simulation_path)
+        cosmological    = isSimCosmological(simulation_path)
 
         ############################################################################################
         # Load the relevant values and check for missing files
@@ -8150,10 +8154,20 @@ function quantityReport(
         # Get the number in the filename
         snapshot_numbers = safeSelect(simulation_table[!, :numbers], slice)
 
+        # Get the times and redshifts
+        physical_times = safeSelect(simulation_table[!, :physical_times], slice)
+        redshifts      = safeSelect(simulation_table[!, :redshifts], slice)
+
+        if isnothing(label)
+            qty_str = "quantity"
+        else
+            qty_str = label
+        end
+
         # Create the output file
         file = open(
             joinpath(mkpath(output_path),
-            "quantity_report_for_$(simulation_name).txt"),
+            "$(qty_str)_report_for_$(simulation_name).txt"),
             "w",
         )
 
@@ -8173,13 +8187,19 @@ function quantityReport(
 
         println(file, "#"^100)
 
-        println(file, "\nTranslation: $(translation)")
-        println(file, "Rotation:    $(rotation[1:2])")
+        println(file, "\nTranslation:   $(translation)")
+        println(file, "Rotation:      $(rotation[1:2])")
 
         if filter_mode isa Symbol
-            println(file, "Filter mode: :$(filter_mode)\n")
+            println(file, "Filter mode:   :$(filter_mode)")
         else
-            println(file, "Filter function: $(String(Symbol(filter_function)))\n")
+            println(file, "Filter function:  $(String(Symbol(filter_function)))")
+        end
+
+        if !PHYSICAL_UNITS && cosmological
+            println(file, "Lenght units:  Comoving\n")
+        else
+            println(file, "Lenght units:  Physical\n")
         end
 
         println(file, "#"^100)
@@ -8190,7 +8210,7 @@ function quantityReport(
         # Print statistics of `quantity` for every snapshot
         ############################################################################################
 
-        iterator = zip(snapshot_paths, global_indices, snapshot_numbers)
+        iterator = zip(snapshot_paths, global_indices, snapshot_numbers, physical_times, redshifts)
 
         prog_bar = Progress(
             length(iterator),
@@ -8201,14 +8221,16 @@ function quantityReport(
             enabled=show_progress,
         )
 
-        for (snapshot_path, global_index, snapshot_number) in iterator
+        for (snapshot_path, global_index, snapshot_number, physical_time, redshift) in iterator
 
             if ismissing(snapshot_path)
-                println(file, "Snapshot: snap_$(lpad(snapshot_number, 3, '0')).hdf5 is missing!\n")
+                println(file, "Snapshot:  snap_$(lpad(snapshot_number, 3, '0')).hdf5 is missing!\n")
                 next!(prog_bar)
                 continue
             else
-                println(file, "Snapshot: $(snapshot_path)\n")
+                println(file, "Snapshot:       $(snapshot_path)")
+                println(file, "Physical time:  $(round(ustrip(u"Gyr", physical_time); sigdigits=3)) Gyr")
+                println(file, "Redshift:       $(round(redshift; sigdigits=3))\n")
             end
 
             # Create the data dictionary
@@ -8240,7 +8262,7 @@ function quantityReport(
 
             if !isempty(quantity_values)
 
-                println(file, "\t# data points:    $(length(quantity_values))")
+                println(file, "\tNumber of particles/cells:  $(length(quantity_values))\n")
 
                 mean_qty  = mean(quantity_values)
                 std_qty   = std(quantity_values)

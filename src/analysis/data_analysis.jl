@@ -2493,8 +2493,12 @@ function daEvolution(
         y_values = cumsum(y_values)
     end
 
-    x_idxs = isnothing(x_log) ? Int64[] : map(iszero, x_values)
-    y_idxs = isnothing(y_log) ? Int64[] : map(iszero, y_values)
+    # Inf values break the plot auto limits computation, so we remove them
+    x_idxs = map(isinf, x_values)
+    y_idxs = map(isinf, y_values)
+
+    x_idxs = x_idxs ∪ (isnothing(x_log) ? Bool[] : map(iszero, x_values))
+    y_idxs = y_idxs ∪ (isnothing(y_log) ? Bool[] : map(iszero, y_values))
 
     delete_idxs = x_idxs ∪ y_idxs
 

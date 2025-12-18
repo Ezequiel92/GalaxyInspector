@@ -1098,7 +1098,7 @@ function computePARotationMatrix(
         (
             logging[] &&
             @info("computePARotationMatrix: The angular momentum will be computed using \
-            $(components)")
+            $(snap_types)")
         )
 
         if any(isempty, [positions, velocities, masses])
