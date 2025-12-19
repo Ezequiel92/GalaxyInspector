@@ -2590,28 +2590,28 @@ function gasFractionsEvolution(
 
         temp_folder = joinpath(output_path, "_gas_evolution")
 
-        # plotTimeSeries(
-        #     fill(simulation_path, length(quantities)),
-        #     [lines!];
-        #     output_path=temp_folder,
-        #     slice,
-        #     filename="fraction_evolution",
-        #     da_functions=[daEvolution],
-        #     da_args=[(:physical_time, Symbol(quantity, :_fraction)) for quantity in quantities],
-        #     da_kwargs=[(;
-        #         trans_mode,
-        #         filter_mode,
-        #         extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
-        #         ff_request=Dict(:gas => ["POS "]),
-        #     )],
-        #     x_unit=x_plot_params.unit,
-        #     y_unit=y_plot_params.unit,
-        #     x_exp_factor=x_plot_params.exp_factor,
-        #     y_exp_factor=y_plot_params.exp_factor,
-        #     save_figures=false,
-        #     backup_results=true,
-        #     sim_labels=string.(quantities),
-        # )
+        plotTimeSeries(
+            fill(simulation_path, length(quantities)),
+            [lines!];
+            output_path=temp_folder,
+            slice,
+            filename="fraction_evolution",
+            da_functions=[daEvolution],
+            da_args=[(:physical_time, Symbol(quantity, :_fraction)) for quantity in quantities],
+            da_kwargs=[(;
+                trans_mode,
+                filter_mode,
+                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
+                ff_request=Dict(:gas => ["POS "]),
+            )],
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            save_figures=false,
+            backup_results=true,
+            sim_labels=string.(quantities),
+        )
 
         fraction_label = LaTeXString(
             L"\log_{10} \, " * getLabel(
@@ -2623,28 +2623,28 @@ function gasFractionsEvolution(
 
         y_plot_params = plotParams(:mass)
 
-        # plotTimeSeries(
-        #     fill(simulation_path, length(quantities)),
-        #     [lines!];
-        #     output_path=temp_folder,
-        #     slice,
-        #     filename="mass_evolution",
-        #     da_functions=[daEvolution],
-        #     da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
-        #     da_kwargs=[(;
-        #         trans_mode,
-        #         filter_mode,
-        #         extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
-        #         ff_request=Dict(:gas => ["POS "]),
-        #     )],
-        #     x_unit=x_plot_params.unit,
-        #     y_unit=y_plot_params.unit,
-        #     x_exp_factor=x_plot_params.exp_factor,
-        #     y_exp_factor=y_plot_params.exp_factor,
-        #     save_figures=false,
-        #     backup_results=true,
-        #     sim_labels=string.(quantities),
-        # )
+        plotTimeSeries(
+            fill(simulation_path, length(quantities)),
+            [lines!];
+            output_path=temp_folder,
+            slice,
+            filename="mass_evolution",
+            da_functions=[daEvolution],
+            da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
+            da_kwargs=[(;
+                trans_mode,
+                filter_mode,
+                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
+                ff_request=Dict(:gas => ["POS "]),
+            )],
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            save_figures=false,
+            backup_results=true,
+            sim_labels=string.(quantities),
+        )
 
         mass_label = LaTeXString(
             L"\log_{10} \, " * getLabel(
@@ -2721,7 +2721,7 @@ function gasFractionsEvolution(
 
         end
 
-        # rm(temp_folder; recursive=true)
+        rm(temp_folder; recursive=true)
 
     end
 
