@@ -1560,17 +1560,17 @@ Plotting parameters for a quantity.
     cp_type    :: Union{Symbol,Nothing}       = nothing
 end
 
-#####################
-# Derived quantities
-#####################
-
-include("./quantities.jl")
-
 ##########################
 # Code specific constants
 ##########################
 
 include("./arepo.jl")
+
+#####################
+# Derived quantities
+#####################
+
+include("./quantities.jl")
 
 ######################
 # Cell/particle types
@@ -1608,30 +1608,6 @@ const PASS_NONE = Dict{Symbol,IndexType}(key => Int[] for key in keys(PARTICLE_I
 ###################
 # Tracked elements
 ###################
-
-"""
-List of symbols for the gas abundance quantities.
-"""
-const GAS_ABUNDANCE = Symbol.(keys(ELEMENT_INDEX), :_gas_abundance)
-
-"""
-Dictionary mapping each gas abundance quantity to its element.
-"""
-const GAS_ABUNDANCE_SPLITS = Dict(
-    Symbol(element, :_gas_abundance) => element for element in keys(ELEMENT_INDEX)
-)
-
-"""
-List of symbols for the stellar abundance quantities.
-"""
-const STELLAR_ABUNDANCE = Symbol.(keys(ELEMENT_INDEX), :_stellar_abundance)
-
-"""
-Dictionary mapping each stellar abundance quantity to its element.
-"""
-const STELLAR_ABUNDANCE_SPLITS = Dict(
-    Symbol(element, :_stellar_abundance) => element for element in keys(ELEMENT_INDEX)
-)
 
 """
 Shift for the solar abundance in dex.

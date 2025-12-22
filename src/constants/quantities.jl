@@ -278,11 +278,6 @@ const SFM_STELLAR_QTY = [
 ]
 
 """
-List of symbols for every code quantity in our SF model.
-"""
-const SFM_QTY = vcat(SFM_STELLAR_QTY, SFM_GAS_QTY)
-
-"""
 Dictionary mapping each code quantity in our SF model with its [`QUANTITIES`](@ref) key.
 """
 const SFM_KEYS = Dict(
@@ -306,6 +301,11 @@ const SFM_KEYS = Dict(
     :gas_sfr                 => "GSFR",
     :gas_pressure            => "GPRE",
 )
+
+"""
+List of symbols for every code quantity in our SF model.
+"""
+const SFM_QTY = vcat(SFM_STELLAR_QTY, SFM_GAS_QTY)
 
 """
 Dictionary mapping each code quantity in our SF model to its component and magnitude.
@@ -365,30 +365,38 @@ const SFM_DERIVED_QTY_SPLITS = Dict(
     for magnitude in SFM_DERIVED_MAGNITUDES
 )
 
-#########
-# Ratios
-#########
+#######################
+# Abundance quantities
+#######################
 
 """
-List of symbols for almost all the quantities in GalaxyInspector.
+List of symbols for the gas abundance quantities.
 """
-const QTY_GLOBAL_LIST = DERIVED_QTY ∪ SFM_QTY ∪ SFM_DERIVED_QTY
+const GAS_ABUNDANCE = Symbol.(keys(ELEMENT_INDEX), :_gas_abundance)
 
 """
-List of symbols for the ratios between derived quantities.
+Dictionary mapping each gas abundance quantity to its element.
 """
-const RATIO_QTY = [
-    Symbol(qty_01, :_, qty_2, :_ratio) for qty_01 in QTY_GLOBAL_LIST for qty_2 in QTY_GLOBAL_LIST
-]
-
-"""
-Dictionary mapping each ratio to its two derived quantities.
-"""
-const RATIO_SPLITS = Dict(
-    Symbol(qty_01, :_, qty_2, :_ratio) => (qty_01, qty_2)
-    for qty_01 in QTY_GLOBAL_LIST
-    for qty_2 in QTY_GLOBAL_LIST
+const GAS_ABUNDANCE_SPLITS = Dict(
+    Symbol(element, :_gas_abundance) => element for element in keys(ELEMENT_INDEX)
 )
+
+"""
+List of symbols for the stellar abundance quantities.
+"""
+const STELLAR_ABUNDANCE = Symbol.(keys(ELEMENT_INDEX), :_stellar_abundance)
+
+"""
+Dictionary mapping each stellar abundance quantity to its element.
+"""
+const STELLAR_ABUNDANCE_SPLITS = Dict(
+    Symbol(element, :_stellar_abundance) => element for element in keys(ELEMENT_INDEX)
+)
+
+"""
+List of symbols for all the abundance quantities.
+"""
+const ABUNDANCE_QTY = vcat(GAS_ABUNDANCE, STELLAR_ABUNDANCE)
 
 ###########################
 # Group catalog quantities
@@ -425,7 +433,7 @@ function parseHaloQuantity(s::Symbol)::Tuple{Symbol,Int}
 
     s_str = string(s)
 
-    m = match(r"^(.*)_(\d+)$", s_str)
+    m = match(r"^halo_(.*)_(\d+)$", s_str)
 
     (
         isnothing(m) &&
@@ -455,3 +463,75 @@ const HALO_KEYS = Dict(
     :halo_M200       => "G_M_Crit200",
     :halo_R200       => "G_R_Crit200",
 )
+
+const HALO_QTY = keys(HALO_KEYS)
+
+###################
+# Extra quantities
+###################
+
+const EXTRA_QTY = [
+    :temperature,
+    :pressure,
+    :sfr,
+    :ssfr,
+    :observational_sfr,
+    :observational_ssfr,
+    :sfr_area_density,
+    :sfr_density,
+    :stellar_age,
+    :stellar_birth_time,
+    :gas_sfr,
+    :gas_sfr_area_density,
+    :scale_factor,
+    :redshift,
+    :physical_time,
+    :lookback_time,
+    :time_step,
+    :clock_time_s,
+    :clock_time_percent,
+    :tot_clock_time_s,
+    :tot_clock_time_percent,
+    :gas_metallicity,
+    :stellar_metallicity,
+    :ode_metallicity,
+    :mass_accretion
+]
+
+###################################
+# Global list of single quantities
+###################################
+
+"""
+List of symbols for all the quantities in GalaxyInspector, except ratios.
+"""
+QTY_SINGLE_LIST = DERIVED_QTY ∪ SFM_QTY ∪ SFM_DERIVED_QTY ∪ HALO_QTY ∪ EXTRA_QTY ∪ ABUNDANCE_QTY
+
+#########
+# Ratios
+#########
+
+"""
+List of symbols for the ratios between derived quantities.
+"""
+const RATIO_QTY = [
+    Symbol(qty_01, :_, qty_2, :_ratio) for qty_01 in QTY_SINGLE_LIST for qty_2 in QTY_SINGLE_LIST
+]
+
+"""
+Dictionary mapping each ratio to its two derived quantities.
+"""
+const RATIO_SPLITS = Dict(
+    Symbol(qty_01, :_, qty_2, :_ratio) => (qty_01, qty_2)
+    for qty_01 in QTY_SINGLE_LIST
+    for qty_2 in QTY_SINGLE_LIST
+)
+
+############################
+# Global list of quantities
+############################
+
+"""
+List of symbols for all the quantities in GalaxyInspector.
+"""
+const QTY_GLOBAL_LIST = QTY_SINGLE_LIST ∪ RATIO_QTY

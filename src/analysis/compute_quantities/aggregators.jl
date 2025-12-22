@@ -627,7 +627,7 @@ function integrateQty(
 
     else
 
-        if quantity ∈ (QTY_GLOBAL_LIST ∪ RATIO_QTY)
+        if quantity ∈ QTY_GLOBAL_LIST
 
             scatter_qty = scatterQty(data_dict, quantity)
 

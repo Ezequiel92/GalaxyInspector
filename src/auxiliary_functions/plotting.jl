@@ -1807,6 +1807,12 @@ function haloQtyPlotParams(quantity::Symbol)::PlotParams
 
     magnitude, _ = parseHaloQuantity(quantity)
 
+    (
+        magnitude ∉ HALO_QTY &&
+        throw(ArgumentError("haloQtyPlotParams: I don't recognize the magnitude :$(magnitude), \
+        the options are the elements of HALO_QTY (see `./src/constants/quantities.jl`)"))
+    )
+
     if magnitude == :halo_mass
 
         # Halo mass
@@ -1913,7 +1919,7 @@ function plotParams(quantity::Symbol)::PlotParams
     # Group catalog quantities
     ###########################
 
-    elseif !isnothing(match(r"^(.*)_(\d+)$", string(quantity)))
+    elseif !isnothing(match(r"^halo_(.*)_(\d+)$", string(quantity)))
 
         plot_params = haloQtyPlotParams(quantity)
 

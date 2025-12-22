@@ -725,14 +725,14 @@ Returns the symbol for the ratio between two derived quantities.
 function ratio(qty_1::Symbol, qty_2::Symbol)::Symbol
 
     (
-        qty_1 ∈ QTY_GLOBAL_LIST ||
-        throw(ArgumentError("ratio: `qty_1` must be one of the quantities in QTY_GLOBAL_LIST, \
+        qty_1 ∈ QTY_SINGLE_LIST ||
+        throw(ArgumentError("ratio: `qty_1` must be one of the quantities in QTY_SINGLE_LIST, \
         but I got `qty_1` = :$(qty_1)"))
     )
 
     (
-        qty_2 ∈ QTY_GLOBAL_LIST ||
-        throw(ArgumentError("ratio: `qty_2` must be one of the quantities in QTY_GLOBAL_LIST, \
+        qty_2 ∈ QTY_SINGLE_LIST ||
+        throw(ArgumentError("ratio: `qty_2` must be one of the quantities in QTY_SINGLE_LIST, \
         but I got `qty_2` = :$(qty_2)"))
     )
 
