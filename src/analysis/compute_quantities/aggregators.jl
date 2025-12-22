@@ -491,7 +491,7 @@ function integrateQty(
         # Group catalog quantities
         ###########################
 
-        elseif !isnothing(match(r"^(.*)_(\d+)$", string(quantity)))
+        elseif !isnothing(match(r"^halo_(.*)_(\d+)$", string(quantity)))
 
             magnitude, halo_idx = parseHaloQuantity(quantity)
 
