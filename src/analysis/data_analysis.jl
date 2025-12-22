@@ -2564,15 +2564,15 @@ function daEvolution(
 
     # Inf values break the plot auto limits computation, so we remove them
     if isnothing(x_log)
-        x_filter = x -> isinf(x) || isPositive(x)
-    else
         x_filter = isinf
+    else
+        x_filter = x -> isinf(x) || !isPositive(x)
     end
 
     if isnothing(y_log)
-        y_filter = y -> isinf(y) || isPositive(y)
-    else
         y_filter = isinf
+    else
+        y_filter = y -> isinf(y) || !isPositive(y)
     end
 
     x_idxs = map(x_filter, x_values)
