@@ -2365,21 +2365,17 @@ end
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
-Compute the time series of two quantities.
+Compute the time series of two quantities, using [`integrateQty`](@ref) to compute their values at each time.
+
+!!! note
+
+    The log10 operation, if requested, is applied after the integration of the quantities.
 
 # Arguments
 
   - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
   - `x_quantity::Symbol`: Quantity for the x axis.
   - `y_quantity::Symbol`: Quantity for the y axis.
-  - `integration_functions::NTuple{2,Function}=(integrateQty, integrateQty)`: Functions to compute the integral value of `x_quantity` and `y_quantity` at a given time. The functions must have the signature:
-
-    `integration_functions(data_dict::Dict, quantity::Symbol)::Number`
-
-    where
-
-      + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-      + `quantity::Symbol`: The quantity to be integrated.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -2401,7 +2397,6 @@ function daEvolution(
     sim_data::Simulation,
     x_quantity::Symbol,
     y_quantity::Symbol;
-    integration_functions::NTuple{2,Function}=(integrateQty, integrateQty),
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
     extra_filter::Function=filterNothing,
@@ -2413,11 +2408,85 @@ function daEvolution(
     show_progress::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
-    base_request = mergeRequests(
-        plotParams(x_quantity).request,
-        plotParams(y_quantity).request,
+    qty_request = mergeRequests(plotParams(x_quantity).request, plotParams(y_quantity).request)
+
+    integration_functions = (dd->integrateQty(dd, x_quantity), dd->integrateQty(dd, y_quantity))
+
+    return daEvolution(
+        sim_data,
+        qty_request,
+        integration_functions;
+        trans_mode,
+        filter_mode,
+        extra_filter,
         ff_request,
+        x_log,
+        y_log,
+        smooth,
+        cumulative,
+        show_progress,
     )
+
+end
+
+"""
+    daEvolution(
+        sim_data::Simulation,
+        qty_request::Dict{Symbol,Vector{String}},
+        integration_functions::NTuple{2,Function};
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the time series of two quantities, using the provided integration functions to compute their values at each time.
+
+!!! note
+
+    The log10 operation, if requested, is applied after the integration of the quantities.
+
+# Arguments
+
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `qty_request::Dict{Symbol,Vector{String}}`: Request dictionary for both quantities.
+  - `integration_functions::NTuple{2,Function}`: Functions to compute the integral value of the x and y quantities at a given time. The functions must have the signature:
+
+    `integration_functions(data_dict::Dict)::Number`
+
+    where
+
+      + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
+  - `smooth::Int=0`: The result of `integration_functions` will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+
+# Returns
+
+  - A Tuple with two elements:
+
+      + A Vector with the time series of `x_quantity`.
+      + A Vector with the time series of `y_quantity`.
+"""
+function daEvolution(
+    sim_data::Simulation,
+    qty_request::Dict{Symbol,Vector{String}},
+    integration_functions::NTuple{2,Function};
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    x_log::Union{Unitful.Units,Nothing}=nothing,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
+    smooth::Int=0,
+    cumulative::Bool=false,
+    show_progress::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    base_request = mergeRequests(qty_request, ff_request)
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
@@ -2473,10 +2542,10 @@ function daEvolution(
         filterData!(data_dict; filter_function=extra_filter)
 
         # Compute the value for the x axis
-        x_values[i] = integration_functions[1](data_dict, x_quantity)
+        x_values[i] = integration_functions[1](data_dict)
 
         # Compute the value for the y axis
-        y_values[i] = integration_functions[2](data_dict, y_quantity)
+        y_values[i] = integration_functions[2](data_dict)
 
         # Move the progress bar forward
         next!(prog_bar)
@@ -2494,11 +2563,20 @@ function daEvolution(
     end
 
     # Inf values break the plot auto limits computation, so we remove them
-    x_idxs = map(isinf, x_values)
-    y_idxs = map(isinf, y_values)
+    if isnothing(x_log)
+        x_filter = x -> isinf(x) || isPositive(x)
+    else
+        x_filter = isinf
+    end
 
-    x_idxs = x_idxs ∪ (isnothing(x_log) ? Bool[] : map(iszero, x_values))
-    y_idxs = y_idxs ∪ (isnothing(y_log) ? Bool[] : map(iszero, y_values))
+    if isnothing(y_log)
+        y_filter = y -> isinf(y) || isPositive(y)
+    else
+        y_filter = isinf
+    end
+
+    x_idxs = map(x_filter, x_values)
+    y_idxs = map(y_filter, y_values)
 
     delete_idxs = x_idxs ∪ y_idxs
 

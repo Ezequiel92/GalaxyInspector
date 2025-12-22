@@ -2199,8 +2199,93 @@ function timeSeries(
     sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing,
 )::Nothing
 
-    x_plot_params = plotParams(x_quantity)
-    y_plot_params = plotParams(y_quantity)
+    integration_functions = (dd->integrateQty(dd, x_quantity), dd->integrateQty(dd, y_quantity))
+
+    timeSeries(
+        simulation_paths,
+        plotParams(x_quantity),
+        plotParams(y_quantity),
+        integration_functions;
+        slice,
+        xlog,
+        ylog,
+        cumulative,
+        file_name="$(y_quantity)_vs_$(x_quantity)",
+        output_path,
+        trans_mode,
+        filter_mode,
+        da_ff,
+        ff_request,
+        smooth,
+        backup_results,
+        theme,
+        sim_labels,
+    )
+
+    return nothing
+
+end
+
+"""
+    timeSeries(
+        simulation_paths::Vector{String},
+        x_plot_params::PlotParams,
+        y_plot_params::PlotParams,
+        integration_functions::NTuple{2,Function};
+        <keyword arguments>
+    )::Nothing
+
+Plot a time series.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
+  - `x_plot_params::PlotParams`: Plot parameters for the x axis.
+  - `y_plot_params::PlotParams`: Plot parameters for the y axis.
+  - `integration_functions::NTuple{2,Function}`: Functions to compute the integral value of the x and y quantities at a given time. The functions must have the signature:
+
+    `integration_functions(data_dict::Dict)::Number`
+
+    where
+
+      + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `xlog::Bool=true`: If the x axis is will have a ``\\log_{10}`` scale.
+  - `ylog::Bool=true`: If the y axis is will have a ``\\log_{10}`` scale.
+  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
+  - `file_name::String="time_series"`: Name of the output file (without extension).
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+  - `sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+"""
+function timeSeries(
+    simulation_paths::Vector{String},
+    x_plot_params::PlotParams,
+    y_plot_params::PlotParams,
+    integration_functions::NTuple{2,Function};
+    slice::IndexType=(:),
+    xlog::Bool=true,
+    ylog::Bool=true,
+    cumulative::Bool=false,
+    file_name::String="time_series",
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    smooth::Int=0,
+    backup_results::Bool=false,
+    theme::Attributes=Theme(),
+    sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing,
+)::Nothing
+
+    qty_request = mergeRequests(x_plot_params.request, y_plot_params.request)
 
     # Set arguments for the x axis
     if xlog
@@ -2229,9 +2314,9 @@ function timeSeries(
     end
 
     if isone(length(simulation_paths))
-        filename = "$(basename(simulation_paths[1]))_$(y_quantity)_vs_$(x_quantity)"
+        filename = "$(basename(simulation_paths[1]))_$(file_name)"
     else
-        filename = "$(y_quantity)_vs_$(x_quantity)"
+        filename = file_name
     end
 
     plotTimeSeries(
@@ -2241,7 +2326,7 @@ function timeSeries(
         filename,
         slice,
         da_functions=[daEvolution],
-        da_args=[(x_quantity, y_quantity)],
+        da_args=[(qty_request, integration_functions)],
         da_kwargs=[
             (;
                 trans_mode,
@@ -2359,29 +2444,16 @@ function statisticsEvolution(
     end
 
     y_agg_functions = [
-        (dd, qty)->integrateQty(dd, qty; agg_function=x->percentile(x, 25)),
-        (dd, qty)->integrateQty(dd, qty; agg_function=median),
-        (dd, qty)->integrateQty(dd, qty; agg_function=x->percentile(x, 75)),
-        (dd, qty)->integrateQty(dd, qty; agg_function=minimum),
-        (dd, qty)->integrateQty(dd, qty; agg_function=maximum),
+        dd->integrateQty(dd, y_quantity; agg_function=x->percentile(x, 25)),
+        dd->integrateQty(dd, y_quantity; agg_function=median),
+        dd->integrateQty(dd, y_quantity; agg_function=x->percentile(x, 75)),
+        dd->integrateQty(dd, y_quantity; agg_function=minimum),
+        dd->integrateQty(dd, y_quantity; agg_function=maximum),
     ]
     labels     = ["25th Percentile", "50th Percentile", "75th Percentile", "Minimum", "Maximum"]
     linestyles = [:solid, :solid, :solid, :dash, :dash]
     colors     = [WONG_BLUE, WONG_GREEN, WONG_RED, :black, :black]
-
-    da_kwargs=[
-        (;
-            integration_functions=(integrateQty, y_agg_function),
-            trans_mode,
-            filter_mode,
-            extra_filter=da_ff,
-            ff_request,
-            x_log,
-            y_log,
-            smooth,
-            cumulative,
-        ) for y_agg_function in y_agg_functions
-    ]
+    request    = mergeRequests(x_plot_params.request, y_plot_params.request)
 
     for simulation_path in simulation_paths
 
@@ -2392,8 +2464,22 @@ function statisticsEvolution(
             filename="$(basename(simulation_path))_$(y_quantity)_vs_$(x_quantity)",
             slice,
             da_functions=fill(daEvolution, 5),
-            da_args=[(x_quantity, y_quantity)],
-            da_kwargs,
+            da_args=[
+                (request, (dd->integrateQty(dd, x_quantity), y_agg_function))
+                for y_agg_function in y_agg_functions
+            ],
+            da_kwargs=[
+                (;
+                    trans_mode,
+                    filter_mode,
+                    extra_filter=da_ff,
+                    ff_request,
+                    x_log,
+                    y_log,
+                    smooth,
+                    cumulative,
+                ),
+            ],
             x_unit,
             y_unit,
             x_exp_factor,
