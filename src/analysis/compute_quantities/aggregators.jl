@@ -658,3 +658,52 @@ function integrateQty(
     return integrated_qty
 
 end
+
+"""
+    applyIntegrator(
+        data_dict::Dict,
+        scatter_function::Function,
+        agg_function::Function,
+        log::Union{Unitful.Units,Nothing},
+    )::Number
+
+Compute an integrated value from the results of `scatter_function` using `agg_function`. Optionally apply a log10 transformation.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `scatter_function::Function`: Function that computes a quantity for each cell/particle.
+  - `agg_function::Function`: Function that aggregates the scattered values.
+  - `log::Union{Unitful.Units,Nothing}`: If not `nothing`, apply log10 to the scattered values after removing the units.
+
+# Returns
+
+  - The aggregated value of the scattered quantity.
+"""
+function applyIntegrator(
+    data_dict::Dict,
+    scatter_function::Function,
+    agg_function::Function,
+    log::Union{Unitful.Units,Nothing},
+)::Number
+
+    vals = scatter_function(data_dict)
+
+    if !isnothing(log)
+        vals = ustrip.(log, vals)
+        filter_func = x -> !isinf(x) && isPositive(x)
+    else
+        filter_func = x -> !isinf(x)
+    end
+
+    filter!(filter_func, vals)
+
+    if !isnothing(log)
+        vals = log10.(vals)
+    end
+
+    isempty(vals) && return NaN
+
+    return agg_function(vals)
+
+end

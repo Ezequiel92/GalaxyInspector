@@ -2414,8 +2414,101 @@ function statisticsEvolution(
         :scale_factor, :redshift, :physical_time or :lookback_time, but I got :$(x_quantity)")
     )
 
-    x_plot_params = plotParams(x_quantity)
     y_plot_params = plotParams(y_quantity)
+
+    statisticsEvolution(
+        simulation_paths,
+        x_quantity,
+        y_plot_params,
+        dd->scatterQty(dd, y_quantity);
+        slice,
+        xlog,
+        ylog,
+        cumulative,
+        file_name="$(y_quantity)_vs_$(x_quantity)",
+        output_path,
+        trans_mode,
+        filter_mode,
+        da_ff,
+        ff_request,
+        smooth,
+        backup_results,
+        theme,
+    )
+
+    return nothing
+
+end
+
+"""
+    statisticsEvolution(
+        simulation_paths::Vector{String},
+        x_quantity::Symbol,
+        y_plot_params::PlotParams,
+        scatter_function::Function;
+        <keyword arguments>
+    )::Nothing
+
+Plot a time series of the statistics of the results of `scatter_function` (25th, 50th, 75th percentails, and maximum and minimum).
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the time quantities valid for [`integrateQty`](@ref), namely
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `y_plot_params::PlotParams`: Plot parameters for the y axis.
+  - `scatter_function::Function`: Function to compute the scattered values of the y quantity at a given time. The function must have the signature:
+
+    `scatter_function(data_dict::Dict)::Vector{Number}`
+
+    where
+
+      + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `xlog::Bool=false`: If the x axis is will have a ``\\log_{10}`` scale.
+  - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale (the ``\\log_{10}`` is applied before the aggregator function: `median`, `maximum`, `percentile`, etc).
+  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
+  - `file_name::String="statistics_time_series"`: Name of the output file (without extension).
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function statisticsEvolution(
+    simulation_paths::Vector{String},
+    x_quantity::Symbol,
+    y_plot_params::PlotParams,
+    scatter_function::Function;
+    slice::IndexType=(:),
+    xlog::Bool=false,
+    ylog::Bool=false,
+    cumulative::Bool=false,
+    file_name::String="statistics_time_series",
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    smooth::Int=0,
+    backup_results::Bool=false,
+    theme::Attributes=Theme(),
+)::Nothing
+
+    (
+        x_quantity ∈ [:scale_factor, :redshift, :physical_time, :lookback_time] ) ||
+        throw(ArgumentError("statisticsEvolution: The argument `x_quantity` has to be \
+        :scale_factor, :redshift, :physical_time or :lookback_time, but I got :$(x_quantity)")
+    )
+
+    x_plot_params = plotParams(x_quantity)
 
     # Set arguments for the x axis
     if xlog
@@ -2436,6 +2529,7 @@ function statisticsEvolution(
         y_unit       = Unitful.NoUnits
         y_exp_factor = 0
         yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
+
     else
         y_log        = nothing
         y_unit       = y_plot_params.unit
@@ -2443,17 +2537,11 @@ function statisticsEvolution(
         yaxis_label  = y_plot_params.axis_label
     end
 
-    y_agg_functions = [
-        dd->integrateQty(dd, y_quantity; agg_function=x->percentile(x, 25)),
-        dd->integrateQty(dd, y_quantity; agg_function=median),
-        dd->integrateQty(dd, y_quantity; agg_function=x->percentile(x, 75)),
-        dd->integrateQty(dd, y_quantity; agg_function=minimum),
-        dd->integrateQty(dd, y_quantity; agg_function=maximum),
-    ]
-    labels     = ["25th Percentile", "50th Percentile", "75th Percentile", "Minimum", "Maximum"]
-    linestyles = [:solid, :solid, :solid, :dash, :dash]
-    colors     = [WONG_BLUE, WONG_GREEN, WONG_RED, :black, :black]
-    request    = mergeRequests(x_plot_params.request, y_plot_params.request)
+    aggregators = [x->percentile(x, 25), median, x->percentile(x, 75), minimum, maximum]
+    labels      = ["25th Percentile", "50th Percentile", "75th Percentile", "Minimum", "Maximum"]
+    linestyles  = [:solid, :solid, :solid, :dash, :dash]
+    colors      = [WONG_BLUE, WONG_GREEN, WONG_RED, :black, :black]
+    request     = mergeRequests(x_plot_params.request, y_plot_params.request)
 
     for simulation_path in simulation_paths
 
@@ -2461,12 +2549,18 @@ function statisticsEvolution(
             fill(simulation_path, 5),
             [lines!];
             output_path,
-            filename="$(basename(simulation_path))_$(y_quantity)_vs_$(x_quantity)",
+            filename="$(basename(simulation_paths[1]))_$(file_name)",
             slice,
             da_functions=fill(daEvolution, 5),
             da_args=[
-                (request, (dd->integrateQty(dd, x_quantity), y_agg_function))
-                for y_agg_function in y_agg_functions
+                (
+                    request,
+                    (
+                        dd->integrateQty(dd, x_quantity),
+                        dd->applyIntegrator(dd, scatter_function, aggregator, y_log),
+                    ),
+                )
+                for aggregator in aggregators
             ],
             da_kwargs=[
                 (;
@@ -2475,7 +2569,6 @@ function statisticsEvolution(
                     extra_filter=da_ff,
                     ff_request,
                     x_log,
-                    y_log,
                     smooth,
                     cumulative,
                 ),
