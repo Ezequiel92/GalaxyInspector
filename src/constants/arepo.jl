@@ -38,18 +38,22 @@ M. Asplund et al. (2006). *The new solar abundances - Part I: the observations*.
 const SOLAR_METALLICITY = 0.0127
 
 """
-Star formation model parameters
+Subhalo numbers for the MW and M31 in Hestia simulations.
 """
-const Cxd   = 0.2836                         # Constant for the initial condition of dust and metals.
-const εff   = 1.0                            # Star formation efficiency per free-fall time
-const αH    = 2.6e-13u"cm^3 * s^-1"          # Case B recombination coefficient at T = 10^4 K
-const Rd    = 3.5e-17u"cm^3 * s^-1"          # H2 formation rate on dust grains at T = 100 K
-const Cdg   = 2.4634u"mp^-1 * Myr^-1 * cm^3" # Dust growth coefficient
-const σion  = 6.3e-18u"cm^2"                 # Hydrogen ionization cross section at the Lyman limit
-const σdiss = 2.1e-19u"cm^2"                 # H2 dissociation cross section in the Lyman-Werner band
-const σd    = 4.0e-21u"cm^2"                 # Effective dust cross-section per hydrogen atom
-const ωH2   = 0.2                            # Constant for the H2 self-shielding factor
-const xnf   = 5.0e14u"cm^-2"                 # H2 self-shielding column density factor
+const HESTIA_SUBHALOS = Dict(
+    "Hestia17-11" => Dict(
+        :subhalo_number_MW  => 1,
+        :subhalo_number_M31 => 0,
+    ),
+    "Hestia09-18" => Dict(
+        :subhalo_number_MW  => 3911,
+        :subhalo_number_M31 => 2608,
+    ),
+    "Hestia37-11" => Dict(
+        :subhalo_number_MW  => 920,
+        :subhalo_number_M31 => 0,
+    ),
+)
 
 """
 Cosmological threshold density above which the gas cells/particles can turn into stars.
@@ -242,6 +246,10 @@ List of element indices above helium.
 """
 const METAL_LIST = [3, 4, 5, 6, 7, 8, 9, 10]
 
+#######################
+# Star formation model
+#######################
+
 """
 ODE index corresponding to each gas phase in our star formation model.
 
@@ -260,3 +268,17 @@ const SFM_IDX = Dict(
     :ode_metals    => 5,
     :ode_dust      => 6,
 )
+
+"""
+Star formation model parameters
+"""
+const Cxd   = 0.2836                         # Constant for the initial condition of dust and metals.
+const εff   = 1.0                            # Star formation efficiency per free-fall time
+const αH    = 2.6e-13u"cm^3 * s^-1"          # Case B recombination coefficient at T = 10^4 K
+const Rd    = 3.5e-17u"cm^3 * s^-1"          # H2 formation rate on dust grains at T = 100 K
+const Cdg   = 2.4634u"mp^-1 * Myr^-1 * cm^3" # Dust growth coefficient
+const σion  = 6.3e-18u"cm^2"                 # Hydrogen ionization cross section at the Lyman limit
+const σdiss = 2.1e-19u"cm^2"                 # H2 dissociation cross section in the Lyman-Werner band
+const σd    = 4.0e-21u"cm^2"                 # Effective dust cross-section per hydrogen atom
+const ωH2   = 0.2                            # Constant for the H2 self-shielding factor
+const xnf   = 5.0e14u"cm^-2"                 # H2 self-shielding column density factor

@@ -59,24 +59,6 @@ Internal unit of velocity used in [IllustrisTNG](https://www.tng-project.org/dat
 """
 const ILLUSTRIS_V_UNIT = 1.0e5u"cm * s^-1"
 
-"""
-Subhalo numbers for the MW and M31 in Hestia simulations.
-"""
-const HESTIA_SUBHALOS = Dict(
-    "Hestia17-11" => Dict(
-        :subhalo_number_MW  => 1,
-        :subhalo_number_M31 => 0,
-    ),
-    "Hestia09-18" => Dict(
-        :subhalo_number_MW  => 3911,
-        :subhalo_number_M31 => 2608,
-    ),
-    "Hestia37-11" => Dict(
-        :subhalo_number_MW  => 920,
-        :subhalo_number_M31 => 0,
-    ),
-)
-
 @doc raw"""
 Solar abundances.
 

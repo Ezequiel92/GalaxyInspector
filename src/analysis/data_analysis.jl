@@ -3367,6 +3367,7 @@ Compute the gas density and the SFR density, used in the volumetric star formati
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `field_type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
+  - `age_limit::Unitful.Time=AGE_RESOLUTION`: Age limit for the SFR.
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. See the required signature and examples in `./src/analysis/filters.jl`.
   - `gas_ff::Function=filterNothing`: Filter function for the gas. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -3384,6 +3385,7 @@ function daVSFLaw(
     grid::CubicGrid,
     component::Symbol;
     field_type::Symbol=:cells,
+    age_limit::Unitful.Time=AGE_RESOLUTION,
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Float64}},Nothing}
@@ -3395,7 +3397,7 @@ function daVSFLaw(
 
     # Factor to go from stellar density to SFR density
     # log10(ρsfr) = log10(ρ*) - log10Δt
-    log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
+    log10Δt = log10(ustrip(u"yr", age_limit))
 
     # Units
     u_ρgas  = u"Msun * pc^-3"

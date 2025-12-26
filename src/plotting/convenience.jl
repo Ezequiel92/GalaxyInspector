@@ -3108,7 +3108,7 @@ Plot the Kennicutt-Schmidt law.
 
 !!! note
 
-    Only stars younger than [`AGE_RESOLUTION`](@ref) are considered. The star formation area density is the stellar mass area density divided by [`AGE_RESOLUTION`](@ref).
+    Only stars younger than `age_limit` are considered. The star formation area density is the stellar mass area density divided by `age_limit`.
 
 !!! note
 
@@ -3135,6 +3135,7 @@ Plot the Kennicutt-Schmidt law.
       + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations.
   - `grid_size::Unitful.Length=BOX_L`: Physical side length of the cubic and square grids (if `reduce_grid` = :square), and diameter of the circular grid (if `reduce_grid` = :circular). This limits which cells/particles will be consider. As a reference, Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
   - `bin_size::Unitful.Length=BIGIEL_PX_SIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`. For the cubic grids a default value of 200 pc is always used.
+  - `age_limit::Unitful.Time=AGE_RESOLUTION`: Maximum age of the stars to consider for the star formation area density.
   - `plot_type::Symbol=:scatter`: If the plot will be a `:scatter` plot or a `:heatmap`. Heatmaps will not show legends or several simulations at once. Scatter plots show one mark per pixel, and heatmaps show a 2D histogram for the number of pixel in each bin.
   - `integrated::Bool=false`: If the integrated (one mark per galaxy) or resolved (several marks per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = `:scatter`. The central value is the weighted median and the error bars are the median absolute deviations.
   - `sfr_density::Bool=true`: If the quantity for the y axis will be the SFR area density or, if `sfr_density` = false, the stellar mass area density.
@@ -3174,6 +3175,7 @@ function kennicuttSchmidtLaw(
     reduce_grid::Symbol=:square,
     grid_size::Unitful.Length=BOX_L,
     bin_size::Unitful.Length=BIGIEL_PX_SIZE,
+    age_limit::Unitful.Time=AGE_RESOLUTION,
     plot_type::Symbol=:scatter,
     integrated::Bool=false,
     sfr_density::Bool=true,
@@ -3702,7 +3704,7 @@ function kennicuttSchmidtLaw(
     if sfr_density
         # Factor to go from stellar area density to SFR area density
         # log10(Σsfr) = log10(Σ*) - log10Δt
-        log10Δt = log10(ustrip(Σs_t_unit, AGE_RESOLUTION))
+        log10Δt = log10(ustrip(Σs_t_unit, age_limit))
     end
 
     # Set the plot theme
@@ -4834,7 +4836,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
 
 !!! note
 
-    Only stars younger than [`AGE_RESOLUTION`](@ref) are considered.
+    Only stars younger than `age_limit` are considered.
 
 # Arguments
 
@@ -4844,6 +4846,8 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
 
       + `:all` -> Total metallicity in solar units.
       + `:X`   -> Abundance of element ``\\mathrm{X}``, as ``12 + \\log_{10}(\\mathrm{X \\, / \\, H})``. The possibilities are the keys of [`ELEMENT_INDEX`](@ref).
+  - `grid::CubicGrid=CubicGrid(BOX_L, 400)`: Cubic grid. Size and resolution of the grid where the densities will be projected.
+  - `age_limit::Unitful.Time=AGE_RESOLUTION`: Maximum age of the stars to consider.
   - `mass::Bool=true`: If the x axis will be the stellar mass density (default) or the SFR density.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `output_path::String="."`: Path to the output folder.
@@ -4857,6 +4861,8 @@ function massMetallicityRelation(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
     element::Symbol=:all,
+    grid::CubicGrid=CubicGrid(BOX_L, 400),
+    age_limit::Unitful.Time=AGE_RESOLUTION,
     mass::Bool=true,
     reduce_factor::Int=1,
     output_path::String=".",
@@ -4864,8 +4870,6 @@ function massMetallicityRelation(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     theme::Attributes=Theme(),
 )::Nothing
-
-    grid = CubicGrid(BOX_L, 400)
 
     (
         element ∈ [:all, keys(ELEMENT_INDEX)...] ||
@@ -4965,7 +4969,7 @@ function massMetallicityRelation(
     if !mass
         # Factor to go from stellar area density to SFR area density
         # log10(Σsfr) = log10(Σ*) - log10Δt
-        log10Δt = log10(ustrip(u"yr", AGE_RESOLUTION))
+        log10Δt = log10(ustrip(u"yr", age_limit))
     end
 
     with_theme(merge(theme, DEFAULT_THEME, theme_latexfonts())) do
