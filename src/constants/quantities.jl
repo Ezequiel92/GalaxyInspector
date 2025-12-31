@@ -495,7 +495,7 @@ const EXTRA_QTY = [
     :gas_metallicity,
     :stellar_metallicity,
     :ode_metallicity,
-    :mass_accretion
+    :mass_accretion,
 ]
 
 ###################################
