@@ -480,7 +480,7 @@ const DEFAULT_THEME = Theme(
         cycle=CYCLE,
     ),
     Scatter=(markersize=22, cycle=CYCLE),
-    Band=(cycle=CYCLE, alpha=0.5),
+    Band=(alpha=0.5, cycle=CYCLE),
     Errorbars=(whiskerwidth=10,),
     ########################################################################
     # Alternative colormaps:

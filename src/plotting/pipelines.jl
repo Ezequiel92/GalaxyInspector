@@ -84,6 +84,7 @@ Some of the features are:
 
   - `save_figures::Bool=true`: If every figure will be saved as a file.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
+  - `backup_raw_results::Bool=false`: If the raw results from the data analysis functions will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
@@ -141,6 +142,7 @@ function plotSnapshot(
     # Plotting options
     save_figures::Bool=true,
     backup_results::Bool=false,
+    backup_raw_results::Bool=false,
     theme::Attributes=Theme(),
     sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
@@ -175,7 +177,7 @@ function plotSnapshot(
     snapshot_numbers = longest_sim_table[!, :numbers]
     slice_indices    = safeSelect(longest_sim_table[!, :row_id], slice)
 
-    # Compute the number of figures
+    # Compute the required number of snapshots
     n_frames = length(slice_indices)
 
     # Check that after slicing there is at least one snapshot left
@@ -189,25 +191,29 @@ function plotSnapshot(
     # Set up the canvas for the figures
     ################################################################################################
 
-    # Set up the plot theme
-    current_theme = merge(theme, DEFAULT_THEME, theme_latexfonts())
+    if save_figures || animation
 
-    # Apply the plot theme
-    set_theme!(current_theme)
+        # Set up the plot theme
+        current_theme = merge(theme, DEFAULT_THEME, theme_latexfonts())
 
-    # Create the figure
-    figure = Figure()
+        # Apply the plot theme
+        set_theme!(current_theme)
 
-    # Create the labels
-    xlabel = LaTeXString(
-        replace(xaxis_label, "auto_label" => getLabel(xaxis_var_name, x_exp_factor, x_unit)),
-    )
-    ylabel = LaTeXString(
-        replace(yaxis_label, "auto_label" => getLabel(yaxis_var_name, y_exp_factor, y_unit)),
-    )
+        # Create the figure
+        figure = Figure()
 
-    # Create the axes
-    axes = Makie.Axis(figure[1, 1]; xlabel, ylabel)
+        # Create the labels
+        xlabel = LaTeXString(
+            replace(xaxis_label, "auto_label" => getLabel(xaxis_var_name, x_exp_factor, x_unit)),
+        )
+        ylabel = LaTeXString(
+            replace(yaxis_label, "auto_label" => getLabel(yaxis_var_name, y_exp_factor, y_unit)),
+        )
+
+        # Create the axes
+        axes = Makie.Axis(figure[1, 1]; xlabel, ylabel)
+
+    end
 
     ################################################################################################
     # Set up the animation
@@ -395,47 +401,74 @@ function plotSnapshot(
             end
 
             ########################################################################################
+            # Save the raw results in a JLD2 file
+            ########################################################################################
+
+            if backup_raw_results
+
+                if isnothing(sim_labels)
+                    sim_name = basename(simulation_path)
+                else
+                    sim_name = sim_labels[simulation_index]
+                end
+
+                jldopen(joinpath(output_path, base_filename * "_raw.jld2"), "a+") do f
+                    address = "$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                    f[address] = da_output
+                end
+
+            end
+
+            ########################################################################################
             # Data sanitation
             ########################################################################################
 
-            axis_data, x_flag, y_flag = validatePlotData(
-                plot_function,
-                da_output...;
-                x_unit,
-                y_unit,
-                x_exp_factor,
-                y_exp_factor,
-                x_trim,
-                y_trim,
-                x_edges,
-                y_edges,
-                x_scale_func,
-                y_scale_func,
-            )
+            if save_figures || animation || backup_results
 
-            if plot_function isa typeof(hist!) && x_flag
-                # For histograms, if the scale is not linear, recompute the bin edges accordingly
-                n_bins   = haskey(pf_kwarg, :bins) ? pf_kwarg.bins : 10
-                bins     = scaledBins(axis_data[1], n_bins; scaling=x_scale_func)
-                pf_kwarg = merge(pf_kwarg, (; bins))
+                axis_data, x_flag, y_flag = validatePlotData(
+                    plot_function,
+                    da_output...;
+                    x_unit,
+                    y_unit,
+                    x_exp_factor,
+                    y_exp_factor,
+                    x_trim,
+                    y_trim,
+                    x_edges,
+                    y_edges,
+                    x_scale_func,
+                    y_scale_func,
+                )
+
+                # If, in the current snapshot and for any simulation, filtering the data targeting a
+                # nonlinear scale would leave no data points, the scale will revert to `identity`
+                x_flag || (xscale_flag = false)
+                y_flag || (yscale_flag = false)
+
+                ####################################################################################
+                # Apply a smoothing window
+                ####################################################################################
+
+                if length(axis_data) > 1 && !iszero(smooth)
+                    axis_data[1], axis_data[2] = smoothWindow(
+                        axis_data[1],
+                        axis_data[2],
+                        smooth;
+                        scaling=x_scale_func,
+                    )
+                end
+
             end
 
-            # If, in the current snapshot and for any simulation, filtering the data targeting a
-            # nonlinear scale would leave no data points, the scale will revert to `identity`
-            x_flag || (xscale_flag = false)
-            y_flag || (yscale_flag = false)
+            if save_figures || animation
 
-            ########################################################################################
-            # Apply a smoothing window
-            ########################################################################################
+                if plot_function isa typeof(hist!) && x_flag
+                    # For histograms, if the scale is not linear, recompute the bin edges accordingly
+                    n_bins   = haskey(pf_kwarg, :bins) ? pf_kwarg.bins : 10
+                    bins     = scaledBins(axis_data[1], n_bins; scaling=x_scale_func)
+                    pf_kwarg = merge(pf_kwarg, (; bins))
+                end
 
-            if length(axis_data) > 1 && !iszero(smooth)
-                axis_data[1], axis_data[2] = smoothWindow(
-                    axis_data[1],
-                    axis_data[2],
-                    smooth;
-                    scaling=x_scale_func,
-                )
             end
 
             ########################################################################################
@@ -670,8 +703,10 @@ function plotSnapshot(
         # Add the figure as a frame to the animation stream
         animation && recordframe!(vs)
 
-        # Clean the canvas for the next snapshot
-        cleanPlot!(figure)
+        if save_figures || animation
+            # Clean the canvas for the next snapshot
+            cleanPlot!(figure)
+        end
 
         # Move the progress bar forward
         next!(prog_bar)
@@ -1003,9 +1038,9 @@ function plotTimeSeries(
             linestyles = current_theme[:palette][:linestyle][]
 
             for i in 1:n_simulations
-                color = ring(colors, i)
-                marker = ring(markers, i)
-                linestyle = ring(linestyles, i)
+                color         = ring(colors, i)
+                marker        = ring(markers, i)
+                linestyle     = ring(linestyles, i)
                 plot_function = ring(plot_functions, i)
 
                 if plot_function == lines!
