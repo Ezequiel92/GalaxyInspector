@@ -790,6 +790,7 @@ Some of the features are:
 
   - `save_figures::Bool=true`: If the plot will be saved as a file.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
+  - `backup_raw_results::Bool=false`: If the raw results from the data analysis functions will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::AbstractString=""`: Title for the figure. If left empty, no title will be printed.
@@ -832,10 +833,11 @@ function plotTimeSeries(
     # Plotting options
     save_figures::Bool=true,
     backup_results::Bool=false,
+    backup_raw_results::Bool=false,
     theme::Attributes=Theme(),
     sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing,
     title::AbstractString="",
-)::Tuple{Makie.Axis,Figure}
+)::Union{Tuple{Makie.Axis,Figure},NTuple{2,Nothing}}
 
     # Create the output folder if it doesn't exist
     mkpath(output_path)
@@ -847,25 +849,29 @@ function plotTimeSeries(
     # Set up the canvas for the figures
     ################################################################################################
 
-    # Set up the plot theme
-    current_theme = merge(theme, DEFAULT_THEME, theme_latexfonts())
+    if save_figures
 
-    # Apply the plot theme
-    set_theme!(current_theme)
+        # Set up the plot theme
+        current_theme = merge(theme, DEFAULT_THEME, theme_latexfonts())
 
-    # Create the figure
-    figure = Figure()
+        # Apply the plot theme
+        set_theme!(current_theme)
 
-    # Create the labels
-    xlabel = LaTeXString(
-        replace(xaxis_label, "auto_label" => getLabel(xaxis_var_name, x_exp_factor, x_unit)),
-    )
-    ylabel = LaTeXString(
-        replace(yaxis_label, "auto_label" => getLabel(yaxis_var_name, y_exp_factor, y_unit)),
-    )
+        # Create the figure
+        figure = Figure()
 
-    # Create the axes
-    axes = Makie.Axis(figure[1, 1]; xlabel, ylabel, title)
+        # Create the labels
+        xlabel = LaTeXString(
+            replace(xaxis_label, "auto_label" => getLabel(xaxis_var_name, x_exp_factor, x_unit)),
+        )
+        ylabel = LaTeXString(
+            replace(yaxis_label, "auto_label" => getLabel(yaxis_var_name, y_exp_factor, y_unit)),
+        )
+
+        # Create the axes
+        axes = Makie.Axis(figure[1, 1]; xlabel, ylabel, title)
+
+    end
 
     ################################################################################################
     # Main loop
@@ -948,26 +954,49 @@ function plotTimeSeries(
         end
 
         ############################################################################################
+        # Save the raw_results in a JLD2 file
+        ############################################################################################
+
+        if backup_raw_results
+
+            if isnothing(sim_labels)
+                sim_name = basename(simulation_path)
+            else
+                sim_name = sim_labels[simulation_index]
+            end
+
+            jldopen(joinpath(output_path, "$(filename)_raw.jld2"), "a+"; compress=true) do f
+                address = "$(filename)/$sim_name"
+                f[address] = da_output
+            end
+
+        end
+
+        ############################################################################################
         # Data sanitation
         ############################################################################################
 
-        # Unit conversion
-        axis_data = [ustrip.(x_unit, da_output[1]), ustrip.(y_unit, da_output[2])]
+        if save_figures || backup_results
 
-        x_flag, y_flag, _, _ = sanitizeData!(
-            axis_data[1],
-            axis_data[2];
-            func_domain=(x_scale_func, y_scale_func),
-            range=(x_trim, y_trim),
-            keep_edges=(x_edges, y_edges),
-            min_left=1,
-            exp_factor=(x_exp_factor, y_exp_factor),
-        )
+            # Unit conversion
+            axis_data = [ustrip.(x_unit, da_output[1]), ustrip.(y_unit, da_output[2])]
 
-        # If, for any simulation, filtering the data targeting a nonlinear scale
-        # would leave no data points, the scale will revert to `identity`
-        x_flag || (xscale_flag = false)
-        y_flag || (yscale_flag = false)
+            x_flag, y_flag, _, _ = sanitizeData!(
+                axis_data[1],
+                axis_data[2];
+                func_domain=(x_scale_func, y_scale_func),
+                range=(x_trim, y_trim),
+                keep_edges=(x_edges, y_edges),
+                min_left=1,
+                exp_factor=(x_exp_factor, y_exp_factor),
+            )
+
+            # If, for any simulation, filtering the data targeting a nonlinear scale
+            # would leave no data points, the scale will revert to `identity`
+            x_flag || (xscale_flag = false)
+            y_flag || (yscale_flag = false)
+
+        end
 
         ############################################################################################
         # Draw the plot
@@ -1071,8 +1100,10 @@ function plotTimeSeries(
 
         save(joinpath(output_path, filename * output_format), figure)
 
+        return axes, figure
+
     end
 
-    return axes, figure
+    return nothing, nothing
 
 end
