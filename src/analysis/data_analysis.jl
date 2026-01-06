@@ -1248,6 +1248,170 @@ function daMolla2015(
 end
 
 """
+    daDensity3DProjection(
+        data_dict::Dict,
+        grid::CubicGrid,
+        component::Symbol,
+        field_type::Symbol;
+        <keyword arguments>
+    )::Array{Float64,3}
+
+Project a discrete density field from an unstructured grid into a cubic grid.
+
+!!! note
+
+    If the source of the field are particles, a simple 3D histogram is used. If they are Voronoi cells, the density of the cell that crosses each voxel is used.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `grid::CubicGrid`: Cubic grid.
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+  - `field_type::Symbol`: If the field is made up of `:particles` or Voronoi `:cells`.
+  - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
+  - `l_unit::Unitful.Units=u"pc"`: Length unit.
+  - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+
+# Returns
+
+  - A 3D tensor with the ``\\log_{10}`` of the mass density at each bin of the 3D grid.
+"""
+function daDensity3DProjection(
+    data_dict::Dict,
+    grid::CubicGrid,
+    component::Symbol,
+    field_type::Symbol;
+    m_unit::Unitful.Units=u"Msun",
+    l_unit::Unitful.Units=u"pc",
+    filter_function::Function=filterNothing,
+)::Array{Float64,3}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    # For comological simulations with comoving units, correct
+    # the density so it is always in physical units
+    if !PHYSICAL_UNITS && filtered_dd[:sim_data].cosmological
+        # Correction factor for the area
+        # A [physical units] = A [comoving units] * a0^2
+        physical_factor = filtered_dd[:snap_data].scale_factor^2
+    else
+        physical_factor = 1.0
+    end
+
+    # Get the cell/particle type
+    cp_type = plotParams(Symbol(component, :_mass)).cp_type
+
+    if isnothing(cp_type)
+        throw(ArgumentError("daDensity3DProjection: `component` = $(component) has cell/particle \
+        type `nothing`. It is not valid to compute a density projection"))
+    end
+
+    # Load the cell/particle positions
+    positions = filtered_dd[cp_type]["POS "]
+
+    # Compute the masses of the target quantity
+    masses = computeMass(filtered_dd, component)
+
+    if any(isempty, [masses, positions])
+        (
+            logging[] &&
+            @warn("daDensity3DProjection: The data for the mass and/or the positions is missing")
+        )
+        return fill(NaN, (grid.n_bins, grid.n_bins, grid.n_bins))
+    end
+
+    if field_type == :cells
+
+        # Compute the volume of each cell
+        cell_volumes = filtered_dd[cp_type]["MASS"] ./ filtered_dd[cp_type]["RHO "]
+
+        # Compute the density of the target quantity
+        densities = ustrip.(m_unit * l_unit^-3, masses ./ cell_volumes)
+
+        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
+
+        # Compute the tree for a nearest neighbor search
+        kdtree = KDTree(ustrip.(l_unit, positions))
+
+        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
+        Threads.@threads for i in eachindex(grid.grid)
+            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
+            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
+            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
+        end
+
+        # Find the nearest cell to each voxel
+        idxs, _ = nn(kdtree, physical_grid)
+
+        ρ = similar(grid.grid, Float64)
+
+        # Compute the mass in each voxel
+        Threads.@threads for i in eachindex(grid.grid)
+            ρ[i] = densities[idxs[i]]
+        end
+
+    elseif field_type == :particles
+
+        ρ = ustrip.(
+            Float64,
+            m_unit * l_unit^-3,
+            histogram3D(positions, masses, grid; empty_nan=false) ./ grid.bin_volume
+        )
+
+    else
+
+        throw(ArgumentError("daDensity3DProjection: The argument `field_type` must be :cells or \
+        :particles, but I got :$(field_type)"))
+
+    end
+
+
+    # Set bins with a value of 0 to NaN
+    replace!(x -> iszero(x) ? NaN : x, ρ)
+
+    # Apply log10 to enhance the contrast
+    log10_ρ = log10.(ρ)
+
+    if logging[]
+
+        vals_log10_ρ = filter(!isnan, log10_ρ)
+
+        if isempty(vals_log10_ρ)
+
+            min_max_z = (NaN, NaN)
+            mean_z    = NaN
+            median_z  = NaN
+            mode_z    = NaN
+
+        else
+
+            min_max_z = extrema(vals_log10_ρ)
+            mean_z    = mean(vals_log10_ρ)
+            median_z  = median(vals_log10_ρ)
+            mode_z    = mode(vals_log10_ρ)
+
+        end
+
+        @info(
+            "\nMass density range - log₁₀(ρ [$(m_unit * l_unit^-3)]) \
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Component:  $(component) \
+            \n  Field type: $(field_type) \
+            \n  Plane:      $(projection_plane) \
+            \n  Min - Max:  $(min_max_z) \
+            \n  Mean:       $(mean_z) \
+            \n  Median:     $(median_z) \
+            \n  Mode:       $(mode_z)"
+        )
+
+    end
+
+    return log10_ρ
+
+end
+
+"""
     daDensity2DProjection(
         data_dict::Dict,
         grid::CubicGrid,
