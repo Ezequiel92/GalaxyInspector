@@ -1251,37 +1251,38 @@ end
     daDensity3DProjection(
         data_dict::Dict,
         grid::CubicGrid,
-        component::Symbol,
+        quantity::Symbol,
         field_type::Symbol;
         <keyword arguments>
     )::Array{Float64,3}
 
-Project a discrete density field from an unstructured grid into a cubic grid.
+Project a quantity field from an unstructured grid into a cubic grid.
 
 !!! note
 
-    If the source of the field are particles, a simple 3D histogram is used. If they are Voronoi cells, the density of the cell that crosses each voxel is used.
+    If the source of the field are particles, a simple 3D histogram is used. If they are Voronoi cells, the value of the cell that crosses each voxel is used.
 
 # Arguments
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `grid::CubicGrid`: Cubic grid.
-  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+  - `quantity::Symbol`: Target quantity. It can only be a quantity valid for [`scatterQty`](@ref).
   - `field_type::Symbol`: If the field is made up of `:particles` or Voronoi `:cells`.
+  - `density::Bool=false`: If the projection will be of the volume density of `quantity`.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
 
-  - A 3D tensor with the ``\\log_{10}`` of the mass density at each bin of the 3D grid.
+  - A 3D tensor with the ``\\log_{10}`` of the quantity at each bin of the grid.
 """
 function daDensity3DProjection(
     data_dict::Dict,
     grid::CubicGrid,
-    component::Symbol,
+    quantity::Symbol,
     field_type::Symbol;
-    m_unit::Unitful.Units=u"Msun",
+    density::Bool=false,
     l_unit::Unitful.Units=u"pc",
     filter_function::Function=filterNothing,
 )::Array{Float64,3}
@@ -1299,23 +1300,25 @@ function daDensity3DProjection(
     end
 
     # Get the cell/particle type
-    cp_type = plotParams(Symbol(component, :_mass)).cp_type
+    cp_type = plotParams(quantity).cp_type
 
     if isnothing(cp_type)
-        throw(ArgumentError("daDensity3DProjection: `component` = $(component) has cell/particle \
-        type `nothing`. It is not valid to compute a density projection"))
+        throw(ArgumentError("daDensity3DProjection: `quantity` = $(quantity) has cell/particle \
+        type `nothing`. It is not a valid quantity"))
     end
+
+    q_unit = plotParams(quantity).unit
 
     # Load the cell/particle positions
     positions = filtered_dd[cp_type]["POS "]
 
-    # Compute the masses of the target quantity
-    masses = computeMass(filtered_dd, component)
+    # Compute the values of the target quantity
+    q_values = scatterQty(filtered_dd, quantity)
 
-    if any(isempty, [masses, positions])
+    if any(isempty, [q_values, positions])
         (
             logging[] &&
-            @warn("daDensity3DProjection: The data for the mass and/or the positions is missing")
+            @warn("daDensity3DProjection: The data for $(quantity) and/or the positions is missing")
         )
         return fill(NaN, (grid.n_bins, grid.n_bins, grid.n_bins))
     end
@@ -1326,7 +1329,11 @@ function daDensity3DProjection(
         cell_volumes = filtered_dd[cp_type]["MASS"] ./ filtered_dd[cp_type]["RHO "]
 
         # Compute the density of the target quantity
-        densities = ustrip.(m_unit * l_unit^-3, masses ./ cell_volumes)
+        if density
+            values = ustrip.(q_unit * l_unit^-3, q_values ./ cell_volumes)
+        else
+            values = ustrip.(q_unit, q_values)
+        end
 
         physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
 
@@ -1343,20 +1350,22 @@ function daDensity3DProjection(
         # Find the nearest cell to each voxel
         idxs, _ = nn(kdtree, physical_grid)
 
-        ρ = similar(grid.grid, Float64)
+        q = similar(grid.grid, Float64)
 
         # Compute the mass in each voxel
         Threads.@threads for i in eachindex(grid.grid)
-            ρ[i] = densities[idxs[i]]
+            q[i] = values[idxs[i]]
         end
 
     elseif field_type == :particles
 
-        ρ = ustrip.(
-            Float64,
-            m_unit * l_unit^-3,
-            histogram3D(positions, masses, grid; empty_nan=false) ./ grid.bin_volume
-        )
+        histogram_3d = histogram3D(positions, q_values, grid; empty_nan=false)
+
+        if density
+            q = ustrip.(Float64, q_unit * l_unit^-3, histogram_3d ./ grid.bin_volume)
+        else
+            q = ustrip.(Float64, q_unit, histogram_3d)
+        end
 
     else
 
@@ -1365,18 +1374,17 @@ function daDensity3DProjection(
 
     end
 
-
     # Set bins with a value of 0 to NaN
-    replace!(x -> iszero(x) ? NaN : x, ρ)
+    replace!(x -> iszero(x) ? NaN : x, q)
 
     # Apply log10 to enhance the contrast
-    log10_ρ = log10.(ρ)
+    log10_q = log10.(q)
 
     if logging[]
 
-        vals_log10_ρ = filter(!isnan, log10_ρ)
+        vals_log10_q = filter(!isnan, log10_q)
 
-        if isempty(vals_log10_ρ)
+        if isempty(vals_log10_q)
 
             min_max_z = (NaN, NaN)
             mean_z    = NaN
@@ -1385,18 +1393,23 @@ function daDensity3DProjection(
 
         else
 
-            min_max_z = extrema(vals_log10_ρ)
-            mean_z    = mean(vals_log10_ρ)
-            median_z  = median(vals_log10_ρ)
-            mode_z    = mode(vals_log10_ρ)
+            min_max_z = extrema(vals_log10_q)
+            mean_z    = mean(vals_log10_q)
+            median_z  = median(vals_log10_q)
+            mode_z    = mode(vals_log10_q)
 
         end
 
+        if density
+            title = "Density range - log₁₀($(quantity) [$(q_unit * l_unit^-3)]) "
+        else
+            title = "Quantity range - log₁₀($(quantity) [$(q_unit)]) "
+        end
+
         @info(
-            "\nMass density range - log₁₀(ρ [$(m_unit * l_unit^-3)]) \
+            "\n$(title) \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
-            \n  Component:  $(component) \
             \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane) \
             \n  Min - Max:  $(min_max_z) \
@@ -1407,7 +1420,7 @@ function daDensity3DProjection(
 
     end
 
-    return log10_ρ
+    return log10_q
 
 end
 
