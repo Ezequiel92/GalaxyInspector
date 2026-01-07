@@ -459,7 +459,7 @@ An annotation with the equation $y = a \, x + b$, and the fitted values for $a$ 
   - `figure::Makie.Figure`: Makie figure.
   - `text_position::Tuple{<:Real,<:Real}=(0.04, 0.98)`: Relative position of the top left corner of the text box.
   - `text_align::NTuple{2,Symbol}=(:left, :top)`: Corner of the legend box whose positions is set with `text_position`.
-  - `wts::Union{Vector{Float64},Nothing}=nothing`: Weights for the fits. Set to `nothing` for a non-weighted fit.
+  - `weights::Union{Vector{Float64},Nothing}=nothing`: Weights for the fits. Set to `nothing` for a non-weighted fit.
   - `error_formating::Symbol=:std_error`: Error format for the annotation. The options are:
 
       + `:std_error`     -> mean ± standard_error.
@@ -483,7 +483,7 @@ function ppFitLine!(
     figure::Makie.Figure;
     text_position::Tuple{<:Real,<:Real}=(0.04, 0.98),
     text_align::NTuple{2,Symbol}=(:left, :top),
-    wts::Union{Vector{Float64},Nothing}=nothing,
+    weights::Union{Vector{Float64},Nothing}=nothing,
     error_formating::Symbol=:std_error,
     interval::Symbol=:prediction,
     color::ColorType=WONG_RED,
@@ -531,10 +531,10 @@ function ppFitLine!(
     # Compute the linear fit
     X = [ones(length(x_points)) x_points]
 
-    if isnothing(wts)
+    if isnothing(weights)
         linear_model = lm(X, y_points)
     else
-        linear_model = lm(X, y_points; wts)
+        linear_model = lm(X, y_points; weights)
     end
 
     # Read the fitted coeficients

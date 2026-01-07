@@ -39,7 +39,8 @@ using CSV,
     Statistics,
     StatsBase,
     Unitful,
-    UnitfulAstro
+    UnitfulAstro,
+    WriteVTK
 
 ####################################################################################################
 # Optimization
@@ -100,6 +101,7 @@ export metallicityMap
 export temperatureMap
 export scatterPlot
 export scatterDensityMap
+export vtkFiles
 export atomicMolecularTransition
 export gasBarPlot
 export timeSeries

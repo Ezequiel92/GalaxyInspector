@@ -386,6 +386,131 @@ function scatterDensityMap(
 end
 
 """
+    vtkFiles(
+        simulation_paths::Vector{String},
+        slice::IndexType,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Write VTK files with the ``\\log_{10}`` of a given `quantity` at each bin of a cubic grid.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `quantity::Symbol`: Target quantity. It can only be a quantity valid for [`scatterQty`](@ref).
+  - `field_type::Symbol`: If the field is made up of `:particles` or Voronoi `:cells`.
+  - `density::Bool=false`: If the projection will be of the volume density of `quantity`, or just `quantity`.
+  - `l_unit::Unitful.Units=u"pc"`: Length unit.
+  - `box_size::Unitful.Length=BOX_L`: Physical side length of the cubic grid
+  - `resolution::Int=150`: Number of bins per side of the cubic grid.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+"""
+function vtkFiles(
+    simulation_paths::Vector{String},
+    slice::IndexType,
+    quantity::Symbol;
+    field_type::Symbol=:cells,
+    density::Bool=false,
+    l_unit::Unitful.Units=u"pc",
+    box_size::Unitful.Length=BOX_L,
+    resolution::Int=150,
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+)::Nothing
+
+    plot_params = plotParams(quantity)
+
+    if field_type == :cells
+        extra_request = Dict(plot_params.cp_type => ["POS ", "RHO "])
+    else
+        extra_request = Dict(plot_params.cp_type => ["POS "])
+    end
+
+    base_request = mergeRequests(plot_params.request, ff_request, extra_request)
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    # Set up the grid
+    grid = CubicGrid(box_size, resolution)
+
+    temp_folder = joinpath(output_path, "_vtk_files")
+
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [scatter!];
+        output_path=temp_folder,
+        base_filename="$(quantity)",
+        slice,
+        transform_box=true,
+        translation,
+        rotation,
+        filter_function,
+        da_functions=[daDensity3DProjection],
+        da_args=[(grid, quantity, field_type)],
+        da_kwargs=[(; density, l_unit, filter_function=da_ff)],
+        save_figures=false,
+        backup_raw_results=true,
+    )
+
+    h_bin_width = grid.bin_width * 0.5
+    n_edges = grid.n_bins + 1
+
+    x_edges = ustrip.(
+        l_unit,
+        range(grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width, n_edges),
+    )
+    y_edges = ustrip.(
+        l_unit,
+        range(grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width, n_edges),
+    )
+    z_edges = ustrip.(
+        l_unit,
+        range(grid.z_bins[1] - h_bin_width, grid.z_bins[end] + h_bin_width, n_edges),
+    )
+
+    jldopen(joinpath(temp_folder, "$(quantity)_raw.jld2"), "r") do jld_file
+
+        snaps = keys(jld_file)
+
+        for snap in snaps
+
+            for simulation_path in simulation_paths
+
+                dataset_key = "$(snap)/$(basename(simulation_path))"
+
+                filename = joinpath(
+                    output_path,
+                    "$(basename(simulation_path))_$(snap)_$(quantity)",
+                )
+
+                vtk_grid(filename, x_edges, y_edges, z_edges) do vtk
+                    vtk["density"] = jld_file[dataset_key]
+                end
+
+            end
+
+        end
+
+    end
+
+    rm(temp_folder; recursive=true)
+
+    return nothing
+
+end
+
+"""
     radialProfile(
         simulation_paths::Vector{String},
         slice::IndexType,
