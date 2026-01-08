@@ -1348,7 +1348,7 @@ function daDensity3DProjection(
 
     elseif field_type == :particles
 
-        histogram_3d = histogram3D(positions, qty_values, grid; empty_nan=false)
+        histogram_3d = histogram3D(positions, qty_values, grid; empty_nan=false, tall=true)
 
         if density
             qty = ustrip.(Float64, q_unit, histogram_3d ./ grid.bin_volume) ./ physical_factor
