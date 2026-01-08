@@ -1253,6 +1253,7 @@ Project a quantity field from an unstructured grid into a cubic grid.
   - `field_type::Symbol`: If the field is made up of `:particles` or Voronoi `:cells`.
   - `density::Bool=false`: If the projection will be of the volume density of `quantity`, or just `quantity`.
   - `log::Bool=true`: If the returned projection will be the ``\\log_{10}`` of the `quantity`.
+  - `empty_nan::Bool=true`: If the bins with a value of 0 will be set to `NaN`.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -1474,116 +1475,45 @@ function daDensity2DProjection(
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
-    filtered_dd = filterData(data_dict; filter_function)
+    quantity = Symbol(component, :_mass)
+    qty_unit = plotParams(quantity).unit
+
+    mass_grid = daDensity3DProjection(
+        data_dict,
+        grid,
+        quantity,
+        field_type;
+        log=false,
+        empty_nan=false,
+        l_unit,
+        filter_function,
+    )
+
+    # Project `mass_grid` to the target plane
+    if projection_plane == :xy
+        dims = 3
+    elseif projection_plane == :xz
+        dims = 1
+    elseif projection_plane == :yz
+        dims = 2
+    else
+        throw(ArgumentError("daDensity2DProjection: The argument `projection_plane` must be \
+        :xy, :xz or :yz, but I got :$(projection_plane)"))
+    end
+
+    munit_factor = ustrip(m_unit, 1.0*qty_unit)
+    voxel_area   = ustrip(l_unit^2, grid.bin_area)
+
+    density = dropdims(sum(mass_grid; dims); dims) .* (munit_factor / voxel_area)
 
     # For comological simulations with comoving units, correct
     # the density so it is always in physical units
-    if !PHYSICAL_UNITS && filtered_dd[:sim_data].cosmological
+    if !PHYSICAL_UNITS && data_dict[:sim_data].cosmological
         # Correction factor for the area
         # A [physical units] = A [comoving units] * a0^2
-        physical_factor = filtered_dd[:snap_data].scale_factor^2
+        physical_factor = data_dict[:snap_data].scale_factor^2
     else
         physical_factor = 1.0
-    end
-
-    # Get the cell/particle type
-    cp_type = plotParams(Symbol(component, :_mass)).cp_type
-
-    if isnothing(cp_type)
-        throw(ArgumentError("daDensity2DProjection: `component` = $(component) has cell/particle \
-        type `nothing`. It is not valid to compute a density projection"))
-    end
-
-    # Load the cell/particle positions
-    positions = filtered_dd[cp_type]["POS "]
-
-    # Compute the masses of the target quantity
-    masses = computeMass(filtered_dd, component)
-
-    if any(isempty, [masses, positions])
-        (
-            logging[] &&
-            @warn("daDensity2DProjection: The data for the mass and/or the positions is missing")
-        )
-        return grid.x_bins, grid.y_bins, fill(NaN, (grid.n_bins, grid.n_bins))
-    end
-
-    if field_type == :cells
-
-        # Compute the volume of each cell
-        cell_volumes = filtered_dd[cp_type]["MASS"] ./ filtered_dd[cp_type]["RHO "]
-
-        # Compute the density of the target quantity
-        densities = ustrip.(m_unit * l_unit^-3, masses ./ cell_volumes)
-
-        # Load the volume and area of the voxels
-        voxel_volume = ustrip(l_unit^3, grid.bin_volume)
-        voxel_area   = ustrip(l_unit^2, grid.bin_area)
-
-        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
-
-        # Compute the tree for a nearest neighbor search
-        kdtree = KDTree(ustrip.(l_unit, positions))
-
-        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        Threads.@threads for i in eachindex(grid.grid)
-            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
-            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
-            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
-        end
-
-        # Find the nearest cell to each voxel
-        idxs, _ = nn(kdtree, physical_grid)
-
-        mass_grid = similar(grid.grid, Float64)
-
-        # Compute the mass in each voxel
-        Threads.@threads for i in eachindex(grid.grid)
-            mass_grid[i] = densities[idxs[i]] * voxel_volume
-        end
-
-        # Project `mass_grid` to the target plane
-        if projection_plane == :xy
-            dims = 3
-        elseif projection_plane == :xz
-            # Project across dimension 1 to keep it consistent with :xz for `field_type` = :particles
-            dims = 1
-        elseif projection_plane == :yz
-            # Project across dimension 2 to keep it consistent with :yz for `field_type` = :particles
-            dims = 2
-        else
-            throw(ArgumentError("daDensity2DProjection: The argument `projection_plane` must be \
-            :xy, :xz or :yz, but I got :$(projection_plane)"))
-        end
-
-        density = dropdims(sum(mass_grid; dims) ./ voxel_area; dims)
-
-    elseif field_type == :particles
-
-        # Project the particles to the given plane
-        if projection_plane == :xy
-            pos_2D = positions[[1, 2], :]
-        elseif projection_plane == :xz
-            pos_2D = positions[[1, 3], :]
-        elseif projection_plane == :yz
-            pos_2D = positions[[2, 3], :]
-        else
-            throw(ArgumentError("daDensity2DProjection: The argument `projection_plane` must be \
-            :xy, :xz or :yz, but I got :$(projection_plane)"))
-        end
-
-        # Compute the 2D histogram
-        density = ustrip.(
-            Float64,
-            m_unit * l_unit^-2,
-            histogram2D(pos_2D, masses, flattenGrid(grid); empty_nan=false) ./ grid.bin_area,
-        )
-
-    else
-
-        throw(ArgumentError("daDensity2DProjection: The argument `field_type` must be :cells or \
-        :particles, but I got :$(field_type)"))
-
     end
 
     if reduce_grid == :square
@@ -1593,16 +1523,6 @@ function daDensity2DProjection(
         density = reduceMatrix(density ./ physical_factor, reduce_factor)
         x_axis  = reduceTicks(grid.x_bins, reduce_factor)
         y_axis  = reduceTicks(grid.y_bins, reduce_factor)
-
-        # The transpose and reverse operation are used to conform to
-        # the way `heatmap!` expect the matrix to be structured
-        # Depending on the `field_type` and `projection_plane`, different operations
-        # are applied to keep the axis consistent between cells and particles
-        if field_type == :particles || projection_plane == :xy
-            density = reverse!(transpose(density), dims=2)
-        elseif projection_plane == :yz
-            reverse!(density, dims=1)
-        end
 
     elseif reduce_grid == :circular
 
