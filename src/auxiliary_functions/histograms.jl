@@ -622,6 +622,7 @@ Compute a 3D histogram of `values`.
   - `grid::CubicGrid`: A cubic grid.
   - `total::Bool=true`: If the sum (`total` = true) or the mean (`total` = false) of `values` will be computed for each bin.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
+  - `tall::Bool=false`: If true, positions with a z coordinate outside the gid will be counted toward the nearest z bin. This is useful for projecting 3D data onto 2D histograms.
 
 # Returns
 
@@ -633,6 +634,7 @@ function histogram3D(
     grid::CubicGrid;
     total::Bool=true,
     empty_nan::Bool=true,
+    tall::Bool=false,
 )::Array{<:Number,3}
 
     (
@@ -670,7 +672,7 @@ function histogram3D(
 
         !(x > x_borders[2] || x < x_borders[1]) || continue
         !(y > y_borders[2] || y < y_borders[1]) || continue
-        !(z > z_borders[2] || z < z_borders[1]) || continue
+        tall || !(z > z_borders[2] || z < z_borders[1]) || continue
 
         if x == x_borders[1]
             i_x = 1
@@ -684,10 +686,20 @@ function histogram3D(
             i_y = searchsortedfirst(y_edges, y) - 1
         end
 
-        if z == z_borders[1]
-            i_z = 1
+        if tall
+            if z <= z_borders[1]
+                i_z = 1
+            elseif z >= z_borders[2]
+                i_z = grid.n_bins
+            else
+                i_z = searchsortedfirst(z_edges, z) - 1
+            end
         else
-            i_z = searchsortedfirst(z_edges, z) - 1
+            if z == z_borders[1]
+                i_z = 1
+            else
+                i_z = searchsortedfirst(z_edges, z) - 1
+            end
         end
 
         histogram[grid.n_bins - i_y + 1, i_x, i_z] += values[i]
