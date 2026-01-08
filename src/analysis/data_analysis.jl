@@ -1311,7 +1311,7 @@ function daDensity3DProjection(
             logging[] &&
             @warn("daDensity3DProjection: The data for $(quantity) and/or the positions is missing")
         )
-        return fill(NaN, (grid.n_bins, grid.n_bins, grid.n_bins))
+        return zeros(size(grid.grid))
     end
 
     if field_type == :cells
@@ -1341,7 +1341,7 @@ function daDensity3DProjection(
         # Find the nearest cell to each voxel
         idxs, _ = nn(kdtree, physical_grid)
 
-        qty = zeros(eltype(values), size(grid.grid))
+        qty = zeros(size(grid.grid))
 
         Threads.@threads for i in eachindex(grid.grid)
             qty[i] = values[idxs[i]]
@@ -1476,7 +1476,6 @@ function daDensity2DProjection(
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
     quantity = Symbol(component, :_mass)
-    qty_unit = plotParams(quantity).unit
 
     mass_grid = daDensity3DProjection(
         data_dict,
@@ -1501,7 +1500,7 @@ function daDensity2DProjection(
         :xy, :xz or :yz, but I got :$(projection_plane)"))
     end
 
-    munit_factor = ustrip(m_unit, 1.0*qty_unit)
+    munit_factor = ustrip(m_unit, 1.0*plotParams(quantity).unit)
     voxel_area   = ustrip(l_unit^2, grid.bin_area)
 
     density = dropdims(sum(mass_grid; dims); dims) .* (munit_factor / voxel_area)
@@ -1585,92 +1584,6 @@ function daDensity2DProjection(
 end
 
 """
-    daVelocityField(
-        data_dict::Dict,
-        grid::SquareGrid,
-        component::Symbol;
-        <keyword arguments>
-    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64},Matrix{Float64}}
-
-Project a 3D velocity field into a given plane.
-
-# Arguments
-
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `grid::SquareGrid`: Square grid.
-  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
-  - `v_unit::Unitful.Units=u"km * s^-1",`: Velocity unit
-  - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
-
-# Returns
-
-  - A tuple with four elements:
-
-      + A vector with the x coordinates of the grid.
-      + A vector with the y coordinates of the grid.
-      + A matrix with the mean velocity in the x direction at each grid point.
-      + A matrix with the mean velocity in the y direction at each grid point.
-"""
-function daVelocityField(
-    data_dict::Dict,
-    grid::SquareGrid,
-    component::Symbol;
-    projection_plane::Symbol=:xy,
-    v_unit::Unitful.Units=u"km * s^-1",
-    filter_function::Function=filterNothing,
-)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64},Matrix{Float64}}
-
-    filtered_dd = filterData(data_dict; filter_function)
-
-    cp_type = plotParams(Symbol(component, :_mass)).cp_type
-
-    positions  = filtered_dd[cp_type]["POS "]
-    velocities = filtered_dd[cp_type]["VEL "]
-
-    if any(isempty, [positions, velocities])
-        (
-            logging[] &&
-            @warn("daVelocityField: The data for the positions and/or the velocities is missing")
-        )
-        return grid.x_bins, grid.y_bins, zeros(size(grid.grid)), zeros(size(grid.grid))
-    end
-
-    # Project the cells/particles to the chosen plane
-    if projection_plane == :xy
-
-        idxs = [1, 2]
-
-    elseif projection_plane == :xz
-
-        idxs = [1, 3]
-
-    elseif projection_plane == :yz
-
-        idxs = [2, 3]
-
-    else
-
-        throw(ArgumentError("daVelocityField: The argument `projection_plane` must be \
-        :xy, :xz or :yz, but I got :$(projection_plane)"))
-
-    end
-
-    pos_2D = positions[idxs, :]
-
-    vx = histogram2D(pos_2D, vec(velocities[idxs[1], :]), grid; total=false)
-    vy = histogram2D(pos_2D, vec(velocities[idxs[2], :]), grid; total=false)
-
-    # The transpose and reverse operation are used to conform to the way arrows2d!
-    # expect the matrix to be structured
-    vx = ustrip.(v_unit, collect(reverse!(transpose(vx), dims=2)))
-    vy = ustrip.(v_unit, collect(reverse!(transpose(vy), dims=2)))
-
-    return grid.x_bins, grid.y_bins, vx, vy
-
-end
-
-"""
     daGasSFR2DProjection(
         data_dict::Dict,
         grid::CubicGrid,
@@ -1719,101 +1632,39 @@ function daGasSFR2DProjection(
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
-    filtered_dd = filterData(data_dict; filter_function)
+    # Set a length scale (does not change the results)
+    l_unit = u"kpc"
 
-    # Load the cell/particle positions
-    positions = filtered_dd[:gas]["POS "]
+    sfr_grid = daDensity3DProjection(
+        data_dict,
+        grid,
+        :gas_sfr,
+        field_type,
+        density=true;
+        log=false,
+        empty_nan=false,
+        l_unit,
+        filter_function,
+    )
 
-    # Load the gas SFR
-    sfrs = filtered_dd[:gas]["SFR "]
-
-    if any(isempty, [sfrs, positions])
-        (
-            logging[] &&
-            @warn("daGasSFR2DProjection: The data for the mass and/or the sfr is missing")
-        )
-        return grid.x_bins, grid.y_bins, fill(NaN, (grid.n_bins, grid.n_bins))
-    end
-
-    if field_type == :cells
-
-        # Set grid units
-        l_unit = u"kpc"
-
-        # Compute the volume of each cell
-        cell_volumes = filtered_dd[:gas]["MASS"] ./ filtered_dd[:gas]["RHO "]
-
-        # Compute the gas SFR densities
-        sfr_densities = ustrip.(m_unit * t_unit^-1 * l_unit^-3, sfrs ./ cell_volumes)
-
-        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
-
-        # Compute the tree for a nearest neighbor search
-        kdtree = KDTree(ustrip.(l_unit, positions))
-
-        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        Threads.@threads for i in eachindex(grid.grid)
-            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
-            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
-            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
-        end
-
-        # Find the nearest cell to each voxel
-        idxs, _ = nn(kdtree, physical_grid)
-
-        sfr_grid = similar(grid.grid, Float64)
-
-        # Load the volume of the voxels
-        voxel_volume = ustrip(l_unit^3, grid.bin_volume)
-
-        # Compute the gas SFR in each voxel
-        Threads.@threads for i in eachindex(grid.grid)
-            sfr_grid[i] = sfr_densities[idxs[i]] * voxel_volume
-        end
-
-        # Project `sfr_grid` to the target plane
-        if projection_plane == :xy
-            dims = 3
-        elseif projection_plane == :xz
-            # Project across dimension 1 to keep it consistent with :xz for `field_type` = :particles
-            dims = 1
-        elseif projection_plane == :yz
-            # Project across dimension 2 to keep it consistent with :yz for `field_type` = :particles
-            dims = 2
-        else
-            throw(ArgumentError("daGasSFR2DProjection: The argument `projection_plane` must be \
-            :xy, :xz or :yz, but I got :$(projection_plane)"))
-        end
-
-        sfr = dropdims(sum(sfr_grid; dims); dims)
-
-    elseif field_type == :particles
-
-        # Project the particles to the given plane
-        if projection_plane == :xy
-            pos_2D = positions[[1, 2], :]
-        elseif projection_plane == :xz
-            pos_2D = positions[[1, 3], :]
-        elseif projection_plane == :yz
-            pos_2D = positions[[2, 3], :]
-        else
-            throw(ArgumentError("daGasSFR2DProjection: The argument `projection_plane` must be \
-            :xy, :xz or :yz, but I got :$(projection_plane)"))
-        end
-
-        # Compute the 2D histogram
-        sfr = ustrip.(
-            Float64,
-            m_unit * t_unit^-1,
-            histogram2D(pos_2D, sfrs, flattenGrid(grid); empty_nan=false),
-        )
-
+    # Project `sfr_grid` to the target plane
+    if projection_plane == :xy
+        dims = 3
+    elseif projection_plane == :xz
+        # Project across dimension 1 to keep it consistent with :xz for `field_type` = :particles
+        dims = 1
+    elseif projection_plane == :yz
+        # Project across dimension 2 to keep it consistent with :yz for `field_type` = :particles
+        dims = 2
     else
-
-        throw(ArgumentError("daGasSFR2DProjection: The argument `field_type` must be :cells or \
-        :particles, but I got :$(field_type)"))
-
+        throw(ArgumentError("daGasSFR2DProjection: The argument `projection_plane` must be \
+        :xy, :xz or :yz, but I got :$(projection_plane)"))
     end
+
+    voxel_volume = ustrip(l_unit^3, grid.bin_volume)
+    sfr_factor   = ustrip(m_unit*t_unit^-1, 1.0*plotParams(:gas_sfr).unit)
+
+    sfr = dropdims(sum(sfr_grid .* voxel_volume; dims); dims) .* sfr_factor
 
     if reduce_grid == :square
 
@@ -1822,16 +1673,6 @@ function daGasSFR2DProjection(
         sfr    = reduceMatrix(sfr, reduce_factor; total=true)
         x_axis = reduceTicks(grid.x_bins, reduce_factor)
         y_axis = reduceTicks(grid.y_bins, reduce_factor)
-
-        # The transpose and reverse operation are used to conform to
-        # the way `heatmap!` expect the matrix to be structured
-        # Depending on the `field_type` and `projection_plane`, different operations
-        # are applied to keep the axis consistent between cells and particles
-        if field_type == :particles || projection_plane == :xy
-            sfr = reverse!(transpose(sfr), dims=2)
-        elseif projection_plane == :yz
-            reverse!(sfr, dims=1)
-        end
 
     elseif reduce_grid == :circular
 
@@ -2428,6 +2269,92 @@ function daTemperature2DProjection(
     end
 
     return x_axis, y_axis, z_axis
+
+end
+
+"""
+    daVelocityField(
+        data_dict::Dict,
+        grid::SquareGrid,
+        component::Symbol;
+        <keyword arguments>
+    )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64},Matrix{Float64}}
+
+Project a 3D velocity field into a given plane.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `grid::SquareGrid`: Square grid.
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+  - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
+  - `v_unit::Unitful.Units=u"km * s^-1",`: Velocity unit
+  - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+
+# Returns
+
+  - A tuple with four elements:
+
+      + A vector with the x coordinates of the grid.
+      + A vector with the y coordinates of the grid.
+      + A matrix with the mean velocity in the x direction at each grid point.
+      + A matrix with the mean velocity in the y direction at each grid point.
+"""
+function daVelocityField(
+    data_dict::Dict,
+    grid::SquareGrid,
+    component::Symbol;
+    projection_plane::Symbol=:xy,
+    v_unit::Unitful.Units=u"km * s^-1",
+    filter_function::Function=filterNothing,
+)::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},Matrix{Float64},Matrix{Float64}}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    cp_type = plotParams(Symbol(component, :_mass)).cp_type
+
+    positions  = filtered_dd[cp_type]["POS "]
+    velocities = filtered_dd[cp_type]["VEL "]
+
+    if any(isempty, [positions, velocities])
+        (
+            logging[] &&
+            @warn("daVelocityField: The data for the positions and/or the velocities is missing")
+        )
+        return grid.x_bins, grid.y_bins, zeros(size(grid.grid)), zeros(size(grid.grid))
+    end
+
+    # Project the cells/particles to the chosen plane
+    if projection_plane == :xy
+
+        idxs = [1, 2]
+
+    elseif projection_plane == :xz
+
+        idxs = [1, 3]
+
+    elseif projection_plane == :yz
+
+        idxs = [2, 3]
+
+    else
+
+        throw(ArgumentError("daVelocityField: The argument `projection_plane` must be \
+        :xy, :xz or :yz, but I got :$(projection_plane)"))
+
+    end
+
+    pos_2D = positions[idxs, :]
+
+    vx = histogram2D(pos_2D, vec(velocities[idxs[1], :]), grid; total=false)
+    vy = histogram2D(pos_2D, vec(velocities[idxs[2], :]), grid; total=false)
+
+    # The transpose and reverse operation are used to conform to the way arrows2d!
+    # expect the matrix to be structured
+    vx = ustrip.(v_unit, collect(reverse!(transpose(vx), dims=2)))
+    vy = ustrip.(v_unit, collect(reverse!(transpose(vy), dims=2)))
+
+    return grid.x_bins, grid.y_bins, vx, vy
 
 end
 
