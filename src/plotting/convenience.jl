@@ -608,7 +608,12 @@ function radialProfile(
         y_log        = nothing
     end
 
-    base_request = mergeRequests(plot_params.request, norm_request, ff_request)
+    base_request = mergeRequests(
+        plot_params.request,
+        norm_request,
+        ff_request,
+        Dict(plot_params.cp_type=>["POS "]),
+    )
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
@@ -624,7 +629,7 @@ function radialProfile(
     plotSnapshot(
         simulation_paths,
         request,
-        [lines!];
+        [scatterlines!];
         output_path,
         base_filename,
         slice,
@@ -768,7 +773,7 @@ function radialProfile(
         plotSnapshot(
             fill(simulation_path, length(quantities)),
             request,
-            [lines!];
+            [scatterlines!];
             output_path,
             base_filename="$(basename(simulation_path))_radial_profile",
             slice,

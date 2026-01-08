@@ -486,23 +486,6 @@ function daProfile(
         deleteat!(x_axis, idxs)
         deleteat!(profile, idxs)
 
-        # # Compute the unit of the norm
-        # if isnothing(norm)
-        #     u_norm = Unitful.NoUnits
-        # else
-        #     u_norm = plotParams(norm).unit
-        # end
-
-        # # Compute the unit of the bins
-        # if density
-        #     u_bin = flat ? u"kpc"^2 : u"kpc"^3
-        # else
-        #     u_bin = Unitful.NoUnits
-        # end
-
-        # # Compute the unit of the y axis
-        # y_unit = plot_params.unit / u_norm / u_bin
-
         y_axis = log10.(ustrip.(y_log, profile))
 
     else
@@ -1284,6 +1267,7 @@ function daDensity3DProjection(
     field_type::Symbol;
     density::Bool=false,
     log::Bool=true,
+    empty_nan::Bool=true,
     l_unit::Unitful.Units=u"pc",
     filter_function::Function=filterNothing,
 )::Array{Float64,3}
@@ -1356,7 +1340,7 @@ function daDensity3DProjection(
         # Find the nearest cell to each voxel
         idxs, _ = nn(kdtree, physical_grid)
 
-        qty = similar(grid.grid, Float64)
+        qty = zeros(eltype(values), size(grid.grid))
 
         Threads.@threads for i in eachindex(grid.grid)
             qty[i] = values[idxs[i]]
@@ -1380,7 +1364,9 @@ function daDensity3DProjection(
     end
 
     # Set bins with a value of 0 to NaN
-    replace!(x -> iszero(x) ? NaN : x, qty)
+    if empty_nan
+        replace!(x -> iszero(x) ? NaN : x, qty)
+    end
 
     # Apply log10 to enhance the contrast
     if log
