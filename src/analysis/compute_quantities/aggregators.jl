@@ -258,6 +258,18 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         scatter_qty = computeFraction(data_dict, :ode_metals) ./ SOLAR_METALLICITY
 
+    elseif quantity ∈ GAS_METALS_MASS
+
+        element = GAS_METALS_MASS_SPLITS[quantity]
+
+        scatter_qty = computeElementMass(data_dict, :gas, element)
+
+    elseif quantity ∈ STELLAR_METALS_MASS
+
+        element = STELLAR_METALS_MASS_SPLITS[quantity]
+
+        scatter_qty = computeElementMass(data_dict, :stellar, element)
+
     elseif quantity ∈ GAS_ABUNDANCE
 
         element = GAS_ABUNDANCE_SPLITS[quantity]
@@ -594,6 +606,18 @@ function integrateQty(
             else
                 integrated_qty = (Mz / Mg) / SOLAR_METALLICITY
             end
+
+        elseif quantity ∈ GAS_METALS_MASS
+
+            element = GAS_METALS_MASS_SPLITS[quantity]
+
+            integrated_qty = sum(computeElementMass(data_dict, :gas, element); init=0.0u"Msun")
+
+        elseif quantity ∈ STELLAR_METALS_MASS
+
+            element = STELLAR_METALS_MASS_SPLITS[quantity]
+
+            integrated_qty = sum(computeElementMass(data_dict, :gas, element); init=0.0u"Msun")
 
         elseif quantity ∈ GAS_ABUNDANCE
 

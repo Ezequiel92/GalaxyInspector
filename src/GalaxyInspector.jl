@@ -26,6 +26,7 @@ using CSV,
     HDF5,
     Images,
     InvertedIndices,
+    Interpolations,
     JLD2,
     LaTeXStrings,
     LinearAlgebra,
@@ -98,7 +99,6 @@ export densityMap
 export gasSFRMap
 export densityMapVelField
 export metallicityMap
-export temperatureMap
 export scatterPlot
 export scatterDensityMap
 export vtkFiles

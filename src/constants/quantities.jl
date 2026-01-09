@@ -370,6 +370,30 @@ const SFM_DERIVED_QTY_SPLITS = Dict(
 #######################
 
 """
+List of symbols for the quantities of metal mass in the gas.
+"""
+const GAS_METALS_MASS = Symbol.(keys(ELEMENT_INDEX), :_gas_mass)
+
+"""
+Dictionary mapping each metal mass quantity to its element.
+"""
+const GAS_METALS_MASS_SPLITS = Dict(
+    Symbol(element, :_gas_mass) => element for element in keys(ELEMENT_INDEX)
+)
+
+"""
+List of symbols for the quantities of metal mass in the stars.
+"""
+const STELLAR_METALS_MASS = Symbol.(keys(ELEMENT_INDEX), :_stellar_mass)
+
+"""
+Dictionary mapping each metal mass quantity to its element.
+"""
+const STELLAR_METALS_MASS_SPLITS = Dict(
+    Symbol(element, :_stellar_mass) => element for element in keys(ELEMENT_INDEX)
+)
+
+"""
 List of symbols for the gas abundance quantities.
 """
 const GAS_ABUNDANCE = Symbol.(keys(ELEMENT_INDEX), :_gas_abundance)
@@ -394,9 +418,9 @@ const STELLAR_ABUNDANCE_SPLITS = Dict(
 )
 
 """
-List of symbols for all the abundance quantities.
+List of symbols for all the metals quantities.
 """
-const ABUNDANCE_QTY = vcat(GAS_ABUNDANCE, STELLAR_ABUNDANCE)
+const METALS_QTY = vcat(GAS_METALS_MASS, STELLAR_METALS_MASS, GAS_ABUNDANCE, STELLAR_ABUNDANCE)
 
 ###########################
 # Group catalog quantities
@@ -505,7 +529,7 @@ const EXTRA_QTY = [
 """
 List of symbols for all the quantities in GalaxyInspector, except ratios.
 """
-QTY_SINGLE_LIST = DERIVED_QTY ∪ SFM_QTY ∪ SFM_DERIVED_QTY ∪ HALO_QTY ∪ EXTRA_QTY ∪ ABUNDANCE_QTY
+QTY_SINGLE_LIST = DERIVED_QTY ∪ SFM_QTY ∪ SFM_DERIVED_QTY ∪ HALO_QTY ∪ EXTRA_QTY ∪ METALS_QTY
 
 #########
 # Ratios

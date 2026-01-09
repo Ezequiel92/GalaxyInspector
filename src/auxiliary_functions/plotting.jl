@@ -918,7 +918,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
     elseif magnitude == :area_density
 
-        # See density2DProjection() in ./src/analysis/compute_quantities/masses.jl
+        # See density3DProjection() in ./src/analysis/compute_quantities/masses.jl
         if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
             request = Dict(component => ["MASS", "POS ", "RHO "])
         elseif component == :Z_stellar
@@ -1863,7 +1863,7 @@ Return the plotting parameters for a given `quantity`.
 
 # Arguments
 
-  - `quantity::Symbol`: Target quantity. Some of the options are the quantities in [`DERIVED_QTY`](@ref), [`MAGNITUDES`](@ref), [`SFM_QTY`](@ref), [`GAS_ABUNDANCE`](@ref), and [`STELLAR_ABUNDANCE`](@ref).
+  - `quantity::Symbol`: Target quantity. See `./src/constants/quantities.jl` for options.
 
 # Returns
 
@@ -2116,6 +2116,32 @@ function plotParams(quantity::Symbol)::PlotParams
             request  = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]),
             var_name = L"Z_\text{ODE} \, [\mathrm{Z_\odot}]",
             cp_type  = :gas,
+        )
+
+    elseif quantity ∈ GAS_METALS_MASS
+
+        # See computeElementMass() in ./src/analysis/compute_quantities/masses.jl
+        element = GAS_METALS_MASS_SPLITS[quantity]
+
+        plot_params = PlotParams(;
+            request    = Dict(:gas => ["MASS", "GMET"]),
+            var_name   = L"M_%$(element)^\text{gas}",
+            exp_factor = 5,
+            unit       = u"Msun",
+            cp_type    = :gas,
+        )
+
+    elseif quantity ∈ STELLAR_METALS_MASS
+
+        # See computeElementMass() in ./src/analysis/compute_quantities/masses.jl
+        element = STELLAR_METALS_MASS_SPLITS[quantity]
+
+        plot_params = PlotParams(;
+            request    = Dict(:stellar => ["MASS", "GME2"]),
+            var_name   = L"M_%$(element)^\star",
+            exp_factor = 8,
+            unit       = u"Msun",
+            cp_type    = :stellar,
         )
 
     elseif quantity ∈ GAS_ABUNDANCE

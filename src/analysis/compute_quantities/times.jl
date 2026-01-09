@@ -255,7 +255,7 @@ function computeStellarAge(data_dict::Dict)::Vector{<:Unitful.Time}
         return Unitful.Time[]
     end
 
-    return data_dict[:snap_data].physical_time .- birth_times
+    return setPositive(data_dict[:snap_data].physical_time .- birth_times)
 
 end
 

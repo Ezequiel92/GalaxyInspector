@@ -541,12 +541,17 @@ Compute a 3D histogram of `positions`, returning the list of indices that fall w
 
   - `positions::Matrix{<:Number}`: Positions of the points. Each column corresponds to a point and each row is a dimension.
   - `grid::CubicGrid`: A cubic grid.
+  - `tall::Bool=false`: If true, positions with a z coordinate outside the grid will be added to the nearest z bin. This is useful for projecting 3D data into 2D histograms.
 
 # Returns
 
     - A tensor with the indices of the points within each bin.
 """
-function listHistogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Vector{Int},3}
+function listHistogram3D(
+    positions::Matrix{<:Number},
+    grid::CubicGrid,
+    tall::Bool=false,
+)::Array{Vector{Int},3}
 
     # Compute half of the bin size
     h_bin_width = grid.bin_width * 0.5
@@ -577,7 +582,7 @@ function listHistogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Ve
 
         !(x > x_borders[2] || x < x_borders[1]) || continue
         !(y > y_borders[2] || y < y_borders[1]) || continue
-        !(z > z_borders[2] || z < z_borders[1]) || continue
+        tall || !(z > z_borders[2] || z < z_borders[1]) || continue
 
         if x == x_borders[1]
             i_x = 1
@@ -591,10 +596,20 @@ function listHistogram3D(positions::Matrix{<:Number}, grid::CubicGrid)::Array{Ve
             i_y = searchsortedfirst(y_edges, y) - 1
         end
 
-        if z == z_borders[1]
-            i_z = 1
+        if tall
+            if z <= z_borders[1]
+                i_z = 1
+            elseif z >= z_borders[2]
+                i_z = grid.n_bins
+            else
+                i_z = searchsortedfirst(z_edges, z) - 1
+            end
         else
-            i_z = searchsortedfirst(z_edges, z) - 1
+            if z == z_borders[1]
+                i_z = 1
+            else
+                i_z = searchsortedfirst(z_edges, z) - 1
+            end
         end
 
         push!(histogram[grid.n_bins - i_y + 1, i_x, i_z], idx)
@@ -622,7 +637,7 @@ Compute a 3D histogram of `values`.
   - `grid::CubicGrid`: A cubic grid.
   - `total::Bool=true`: If the sum (`total` = true) or the mean (`total` = false) of `values` will be computed for each bin.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
-  - `tall::Bool=false`: If true, positions with a z coordinate outside the gid will be counted toward the nearest z bin. This is useful for projecting 3D data onto 2D histograms.
+  - `tall::Bool=false`: If true, positions with a z coordinate outside the grid will be counted toward the nearest z bin. This is useful for projecting 3D data into 2D histograms.
 
 # Returns
 
@@ -727,6 +742,43 @@ function histogram3D(
     end
 
     return histogram
+
+end
+
+"""
+    project3DList(
+        histogram::Array{Vector{Int},3},
+        projection_plane::Symbol,
+    )::Array{Vector{Int},2}
+
+Project a 3D list of indices into a given plane.
+
+# Arguments
+
+  - `histogram::Array{Vector{Int},3}`: A tensor with the indices within each 3D bin. See [`listHistogram3D`](@ref).
+  - `projection_plane::Symbol`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
+
+# Returns
+
+    - A matrix with the indices within each 2D bin.
+"""
+function project3DList(
+    histogram::Array{Vector{Int},3},
+    projection_plane::Symbol,
+)::Array{Vector{Int},2}
+
+    if projection_plane == :xy
+        dims = 3
+    elseif projection_plane == :xz
+        dims = 2
+    elseif projection_plane == :yz
+        dims = 1
+    else
+        throw(ArgumentError("projectList: The argument `projection_plane` must be \
+        :xy, :xz or :yz, but I got :$(projection_plane)"))
+    end
+
+    return dropdims(reduce(vcat, histogram; dims, init=Int[]); dims)
 
 end
 

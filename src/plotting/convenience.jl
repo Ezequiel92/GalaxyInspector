@@ -393,7 +393,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Write VTK files with the ``\\log_{10}`` of a given `quantity` at each bin of a cubic grid.
+Write files in the VTK format with the ``\\log_{10}`` of a given `quantity` at each bin of a cubic grid.
 
 # Arguments
 
@@ -456,9 +456,9 @@ function vtkFiles(
         translation,
         rotation,
         filter_function,
-        da_functions=[daDensity3DProjection],
+        da_functions=[density3DProjection2],
         da_args=[(grid, quantity, field_type)],
-        da_kwargs=[(; density, l_unit, filter_function=da_ff)],
+        da_kwargs=[(; density=density ? l_unit : nothing, filter_function=da_ff)],
         save_figures=false,
         backup_raw_results=true,
     )
@@ -495,7 +495,7 @@ function vtkFiles(
                 )
 
                 vtk_grid(filename, x_edges, y_edges, z_edges) do vtk
-                    vtk["density"] = jld_file[dataset_key]
+                    vtk["density"], _ = jld_file[dataset_key]
                 end
 
             end
@@ -2148,140 +2148,6 @@ function metallicityMap(
 end
 
 """
-    temperatureMap(
-        simulation_paths::Vector{String},
-        slice::IndexType;
-        <keyword arguments>
-    )::Nothing
-
-Plot a 2D projection of the gas temperature.
-
-# Arguments
-
-  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
-  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `field_type::Symbol=:cells`: If the field is made up of `:particles` or Voronoi `:cells`.
-  - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz`, and `:yz`.
-  - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
-  - `pixel_length::Unitful.Length=0.1u"kpc"`: Side length of each bin.
-  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
-  - `output_path::String="."`: Path to the output folder.
-  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
-  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
-  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
-
-      + `:physical_time` -> Physical time since the Big Bang.
-      + `:lookback_time` -> Physical time left to reach the last snapshot.
-      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
-      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
-  - `annotation::AbstractString=""`: Text to be added into the top left corner of the plot. If left empty, nothing is printed.
-  - `colorbar::Bool=false`: If a colorbar will be added.
-  - `colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing`: Sets the start and end points of the colormap. Use `nothing` to use the extrema of the density values.
-  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
-"""
-function temperatureMap(
-    simulation_paths::Vector{String},
-    slice::IndexType;
-    field_type::Symbol=:cells,
-    projection_planes::Vector{Symbol}=[:xy],
-    box_size::Unitful.Length=100u"kpc",
-    pixel_length::Unitful.Length=0.1u"kpc",
-    reduce_factor::Int=1,
-    output_path::String=".",
-    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
-    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
-    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    title::Union{Symbol,<:AbstractString}="",
-    annotation::AbstractString="",
-    colorbar::Bool=false,
-    colorrange::Union{Nothing,Tuple{<:Real,<:Real}}=nothing,
-    theme::Attributes=Theme(),
-)::Nothing
-
-    # Compute the axes limits, to avoid white padding around the heatmap grid
-    limit = ustrip(u"kpc", box_size / 2.0)
-
-    # Compute number of pixel per side
-    resolution = round(Int, box_size / pixel_length)
-
-    # Set up the grid
-    grid = CubicGrid(box_size, resolution)
-
-    plot_params = plotParams(:temperature)
-
-    if field_type == :cells
-        extra_request = Dict(:gas => ["RHO ", "POS "])
-    elseif field_type == :particles
-        extra_request = Dict(:gas => ["POS "])
-    end
-
-    base_request = mergeRequests(plot_params.request, extra_request, ff_request)
-
-    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
-    filter_function, request = selectFilter(filter_mode, trans_request)
-
-    # Label for the colorbar
-    colorbar_label = LaTeXString(
-        L"\log_{10} \, " * getLabel(plot_params.var_name, 0, plot_params.unit)
-    )
-
-    for simulation_path in simulation_paths
-
-        # Get the simulation name as a string
-        sim_name = basename(simulation_path)
-
-        for projection_plane in projection_planes
-
-            # Construct the file name
-            base_filename = "$(sim_name)_$(projection_plane)_gas_temperature_map"
-
-            plotSnapshot(
-                [simulation_path],
-                request,
-                [heatmap!];
-                pf_kwargs=isnothing(colorrange) ? [(;)] : [(; colorrange)],
-                output_path,
-                base_filename,
-                slice,
-                transform_box=true,
-                translation,
-                rotation,
-                filter_function,
-                da_functions=[daTemperature2DProjection],
-                da_args=[(grid, field_type)],
-                da_kwargs=[(; projection_plane, reduce_factor, filter_function=da_ff)],
-                post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
-                pp_args=(annotation,),
-                pp_kwargs=(; color=:white),
-                x_unit=u"kpc",
-                y_unit=u"kpc",
-                xaxis_var_name=string(projection_plane)[1:1],
-                yaxis_var_name=string(projection_plane)[2:2],
-                theme=merge(
-                    theme,
-                    Theme(
-                        size=colorbar ? (880, 740) : (880, 880),
-                        figure_padding=(5, 20, 20, 10),
-                        Axis=(limits=(-limit, limit, -limit, limit),),
-                        Colorbar=(label=colorbar_label,),
-                    ),
-                ),
-                title,
-                colorbar,
-            )
-
-        end
-
-    end
-
-    return nothing
-
-end
-
-"""
     timeSeries(
         simulation_paths::Vector{String},
         x_quantity::Symbol,
@@ -3274,7 +3140,6 @@ Plot the Kennicutt-Schmidt law.
       + `:gas_area_density` -> Gas mass area density of each bin. See the documentation for the function [`daDensity2DProjection`](@ref).
       + `:gas_sfr`          -> The total gas SFR of the column associated with each bin. See the documentation for the function [`daGasSFR2DProjection`](@ref).
       + `:gas_metallicity`  -> The total metallicity of the column associated with each bin. See the documentation for the function [`daMetallicity2DProjection`](@ref).
-      + `:temperature`      -> The median gas temperature of the column associated with each bin. See the documentation for the function [`daTemperature2DProjection`](@ref).
   - `post_processing::Function=getNothing`: Post processing function. It can only be [`getNothing`](@ref), [`ppBigiel2008!`](@ref), [`ppBigiel2010!`](@ref), [`ppKennicutt1998!`](@ref), [`ppSun2023!`](@ref) or [`ppLeroy2008!`](@ref). The default units will be force into the post processing function.
   - `pp_args::Tuple=()`: Positional arguments for the post processing function.
   - `pp_kwargs::NamedTuple=(;)`: Keyword arguments for the post processing function.
@@ -3745,13 +3610,6 @@ function kennicuttSchmidtLaw(
             da_function = daMetallicity2DProjection
             da_args     = [(gas_grid, :gas, gas_type)]
             c_unit      = Unitful.NoUnits
-            da_kwargs   = [(; reduce_grid, reduce_factor)]
-
-        elseif gas_weights == :temperature
-
-            da_function = daTemperature2DProjection
-            da_args     = [(gas_grid, gas_type)]
-            c_unit      = plotParams(gas_weights).unit
             da_kwargs   = [(; reduce_grid, reduce_factor)]
 
         else
@@ -6154,7 +6012,7 @@ end
 
 """
     fitVSFLaw(
-        simulation_path::String,
+        simulation_paths::Vector{String},
         slice::IndexType,
         component::Symbol;
         <keyword arguments>
@@ -6172,7 +6030,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
 
 # Arguments
 
-  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `field_type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
@@ -6182,11 +6040,10 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `sim_label::Union{String,Nothing}=basename(simulation_path)`: Label for the plot legend. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function fitVSFLaw(
-    simulation_path::String,
+    simulation_paths::Vector{String},
     slice::IndexType,
     component::Symbol;
     field_type::Symbol=:cells,
@@ -6196,7 +6053,6 @@ function fitVSFLaw(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    sim_label::Union{String,Nothing}=basename(simulation_path),
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -6205,7 +6061,11 @@ function fitVSFLaw(
     x_plot_params = plotParams(Symbol(component, :_mass_density))
     y_plot_params = plotParams(:sfr_density)
 
-    base_request = mergeRequests(x_plot_params.request, y_plot_params.request)
+    base_request = mergeRequests(
+        x_plot_params.request,
+        y_plot_params.request,
+        Dict(:gas=>["POS "]),
+    )
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
@@ -6218,28 +6078,32 @@ function fitVSFLaw(
         L"\log_{10} \, " * getLabel(y_plot_params.var_name, 0, y_plot_params.unit)
     )
 
-    plotSnapshot(
-        [simulation_path],
-        request,
-        [scatter!];
-        pf_kwargs=[(; color=WONG_BLUE, markersize=6, marker=:circle)],
-        output_path,
-        base_filename="$(basename(simulation_path))_$(component)_vsf_law",
-        slice,
-        transform_box=true,
-        translation,
-        rotation,
-        filter_function,
-        da_functions=[daVSFLaw],
-        da_args=[(grid, component)],
-        da_kwargs=[(; field_type, stellar_ff=filterByStellarAge)],
-        post_processing=fit ? ppFitLine! : getNothing,
-        x_trim=x_range,
-        xaxis_label,
-        yaxis_label,
-        theme=merge(theme, Theme(Legend=(nbanks=1, margin=(0, 10, 10, 0)),)),
-        sim_labels=[sim_label],
-    )
+    for simulation_path in simulation_paths
+
+        plotSnapshot(
+            [simulation_path],
+            request,
+            [scatter!];
+            pf_kwargs=[(; color=WONG_BLUE, markersize=6, marker=:circle)],
+            output_path,
+            base_filename="$(basename(simulation_path))_$(component)_vsf_law",
+            slice,
+            transform_box=true,
+            translation,
+            rotation,
+            filter_function,
+            da_functions=[daVSFLaw],
+            da_args=[(grid, component)],
+            da_kwargs=[(; field_type, stellar_ff=filterByStellarAge)],
+            post_processing=fit ? ppFitLine! : getNothing,
+            x_trim=x_range,
+            xaxis_label,
+            yaxis_label,
+            theme=merge(theme, Theme(Legend=(nbanks=1, margin=(0, 10, 10, 0)),)),
+            sim_labels=[basename(simulation_path)],
+        )
+
+    end
 
     return nothing
 

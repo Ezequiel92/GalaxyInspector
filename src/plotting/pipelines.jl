@@ -640,7 +640,7 @@ function plotSnapshot(
             # Add the legends
             ########################################################################################
 
-            legend_elements = Vector{Makie.LegendElement}(undef, 0)
+            legend_elements = Vector{Union{Vector{Makie.LegendElement},Makie.LegendElement}}(undef, 0)
             legend_labels = Vector{Union{AbstractString,Nothing}}(undef, 0)
 
             if !isnothing(sim_labels)
