@@ -278,6 +278,15 @@ P. J. McMillan (2011). *Mass models of the Milky Way*. Monthly Notices of the Ro
 const MCMILLAN2011_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/mcmillan_2011.jld2")
 
 """
+Path to the file with the SDSS magnitudes from  Millán-Irigoyen et al. (2025).
+
+# References
+
+I. Millán-Irigoyen et al. (2025). *HR-pyPopStar II: high spectral resolution evolutionary synthesis models low metallicity expansion and the properties of the stellar populations of dwarf galaxies*. arXiv. [doi:10.48550/arxiv.2510.02886](https://doi.org/10.48550/arxiv.2510.02886)
+"""
+const MILLANIRIGOYEN2025_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/millan-irigoyen_2025.txt")
+
+"""
 Reference pressure for the molecular fraction-pressure relation, from Blitz et al. (2006) (Table 2, "Mean" row, Third column).
 
 # References
