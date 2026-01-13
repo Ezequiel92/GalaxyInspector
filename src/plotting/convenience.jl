@@ -456,7 +456,7 @@ function vtkFiles(
         translation,
         rotation,
         filter_function,
-        da_functions=[density3DProjection2],
+        da_functions=[quantity3DProjection],
         da_args=[(grid, quantity, field_type)],
         da_kwargs=[(; density=density ? l_unit : nothing, filter_function=da_ff)],
         save_figures=false,

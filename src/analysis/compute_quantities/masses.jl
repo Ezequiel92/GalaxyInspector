@@ -1841,3 +1841,313 @@ function computeGlobalAbundance(
     return abundance / (solar ? exp10(SOLAR_ABUNDANCE[element] - 12.0) : 1.0)
 
 end
+
+"""
+    quantity3DProjection(
+        data_dict::Dict,
+        grid::CubicGrid,
+        quantity::Symbol,
+        field_type::Symbol;
+        <keyword arguments>
+    )::Tuple{Array{Float64,3},Vector{Int}}
+
+Project a `quantity` field into a given regular 3D grid.
+
+!!! note
+
+    If the source of the field are particles, a simple 3D histogram is used. If they are Voronoi cells instead, the value of the closest cell to the voxel is used.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `grid::CubicGrid`: Cubic grid.
+  - `quantity::Symbol`: Target quantity. It can be any quantity valid for [`scatterQty`](@ref), as long as it has a well defined cell/particle type (see [`plotParams`](@ref)).
+  - `field_type::Symbol`: If the field is made up of `:particles` or Voronoi `:cells`.
+  - `scale_by_volume::Bool=true`: If `quantity` is extensive (e.g. a mass), this should be set to true, so the values are correctly scaled to the voxel volume.
+  - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
+  - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
+  - `log::Bool=true`: If the returned projection will have ``\\log_{10}`` applied to it.
+  - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A 3D tensor with the target value at each bin of the 3D grid.
+      + A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)).
+"""
+function quantity3DProjection(
+    data_dict::Dict,
+    grid::CubicGrid,
+    quantity::Symbol,
+    field_type::Symbol;
+    scale_by_volume::Bool=true,
+    empty_nan::Bool=true,
+    density::Union{Unitful.Units,Nothing}=nothing,
+    log::Bool=true,
+    filter_function::Function=filterNothing,
+)::Tuple{Array{Float64,3},Vector{Int}}
+
+    if field_type == :cells
+
+        filtered_dd = filterData(data_dict; filter_function)
+
+        # Get the cell/particle type
+        cp_type = plotParams(quantity).cp_type
+
+        if isnothing(cp_type)
+            throw(ArgumentError("quantity3DProjection: `quantity` = $(quantity) has cell/particle \
+            type `nothing`. It is not a valid quantity"))
+        end
+
+        # Load the cell/particle positions
+        positions = filtered_dd[cp_type]["POS "]
+
+        if isempty(positions)
+
+            (
+                logging[] &&
+                @warn("quantity3DProjection: The positions are missing")
+            )
+
+            if empty_nan
+                return fill(NaN, size(grid.grid)), Int[]
+            else
+                return zeros(size(grid.grid)), Int[]
+            end
+
+        end
+
+        # Set an arbitrary length scale
+        l_unit = u"kpc"
+
+        # Compute the tree for a nearest neighbor search
+        kdtree = KDTree(ustrip.(l_unit, positions))
+
+        # Reshape the grid to conform to the way `nn` expect the matrix to be structured
+        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
+        Threads.@threads for i in eachindex(grid.grid)
+            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
+            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
+            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
+        end
+
+        # Find the nearest cell to each voxel
+        nn_idxs, _ = nn(kdtree, physical_grid)
+
+    elseif field_type == :particles
+
+        nn_idxs = Int[]
+
+    else
+
+        throw(ArgumentError("quantity3DProjection: The argument `field_type` must be :cells or \
+        :particles, but I got :$(field_type)"))
+
+    end
+
+    return quantity3DProjection(
+        data_dict,
+        grid,
+        quantity,
+        nn_idxs::Vector{Int};
+        scale_by_volume,
+        empty_nan,
+        density,
+        log,
+        filter_function,
+    )
+
+end
+
+"""
+    quantity3DProjection(
+        data_dict::Dict,
+        grid::CubicGrid,
+        quantity::Symbol,
+        nn_idxs::Vector{Int};
+        <keyword arguments>
+    )::Tuple{Array{Float64,3},Vector{Int}}
+
+Project a `quantity` field into a given regular 3D grid.
+
+!!! note
+
+    If the source of the field are particles, a simple 3D histogram is used. If they are Voronoi cells instead, the value of the closest cell to the voxel is used.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `grid::CubicGrid`: Cubic grid.
+  - `quantity::Symbol`: Target quantity. It can be any quantity valid for [`scatterQty`](@ref), as long as it has a well defined cell/particle type (see [`plotParams`](@ref)).
+  - `nn_idxs::Vector{Int}`: A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)). If set to an empty vector, it is assumed that the field is made up of particles.
+  - `scale_by_volume::Bool=true`: If `quantity` is extensive (e.g. a mass), this should be set to true, so the values are correctly scaled to the voxel volume.
+  - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
+  - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
+  - `log::Bool=true`: If the returned projection will have ``\\log_{10}`` applied to it.
+  - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A 3D tensor with the target value at each bin of the 3D grid.
+      + A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)).
+"""
+function quantity3DProjection(
+    data_dict::Dict,
+    grid::CubicGrid,
+    quantity::Symbol,
+    nn_idxs::Vector{Int};
+    scale_by_volume::Bool=true,
+    empty_nan::Bool=true,
+    density::Union{Unitful.Units,Nothing}=nothing,
+    log::Bool=true,
+    filter_function::Function=filterNothing,
+)::Tuple{Array{Float64,3},Vector{Int}}
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    # Get the cell/particle type
+    cp_type = plotParams(quantity).cp_type
+
+    if isnothing(cp_type)
+        throw(ArgumentError("quantity3DProjection: `quantity` = $(quantity) has cell/particle \
+        type `nothing`. It is not a valid quantity"))
+    end
+
+    # Load the quantity unit
+    qty_unit = plotParams(quantity).unit
+
+    # Compute the values of the target quantity
+    qty_values = ustrip.(qty_unit, scatterQty(filtered_dd, quantity))
+
+    if isempty(qty_values)
+
+        (
+            logging[] &&
+            @warn("quantity3DProjection: The data for $(quantity) is missing")
+        )
+
+        if empty_nan
+            return fill(NaN, size(grid.grid)), Int[]
+        else
+            return zeros(size(grid.grid)), Int[]
+        end
+
+    end
+
+    if !isempty(nn_idxs)
+
+        (
+            (length(nn_idxs) == length(grid.grid)) ||
+            throw(ArgumentError("quantity3DProjection: The argument `nn_idxs` should have as many \
+            elements as `grid` has bins, but I got length(nn_idxs) = $(length(nn_idxs)) != \
+            length(grid.grid) = $(length(grid.grid)) "))
+        )
+
+        # Scale the values by the voxel/cell volume quotient
+        if scale_by_volume
+
+            # Compute the volume of each cell
+            cell_volumes = filtered_dd[cp_type]["MASS"] ./ filtered_dd[cp_type]["RHO "]
+
+            volume_factor = ustrip.(Unitful.NoUnits, grid.bin_volume ./ cell_volumes)
+
+            qty_values .*= volume_factor
+
+        end
+
+        voxel_values = zeros(size(grid.grid))
+        Threads.@threads for i in eachindex(grid.grid)
+            voxel_values[i] = qty_values[nn_idxs[i]]
+        end
+
+        # Set bins with a value of 0 to NaN
+        empty_nan && replace!(x -> iszero(x) ? NaN : x, voxel_values)
+
+    else
+
+        # Load the cell/particle positions
+        positions = filtered_dd[cp_type]["POS "]
+
+        if isempty(positions)
+
+            (
+                logging[] &&
+                @warn("quantity3DProjection: The positions are missing")
+            )
+
+            if empty_nan
+                return fill(NaN, size(grid.grid)), Int[]
+            else
+                return zeros(size(grid.grid)), Int[]
+            end
+
+        end
+
+        voxel_values = histogram3D(positions, qty_values, grid; empty_nan, tall=true)
+
+    end
+
+    if !isnothing(density)
+        # For comological simulations with comoving units, correct
+        # the density so it is always in physical units
+        if !PHYSICAL_UNITS && data_dict[:sim_data].cosmological
+            # Correction factor for the volume
+            # V [physical units] = V [comoving units] * a0^3
+            physical_factor = data_dict[:snap_data].scale_factor^3
+        else
+            physical_factor = 1.0
+        end
+
+        voxel_volume = ustrip(density^3, grid.bin_volume) * physical_factor
+
+        voxel_values ./= voxel_volume
+    end
+
+    # Apply log10 to enhance the contrast
+    log && (voxel_values = log10.(voxel_values))
+
+    if logging[]
+
+        clean_vv = filter(!isnan, voxel_values)
+
+        if isempty(clean_vv)
+
+            min_max_z = (NaN, NaN)
+            mean_z    = NaN
+            median_z  = NaN
+            mode_z    = NaN
+
+        else
+
+            min_max_z = extrema(clean_vv)
+            mean_z    = mean(clean_vv)
+            median_z  = median(clean_vv)
+            mode_z    = mode(clean_vv)
+
+        end
+
+        if log
+            title = "log₁₀($(quantity) [$(qty_unit)]) "
+        else
+            title = "$(quantity) [$(qty_unit)] "
+        end
+
+        @info(
+            "\nQuantity range - $(title) \
+            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
+            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Field type: $(field_type) \
+            \n  Min - Max:  $(min_max_z) \
+            \n  Mean:       $(mean_z) \
+            \n  Median:     $(median_z) \
+            \n  Mode:       $(mode_z)"
+        )
+
+    end
+
+    return voxel_values, nn_idxs
+
+end

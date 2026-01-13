@@ -918,7 +918,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
 
     elseif magnitude == :area_density
 
-        # See density3DProjection() in ./src/analysis/compute_quantities/masses.jl
+        # See quantity3DProjection() in ./src/analysis/compute_quantities/masses.jl
         if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
             request = Dict(component => ["MASS", "POS ", "RHO "])
         elseif component == :Z_stellar
