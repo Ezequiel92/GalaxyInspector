@@ -6070,12 +6070,21 @@ function fitVSFLaw(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
+    # Set units
+    m_unit         = u"Msun"
+    t_unit         = u"yr"
+    l_gas_unit     = u"pc"
+    l_stellar_unit = u"kpc"
+
+    ρ_gas_unit = m_unit * l_gas_unit^-3
+    ρ_sfr_unit = m_unit * l_stellar_unit^-3 * t_unit^-1
+
     # Set the labels
     xaxis_label = LaTeXString(
-        L"\log_{10} \, " * getLabel(x_plot_params.var_name, 0, x_plot_params.unit)
+        L"\log_{10} \, " * getLabel(x_plot_params.var_name, 0, ρ_gas_unit)
     )
     yaxis_label = LaTeXString(
-        L"\log_{10} \, " * getLabel(y_plot_params.var_name, 0, y_plot_params.unit)
+        L"\log_{10} \, " * getLabel(y_plot_params.var_name, 0, ρ_sfr_unit)
     )
 
     for simulation_path in simulation_paths
@@ -6094,7 +6103,16 @@ function fitVSFLaw(
             filter_function,
             da_functions=[daVSFLaw],
             da_args=[(grid, component)],
-            da_kwargs=[(; field_type, stellar_ff=filterByStellarAge)],
+            da_kwargs=[
+                (;
+                    field_type,
+                    stellar_ff=filterByStellarAge,
+                    m_unit,
+                    t_unit,
+                    l_gas_unit,
+                    l_stellar_unit,
+                ),
+            ],
             post_processing=fit ? ppFitLine! : getNothing,
             x_trim=x_range,
             xaxis_label,
