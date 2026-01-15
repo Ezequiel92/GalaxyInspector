@@ -531,6 +531,7 @@ Plot a radial profile.
   - `quantity::Symbol`: Target quantity. It can be any of the valid quantities of [`scatterQty`](@ref).
   - `norm::Union{Symbol,Nothing}=nothing`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`. It can be any of the valid quantities of [`scatterQty`](@ref). If set to `nothing`, no operation is applied.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
+  - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
   - `n_bins::Int=100`: Number of bins.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`) (after dividing by `norm`).
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
@@ -557,6 +558,7 @@ function radialProfile(
     quantity::Symbol;
     norm::Union{Symbol,Nothing}=nothing,
     radius::Unitful.Length=DISK_R,
+    shift::Number=zero(radius),
     n_bins::Int=100,
     ylog::Bool=false,
     flat::Bool=true,
@@ -618,7 +620,7 @@ function radialProfile(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    grid = CircularGrid(radius, n_bins)
+    grid = CircularGrid(radius, n_bins; shift)
 
     if isone(length(simulation_paths))
         base_filename = "$(basename(simulation_paths[1]))_$(quantity)_radial_profile"
