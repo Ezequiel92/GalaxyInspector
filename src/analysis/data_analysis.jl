@@ -1831,7 +1831,6 @@ Compute a mockup image emulating an SDSS observation.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `grid::CubicGrid`: Cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
-  - `l_unit::Unitful.Units=u"pc"`: Length unit
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
   - `extinction::Bool=false`: If neutral gas extinction will be consider.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1844,7 +1843,6 @@ function daSDSSMockup(
     data_dict::Dict,
     grid::CubicGrid;
     projection_plane::Symbol=:xy,
-    l_unit::Unitful.Units=u"pc",
     smooth::Bool=false,
     extinction::Bool=false,
     filter_function::Function=filterNothing,

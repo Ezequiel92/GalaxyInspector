@@ -7292,7 +7292,6 @@ Make a mockup image emulating an SDSS observation.
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `box_size::Unitful.Length=BOX_L`: Size of the plotting box.
   - `output_path::String="."`: Path to the output folder.
-  - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `resolution::Int=800`: Number of bins per side of the cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
@@ -7313,7 +7312,6 @@ function SDSSMockup(
     slice::IndexType;
     box_size::Unitful.Length=BOX_L,
     output_path::String=".",
-    l_unit::Unitful.Units=u"kpc",
     resolution::Int=800,
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
@@ -7357,7 +7355,7 @@ function SDSSMockup(
         filter_function,
         da_functions=[daSDSSMockup],
         da_args=[(grid,)],
-        da_kwargs=[(; projection_plane, l_unit, smooth, extinction, filter_function=da_ff)],
+        da_kwargs=[(; projection_plane, smooth, extinction, filter_function=da_ff)],
         save_figures=false,
         backup_results=false,
         backup_raw_results=true,
@@ -7365,6 +7363,8 @@ function SDSSMockup(
 
     jld2_path = joinpath(temp_folder, "sdss_mockup_raw.jld2")
     pp_string = string(projection_plane)
+
+    l_unit = u"kpc"
 
     limit  = ustrip(l_unit, box_size / 2.0)
     x_axis = extrema(ustrip.(l_unit, grid.x_bins))
