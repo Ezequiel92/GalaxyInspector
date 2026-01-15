@@ -1747,7 +1747,7 @@ Project a 3D velocity field into a given plane.
   - `grid::SquareGrid`: Square grid.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
-  - `v_unit::Unitful.Units=u"km * s^-1",`: Velocity unit
+  - `v_unit::Unitful.Units=u"km * s^-1"`: Velocity unit
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1814,6 +1814,174 @@ function daVelocityField(
     vy = ustrip.(v_unit, collect(reverse!(transpose(vy), dims=2)))
 
     return grid.x_bins, grid.y_bins, vx, vy
+
+end
+
+"""
+    daSDSSMockup(
+        data_dict::Dict,
+        grid::CubicGrid;
+        <keyword arguments>
+    )::AbstractArray
+
+Compute a mockup image emulating an SDSS observation.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `grid::CubicGrid`: Cubic grid.
+  - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
+  - `l_unit::Unitful.Units=u"pc"`: Length unit
+  - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
+  - `extinction::Bool=false`: If neutral gas extinction will be consider.
+  - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+
+# Returns
+
+  - An RGB image with the mock observation.
+"""
+function daSDSSMockup(
+    data_dict::Dict,
+    grid::CubicGrid;
+    projection_plane::Symbol=:xy,
+    l_unit::Unitful.Units=u"pc",
+    smooth::Bool=false,
+    extinction::Bool=false,
+    filter_function::Function=filterNothing,
+)::AbstractArray
+
+    filtered_dd = filterData(data_dict; filter_function)
+
+    if projection_plane == :xy
+        dims = [1, 2]
+    elseif projection_plane == :xz
+        dims = [1, 3]
+    elseif projection_plane == :yz
+        dims = [2, 3]
+    else
+        throw(ArgumentError("daSDSSMockup: The argument `projection_plane` must be \
+        :xy, :xz or :yz, but I got :$(projection_plane)"))
+    end
+
+    grid_2d = flattenGrid(grid)
+
+    # Get necessary quantities
+    positions     = filtered_dd[:stellar]["POS "][dims, :]
+    masses        = ustrip.(u"Msun", filtered_dd[:stellar]["MASS"])
+    metallicities = scatterQty(filtered_dd, :stellar_metallicity)
+    log_ages      = log10.(ustrip.(u"yr", scatterQty(filtered_dd, :stellar_age)))
+
+    # Compute the pixel index of each star
+    stellar_grid_coor = findIn2DGrid(positions, grid_2d)
+
+    # Compute the interpolation functions for the magnitudes in the g, r, and i filters of SDSS
+    g_interp, r_interp, i_interp = griMagnitudeInterpolation(MILLANIRIGOYEN2025_DATA_PATH)
+
+    # Matrices to store the flux in each pixel of the image
+    Fg = similar(grid_2d.grid, Float64)
+    Fr = similar(grid_2d.grid, Float64)
+    Fi = similar(grid_2d.grid, Float64)
+
+    for star_idx in collect(eachindex(masses))
+
+        grid_coor = stellar_grid_coor[star_idx]
+
+        iszero(grid_coor) && continue
+
+        metallicity = metallicities[star_idx]
+        log_age     = log_ages[star_idx]
+        mass        = masses[star_idx]
+
+        # Interpolate the stellar magnitudes
+        Mg = g_interp(log_age, metallicity)
+        Mr = r_interp(log_age, metallicity)
+        Mi = i_interp(log_age, metallicity)
+
+        # Compute the stellar flux
+        # See https://en.wikipedia.org/wiki/Apparent_magnitude
+        # The reference flux should be the same for each band in the SDSS AB system
+        # so we don't need to normalize, as the relative value of fluxes is all we need
+        Fg[grid_coor] += mass * 10.0^(-0.4 * Mg)
+        Fr[grid_coor] += mass * 10.0^(-0.4 * Mr)
+        Fi[grid_coor] += mass * 10.0^(-0.4 * Mi)
+
+    end
+
+    if extinction
+
+        m_unit = plotParams(:ode_neutral_mass).unit
+
+        Mn_grid, _ = quantity3DProjection(
+            filtered_dd,
+            grid,
+            :ode_neutral_mass,
+            :cells;
+            log=false,
+            empty_nan=false,
+        )
+
+        # Project `nh_grid` to the target plane
+        if projection_plane == :xy
+            dims = 3
+        elseif projection_plane == :xz
+            dims = 2
+        elseif projection_plane == :yz
+            dims = 1
+        else
+            throw(ArgumentError("daSDSSMockup: The argument `projection_plane` must be \
+            :xy, :xz or :yz, but I got :$(projection_plane)"))
+        end
+
+        # For comological simulations with comoving units, correct
+        # the density so it is always in physical units
+        if !PHYSICAL_UNITS && filtered_dd[:sim_data].cosmological
+            # Correction factor for the area
+            # A [physical units] = A [comoving units] * a0^2
+            physical_factor = filtered_dd[:snap_data].scale_factor^2
+        else
+            physical_factor = 1.0
+        end
+
+        ef         = 1.0 / ustrip(m_unit*u"pc^-2", EXTINCTION_FACTOR)
+        voxel_area = ustrip(u"pc^2", grid.bin_area) * physical_factor
+
+        # Compute the neutral hydrogen mass density
+        Mn = dropdims(sum(Mn_grid; dims); dims) ./ voxel_area
+
+        # Compute the extinction in the V band
+        AV = Mn .* ef
+
+        # Compute the extinction in the g, r, and i bands
+        Ag = AV .* AλAV_g
+        Ar = AV .* AλAV_r
+        Ai = AV .* AλAV_i
+
+        # Apply the extinction to the fluxes
+        # See Section 2 of H. B. Yuan et al. (2013) for the relation between extinction and flux
+        # doi: 10.1093/mnras/stt039
+        Fg .*= 10.0.^(-0.4 .* Ag)
+        Fr .*= 10.0.^(-0.4 .* Ar)
+        Fi .*= 10.0.^(-0.4 .* Ai)
+
+    end
+
+    # Turn the fluxes into RGB images
+    red   = AstroImage(Fi)
+    green = AstroImage(Fr)
+    blue  = AstroImage(Fg)
+
+    rgb = composecolors(
+        [red, green, blue],
+        ["red", "green", "blue"],
+        stretch=asinhstretch,
+        multiplier=[1, 1.7, 1]
+    )
+
+    if smooth
+        rgb = imfilter(rgb, Kernel.gaussian(1200.0 / grid.n_bins))
+    end
+
+    return rgb
 
 end
 

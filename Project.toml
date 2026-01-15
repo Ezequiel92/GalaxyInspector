@@ -3,6 +3,7 @@ uuid = "990b1489-e520-4e93-b9dc-df8612ec7e1d"
 authors = ["Ezequiel Lozano <elozano@df.uba.ar>"]
 
 [deps]
+AstroImages = "fe3fc30c-9b16-11e9-1c73-17dabf39f4ad"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 ColorSchemes = "35d6a980-a343-548e-a6ea-1d62b119f2f4"
@@ -33,6 +34,7 @@ UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
 
 [compat]
+AstroImages = "0.5.1"
 Distances = "0.10.12"
 Interpolations = "0.16.2"
 StaticArrays = "1.9.15"

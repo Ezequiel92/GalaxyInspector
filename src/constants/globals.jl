@@ -273,18 +273,60 @@ Path to the file with the fits from McMillan (2011).
 
 # References
 
-P. J. McMillan (2011). *Mass models of the Milky Way*. Monthly Notices of the Royal Astronomical Society **414(3)**, 2446–2457. [doi:10.1111/j.1365-2966.2011.18564.x](https://doi.org/10.1111/j.1365-2966.2011.18564.x)
+P. J. McMillan (2011). *Mass models of the Milky Way*. Monthly Notices of the Royal Astronomical Society **414(3)**, 2446-2457. [doi:10.1111/j.1365-2966.2011.18564.x](https://doi.org/10.1111/j.1365-2966.2011.18564.x)
 """
 const MCMILLAN2011_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/mcmillan_2011.jld2")
 
 """
-Path to the file with the SDSS magnitudes from  Millán-Irigoyen et al. (2025).
+Path to the file with the stellar magnitudes for the g, r, and i filters (SDSS AB system) from Millán-Irigoyen et al. (2025).
+
+The effective wavelengths of each filter are taken from Table 2 (2.5m reference) of Doi et al. (2010):
+
+g band -> λeff = 4627 Å -> "blue" channel
+r band -> λeff = 6140 Å -> "green" channel
+i band -> λeff = 7467 Å -> "red" channel
 
 # References
 
 I. Millán-Irigoyen et al. (2025). *HR-pyPopStar II: high spectral resolution evolutionary synthesis models low metallicity expansion and the properties of the stellar populations of dwarf galaxies*. arXiv. [doi:10.48550/arxiv.2510.02886](https://doi.org/10.48550/arxiv.2510.02886)
+
+M. Doi et al. (2010). *PHOTOMETRIC RESPONSE FUNCTIONS OF THE SLOAN DIGITAL SKY SURVEY IMAGER*. The Astronomical Journal **139(4)**, 1628-1648. [doi:10.1088/0004-6256/139/4/1628](https://doi.org/10.1088/0004-6256/139/4/1628)
 """
 const MILLANIRIGOYEN2025_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/millan-irigoyen_2025.txt")
+
+@doc raw"""
+Extinction factor from T. Güver et al. (2009).
+
+```math
+\text{Extinction factor} = \frac{N_\mathrm{H}}{A(V)} = (2.21 \pm 0.09) \times 10^{21} \, \mathrm{atoms \, cm^{-2} \, mag^{-1}} \, .
+```
+
+We assume that an atom mass is the proton mass.
+
+T. Güver et al. (2009). *The relation between optical extinction and hydrogen column density in the Galaxy*. Monthly Notices of the Royal Astronomical Society **400(4)**, 2050-2053. [doi:10.1111/j.1365-2966.2009.15598.x](https://doi.org/10.1111/j.1365-2966.2009.15598.x)
+"""
+const EXTINCTION_FACTOR = 17.7006u"Msun*pc^-2"
+
+@doc raw"""
+Relation between the extinction in the g, r, and i bands of SDSS and the extinction in the V band from Table 3 of S. Wang et al. (2019).
+
+```math
+\left. A_\lambda / A_V \right\vert_g = 1.205 \pm 0.010 \, .
+```
+
+```math
+\left. A_\lambda / A_V \right\vert_r = 0.848 \pm 0.006 \, .
+```
+
+```math
+\left. A_\lambda / A_V \right\vert_i = 0.630 \pm 0.004 \, .
+```
+
+S. Wang et al. (2019). *The Optical to Mid-infrared Extinction Law Based on the APOGEE, Gaia DR2, Pan-STARRS1, SDSS, APASS, 2MASS, and WISE Surveys*. The American Astronomical Society **877(2)**, 116. [doi:10.3847/1538-4357/ab1c61](https://doi.org/10.3847/1538-4357/ab1c61)
+"""
+const AλAV_g = 1.205
+const AλAV_r = 0.848
+const AλAV_i = 0.63
 
 """
 Reference pressure for the molecular fraction-pressure relation, from Blitz et al. (2006) (Table 2, "Mean" row, Third column).

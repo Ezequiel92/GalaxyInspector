@@ -14,7 +14,8 @@
 
 module GalaxyInspector
 
-using CSV,
+using AstroImages,
+    CSV,
     CairoMakie,
     ColorSchemes,
     Colors,
@@ -131,6 +132,7 @@ export stellarDensityMaps
 export gasDensityMaps
 export gasFractionsEvolution
 export evolutionVideo
+export SDSSMockup
 export snapshotReport
 export simulationReport
 export quantityReport

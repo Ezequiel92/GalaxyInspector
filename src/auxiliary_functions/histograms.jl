@@ -43,7 +43,7 @@ function listHistogram1D(
 
     histogram = [eltype(values)[] for _ in 1:n_bins]
 
-    # Compute the histogram, ignoring NaNs and positions outside the grid range
+    # Compute the histogram, ignoring NaNs and positions outside the grid
     for (position, value) in zip(positions, values)
 
         if isnan(position) || isnan(value)
@@ -140,7 +140,7 @@ function histogram1D(
     histogram = zeros(typeof(first(values)), n_bins)
     counts = zeros(Int, n_bins)
 
-    # Compute the histogram, ignoring NaNs and positions outside of range
+    # Compute the histogram, ignoring NaNs and positions outside the range
     for (position, value) in zip(positions, values)
 
         if isnan(position) || isnan(value)
@@ -249,7 +249,7 @@ function histogram1D(
 
     histogram = zeros(Float64, n_bins)
 
-    # Compute the histogram, ignoring NaNs and positions outside of range
+    # Compute the histogram, ignoring NaNs and positions outside the range
     for position in positions
 
         if isnan(position)
@@ -357,7 +357,7 @@ function histogram2D(
     histogram = zeros(typeof(first(values)), (n_x_bins, n_y_bins))
     counts = zeros(Int, (n_x_bins, n_y_bins))
 
-    # Compute the histogram, ignoring NaNs and positions outside of range
+    # Compute the histogram, ignoring NaNs and positions outside the range
     for (i, point) in pairs(eachcol(positions))
 
         !isnan(values[i]) || continue
@@ -495,7 +495,7 @@ function histogram2D(
 
     histogram = zeros(Float64, (n_x_bins, n_y_bins))
 
-    # Compute the histogram, ignoring NaNs and positions outside of range
+    # Compute the histogram, ignoring NaNs and positions outside the range
     for point in eachcol(positions)
 
         !any(isnan, point) || continue
@@ -528,6 +528,70 @@ function histogram2D(
 
 end
 
+"""
+    findIn2DGrid(positions::Matrix{<:Number}, grid::SquareGrid)::Vector{Int}
+
+Compute the linear index of the given `grid` where each of the `positions` falls.
+
+!!! note
+
+    For `positions` outside the grid a index of 0 is returned.
+
+# Arguments
+
+  - `positions::Matrix{<:Number}`: Target coordinates to be located in the grid.
+  - `grid::SquareGrid`: A square grid.
+
+# Returns
+
+  - A vector with the linear indices.
+"""
+function findIn2DGrid(positions::Matrix{<:Number}, grid::SquareGrid)::Vector{Int}
+
+    # Compute half of the bin size
+    h_bin_width = grid.bin_width * 0.5
+
+    # Compute the physical position of the grid borders
+    x_borders = (grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width)
+    y_borders = (grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width)
+
+    # Compute the edges of the grid
+    x_edges = range(x_borders[1], x_borders[end], grid.n_bins + 1)
+    y_edges = range(y_borders[1], y_borders[end], grid.n_bins + 1)
+
+    coordinates = zeros(Int, size(positions, 2))
+
+    # Compute the linear indices, ignoring NaNs and positions outside the grid
+    Threads.@threads for (idx, point) in collect(pairs(eachcol(positions)))
+
+        !any(isnan, point) || continue
+
+        x = point[1]
+        y = point[2]
+
+        !(x > x_borders[2] || x < x_borders[1]) || continue
+        !(y > y_borders[2] || y < y_borders[1]) || continue
+
+        if x == x_borders[1]
+            i_x = 1
+        else
+            i_x = searchsortedfirst(x_edges, x) - 1
+        end
+
+        if y == y_borders[1]
+            i_y = 1
+        else
+            i_y = searchsortedfirst(y_edges, y) - 1
+        end
+
+        coordinates[idx] = LinearIndices(grid.grid)[grid.n_bins - i_y + 1, i_x]
+
+    end
+
+    return coordinates
+
+end
+
 ####################################################################################################
 # 3D histogram utilities
 ####################################################################################################
@@ -541,7 +605,6 @@ Compute a 3D histogram of `positions`, returning the list of indices that fall w
 
   - `positions::Matrix{<:Number}`: Positions of the points. Each column corresponds to a point and each row is a dimension.
   - `grid::CubicGrid`: A cubic grid.
-  - `tall::Bool=false`: If true, positions with a z coordinate outside the grid will be added to the nearest z bin. This is useful for projecting 3D data into 2D histograms.
 
 # Returns
 
@@ -550,7 +613,6 @@ Compute a 3D histogram of `positions`, returning the list of indices that fall w
 function listHistogram3D(
     positions::Matrix{<:Number},
     grid::CubicGrid,
-    tall::Bool=false,
 )::Array{Vector{Int},3}
 
     # Compute half of the bin size
@@ -571,7 +633,7 @@ function listHistogram3D(
         histogram[i] = Int[]
     end
 
-    # Compute the histogram, ignoring NaNs and positions outside of range
+    # Compute the histogram, ignoring NaNs and positions outside the grid
     for (idx, point) in pairs(eachcol(positions))
 
         !any(isnan, point) || continue
@@ -582,7 +644,7 @@ function listHistogram3D(
 
         !(x > x_borders[2] || x < x_borders[1]) || continue
         !(y > y_borders[2] || y < y_borders[1]) || continue
-        tall || !(z > z_borders[2] || z < z_borders[1]) || continue
+        !(z > z_borders[2] || z < z_borders[1]) || continue
 
         if x == x_borders[1]
             i_x = 1
@@ -596,20 +658,10 @@ function listHistogram3D(
             i_y = searchsortedfirst(y_edges, y) - 1
         end
 
-        if tall
-            if z <= z_borders[1]
-                i_z = 1
-            elseif z >= z_borders[2]
-                i_z = grid.n_bins
-            else
-                i_z = searchsortedfirst(z_edges, z) - 1
-            end
+        if z == z_borders[1]
+            i_z = 1
         else
-            if z == z_borders[1]
-                i_z = 1
-            else
-                i_z = searchsortedfirst(z_edges, z) - 1
-            end
+            i_z = searchsortedfirst(z_edges, z) - 1
         end
 
         push!(histogram[grid.n_bins - i_y + 1, i_x, i_z], idx)
@@ -617,6 +669,80 @@ function listHistogram3D(
     end
 
     return histogram
+
+end
+
+"""
+    findIn3DGrid(positions::Matrix{<:Number}, grid::CubicGrid)::Vector{Int}
+
+Compute the linear index of the given `grid` where each of the `positions` falls.
+
+!!! note
+
+    For `positions` outside the grid a index of 0 is returned.
+
+# Arguments
+
+  - `positions::Matrix{<:Number}`: Target coordinates to be located in the grid.
+  - `grid::CubicGrid`: A cubic grid.
+
+# Returns
+
+  - A vector with the linear indices.
+"""
+function findIn3DGrid(positions::Matrix{<:Number}, grid::CubicGrid)::Vector{Int}
+
+    # Compute half of the bin size
+    h_bin_width = grid.bin_width * 0.5
+
+    # Compute the physical position of the grid borders
+    x_borders = (grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width)
+    y_borders = (grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width)
+    z_borders = (grid.z_bins[1] - h_bin_width, grid.z_bins[end] + h_bin_width)
+
+    # Compute the edges of the grid
+    x_edges = range(x_borders[1], x_borders[end], grid.n_bins + 1)
+    y_edges = range(y_borders[1], y_borders[end], grid.n_bins + 1)
+    z_edges = range(z_borders[1], z_borders[end], grid.n_bins + 1)
+
+    coordinates = zeros(Int, size(positions, 2))
+
+    # Compute the histogram, ignoring NaNs and positions outside the grid
+    Threads.@threads for (idx, point) in collect(pairs(eachcol(positions)))
+
+        !any(isnan, point) || continue
+
+        x = point[1]
+        y = point[2]
+        z = point[3]
+
+        !(x > x_borders[2] || x < x_borders[1]) || continue
+        !(y > y_borders[2] || y < y_borders[1]) || continue
+        !(z > z_borders[2] || z < z_borders[1]) || continue
+
+        if x == x_borders[1]
+            i_x = 1
+        else
+            i_x = searchsortedfirst(x_edges, x) - 1
+        end
+
+        if y == y_borders[1]
+            i_y = 1
+        else
+            i_y = searchsortedfirst(y_edges, y) - 1
+        end
+
+        if z == z_borders[1]
+            i_z = 1
+        else
+            i_z = searchsortedfirst(z_edges, z) - 1
+        end
+
+        coordinates[idx] = LinearIndices(grid.grid)[grid.n_bins - i_y + 1, i_x, i_z]
+
+    end
+
+    return coordinates
 
 end
 
@@ -637,7 +763,6 @@ Compute a 3D histogram of `values`.
   - `grid::CubicGrid`: A cubic grid.
   - `total::Bool=true`: If the sum (`total` = true) or the mean (`total` = false) of `values` will be computed for each bin.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
-  - `tall::Bool=false`: If true, positions with a z coordinate outside the grid will be counted toward the nearest z bin. This is useful for projecting 3D data into 2D histograms.
 
 # Returns
 
@@ -649,7 +774,6 @@ function histogram3D(
     grid::CubicGrid;
     total::Bool=true,
     empty_nan::Bool=true,
-    tall::Bool=false,
 )::Array{<:Number,3}
 
     (
@@ -675,7 +799,7 @@ function histogram3D(
     histogram = zeros(typeof(first(values)), size(grid.grid))
     counts = zeros(Int, size(grid.grid))
 
-    # Compute the histogram, ignoring NaNs and positions outside of range
+    # Compute the histogram, ignoring NaNs and positions outside the grid
     for (i, point) in pairs(eachcol(positions))
 
         !isnan(values[i]) || continue
@@ -687,7 +811,7 @@ function histogram3D(
 
         !(x > x_borders[2] || x < x_borders[1]) || continue
         !(y > y_borders[2] || y < y_borders[1]) || continue
-        tall || !(z > z_borders[2] || z < z_borders[1]) || continue
+        !(z > z_borders[2] || z < z_borders[1]) || continue
 
         if x == x_borders[1]
             i_x = 1
@@ -701,20 +825,10 @@ function histogram3D(
             i_y = searchsortedfirst(y_edges, y) - 1
         end
 
-        if tall
-            if z <= z_borders[1]
-                i_z = 1
-            elseif z >= z_borders[2]
-                i_z = grid.n_bins
-            else
-                i_z = searchsortedfirst(z_edges, z) - 1
-            end
+        if z == z_borders[1]
+            i_z = 1
         else
-            if z == z_borders[1]
-                i_z = 1
-            else
-                i_z = searchsortedfirst(z_edges, z) - 1
-            end
+            i_z = searchsortedfirst(z_edges, z) - 1
         end
 
         histogram[grid.n_bins - i_y + 1, i_x, i_z] += values[i]
@@ -774,7 +888,7 @@ function project3DList(
     elseif projection_plane == :yz
         dims = 1
     else
-        throw(ArgumentError("projectList: The argument `projection_plane` must be \
+        throw(ArgumentError("project3DList: The argument `projection_plane` must be \
         :xy, :xz or :yz, but I got :$(projection_plane)"))
     end
 

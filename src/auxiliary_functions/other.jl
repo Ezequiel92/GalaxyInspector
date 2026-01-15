@@ -774,3 +774,76 @@ function format_seconds(sec::Float64)::String
     )
 
 end
+
+"""
+    griMagnitudeInterpolation(path::String)::NTuple{3,Interpolations.Extrapolation}
+
+Compute three linear interpolation functions for the stellar magnitudes in the g, r, and i filters of SDSS.
+
+# Arguments
+
+  - `path::String`: Path to the magnitude table. It has to have the columns:
+
+      + :Z       -> Stellar metallicity.
+      + :log_age -> log10(stellar age [yr]).
+      + :g       -> Stellar magnitude for the g filter of SDSS (λeff = 4627 Å -> "blue" channel).
+      + :r       -> Stellar magnitude for the r filter of SDSS (λeff = 6140 Å -> "green" channel).
+      + :i       -> Stellar magnitude for the i filter of SDSS (λeff = 7467 Å -> "red" channel).
+
+# Returns
+
+  - A tuple with the three interpolation functions:
+
+      + g(log10(age [yr]), Z*)
+      + r(log10(age [yr]), Z*)
+      + i(log10(age [yr]), Z*)
+"""
+function griMagnitudeInterpolation(path::String)::NTuple{3,Interpolations.Extrapolation}
+
+    # Read the magnitude table
+    magnitude_table = CSV.read(
+        path,
+        DataFrame;
+        delim=' ',
+        header=[:Z, :log_age, :g, :r, :i],
+        ignorerepeated=true,
+    )
+
+    # List of stellar ages from the magnitude table
+    table_ages = unique(magnitude_table[!, :log_age])
+
+    # List of metallicities from the magnitude table
+    table_metallicities = unique(magnitude_table[!, :Z])
+
+    ##############################################################
+    # Reshape the magnitude table into matrices for interpolation
+    # Rows    -> :log_age
+    # Columns -> :Z
+    ##############################################################
+    wide_g = unstack(magnitude_table, :log_age, :Z, :g)
+    sort!(wide_g, :log_age)
+
+    wide_r = unstack(magnitude_table, :log_age, :Z, :r)
+    sort!(wide_r, :log_age)
+
+    wide_i = unstack(magnitude_table, :log_age, :Z, :i)
+    sort!(wide_i, :log_age)
+
+    g_mat = Matrix(wide_g[:, Not(:log_age)])
+    r_mat = Matrix(wide_r[:, Not(:log_age)])
+    i_mat = Matrix(wide_i[:, Not(:log_age)])
+
+    knots = (table_ages, table_metallicities)
+
+    # Create the interpolation function for the g filter (λeff = 4627 Å -> "blue" channel)
+    g_interp = linear_interpolation(knots, g_mat, extrapolation_bc=Flat())
+
+    # Create the interpolation function for the r filter (λeff = 6140 Å -> "green" channel)
+    r_interp = linear_interpolation(knots, r_mat, extrapolation_bc=Flat())
+
+    # Create the interpolation function for the i filter (λeff = 7467 Å -> "red" channel)
+    i_interp = linear_interpolation(knots, i_mat, extrapolation_bc=Flat())
+
+    return g_interp, r_interp, i_interp
+
+end

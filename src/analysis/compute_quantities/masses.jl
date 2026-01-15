@@ -1375,7 +1375,7 @@ function computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:Numb
 end
 
 """
-    computeNumber(data_dict::Dict, component::Symbol)::Vector{Int64}
+    computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
 
 Compute the number of a given `component`.
 
@@ -1414,14 +1414,14 @@ Compute the number of a given `component`.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeNumber(data_dict::Dict, component::Symbol)::Vector{Int64}
+function computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeNumber: `component` can only be one of the elements of \
         `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:stellar, :dark_matter, :black_hole. :gas]
+    if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
 
         ############################################################################################
         # Number as the amount of particles
@@ -1445,7 +1445,7 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Int64}
 
         M = computeMass(data_dict, component)
 
-        N = M / (2.0 * Unitful.mp)
+        N = ustrip.(Unitful.NoUnits, M / (2.0 * Unitful.mp))
 
     else
 
@@ -1455,7 +1455,7 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Int64}
 
         M = computeMass(data_dict, component)
 
-        N = M / Unitful.mp
+        N = ustrip.(Unitful.NoUnits, M / Unitful.mp)
 
     end
 
@@ -1467,7 +1467,7 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Int64}
 
     end
 
-    return ustrip.(Unitful.NoUnits, N)
+    return N
 
 end
 
@@ -2086,7 +2086,7 @@ function quantity3DProjection(
 
         end
 
-        voxel_values = histogram3D(positions, qty_values, grid; empty_nan, tall=true)
+        voxel_values = histogram3D(positions, qty_values, grid; empty_nan)
 
     end
 

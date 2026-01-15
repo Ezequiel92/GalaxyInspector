@@ -7272,6 +7272,172 @@ function evolutionVideo(
 end
 
 """
+    SDSSMockup(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Make a mockup image emulating an SDSS observation.
+
+!!! note
+
+    The stellar magnitudes (AB system of SDSS) from Millán-Irigoyen et al. (2025) are used.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `box_size::Unitful.Length=BOX_L`: Size of the plotting box.
+  - `output_path::String="."`: Path to the output folder.
+  - `l_unit::Unitful.Units=u"pc"`: Length unit.
+  - `resolution::Int=800`: Number of bins per side of the cubic grid.
+  - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
+  - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
+  - `extinction::Bool=false`: If neutral gas extinction will be consider.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+
+# References
+
+I. Millán-Irigoyen et al. (2025). *HR-pyPopStar II: high spectral resolution evolutionary synthesis models low metallicity expansion and the properties of the stellar populations of dwarf galaxies*. arXiv. [doi:10.48550/arxiv.2510.02886](https://doi.org/10.48550/arxiv.2510.02886)
+"""
+function SDSSMockup(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    box_size::Unitful.Length=BOX_L,
+    output_path::String=".",
+    l_unit::Unitful.Units=u"kpc",
+    resolution::Int=800,
+    projection_plane::Symbol=:xy,
+    smooth::Bool=false,
+    extinction::Bool=false,
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    da_ff::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    theme::Attributes=Theme(),
+    show_progress::Bool=true,
+)::Nothing
+
+    base_request = mergeRequests(
+        plotParams(:stellar_age).request,
+        plotParams(:stellar_metallicity).request,
+        plotParams(:stellar_mass).request,
+        plotParams(:ode_neutral_mass).request,
+        Dict(:stellar=>["POS "], :gas=>["POS "]),
+        ff_request,
+    )
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    # Set up the grid
+    grid = CubicGrid(box_size, resolution)
+
+    temp_folder = joinpath(output_path, "_sdss_mockups")
+
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [heatmap!];
+        output_path=temp_folder,
+        base_filename="sdss_mockup",
+        show_progress,
+        slice,
+        transform_box=true,
+        translation,
+        rotation,
+        filter_function,
+        da_functions=[daSDSSMockup],
+        da_args=[(grid,)],
+        da_kwargs=[(; projection_plane, l_unit, smooth, extinction, filter_function=da_ff)],
+        save_figures=false,
+        backup_results=false,
+        backup_raw_results=true,
+    )
+
+    jld2_path = joinpath(temp_folder, "sdss_mockup_raw.jld2")
+    pp_string = string(projection_plane)
+
+    limit  = ustrip(l_unit, box_size / 2.0)
+    x_axis = extrema(ustrip.(l_unit, grid.x_bins))
+    y_axis = extrema(ustrip.(l_unit, grid.y_bins))
+    xlabel = getLabel(pp_string[1:1], 0, l_unit)
+    ylabel = getLabel(pp_string[2:2], 0, l_unit)
+
+    current_theme = merge(
+        theme,
+        Theme(
+            size=(880, 870),
+            figure_padding=(5, 10, 0, 0),
+            Axis=(aspect=DataAspect(), limits=(-limit, limit, -limit, limit)),
+            Text=(color=:white, fontsize=35),
+        ),
+        DEFAULT_THEME,
+        theme_latexfonts(),
+    )
+
+    with_theme(current_theme) do
+
+        jldopen(jld2_path, "r") do jld2_file
+
+            for simulation_path in simulation_paths
+
+                simulation_table = makeSimulationTable(simulation_path)
+
+                times = safeSelect(simulation_table[!, :physical_times], slice)
+
+                for (snap, time) in zip(keys(jld2_file), times)
+
+                    dataset_key = "$(snap)/$(basename(simulation_path))"
+
+                    f = Figure()
+
+                    ax = CairoMakie.Axis(f[1, 1]; xlabel, ylabel)
+
+                    image!(ax, x_axis, y_axis, jld2_file[dataset_key])
+
+                    c_t = ustrip(u"Gyr", time)
+
+                    if c_t < 1.0
+                        time_stamp = round(c_t; digits=2)
+                    else
+                        time_stamp = round(c_t; sigdigits=3)
+                    end
+
+                    text!(
+                        ax,
+                        0.73,
+                        0.98;
+                        text=L"t = %$(rpad(time_stamp, 4, '0')) \, \text{Gyr}",
+                        align=(:left, :top),
+                        space=:relative,
+                    )
+
+                    output_file = "$(basename(simulation_path))_$(snap)_sdss_mockup_$(pp_string).png"
+
+                    Makie.save(joinpath(output_path, output_file), f)
+
+                end
+
+            end
+
+        end
+
+    end
+
+    rm(temp_folder; recursive=true)
+
+    return nothing
+
+end
+
+"""
     simulationReport(simulation_paths::Vector{String}; <keyword arguments>)::Nothing
 
 Write a text file with information about a given simulation.
