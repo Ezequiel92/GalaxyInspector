@@ -1229,6 +1229,7 @@ function gasBarPlot(
             ),
         ),
         DEFAULT_THEME,
+        theme_latexfonts(),
     )
 
     # Set the color list
