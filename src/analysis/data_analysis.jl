@@ -398,7 +398,7 @@ end
     daProfile(
         data_dict::Dict,
         quantity::Symbol,
-        grid::CircularGrid;
+        grid::LinearGrid;
         <keyword arguments>
     )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
 
@@ -408,7 +408,7 @@ Compute a profile.
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref).
-  - `grid::CircularGrid`: Circular grid.
+  - `grid::LinearGrid`: Linear grid.
   - `norm::Union{Symbol,Nothing}=nothing`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`. It can be any of the quantities valid for [`scatterQty`](@ref). If set to `nothing`, no operation is applied.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `quantity`, if you want to apply ``\\log_{10}`` to `quantity`. If set to `nothing`, the data is left as is.
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
@@ -429,7 +429,7 @@ Compute a profile.
 function daProfile(
     data_dict::Dict,
     quantity::Symbol,
-    grid::CircularGrid;
+    grid::LinearGrid;
     norm::Union{Symbol,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
     flat::Bool=true,
@@ -476,7 +476,7 @@ function daProfile(
         density,
     )
 
-    x_axis = copy(grid.grid)
+    x_axis = copy(grid.x_axis)
 
     if !isnothing(y_log)
 
@@ -502,7 +502,7 @@ end
     daBandProfile(
         data_dict::Dict,
         quantity::Symbol,
-        grid::CircularGrid;
+        grid::LinearGrid;
         <keyword arguments>
     )::Union{
         Tuple{Vector{<:Unitful.Length},Vector{<:Number},Vector{<:Number},Vector{<:Number}},
@@ -516,7 +516,7 @@ Compute a profile with uncertainty bands.
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref).
-  - `grid::CircularGrid`: Circular grid.
+  - `grid::LinearGrid`: Linear grid.
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`).
@@ -543,7 +543,7 @@ Compute a profile with uncertainty bands.
 function daBandProfile(
     data_dict::Dict,
     quantity::Symbol,
-    grid::CircularGrid;
+    grid::LinearGrid;
     flat::Bool=true,
     density::Bool=false,
     ylog::Bool=false,
@@ -593,10 +593,10 @@ function daBandProfile(
     center, low, high = computeBandProfile(positions, values, grid; flat, density)
 
     if error_bar
-        return grid.grid, center, center .- low, high .- center
+        return grid.x_axis, center, center .- low, high .- center
     end
 
-    return grid.grid, low, high
+    return grid.x_axis, low, high
 
 end
 
@@ -662,7 +662,7 @@ function daStellarHistory(
     # Compute the birth time range
     min, max = extrema(birth_times)
 
-    grid = CircularGrid(max, n_bins; shift=min)
+    grid = LinearGrid(min, max, n_bins)
 
     # Compute the total stellar mass in each time bin
     stellar_masses = histogram1D(birth_times, masses, grid; empty_nan=false)
@@ -738,6 +738,7 @@ Compute a 1D histogram of a given `quantity`.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `grid::LinearGrid`: Linear grid.
+  -  `log::Bool=false`: If the histogram bins will be logarithmic.
   - `norm::Int=0`: Number of counts that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -752,6 +753,7 @@ function daHistogram(
     data_dict::Dict,
     quantity::Symbol,
     grid::LinearGrid;
+    log::Bool=false,
     norm::Int=0,
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Number},Vector{Float64}},Nothing}
@@ -833,10 +835,10 @@ function daHistogram(
 
     end
 
-    if grid.log
-        x_axis = log10.(ustrip.(plot_params.unit, grid.grid))
+    if log
+        x_axis = log10.(ustrip.(plot_params.unit, grid.x_axis))
     else
-        x_axis = copy(grid.grid)
+        x_axis = copy(grid.x_axis)
     end
 
     return x_axis, y_axis
@@ -847,8 +849,7 @@ end
     daHistogram(
         data_dict::Dict,
         quantity::Symbol,
-        n_bins::Int,
-        log::Bool;
+        n_bins::Int;
         <keyword arguments>
     )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
@@ -863,7 +864,7 @@ Compute a 1D histogram of a given `quantity`.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `n_bins::Int`: Number of bins.
-  - `log::Bool`: If the histogram bins will be logarithmic.
+  - `log::Bool=false`: If the histogram bins will be logarithmic.
   - `norm::Int=0`: Number of count that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -877,8 +878,8 @@ Compute a 1D histogram of a given `quantity`.
 function daHistogram(
     data_dict::Dict,
     quantity::Symbol,
-    n_bins::Int,
-    log::Bool;
+    n_bins::Int;
+    log::Bool=false,
     norm::Int=0,
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Number},Vector{Float64}},Nothing}
@@ -955,7 +956,7 @@ function daHistogram(
             \n  Snapshot:    $(data_dict[:snap_data].global_index) \
             \n  Quantity:    $(quantity) \
             \n  Type:        $(cp_type) \
-            \n  Largest bin: $(grid.grid[argmax(counts)]) \
+            \n  Largest bin: $(grid.x_axis[argmax(counts)]) \
             \n  Max count:   $(maximum(counts)) \
             \n  Min - Max:   $(min_max_v) \
             \n  Mean:        $(mean_v) \
@@ -966,9 +967,9 @@ function daHistogram(
     end
 
     if log
-        x_axis = log10.(ustrip.(plot_params.unit, grid.grid))
+        x_axis = log10.(ustrip.(plot_params.unit, grid.x_axis))
     else
-        x_axis = copy(grid.grid)
+        x_axis = copy(grid.x_axis)
     end
 
     return x_axis, y_axis
@@ -1092,7 +1093,7 @@ function daBarGasFractions(
     histograms = [histogram1D(gas_qty, mass, grid; empty_nan=false) for mass in masses]
 
     # Compute the number of bins
-    n_bins = length(grid.edges) - 1
+    n_bins = grid.size
 
     # Compute the number of bars per bin
     n_bars = length(components)
@@ -1126,7 +1127,7 @@ end
 """
     daMolla2015(
         data_dict::Dict,
-        grid::CircularGrid,
+        grid::LinearGrid,
         quantity::Symbol;
         <keyword arguments>
     )::Union{
@@ -1142,7 +1143,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
 # Arguments
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `grid::CircularGrid`: Circular grid.
+  - `grid::LinearGrid`: Linear grid.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
       + `:stellar_area_density`               -> Stellar mass surface density.
@@ -1174,7 +1175,7 @@ M. Mollá et al. (2015). *Galactic chemical evolution: stellar yields and the in
 """
 function daMolla2015(
     data_dict::Dict,
-    grid::CircularGrid,
+    grid::LinearGrid,
     quantity::Symbol;
     y_unit::Unitful.Units=Unitful.NoUnits,
     filter_function::Function=filterNothing,
@@ -1226,7 +1227,7 @@ function daMolla2015(
 
     density_profile = scaling(computeProfile(positions, masses, grid; norm, density))
 
-    return grid.grid, density_profile
+    return grid.x_axis, density_profile
 
 end
 
@@ -1333,7 +1334,7 @@ function daDensity2DProjection(
 
         # Reduce the resolution of the result using a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
-        density = projectIntoCircularGrid(density, reduce_factor)
+        density = projectIntoLinearGrid(density, reduce_factor)
         x_axis  = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis  = x_axis
 
@@ -1476,7 +1477,7 @@ function daGasSFR2DProjection(
 
         # Reduce the resolution of the result using a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
-        sfr    = projectIntoCircularGrid(sfr, reduce_factor; total=true)
+        sfr    = projectIntoLinearGrid(sfr, reduce_factor; total=true)
         x_axis = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis = x_axis
 
@@ -1655,8 +1656,8 @@ function daMetallicity2DProjection(
 
         # Reduce the resolution of the result into a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
-        metal_mass = projectIntoCircularGrid(metal_mass, reduce_factor; total=true)
-        norm_mass  = projectIntoCircularGrid(norm_mass, reduce_factor; total=true)
+        metal_mass = projectIntoLinearGrid(metal_mass, reduce_factor; total=true)
+        norm_mass  = projectIntoLinearGrid(norm_mass, reduce_factor; total=true)
 
         x_axis = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis = x_axis
@@ -3213,7 +3214,7 @@ end
     daClumpingFactorProfile(
         data_dict::Dict,
         component::Symbol,
-        grid::CircularGrid;
+        grid::LinearGrid;
         <keyword arguments>
     )::Tuple{Vector{<:Unitful.Length},Vector{Float64}}
 
@@ -3227,7 +3228,7 @@ C_\rho = \frac{\langle n^2 \rangle}{\langle n \rangle^2} \, ,
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) with cell/partcile type :gas.
-  - `grid::CircularGrid`: Circular grid.
+  - `grid::LinearGrid`: Linear grid.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -3240,7 +3241,7 @@ C_\rho = \frac{\langle n^2 \rangle}{\langle n \rangle^2} \, ,
 function daClumpingFactorProfile(
     data_dict::Dict,
     component::Symbol,
-    grid::CircularGrid;
+    grid::LinearGrid;
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{Float64}}
 
@@ -3258,12 +3259,12 @@ function daClumpingFactorProfile(
     positions = filtered_dd[:gas]["POS "]
 
     # Compute the radial distance of each cell/particle
-    distances = colwise(Euclidean(), positions[1:2, :], grid.center[1:2])
+    distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
 
     # Find which cells/particles fall within each bin of `grid`
     n_profile = listHistogram1D(distances, number_densities, grid)
 
-    Cρ = similar(grid.grid, Float64)
+    Cρ = fill(NaN, grid.size)
 
     Threads.@threads for (i, n) in collect(pairs(n_profile))
 
@@ -3271,7 +3272,7 @@ function daClumpingFactorProfile(
 
     end
 
-    return grid.grid, Cρ
+    return grid.x_axis, Cρ
 
 end
 

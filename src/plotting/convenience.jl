@@ -620,7 +620,7 @@ function radialProfile(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    grid = CircularGrid(radius, n_bins; shift)
+    grid = LinearGrid(shift, radius, n_bins)
 
     if isone(length(simulation_paths))
         base_filename = "$(basename(simulation_paths[1]))_$(quantity)_radial_profile"
@@ -768,7 +768,7 @@ function radialProfile(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    grid = CircularGrid(radius, n_bins)
+    grid = LinearGrid(zero(radius), radius, n_bins)
 
     for simulation_path in simulation_paths
 
@@ -980,7 +980,7 @@ function histogram(
     filter_function, request = selectFilter(filter_mode, trans_request)
 
     if isnothing(range)
-        da_args = [(quantity, n_bins, xlog)]
+        da_args = [(quantity, n_bins)]
     else
         grid    = LinearGrid(range..., n_bins; log=xlog)
         da_args = [(quantity, grid)]
@@ -1022,7 +1022,7 @@ function histogram(
         filter_function,
         da_functions=[daHistogram],
         da_args,
-        da_kwargs=[(; filter_function=da_ff, norm)],
+        da_kwargs=[(; log=xlog, filter_function=da_ff, norm)],
         x_unit,
         x_exp_factor,
         xaxis_label,
@@ -1342,7 +1342,7 @@ function compareMolla2015(
     # Select the correct grid acording to the available data from M. Mollá et al. (2015)
     if quantity == :stellar_area_density
 
-        grid = CircularGrid(16.5u"kpc", 14; shift=2.5u"kpc")
+        grid = LinearGrid(2.5u"kpc", 16.5u"kpc", 14)
 
     elseif quantity ∈ [
         :ode_molecular_area_density,
@@ -1352,23 +1352,23 @@ function compareMolla2015(
         :sfr_area_density,
     ]
 
-        grid = CircularGrid(19.5u"kpc", 20; shift=-0.5u"kpc")
+        grid = LinearGrid(-0.5u"kpc", 19.5u"kpc", 20)
 
     elseif quantity ∈ [:ode_atomic_area_density, :br_atomic_area_density]
 
-        grid = CircularGrid(20.5u"kpc", 21; shift=-0.5u"kpc")
+        grid = LinearGrid(-0.5u"kpc", 20.5u"kpc", 21)
 
     elseif quantity == :O_stellar_abundance
 
-        grid = CircularGrid(18.5u"kpc", 19; shift=-0.5u"kpc")
+        grid = LinearGrid(-0.5u"kpc", 18.5u"kpc", 19)
 
     elseif quantity == :N_stellar_abundance
 
-        grid = CircularGrid(17.5u"kpc", 18; shift=-0.5u"kpc")
+        grid = LinearGrid(-0.5u"kpc", 17.5u"kpc", 18)
 
     elseif quantity == :C_stellar_abundance
 
-        grid = CircularGrid(15.5u"kpc", 16; shift=-0.5u"kpc")
+        grid = LinearGrid(-0.5u"kpc", 15.5u"kpc", 16)
 
     else
 
@@ -1482,7 +1482,7 @@ function compareAgertz2021(
         yaxis_label = plot_params.axis_label
     end
 
-    grid = CircularGrid(25.0u"kpc", 25)
+    grid = LinearGrid(0.0u"kpc", 25.0u"kpc", 25)
 
     if isone(length(simulation_paths))
         base_filename = "$(basename(simulation_paths[1]))_stellar_mass_density_profile_Agertz2021"
@@ -4397,12 +4397,16 @@ function massProfile(
 )::Nothing
 
     plot_params = plotParams(:mass)
-    base_request = mergeRequests(plot_params.request, ff_request)
+    base_request = mergeRequests(
+        plot_params.request,
+        ff_request,
+        Dict(component => ["POS "] for component in [:gas, :stellar, :dark_matter, :black_hole]),
+    )
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    grid = CircularGrid(radius, n_bins)
+    grid = LinearGrid(zero(radius), radius, n_bins)
 
     n_sims = length(simulation_paths)
 
@@ -4536,7 +4540,7 @@ function velocityProfile(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    grid = CircularGrid(radius, n_bins)
+    grid = LinearGrid(zero(radius), radius, n_bins)
 
     if isone(length(simulation_paths))
         base_filename = "$(basename(simulation_paths[1]))_$(velocity)_profile"
@@ -4708,7 +4712,7 @@ function compareFeldmann2020(
         y_quantities   = fill(:observational_sfr, n_sims)
         y_plot_params  = plotParams(:observational_sfr)
         yunit          = y_plot_params.unit
-        y_axis_label   = yplot_params.axis_label
+        y_axis_label   = y_plot_params.axis_label
         yaxis_var_name = y_plot_params.var_name
 
     elseif y_component == :stellar
@@ -6465,7 +6469,10 @@ function efficiencyHistogram(
             filter_function,
             da_functions=[daHistogram, daHistogram],
             da_args=[(:stellar_eff, grid), (:gas_eff, grid)],
-            da_kwargs=[(; filter_function=stellar_ff), (; filter_function=gas_ff)],
+            da_kwargs=[
+                (; log=true, filter_function=stellar_ff),
+                (; log=true, filter_function=gas_ff),
+            ],
             xaxis_label=L"\log_{10} \," * getLabel(plot_params.axis_label, 0, plot_params.unit),
             xaxis_var_name=plot_params.var_name,
             yaxis_var_name=L"\mathrm{Normalized \,\, counts}",

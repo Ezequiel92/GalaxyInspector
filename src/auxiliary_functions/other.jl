@@ -698,7 +698,7 @@ function smoothWindow(
     )
 
     positions = scaling.(ustrip(x_data))
-    grid = CircularGrid(maximum(positions), n_bins; shift=minimum(positions))
+    grid = LinearGrid(extrema(positions)..., n_bins)
 
     smooth_x_data = histogram1D(positions, x_data, grid; total=false)
     smooth_y_data = histogram1D(positions, y_data, grid; total=false)

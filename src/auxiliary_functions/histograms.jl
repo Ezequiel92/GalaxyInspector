@@ -68,7 +68,7 @@ end
     listHistogram1D(
         positions::Vector{<:Number},
         values::Vector{<:Number},
-        grid::Union{LinearGrid,CircularGrid},
+        grid::LinearGrid,
     )::Vector{Vector{<:Number}}
 
 Compute a 1D histogram of `values`, returning the full list of `values` within each bin.
@@ -77,7 +77,7 @@ Compute a 1D histogram of `values`, returning the full list of `values` within e
 
   - `positions::Vector{<:Number}`: The positions of `values` within a 1D axis.
   - `values::Vector{<:Number}`: The values that will be sorted, according to their `positions`.
-  - `grid::Union{LinearGrid,CircularGrid}`: A linear or circular grid.
+  - `grid::LinearGrid`: A linear grid.
 
 # Returns
 
@@ -86,10 +86,10 @@ Compute a 1D histogram of `values`, returning the full list of `values` within e
 function listHistogram1D(
     positions::Vector{<:Number},
     values::Vector{<:Number},
-    grid::Union{LinearGrid,CircularGrid},
+    grid::LinearGrid,
 )::Vector{Vector{<:Number}}
 
-    return listHistogram1D(positions, values, grid.edges)
+    return listHistogram1D(positions, values, grid.x_edges)
 
 end
 
@@ -185,7 +185,7 @@ end
     histogram1D(
         positions::Vector{<:Number},
         values::Vector{<:Number},
-        grid::Union{LinearGrid,CircularGrid};
+        grid::LinearGrid;
         <keyword arguments>
     )::Vector{<:Number}
 
@@ -195,7 +195,7 @@ Compute a 1D histogram of `values`.
 
   - `positions::Vector{<:Number}`: Positions of the `values` within a 1D axis.
   - `values::Vector{<:Number}`: The values that will be added up to each bin, according to their `positions`.
-  - `grid::Union{LinearGrid,CircularGrid}`: A linear or circular grid.
+  - `grid::LinearGrid`: A linear grid.
   - `total::Bool=true`: If the sum (`total` = true) or the mean (`total` = false) of `values` will be computed for each bin.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
 
@@ -206,12 +206,12 @@ Compute a 1D histogram of `values`.
 function histogram1D(
     positions::Vector{<:Number},
     values::Vector{<:Number},
-    grid::Union{LinearGrid,CircularGrid};
+    grid::LinearGrid;
     total::Bool=true,
     empty_nan::Bool=true,
 )::Vector{<:Number}
 
-    return histogram1D(positions, values, grid.edges; total, empty_nan)
+    return histogram1D(positions, values, grid.x_edges; total, empty_nan)
 
 end
 
@@ -275,7 +275,7 @@ end
 """
     histogram1D(
         positions::Vector{<:Number},
-        grid::Union{LinearGrid,CircularGrid};
+        grid::LinearGrid;
         <keyword arguments>
     )::Vector{Float64}
 
@@ -284,7 +284,7 @@ Compute a 1D histogram of `positions`.
 # Arguments
 
   - `positions::Vector{<:Number}`: Values for which the histogram will be constructed.
-  - `grid::Union{LinearGrid,CircularGrid}`: A linear or circular grid.
+  - `grid::LinearGrid`: A linear grid.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
 
 # Returns
@@ -293,11 +293,11 @@ Compute a 1D histogram of `positions`.
 """
 function histogram1D(
     positions::Vector{<:Number},
-    grid::Union{LinearGrid,CircularGrid};
+    grid::LinearGrid;
     empty_nan::Bool=true,
 )::Vector{Float64}
 
-    return histogram1D(positions, grid.edges; empty_nan)
+    return histogram1D(positions, grid.x_edges; empty_nan)
 
 end
 
@@ -904,7 +904,7 @@ end
     computeProfile(
         positions::Matrix{<:Unitful.Length},
         quantity::Vector{<:Number},
-        grid::CircularGrid;
+        grid::LinearGrid;
         <keyword arguments>
     )::Vector{<:Number}
 
@@ -914,7 +914,7 @@ Compute a profile of `quantity`, using an 1D histogram.
 
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `quantity::Vector{<:Number}`: The profile will be of this quantity.
-  - `grid::CircularGrid`: Circular grid.
+  - `grid::LinearGrid`: Linear grid.
   - `norm::Vector{<:Number}=Number[]`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`.
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
@@ -929,7 +929,7 @@ Compute a profile of `quantity`, using an 1D histogram.
 function computeProfile(
     positions::Matrix{<:Unitful.Length},
     quantity::Vector{<:Number},
-    grid::CircularGrid;
+    grid::LinearGrid;
     norm::Vector{<:Number}=Number[],
     flat::Bool=true,
     total::Bool=true,
@@ -943,14 +943,14 @@ function computeProfile(
             logging[] &&
             @warn("computeProfile: `quantity` is empty. The profile will be filled with NaNs")
         )
-        return fill(NaN, length(grid.grid))
+        return fill(NaN, grid.size)
     end
 
-    # Compute the distances of the cells/particles to the center of the grid
+    # Compute the distances of the cells/particles to the origin of the grid
     if flat
-        distances = colwise(Euclidean(), positions[1:2, :], grid.center[1:2])
+        distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
     else
-        distances = colwise(Euclidean(), positions, grid.center)
+        distances = colwise(Euclidean(), positions, grid.origin)
     end
 
     # Compute the histogram of `quantity`
@@ -969,7 +969,7 @@ function computeProfile(
 
     end
 
-    region = flat ? grid.bin_areas : grid.bin_volumes
+    region = flat ? grid.bin_size_2D : grid.bin_size_3D
 
     if cumulative
         return density ? cumsum(profile) ./ cumsum(region) : cumsum(profile)
@@ -983,7 +983,7 @@ end
     computeBandProfile(
         positions::Matrix{<:Unitful.Length},
         quantity::Vector{<:Number},
-        grid::CircularGrid;
+        grid::LinearGrid;
         <keyword arguments>
     )::NTuple{3,Vector{<:Number}}
 
@@ -999,7 +999,7 @@ will be used to accumulate the values of `quantity` within each bin.
 
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `quantity::Vector{<:Number}`: The profile will be of this quantity.
-  - `grid::CircularGrid`: Circular grid.
+  - `grid::LinearGrid`: Linear grid.
   - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
   - `center_func::Function=x->quantile(x, 0.5)`: Aggregator function for the central value.
@@ -1017,7 +1017,7 @@ will be used to accumulate the values of `quantity` within each bin.
 function computeBandProfile(
     positions::Matrix{<:Unitful.Length},
     quantity::Vector{<:Number},
-    grid::CircularGrid;
+    grid::LinearGrid;
     flat::Bool=true,
     density::Bool=false,
     center_func::Function=x->quantile(x, 0.5),
@@ -1030,20 +1030,20 @@ function computeBandProfile(
             logging[] &&
             @warn("computeBandProfile: `quantity` is empty. The profile will be filled with NaNs")
         )
-        return fill(NaN, length(grid.grid))
+        return fill(NaN, grid.size)
     end
 
-    # Compute the distances of the cells/particles to the center of the grid
+    # Compute the distances of the cells/particles to the origin of the grid
     if flat
-        distances = colwise(Euclidean(), positions[1:2, :], grid.center[1:2])
+        distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
     else
-        distances = colwise(Euclidean(), positions, grid.center)
+        distances = colwise(Euclidean(), positions, grid.origin)
     end
 
     # Compute the histogram of `quantity`
     histogram = listHistogram1D(distances, quantity, grid)
 
-    region = flat ? grid.bin_areas : grid.bin_volumes
+    region = flat ? grid.bin_size_2D : grid.bin_size_3D
 
     if density
         center = center_func.(histogram) ./ region

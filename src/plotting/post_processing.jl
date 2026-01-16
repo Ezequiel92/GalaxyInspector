@@ -2006,7 +2006,7 @@ function ppFeldmann2020!(
 
     # Set up the grid
     x_min, x_max = extrema(scaled_xs)
-    grid         = CircularGrid(x_max, 50; shift=x_min)
+    grid         = LinearGrid(x_min, x_max, 50)
     n_bins       = length(grid.grid)
     bin_width    = (x_max - x_min) / n_bins
 

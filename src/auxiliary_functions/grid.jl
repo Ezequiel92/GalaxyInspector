@@ -130,13 +130,13 @@ function reduceMatrix(hr_matrix::Matrix{<:Number}, factor::Int; total::Bool=fals
 end
 
 """
-    projectIntoCircularGrid(
+    projectIntoLinearGrid(
         image::Matrix{<:Number},
         n_bins::Int;
         <keyword arguments>
     )::Vector{<:Number}
 
-Project a given matrix into a circular grid, averaging or adding up the values in each concentric ring.
+Project a given matrix into a linear grid (in a 2D space), averaging or adding up the values in each concentric ring.
 
 # Arguments
 
@@ -149,7 +149,7 @@ Project a given matrix into a circular grid, averaging or adding up the values i
 
   - A vector with the average or sum of the values that fall within each concentric ring.
 """
-function projectIntoCircularGrid(
+function projectIntoLinearGrid(
     image::Matrix{<:Number},
     n_bins::Int;
     inscribed::Bool=true,
@@ -160,26 +160,26 @@ function projectIntoCircularGrid(
 
     (
         r == c ||
-        throw(ArgumentError("projectIntoCircularGrid: `image` has to be a square matrix, \
+        throw(ArgumentError("projectIntoLinearGrid: `image` has to be a square matrix, \
         but it has $(c) columns and $(r) rows"))
     )
 
     (
         n_bins >= 1 ||
-        throw(ArgumentError("projectIntoCircularGrid: `n_bins` must be >= 1, \
+        throw(ArgumentError("projectIntoLinearGrid: `n_bins` must be >= 1, \
         but I got `n_bins` = $(n_bins)"))
     )
 
     # Construct a square grid centered at (0, 0)
     square_grid = SquareGrid(1.0, r)
 
-    # Construct a circular grid centered at (0, 0)
-    circular_grid = CircularGrid(inscribed ? 0.5 : sqrt(0.5), n_bins)
+    # Construct a linear grid centered at (0, 0)
+    linear_grid = LinearGrid(0.0, inscribed ? 0.5 : sqrt(0.5), n_bins)
 
     # Compute the radial distance of each pixel in the square grid to the origin
     positions = norm.(vec(square_grid.grid))
 
-    profile = histogram1D(positions, vec(image), circular_grid; total, empty_nan=false)
+    profile = histogram1D(positions, vec(image), linear_grid; total, empty_nan=false)
 
     return profile
 

@@ -834,52 +834,74 @@ struct InternalUnits
     end
 end
 
+########
+# Grids
+########
+
 """
-Linear grid (1D).
+Grid with 1 d.o.f.
+
+Embedded space:
+
+    1D -> Ticks.
+    2D -> Concentric rings.
+    3D -> Spherical shells.
 
 # Fields
 
-  - `grid::Vector{<:Number}`: Position of (the center of) each bin.
-  - `edges::Vector{<:Number}`: Edges of the bins.
-  - `bin_widths::Vector{<:Number}`: Widths of the bins.
-  - `log::Bool`: If the grid is logarithmic.
-  - `regular::Bool`: If the grid is regular.
+  - `x_axis      :: Vector{<:Number}`: Position of (the center of) the bins, relative to the `origin`.
+  - `x_edges     :: Vector{<:Number}`: Position of (the edges of) the bins, relative to the `origin`.
+  - `size        :: Int`: Number of bins.
+  - `bin_size_1D :: Vector{<:Number}`: Widths of the bins in linear space.
+  - `bin_size_2D :: Vector{<:Number}`: Areas of the bins in linear space (assuming a 2D embedding).
+  - `bin_size_3D :: Vector{<:Number}`: Volumes of the bins in linear space (assuming a 3D embedding).
+  - `origin      :: Vector{<:Number}`: Physical postion of the origin on which the grid is centered.
 """
 struct LinearGrid
-    grid       :: Vector{<:Number}
-    edges      :: Vector{<:Number}
-    bin_widths :: Vector{<:Number}
-    log        :: Bool
-    regular    :: Bool
+    x_axis      :: Vector{<:Number}
+    x_edges     :: Vector{<:Number}
+    size        :: Int
+    bin_size_1D :: Vector{<:Number}
+    bin_size_2D :: Vector{<:Number}
+    bin_size_3D :: Vector{<:Number}
+    origin      :: Vector{<:Number}
 
     """
-        LinearGrid(start::Number, stop::Number, n_bins::Int; <keyword arguments>)
+        LinearGrid(
+            start :: Number,
+            stop  :: Number,
+            size  :: Int;
+            <keyword arguments>,
+        )
 
     Constructor for `LinearGrid`.
 
     # Arguments
 
-      - `start::Number`: Left most edge of the grid.
-      - `stop::Number`: Right most edge of the grid.
-      - `n_bins::Int`: Number of bins.
-      - `log::Bool=false`: If the bins will be logarithmic. `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
+      - `start  :: Number`: Position of the grid left most edge, relative to the `origin`.
+      - `stop   :: Number`: Position of the grid right most edge, relative to the `origin`.
+      - `size   :: Int`: Number of bins.
+      - `origin :: Vector{<:Number}=zeros(typeof(start), 3)`: Physical postion of the origin on which the grid is centered (passthrough argument).
+      - `log    :: Bool=false`: If the grid will be regular in logarithmic space intead of linear space.
     """
-    function LinearGrid(start::Number, stop::Number, n_bins::Int; log::Bool=false)
-
-        # Example of a grid with 3 bins:
-        #
-        # +-----------------------------+-----------------------------+-----------------------------+
-        # |   grid[1] -->|              |   grid[2] -->|              |   grid[3] -->|              |
-        # +-----------------------------+-----------------------------+-----------------------------+
-        #
-        # +-----------------------------+-----------------------------+-----------------------------+
-        # |<-- edges[1] (= `start`)     |<-- edges[2]     edges[3] -->|      edges[4] (= `stop`) -->|
-        # +-----------------------------+-----------------------------+-----------------------------+
+    function LinearGrid(
+        start  :: Number,
+        stop   :: Number,
+        size   :: Int;
+        origin :: Vector{<:Number}=zeros(typeof(start), 3),
+        log    :: Bool=false,
+    )
 
         (
             stop > start ||
             throw(ArgumentError("LinearGrid: `stop` must be larger than `start`, \
             but I got `stop` = $(stop) <= `start` = $(start)"))
+        )
+
+        (
+            isPositive(size) ||
+            throw(ArgumentError("LinearGrid: `size` has to be strictly positive, \
+            but I got `size` = $(size) <= 0"))
         )
 
         if log
@@ -890,134 +912,87 @@ struct LinearGrid
                 positive `start`, but I got `start` = $(start) <= 0"))
             )
 
-            # Unit of length
+            # Length unit
             u_l = unit(start)
 
             log_start = log10(ustrip(start))
             log_stop  = log10(ustrip(u_l, stop))
 
-            width      = (log_stop - log_start) / n_bins
-            grid       = [exp10((i - 0.5) * width + log_start) * u_l for i in 1:n_bins]
-            edges      = [exp10(i * width + log_start) * u_l for i in 0:n_bins]
-            bin_widths = [edges[i + 1] - edges[i] for i in 1:n_bins]
+            width = (log_stop - log_start) / size
+
+            x_axis  = exp10.([(i - 0.5) * width + log_start for i in 1:size]) .* u_l
+            x_edges = exp10.([i * width + log_start for i in 0:size]) .* u_l
 
         else
 
-            width      = (stop - start) / n_bins
-            grid       = [(i - 0.5) * width + start for i in 1:n_bins]
-            edges      = [i * width + start for i in 0:n_bins]
-            bin_widths = [width for _ in 1:n_bins]
+            width = (stop - start) / size
+
+            x_axis  = [(i - 0.5) * width + start for i in 1:size]
+            x_edges = [i * width + start for i in 0:size]
 
         end
 
-        new(grid, edges, bin_widths, log, !log)
+        bin_size_1D = [x_edges[i + 1] - x_edges[i] for i in 1:size]
+
+        if start < zero(start)
+
+            shifted_edges = x_edges .- start
+            bin_size_2D   = [area(shifted_edges[i + 1]) - area(shifted_edges[i]) for i in 1:size]
+            bin_size_3D   = [volume(shifted_edges[i + 1]) - volume(shifted_edges[i]) for i in 1:size]
+
+        else
+
+            bin_size_2D = [area(x_edges[i + 1]) - area(x_edges[i]) for i in 1:size]
+            bin_size_3D = [volume(x_edges[i + 1]) - volume(x_edges[i]) for i in 1:size]
+
+        end
+
+        new(x_axis, x_edges, size, bin_size_1D, bin_size_2D, bin_size_3D, origin)
 
     end
 
     """
-        LinearGrid(edges::Vector{<:Number}; <keyword arguments>)
-
-    Constructor for `LinearGrid`.
-
-    # Arguments
-
-      - `edges::Vector{<:Number}`: A list of bin edges.
-      - `log::Bool=false`: If the bins are logarithmic, which means that `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
-    """
-    function LinearGrid(edges::Vector{<:Number}; log::Bool=false)
-
-        # Example of a grid with 3 bins:
-        #
-        # +-----------------------------+-----------------------------+-----------------------------+
-        # |   grid[1] -->|              |   grid[2] -->|              |   grid[3] -->|              |
-        # +-----------------------------+-----------------------------+-----------------------------+
-        #
-        # +-----------------------------+-----------------------------+-----------------------------+
-        # |<-- edges[1] (= `start`)     |<-- edges[2]     edges[3] -->|      edges[4] (= `stop`) -->|
-        # +-----------------------------+-----------------------------+-----------------------------+
-
-        n_bins = length(edges) - 1
-
-        issorted(edges) || sort!(edges)
-
-        start = first(edges)
-
-        if log
-
-            (
-                isPositive(start) ||
-                throw(ArgumentError("LinearGrid: For a logarithmic grid you need strictly \
-                positive edges, but the first edge is $(start) <= 0"))
-            )
-
-            # Unit of lenght
-            u_l = unit(start)
-
-            log_edges = log10.(ustrip.(edges))
-            log_grid  = [(log_edges[i + 1] + log_edges[i]) / 2.0 for i in 1:n_bins]
-
-            grid = exp10.(log_grid) .* u_l
-
-        else
-
-            grid = [(edges[i + 1] + edges[i]) / 2.0 for i in 1:n_bins]
-
-        end
-
-        bin_widths = [edges[i + 1] - edges[i] for i in 1:n_bins]
-
-        new(grid, edges, bin_widths, log, allequal(bin_widths))
-
-    end
-end
-
-"""
-Linear grid (1D).
-
-# Fields
-
-  - `grid::Vector{<:Number}`: Position of (the center of) each bin.
-  - `edges::Vector{<:Number}`: Edges of the bins.
-  - `bin_widths::Vector{<:Number}`: Widths of the bins.
-  - `log::Bool`: If the grid is logarithmic.
-  - `regular::Bool`: If the grid is regular.
-"""
-struct LinearGrid2
-    grid       :: Vector{<:Number}
-    edges      :: Vector{<:Number}
-    bin_widths :: Vector{<:Number}
-    log        :: Bool
-    regular    :: Bool
-
-    """
-        LinearGrid(start::Number, stop::Number, n_bins::Int; <keyword arguments>)
-
-    Constructor for `LinearGrid`.
-
-    # Arguments
-
-      - `start::Number`: Left most edge of the grid.
-      - `stop::Number`: Right most edge of the grid.
-      - `n_bins::Int`: Number of bins.
-      - `log::Bool=false`: If the bins will be logarithmic. `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
-    """
-    function LinearGrid2(start::Number, stop::Number, n_bins::Int; log::Bool=false)
-
-        # Example of a grid with 3 bins:
-        #
-        # +-----------------------------+-----------------------------+-----------------------------+
-        # |   grid[1] -->|              |   grid[2] -->|              |   grid[3] -->|              |
-        # +-----------------------------+-----------------------------+-----------------------------+
-        #
-        # +-----------------------------+-----------------------------+-----------------------------+
-        # |<-- edges[1] (= `start`)     |<-- edges[2]     edges[3] -->|      edges[4] (= `stop`) -->|
-        # +-----------------------------+-----------------------------+-----------------------------+
-
-        (
-            stop > start ||
-            throw(ArgumentError("LinearGrid: `stop` must be larger than `start`, \
-            but I got `stop` = $(stop) <= `start` = $(start)"))
+        LinearGrid(
+            x_edges :: Vector{<:Number};
+            <keyword arguments>,
         )
+
+    Constructor for `LinearGrid`.
+
+    # Arguments
+
+      - `x_edges :: Vector{<:Number}`: Relative position of (the edges of) the bins to the `center`.
+      - `origin  :: Vector{<:Number}=zeros(eltype(x_edges), 3)`: Physical postion of the origin on which the grid is centered (passthrough argument).
+      - `log     :: Bool=false`: If the `x_edges` are logarithmic, which means that `x_axis` will mark the center of the bins in logarithmic space instead of linear space.
+    """
+    function LinearGrid(
+        x_edges :: Vector{<:Number};
+        origin  :: Vector{<:Number}=zeros(eltype(x_edges), 3),
+        log     :: Bool=falsem
+    )
+
+        isempty(x_edges) && throw(ArgumentError("LinearGrid: `x_edges` is empty!"))
+
+        size = length(x_edges) - 1
+
+        issorted(x_edges) || sort!(x_edges)
+
+        start = first(x_edges)
+
+        bin_size_1D = [x_edges[i + 1] - x_edges[i] for i in 1:size]
+
+        if start < zero(start)
+
+            shifted_edges = x_edges .- start
+            bin_size_2D   = [area(shifted_edges[i + 1]) - area(shifted_edges[i]) for i in 1:size]
+            bin_size_3D   = [volume(shifted_edges[i + 1]) - volume(shifted_edges[i]) for i in 1:size]
+
+        else
+
+            bin_size_2D = [area(x_edges[i + 1]) - area(x_edges[i]) for i in 1:size]
+            bin_size_3D = [volume(x_edges[i + 1]) - volume(x_edges[i]) for i in 1:size]
+
+        end
 
         if log
 
@@ -1027,254 +1002,33 @@ struct LinearGrid2
                 positive `start`, but I got `start` = $(start) <= 0"))
             )
 
-            # Unit of length
+            # Length unit
             u_l = unit(start)
 
-            log_start = log10(ustrip(start))
-            log_stop  = log10(ustrip(u_l, stop))
+            log_x_edges = log10.(ustrip.(u_l, x_edges))
 
-            width      = (log_stop - log_start) / n_bins
-            grid       = [exp10((i - 0.5) * width + log_start) * u_l for i in 1:n_bins]
-            edges      = [exp10(i * width + log_start) * u_l for i in 0:n_bins]
-            bin_widths = [edges[i + 1] - edges[i] for i in 1:n_bins]
+            x_axis = exp10.([(log_x_edges[i + 1] + log_x_edges[i]) / 2.0 for i in 1:size]) .* u_l
 
         else
 
-            width      = (stop - start) / n_bins
-            grid       = [(i - 0.5) * width + start for i in 1:n_bins]
-            edges      = [i * width + start for i in 0:n_bins]
-            bin_widths = [width for _ in 1:n_bins]
+            x_axis  = [(x_edges[i + 1] + x_edges[i]) / 2.0 for i in 1:size]
 
         end
 
-        new(grid, edges, bin_widths, log, true)
-
-    end
-
-    """
-        LinearGrid(edges::Vector{<:Number}; <keyword arguments>)
-
-    Constructor for `LinearGrid`.
-
-    # Arguments
-
-      - `edges::Vector{<:Number}`: A list of bin edges.
-      - `log::Bool=false`: If the bins are logarithmic, which means that `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
-    """
-    function LinearGrid2(edges::Vector{<:Number}; log::Bool=false)
-
-        # Example of a grid with 3 bins:
-        #
-        # +-----------------------------+-----------------------------+-----------------------------+
-        # |   grid[1] -->|              |   grid[2] -->|              |   grid[3] -->|              |
-        # +-----------------------------+-----------------------------+-----------------------------+
-        #
-        # +-----------------------------+-----------------------------+-----------------------------+
-        # |<-- edges[1] (= `start`)     |<-- edges[2]     edges[3] -->|      edges[4] (= `stop`) -->|
-        # +-----------------------------+-----------------------------+-----------------------------+
-
-        n_bins = length(edges) - 1
-
-        issorted(edges) || sort!(edges)
-
-        start = first(edges)
-
-        if log
-
-            (
-                isPositive(start) ||
-                throw(ArgumentError("LinearGrid: For a logarithmic grid you need strictly \
-                positive edges, but the first edge is $(start) <= 0"))
-            )
-
-            # Unit of lenght
-            u_l = unit(start)
-
-            log_edges = log10.(ustrip.(edges))
-            log_grid  = [(log_edges[i + 1] + log_edges[i]) / 2.0 for i in 1:n_bins]
-
-            grid = exp10.(log_grid) .* u_l
-
-        else
-
-            grid = [(edges[i + 1] + edges[i]) / 2.0 for i in 1:n_bins]
-
-        end
-
-        bin_widths = [edges[i + 1] - edges[i] for i in 1:n_bins]
-
-        new(grid, edges, bin_widths, log, false)
+        new(x_axis, x_edges, size, bin_size_1D, bin_size_2D, bin_size_3D, origin)
 
     end
 end
 
-"""
-Circular grid (2D or 3D).
 
-Series of concentric rings or spherical shells.
 
-# Fields
 
-  - `grid::Vector{<:Number}`: Distance of (the center of) each bin to the center of the grid.
-  - `edges::Vector{<:Number}`: Distance of the edges of the bins to the center of the grid.
-  - `center::Vector{<:Number}`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
-  - `bin_area::Vector{<:Number}`: Area of each ring.
-  - `bin_volumes::Vector{<:Number}`: Volume of each spherical shell.
-  - `log::Bool`: If the grid is logarithmic.
-  - `regular::Bool`: If the grid is regular.
-"""
-struct CircularGrid
-    grid        :: Vector{<:Number}
-    edges       :: Vector{<:Number}
-    center      :: Vector{<:Number}
-    bin_areas   :: Vector{<:Number}
-    bin_volumes :: Vector{<:Number}
-    log         :: Bool
-    regular     :: Bool
 
-    """
-        CircularGrid(
-            radius::Number,
-            n_bins::Int;
-            <keyword arguments>
-        )
 
-    Constructor for a regular `CircularGrid`.
 
-    # Arguments
 
-      - `radius::Number`: Radius of the grid (equal to the last bin edge).
-      - `n_bins::Int`: Number of bins.
-      - `center::Vector{<:Number}=zeros(typeof(radius), 3)`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
-      - `log::Bool=false`: If the bins will be logarithmic. `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
-      - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
-    """
-    function CircularGrid(
-        radius::Number,
-        n_bins::Int;
-        center::Vector{<:Number}=zeros(typeof(radius), 3),
-        log::Bool=false,
-        shift::Number=zero(radius),
-    )
 
-        # Example of a grid with 3 bins:
-        #
-        # |<-----------------------------------------radius---------------------------------------->|
-        #
-        # +-----------+-------------------------+-------------------------+-------------------------+
-        # |<--shift-->| grid[1] -->|            | grid[2] -->|            | grid[3] -->|            |
-        # +-----------+-------------------------+-------------------------+-------------------------+
-        #
-        # +-----------+-------------------------+-------------------------+-------------------------+
-        # |<--shift-->|<-- edges[1] edges[2] -->|             edges[3] -->|             edges[4] -->|
-        # +-----------+-------------------------+-------------------------+-------------------------+
 
-        (
-            isPositive(radius) ||
-            throw(ArgumentError("CircularGrid: `radius` must be strictly positive, \
-            but I got `radius` = $(radius) <= 0"))
-        )
-
-        if log
-
-            (
-                isPositive(shift) ||
-                throw(ArgumentError("CircularGrid: For a logarithmic grid you need a \
-                strictly positive `shift`, but I got `shift` = $(shift) <= 0"))
-            )
-
-            # Unit of lenght
-            u_l = unit(radius)
-
-            log_shift  = log10(ustrip(u_l, shift))
-            log_radius = log10(ustrip(radius))
-
-            width = (log_radius - log_shift) / n_bins
-            grid  = [exp10((i - 0.5) * width + log_shift) * u_l for i in 1:n_bins]
-            edges = [exp10(i * width + log_shift) * u_l for i in 0:n_bins]
-
-        else
-
-            width = (radius - shift) / n_bins
-            grid  = [(i - 0.5) * width + shift for i in 1:n_bins]
-            edges = [i * width + shift for i in 0:n_bins]
-
-        end
-
-        bin_areas   = [area(edges[i + 1]) - area(edges[i]) for i in 1:n_bins]
-        bin_volumes = [volume(edges[i + 1]) - volume(edges[i]) for i in 1:n_bins]
-
-        new(grid, edges, center, bin_areas, bin_volumes, log, true)
-
-    end
-
-    """
-        CircularGrid(
-            edges::Vector{<:Number};
-            <keyword arguments>
-        )
-
-    Constructor for an irregular `CircularGrid`.
-
-    # Arguments
-
-      - `edges::Vector{<:Number}`: A list of bin edges.
-      - `center::Vector{<:Number}=zeros(typeof(radius), 3)`: 3D location of the center of the grid. In the 2D case the grid is assumed to be in the xy plane.
-      - `log::Bool=false`: If the bins are logarithmic, which means that `grid` will mark the center of the bins in logarithmic scale instead of linear scale.
-      - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
-    """
-    function CircularGrid(
-        edges::Vector{<:Number};
-        center::Vector{<:Number}=zeros(typeof(radius), 3),
-        log::Bool=false,
-        shift::Number=zero(radius),
-    )
-
-        # Example of a grid with 3 bins:
-        #
-        # |<-----------------------------------------radius---------------------------------------->|
-        #
-        # +-----------+-------------------------+-------------------------+-------------------------+
-        # |<--shift-->| grid[1] -->|            | grid[2] -->|            | grid[3] -->|            |
-        # +-----------+-------------------------+-------------------------+-------------------------+
-        #
-        # +-----------+-------------------------+-------------------------+-------------------------+
-        # |<--shift-->|<-- edges[1] edges[2] -->|             edges[3] -->|             edges[4] -->|
-        # +-----------+-------------------------+-------------------------+-------------------------+
-
-        n_bins = length(edges) - 1
-
-        issorted(edges) || sort!(edges)
-
-        if log
-
-            (
-                isPositive(shift) ||
-                throw(ArgumentError("CircularGrid: For a logarithmic grid you need a \
-                strictly positive `shift`, but I got `shift` = $(shift) <= 0"))
-            )
-
-            # Unit of lenght
-            u_l = unit(first(edges))
-
-            log_edges = log10.(ustrip.(edges))
-            log_grid  = [(log_edges[i + 1] + log_edges[i]) / 2.0 for i in 1:n_bins]
-
-            grid = exp10.(log_grid) .* u_l
-
-        else
-
-            grid = [(edges[i + 1] + edges[i]) / 2.0 for i in 1:n_bins]
-
-        end
-
-        bin_areas   = [area(edges[i + 1]) - area(edges[i]) for i in 1:n_bins]
-        bin_volumes = [volume(edges[i + 1]) - volume(edges[i]) for i in 1:n_bins]
-
-        new(grid, edges, center, bin_areas, bin_volumes, log, false)
-
-    end
-end
 
 """
 Square grid (2D).
