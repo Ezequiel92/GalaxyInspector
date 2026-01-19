@@ -16,6 +16,11 @@ If logging messages will be printed out.
 """
 const logging = Ref(false)
 
+"""
+Max grid size to be stored on memory, above this value memory-mapping will be used.
+"""
+const MMAP_THRESHOLD = 200^3
+
 ########################
 # Characteristic scales
 ########################
@@ -565,13 +570,85 @@ const DEFAULT_THEME = Theme(
 #########
 
 """
+Memory-mapped array structure.
+
+# Fields
+
+  - `data :: Array{T,N}`: Array data.
+  - `io   :: IOStream`: IO stream to the memory-mapped file.
+  - `path :: String`: Path to the memory-mapped file.
+"""
+mutable struct MmapArray{T,N} <: AbstractArray{T,N}
+    data :: Union{Array{T,N}, Nothing}
+    io   :: Union{IOStream, Nothing}
+    path :: String
+
+    # Array interface
+    Base.size(A::MmapArray) = size(A.data)
+
+    Base.getindex(A::MmapArray, I...) = getindex(A.data, I...)
+
+    Base.setindex!(A::MmapArray, v, I...) = setindex!(A.data, v, I...)
+
+    Base.IndexStyle(::Type{<:MmapArray}) = IndexStyle(Array)
+
+    function Base.close(A::MmapArray)
+        Mmap.sync!(A.data)
+        close(A.io)
+        return nothing
+    end
+
+    function Base.delete!(A::MmapArray)
+        close(A)
+        A.data = nothing
+        GC.gc(true)
+        rm(A.path; force=true)
+        return nothing
+    end
+
+    """
+        MmapArray(
+            path :: AbstractString,
+                 :: Type{T},
+            dims :: NTuple{N,Int},
+        ) where {T,N}
+
+    Constructor for `MmapArray`.
+
+    # Arguments
+
+      - `path :: String`: Path to the memory-mapped file.
+      - `     :: Type{T}`: Element type of the array.
+      - `dims :: NTuple{N,Int}`: Dimensions of the array.
+    """
+    function MmapArray(
+        path :: String,
+             :: Type{T},
+        dims :: NTuple{N,Int},
+    ) where {T,N}
+
+        bytes = prod(dims) * sizeof(T)
+
+        io = open(path, "w+")
+        seek(io, bytes - 1)
+        write(io, UInt8(0))
+        flush(io)
+
+        data = Mmap.mmap(io, Array{T,N}, dims)
+
+        new{T, N}(data, io, path)
+
+    end
+end
+
+"""
 Dimensional information about a physical quantity.
 
 # Fields
 
-  - `hdf5_name::String`: HDF5 block name.
-  - `dimensions::Unitful.Dimensions`: Physical dimensions of the quantity, e.g. `Unitful.𝐋 * Unitful.𝐓^-1`.
-  - `unit::Union{Unitful.Units,Symbol}`: Units of the quantity within the simulation code. It can be a unit from [Unitful](https://github.com/PainterQubits/Unitful.jl) or [UnitfulAstro](https://github.com/JuliaAstro/UnitfulAstro.jl), or it can be the symbol `:internal` which denotes internal code units.
+  - `hdf5_name  :: String`: HDF5 block name.
+  - `dimensions :: Unitful.Dimensions`: Physical dimensions of the quantity, e.g. `Unitful.𝐋 * Unitful.𝐓^-1`.
+  - `unit       :: Union{Unitful.Units,Symbol}`: Units of the quantity within the simulation code. It can be a unit from [Unitful](https://github.com/PainterQubits/Unitful.jl) or [UnitfulAstro](https://github.com/JuliaAstro/UnitfulAstro.jl), or it can be the symbol `:internal` which denotes internal code units.
 """
 struct Qty
     hdf5_name  :: String
@@ -584,19 +661,19 @@ Data in the "Header" group of a HDF5 snapshot file.
 
 # Fields
 
-  - `box_size::Float64`: Total size of the simulation box, in internal units of length.
-  - `h::Float64`: Dimensionless Hubble parameter, "little h".
-  - `mass_table::Vector{Float64}`: Masses of particle/cell types which have a constant mass, in internal units of mass.
-  - `num_files::Int32`: Number of file chunks per snapshot.
-  - `num_part::Vector{Int32}`: Number of particles/cells (of each type) included in this file chunk.
-  - `num_total::Vector{UInt32}`: Total number of particles/cells (of each type) for this snapshot.
-  - `omega_0::Float64`: The cosmological density parameter for matter.
-  - `omega_l::Float64`: The cosmological density parameter for the cosmological constant.
-  - `redshift::Float64`: The redshift.
-  - `time::Float64`: The physical time or the scale factor, depending on the type of simulation.
-  - `l_unit::Unitful.Length`: Conversion factor from internal units of length to centimeters.
-  - `m_unit::Unitful.Mass`: Conversion factor from internal units of mass to grams.
-  - `v_unit::Unitful.Velocity`: Conversion factor from internal units of velocity to centimeters per second.
+  - `box_size   :: Float64`: Total size of the simulation box, in internal units of length.
+  - `h          :: Float64`: Dimensionless Hubble parameter, "little h".
+  - `mass_table :: Vector{Float64}`: Masses of particle/cell types which have a constant mass, in internal units of mass.
+  - `num_files  :: Int32`: Number of file chunks per snapshot.
+  - `num_part   :: Vector{Int32}`: Number of particles/cells (of each type) included in this file chunk.
+  - `num_total  :: Vector{UInt32}`: Total number of particles/cells (of each type) for this snapshot.
+  - `omega_0    :: Float64`: The cosmological density parameter for matter.
+  - `omega_l    :: Float64`: The cosmological density parameter for the cosmological constant.
+  - `redshift   :: Float64`: The redshift.
+  - `time       :: Float64`: The physical time or the scale factor, depending on the type of simulation.
+  - `l_unit     :: Unitful.Length`: Conversion factor from internal units of length to centimeters.
+  - `m_unit     :: Unitful.Mass`: Conversion factor from internal units of mass to grams.
+  - `v_unit     :: Unitful.Velocity`: Conversion factor from internal units of velocity to centimeters per second.
 """
 @kwdef struct SnapshotHeader
     box_size   :: Float64
@@ -621,26 +698,26 @@ The default values are for when there are no group catalog files.
 
 # Fields
 
-  - `box_size::Float64 = NaN`: Total size of the simulation box, in internal units of length.
-  - `h::Float64 = NaN`: Dimensionless Hubble parameter, "little h".
-  - `n_groups_part::Int32 = -1`: Number of halos (FoF groups) in this file chunk.
-  - `n_groups_total::Int32 = -1`: Total number of halos (FoF groups) in this snapshot.
-  - `n_subgroups_part::Int32 = -1`: Number of subhalos (subfind) in this file chunk.
-  - `n_subgroups_total::Int32 = -1`: Total number of subhalos (subfind) in this snapshot.
-  - `num_files::Int32 = -1`: Number of file chunks per snapshot.
-  - `omega_0::Float64 = NaN`: The cosmological density parameter for matter.
-  - `omega_l::Float64 = NaN`: The cosmological density parameter for the cosmological constant.
-  - `redshift::Float64 = NaN`: The redshift.
-  - `time::Float64 = NaN`: The physical time or the scale factor, depending on the type of simulation.
+  - `box_size          :: Float64 = NaN`: Total size of the simulation box, in internal units of length.
+  - `h                 :: Float64 = NaN`: Dimensionless Hubble parameter, "little h".
+  - `n_groups_part     :: Int32 = -1`: Number of halos (FoF groups) in this file chunk.
+  - `n_groups_total    :: Int32 = -1`: Total number of halos (FoF groups) in this snapshot.
+  - `n_subgroups_part  :: Int32 = -1`: Number of subhalos (subfind) in this file chunk.
+  - `n_subgroups_total :: Int32 = -1`: Total number of subhalos (subfind) in this snapshot.
+  - `num_files         :: Int32 = -1`: Number of file chunks per snapshot.
+  - `omega_0           :: Float64 = NaN`: The cosmological density parameter for matter.
+  - `omega_l           :: Float64 = NaN`: The cosmological density parameter for the cosmological constant.
+  - `redshift          :: Float64 = NaN`: The redshift.
+  - `time              :: Float64 = NaN`: The physical time or the scale factor, depending on the type of simulation.
 """
 @kwdef struct GroupCatHeader
     box_size          :: Float64 = NaN
     h                 :: Float64 = NaN
-    n_groups_part     :: Int32   = -1
-    n_groups_total    :: Int32   = -1
-    n_subgroups_part  :: Int32   = -1
-    n_subgroups_total :: Int32   = -1
-    num_files         :: Int32   = -1
+    n_groups_part     :: Int32 = -1
+    n_groups_total    :: Int32 = -1
+    n_subgroups_part  :: Int32 = -1
+    n_subgroups_total :: Int32 = -1
+    num_files         :: Int32 = -1
     omega_0           :: Float64 = NaN
     omega_l           :: Float64 = NaN
     redshift          :: Float64 = NaN
@@ -652,14 +729,14 @@ Metadata for a simulation.
 
 # Fields
 
-  - `path::String`: Full path to the simulation directory.
-  - `index::Int`: An index associated with the simulation.
-  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots).
-  - `cosmological::Bool`: If the simulation is cosmological,
+  - `path           :: String`: Full path to the simulation directory.
+  - `index          :: Int`: An index associated with the simulation.
+  - `slice          :: IndexType`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots).
+  - `cosmological   :: Bool`: If the simulation is cosmological,
 
       + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0).
       + `true`  -> Cosmological simulation (`ComovingIntegrationOn` = 1).
-  - `snapshot_table::DataFrame`: A dataframe where each row is a snapshot, and the colums are
+  - `snapshot_table :: DataFrame`: A dataframe where each row is a snapshot, and the colums are
 
       + `:ids`            -> Dataframe index, i.e. if there are 10 snapshots in total it runs from 1 to 10.
       + `:numbers`        -> Number in the file name.
@@ -683,14 +760,14 @@ Metadata for a snapshot.
 
 # Fields
 
-  - `path::String`: Full path to the snapshot.
-  - `global_index::Int`: Index of the snapshot in the context of the whole simulation.
-  - `slice_index::Int`: Index of the snapshot in the context of the simulation slice.
-  - `physical_time::Unitful.Time`: Physical time since the Big Bang.
-  - `lookback_time::Unitful.Time`: Physical time left to reach the last snapshot.
-  - `scale_factor::Float64`: Scale factor.
-  - `redshift::Float64`: Redshift.
-  - `header::SnapshotHeader`: Header.
+  - `path          :: String`: Full path to the snapshot.
+  - `global_index  :: Int`: Index of the snapshot in the context of the whole simulation.
+  - `slice_index   :: Int`: Index of the snapshot in the context of the simulation slice.
+  - `physical_time :: Unitful.Time`: Physical time since the Big Bang.
+  - `lookback_time :: Unitful.Time`: Physical time left to reach the last snapshot.
+  - `scale_factor  :: Float64`: Scale factor.
+  - `redshift      :: Float64`: Redshift.
+  - `header        :: SnapshotHeader`: Header.
 """
 struct Snapshot
     path          :: String
@@ -708,8 +785,8 @@ Metadata for a group catalog file.
 
 # Fields
 
-  - `path::Union{String,Missing}`: Full path to the group catalog file.
-  - `header::GroupCatHeader`: Header.
+  - `path   :: Union{String,Missing}`: Full path to the group catalog file.
+  - `header :: GroupCatHeader`: Header.
 """
 struct GroupCatalog
     path   :: Union{String,Missing}
@@ -765,18 +842,18 @@ struct InternalUnits
 
     # Arguments
 
-      - `l_unit::Unitful.Length=DEFAULT_L_UNIT`: Code parameter `UnitLength_in_cm`.
-      - `m_unit::Unitful.Mass=DEFAULT_M_UNIT`: Code parameter `UnitMass_in_g`.
-      - `v_unit::Unitful.Velocity=DEFAULT_V_UNIT`: Code parameter `UnitVelocity_in_cm_per_s`.
-      - `a::Float64=1.0`: Cosmological scale factor of the simulation.
-      - `h::Float64=1.0`: Dimensionless Hubble parameter, "little h".
+      - `l_unit :: Unitful.Length=DEFAULT_L_UNIT`: Code parameter `UnitLength_in_cm`.
+      - `m_unit :: Unitful.Mass=DEFAULT_M_UNIT`: Code parameter `UnitMass_in_g`.
+      - `v_unit :: Unitful.Velocity=DEFAULT_V_UNIT`: Code parameter `UnitVelocity_in_cm_per_s`.
+      - `a      :: Float64=1.0`: Cosmological scale factor of the simulation.
+      - `h      :: Float64=1.0`: Dimensionless Hubble parameter, "little h".
     """
     function InternalUnits(;
-        l_unit::Unitful.Length=DEFAULT_L_UNIT,
-        m_unit::Unitful.Mass=DEFAULT_M_UNIT,
-        v_unit::Unitful.Velocity=DEFAULT_V_UNIT,
-        a::Float64=1.0,
-        h::Float64=1.0,
+        l_unit :: Unitful.Length=DEFAULT_L_UNIT,
+        m_unit :: Unitful.Mass=DEFAULT_M_UNIT,
+        v_unit :: Unitful.Velocity=DEFAULT_V_UNIT,
+        a      :: Float64=1.0,
+        h      :: Float64=1.0,
     )
 
         #############
@@ -1134,7 +1211,7 @@ struct SquareGrid
         origin :: Vector{<:Number}=zeros(typeof(size), 3),
     )
 
-        SquareGrid([size, size], [n_bins, n_bins]; origin)
+        SquareGrid([size, size], (n_bins, n_bins); origin)
 
     end
 end

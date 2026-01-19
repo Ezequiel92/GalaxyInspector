@@ -133,36 +133,33 @@ function computePARotationMatrix(
         return I
     end
 
-    # Reinterpret positions as Float64 for performance
-    pos_raw = ustrip(positions)
+    pos = ustrip(positions)
 
     # Compute the mean vector μ = (1/N) Σ X_i
-    μ_vec = SVector{3, Float64}(sum(pos_raw, dims=2)) / N
+    μ = mean(pos, dims=2)
 
     # Compute the scatter matrix (X * X')
     scatter_buf = Matrix{Float64}(undef, 3, 3)
-    mul!(scatter_buf, pos_raw, pos_raw')
+    mul!(scatter_buf, pos, pos')
 
-    # Combine to get covariance matrix (principal axis operator)
-    R_static = SMatrix{3,3}((scatter_buf .- (N .* (μ_vec * μ_vec'))) ./ (N - 1))
+    # Compute the covariance matrix (principal axis operator)
+    R = (scatter_buf .- (N .* (μ * μ'))) ./ (N - 1)
 
     # Compute the eigenvectors of the covariance matrix
-    E = eigen(R_static).vectors
+    E = eigen(R).vectors
 
     # Reverse the order of the eigenvectors, making the last column the eigenvector
     # with the largest eigenvalue, which should correspond to the new z axis
     pa = hcat(E[:, 3], E[:, 2], E[:, 1])
 
     # Compute the total angular momentum
-    L_qty = computeTotalAngularMomentum(positions, velocities, masses; normal=true)
-    L     = SVector{3, Float64}(L_qty)
+    L = computeTotalAngularMomentum(positions, velocities, masses; normal=true)
 
     # 3rd principal axis ≡ new z axis
     pa_z = pa[:, 3]
 
-    # Because L and pa_z are both normalized, dot product = cos(theta) directly
-    val = clamp(dot(L, pa_z), -1.0, 1.0)
-    θ = acos(val)
+    # Because L and pa_z are both normalized, dot(L, pa_z) = cos(θ) directly
+    θ = acos(clamp(dot(L, pa_z), -1.0, 1.0))
 
     n_cross = cross(pa_z, L)
     n_norm = norm(n_cross)
@@ -184,11 +181,7 @@ function computePARotationMatrix(
         # this as a rotation, the z axis will be flipped. So, in this case we swap the x and y
         # axis to get a right-handed Cartesian reference system (x × y = z) and generate the
         # correct rotation
-        rotation_matrix = SMatrix{3,3}(
-            rotation_matrix[2, 1], rotation_matrix[1, 1], rotation_matrix[3, 1],
-            rotation_matrix[2, 2], rotation_matrix[1, 2], rotation_matrix[3, 2],
-            rotation_matrix[2, 3], rotation_matrix[1, 3], rotation_matrix[3, 3]
-        )
+        rotation_matrix[[1, 2], :] = rotation_matrix[[2, 1], :]
     end
 
     return Matrix(rotation_matrix)

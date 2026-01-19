@@ -218,7 +218,7 @@ function flattenGrid(cubic_grid::CubicGrid)::SquareGrid
 end
 
 """
-    equalAreaBins(radius::Number, n_bins::Int; shift::Number=zero(radius))::Vector{<:Number}
+    equalAreaBins(radius::Number, n_bins::Int; <keyword arguments>)::Vector{<:Number}
 
 Compute the bin edges that make each bin have equal area.
 
@@ -259,7 +259,7 @@ function equalAreaBins(radius::Number, n_bins::Int; shift::Number=zero(radius)):
 end
 
 """
-    equalVolumeBins(radius::Number, n_bins::Int; shift::Number=zero(radius))::Vector{<:Number}
+    equalVolumeBins(radius::Number, n_bins::Int; <keyword arguments>)::Vector{<:Number}
 
 Compute the bin edges that make each bin have equal volume.
 
@@ -300,22 +300,45 @@ function equalVolumeBins(radius::Number, n_bins::Int; shift::Number=zero(radius)
 end
 
 """
-    gridToJuliaMatrix(grid::CubicGrid, l_unit::Unitful.Units)::Matrix{Float64}
+    gridToJuliaMatrix(
+        grid::CubicGrid,
+        l_unit::Unitful.Units;
+        <keyword arguments>,
+    )::Matrix{Float64}
 
-Create a matrix in the traditional julia format with the coordinates of every voxel in `grid`.
+Create a 3×n matrix with the coordinates of every voxel in `grid`, where n is the total number of voxels.
 
 # Arguments
 
   - `grid::CubicGrid`: Cubic grid.
   - `l_unit::Unitful.Units`: Length unit.
+  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
 
 # Returns
 
-  - A matrix with the coordinates of every voxel of `grid`.
+  - A matrix with the coordinates of every voxel in `grid`.
 """
-function gridToJuliaMatrix(grid::CubicGrid, l_unit::Unitful.Units)::Matrix{Float64}
+function gridToJuliaMatrix(
+    grid::CubicGrid,
+    l_unit::Unitful.Units;
+    mmap_path::String="./"
+)::AbstractMatrix{Float64}
 
-    matrix = Matrix{Float64}(undef, 3, grid.n_voxels)
+    # Choose storage strategy
+    use_mmap = grid.n_voxels > MMAP_THRESHOLD
+
+    if use_mmap
+
+        # Path to the binary file to store the memory-mapped matrix
+        grid_path = joinpath(mmap_path, "grid.bin")
+
+        matrix = MmapArray(grid_path, Float64, (3, grid.n_voxels))
+
+    else
+
+        matrix = Matrix{Float64}(undef, 3, grid.n_voxels)
+
+    end
 
     cartesian_indices = CartesianIndices(grid.n_bins)
     linear_indices    = LinearIndices(grid.n_bins)

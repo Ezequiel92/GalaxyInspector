@@ -2,7 +2,7 @@
 
 julia_version = "1.12.4"
 manifest_format = "2.0"
-project_hash = "1560840b2eb579fcf2e15ac9956ef29a6618bfd4"
+project_hash = "d94befe8a356bfe2bfb3e869d39c37d2a04f9ab0"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -651,7 +651,7 @@ uuid = "38e38edf-8417-5370-95a0-9cbb8c7f171a"
 version = "1.9.2"
 
 [[deps.GalaxyInspector]]
-deps = ["AstroImages", "CSV", "CairoMakie", "ColorSchemes", "Colors", "DataFrames", "Distances", "FileIO", "GLM", "Glob", "HDF5", "Images", "Interpolations", "InvertedIndices", "JLD2", "LaTeXStrings", "LinearAlgebra", "Logging", "Measurements", "NearestNeighbors", "ProgressMeter", "QuadGK", "Rotations", "StaticArrays", "Statistics", "StatsBase", "Unitful", "UnitfulAstro", "WriteVTK"]
+deps = ["AstroImages", "CSV", "CairoMakie", "ColorSchemes", "Colors", "DataFrames", "Distances", "FileIO", "GLM", "Glob", "HDF5", "Images", "Interpolations", "InvertedIndices", "JLD2", "LaTeXStrings", "LinearAlgebra", "Logging", "Measurements", "Mmap", "NearestNeighbors", "ProgressMeter", "QuadGK", "Rotations", "Statistics", "StatsBase", "Unitful", "UnitfulAstro", "WriteVTK"]
 path = "."
 uuid = "990b1489-e520-4e93-b9dc-df8612ec7e1d"
 version = "0.0.0"
