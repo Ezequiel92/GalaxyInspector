@@ -76,6 +76,7 @@ Reduce the number of rows and columns of a given square matrix by `factor`, aver
 
   - The new smaller matrix.
 """
+#TODO
 function reduceMatrix(hr_matrix::Matrix{<:Number}, factor::Int; total::Bool=false)::Matrix{<:Number}
 
     !isone(factor) || return hr_matrix
@@ -176,8 +177,20 @@ function projectIntoLinearGrid(
     # Construct a linear grid centered at (0, 0)
     linear_grid = LinearGrid(0.0, inscribed ? 0.5 : sqrt(0.5), n_bins)
 
+    cartesian_indices = CartesianIndices(image)
+    positions = Vector{Float64}(undef, length(image))
+
     # Compute the radial distance of each pixel in the square grid to the origin
-    positions = norm.(vec(square_grid.grid))
+    for k in eachindex(positions)
+
+        i, j = Tuple(cartesian_indices[k])
+
+        x = square_grid.x_axis[i]
+        y = square_grid.y_axis[j]
+
+        positions[k] = norm([x, y])
+
+    end
 
     profile = histogram1D(positions, vec(image), linear_grid; total, empty_nan=false)
 
@@ -200,7 +213,7 @@ From a `CubicGrid` construct a `SquareGrid` with the same center, number of bins
 """
 function flattenGrid(cubic_grid::CubicGrid)::SquareGrid
 
-    return SquareGrid(cubic_grid.grid_size, cubic_grid.n_bins; center=cubic_grid.center)
+    return SquareGrid(grid.size[1:2], cubic_grid.n_bins[1:2]; origin=cubic_grid.origin)
 
 end
 
@@ -283,5 +296,40 @@ function equalVolumeBins(radius::Number, n_bins::Int; shift::Number=zero(radius)
     end
 
     return edges
+
+end
+
+"""
+    gridToJuliaMatrix(grid::CubicGrid, l_unit::Unitful.Units)::Matrix{Float64}
+
+Create a matrix in the traditional julia format with the coordinates of every voxel in `grid`.
+
+# Arguments
+
+  - `grid::CubicGrid`: Cubic grid.
+  - `l_unit::Unitful.Units`: Length unit.
+
+# Returns
+
+  - A matrix with the coordinates of every voxel of `grid`.
+"""
+function gridToJuliaMatrix(grid::CubicGrid, l_unit::Unitful.Units)::Matrix{Float64}
+
+    matrix = Matrix{Float64}(undef, 3, grid.n_voxels)
+
+    cartesian_indices = CartesianIndices(grid.n_bins)
+    linear_indices    = LinearIndices(grid.n_bins)
+
+    for i in linear_indices
+
+        idx_x, idx_y, idx_z = Tuple(cartesian_indices[i])
+
+        matrix[1, i] = ustrip(l_unit, grid.x_axis[idx_x])
+        matrix[2, i] = ustrip(l_unit, grid.y_axis[idx_y])
+        matrix[3, i] = ustrip(l_unit, grid.z_axis[idx_z])
+
+    end
+
+    return matrix
 
 end

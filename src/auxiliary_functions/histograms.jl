@@ -137,7 +137,7 @@ function histogram1D(
     p_min = first(edges)
     p_max = last(edges)
 
-    histogram = zeros(typeof(first(values)), n_bins)
+    histogram = zeros(eltype(values), n_bins)
     counts = zeros(Int, n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the range
@@ -354,7 +354,7 @@ function histogram2D(
     x_borders = (first(x_edges), last(x_edges))
     y_borders = (first(y_edges), last(y_edges))
 
-    histogram = zeros(typeof(first(values)), (n_x_bins, n_y_bins))
+    histogram = zeros(eltype(values), (n_x_bins, n_y_bins))
     counts = zeros(Int, (n_x_bins, n_y_bins))
 
     # Compute the histogram, ignoring NaNs and positions outside the range
@@ -370,19 +370,19 @@ function histogram2D(
         !(y > y_borders[2] || y < y_borders[1]) || continue
 
         if x == x_borders[1]
-            i_x = 1
+            idx_x = 1
         else
-            i_x = searchsortedfirst(x_edges, x) - 1
+            idx_x = searchsortedfirst(x_edges, x) - 1
         end
 
         if y == y_borders[1]
-            i_y = 1
+            idx_y = 1
         else
-            i_y = searchsortedfirst(y_edges, y) - 1
+            idx_y = searchsortedfirst(y_edges, y) - 1
         end
 
-        histogram[n_y_bins - i_y + 1, i_x] += values[i]
-        counts[n_y_bins - i_y + 1, i_x] += 1
+        histogram[idx_x, idx_y] += values[i]
+        counts[idx_x, idx_y] += 1
 
     end
 
@@ -446,13 +446,7 @@ function histogram2D(
         $(size(positions, 2))"))
     )
 
-    # Compute half of the bin size
-    h_bin_width = grid.bin_width * 0.5
-
-    x_edges = range(grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width, grid.n_bins + 1)
-    y_edges = range(grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width, grid.n_bins + 1)
-
-    return histogram2D(positions, values, collect(x_edges), collect(y_edges); total, empty_nan)
+    return histogram2D(positions, values, grid.x_edges, grid.y_edges; total, empty_nan)
 
 end
 
@@ -468,7 +462,7 @@ Compute a 2D histogram of `positions`.
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Values for which the histogram will be constructed.
+  - `positions::Matrix{<:Number}`: Values for which the histogram will be constructed. Each column corresponds to a value and each row is a dimension.
   - `x_edges::Vector{<:Number}`: A list of bin edges for the x axis.
   - `y_edges::Vector{<:Number}`: A list of bin edges for the y axis.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
@@ -507,18 +501,18 @@ function histogram2D(
         !(y > y_borders[2] || y < y_borders[1]) || continue
 
         if x == x_borders[1]
-            i_x = 1
+            idx_x = 1
         else
-            i_x = searchsortedfirst(x_edges, x) - 1
+            idx_x = searchsortedfirst(x_edges, x) - 1
         end
 
         if y == y_borders[1]
-            i_y = 1
+            idx_y = 1
         else
-            i_y = searchsortedfirst(y_edges, y) - 1
+            idx_y = searchsortedfirst(y_edges, y) - 1
         end
 
-        histogram[n_y_bins - i_y + 1, i_x] += 1.0
+        histogram[idx_x, idx_y] += 1.0
 
     end
 
@@ -529,37 +523,45 @@ function histogram2D(
 end
 
 """
-    findIn2DGrid(positions::Matrix{<:Number}, grid::SquareGrid)::Vector{Int}
+    findIn2DGrid(
+        positions::Matrix{<:Number},
+        grid::SquareGrid;
+        <keyword arguments>
+    )::VecOrMat{Int}
 
-Compute the linear index of the given `grid` where each of the `positions` falls.
+Compute the linear or cartesian index of the pixel where each of the `positions` is located.
 
 !!! note
 
-    For `positions` outside the grid a index of 0 is returned.
+    For `positions` outside the grid 0 is returned.
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Target coordinates to be located in the grid.
+  - `positions::Matrix{<:Number}`: Target coordinates to be located in the grid. Each column corresponds to a value and each row is a dimension.
   - `grid::SquareGrid`: A square grid.
+  - `cartesian::Bool=false`: If the resulting indices will be cartesian or linear.
 
 # Returns
 
-  - A vector with the linear indices.
+  - A vector with the linear indices or a matrix with cartesian indices.
 """
-function findIn2DGrid(positions::Matrix{<:Number}, grid::SquareGrid)::Vector{Int}
-
-    # Compute half of the bin size
-    h_bin_width = grid.bin_width * 0.5
+function findIn2DGrid(
+    positions::Matrix{<:Number},
+    grid::SquareGrid;
+    cartesian::Bool=false,
+)::VecOrMat{Int}
 
     # Compute the physical position of the grid borders
-    x_borders = (grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width)
-    y_borders = (grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width)
+    x_borders = (first(grid.x_edges), last(grid.x_edges))
+    y_borders = (first(grid.y_edges), last(grid.y_edges))
 
-    # Compute the edges of the grid
-    x_edges = range(x_borders[1], x_borders[end], grid.n_bins + 1)
-    y_edges = range(y_borders[1], y_borders[end], grid.n_bins + 1)
+    if cartesian
+        coordinates = zeros(Int, (2, size(positions, 2)))
+    else
+        coordinates = zeros(Int, size(positions, 2))
+    end
 
-    coordinates = zeros(Int, size(positions, 2))
+    grid_linear_indices = LinearIndices(grid.n_bins)
 
     # Compute the linear indices, ignoring NaNs and positions outside the grid
     Threads.@threads for (idx, point) in collect(pairs(eachcol(positions)))
@@ -573,18 +575,22 @@ function findIn2DGrid(positions::Matrix{<:Number}, grid::SquareGrid)::Vector{Int
         !(y > y_borders[2] || y < y_borders[1]) || continue
 
         if x == x_borders[1]
-            i_x = 1
+            idx_x = 1
         else
-            i_x = searchsortedfirst(x_edges, x) - 1
+            idx_x = searchsortedfirst(grid.x_edges, x) - 1
         end
 
         if y == y_borders[1]
-            i_y = 1
+            idx_y = 1
         else
-            i_y = searchsortedfirst(y_edges, y) - 1
+            idx_y = searchsortedfirst(grid.y_edges, y) - 1
         end
 
-        coordinates[idx] = LinearIndices(grid.grid)[grid.n_bins - i_y + 1, i_x]
+        if cartesian
+            coordinates[:, idx] .= (idx_x, idx_y)
+        else
+            coordinates[idx] = grid_linear_indices[idx_x, idx_y]
+        end
 
     end
 
@@ -615,20 +621,12 @@ function listHistogram3D(
     grid::CubicGrid,
 )::Array{Vector{Int},3}
 
-    # Compute half of the bin size
-    h_bin_width = grid.bin_width * 0.5
-
     # Compute the physical position of the grid borders
-    x_borders = (grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width)
-    y_borders = (grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width)
-    z_borders = (grid.z_bins[1] - h_bin_width, grid.z_bins[end] + h_bin_width)
+    x_borders =  (first(grid.x_edges), last(grid.x_edges))
+    y_borders =  (first(grid.y_edges), last(grid.y_edges))
+    z_borders =  (first(grid.z_edges), last(grid.z_edges))
 
-    # Compute the edges of the grid
-    x_edges = range(x_borders[1], x_borders[end], grid.n_bins + 1)
-    y_edges = range(y_borders[1], y_borders[end], grid.n_bins + 1)
-    z_edges = range(z_borders[1], z_borders[end], grid.n_bins + 1)
-
-    histogram = Array{Vector{Int}}(undef, size(grid.grid))
+    histogram = Array{Vector{Int}}(undef, grid.n_bins)
     for i in eachindex(histogram)
         histogram[i] = Int[]
     end
@@ -647,24 +645,24 @@ function listHistogram3D(
         !(z > z_borders[2] || z < z_borders[1]) || continue
 
         if x == x_borders[1]
-            i_x = 1
+            idx_x = 1
         else
-            i_x = searchsortedfirst(x_edges, x) - 1
+            idx_x = searchsortedfirst(grid.x_edges, x) - 1
         end
 
         if y == y_borders[1]
-            i_y = 1
+            idx_y = 1
         else
-            i_y = searchsortedfirst(y_edges, y) - 1
+            idx_y = searchsortedfirst(grid.y_edges, y) - 1
         end
 
         if z == z_borders[1]
-            i_z = 1
+            idx_z = 1
         else
-            i_z = searchsortedfirst(z_edges, z) - 1
+            idx_z = searchsortedfirst(grid.z_edges, z) - 1
         end
 
-        push!(histogram[grid.n_bins - i_y + 1, i_x, i_z], idx)
+        push!(histogram[idx_x, idx_y, idx_z], idx)
 
     end
 
@@ -673,39 +671,46 @@ function listHistogram3D(
 end
 
 """
-    findIn3DGrid(positions::Matrix{<:Number}, grid::CubicGrid)::Vector{Int}
+    findIn3DGrid(
+        positions::Matrix{<:Number},
+        grid::CubicGrid;
+        <keyword arguments>
+    )::VecOrMat{Int}
 
-Compute the linear index of the given `grid` where each of the `positions` falls.
+Compute the linear or cartesian index of the voxel where each of the `positions` is located.
 
 !!! note
 
-    For `positions` outside the grid a index of 0 is returned.
+    For `positions` outside the grid 0 is returned.
 
 # Arguments
 
-  - `positions::Matrix{<:Number}`: Target coordinates to be located in the grid.
+  - `positions::Matrix{<:Number}`: Target coordinates to be located in the grid. Each column corresponds to a value and each row is a dimension.
   - `grid::CubicGrid`: A cubic grid.
+  - `cartesian::Bool=false`: If the resulting indices will be cartesian or linear.
 
 # Returns
 
-  - A vector with the linear indices.
+  - A vector with the linear indices or a matrix with cartesian indices.
 """
-function findIn3DGrid(positions::Matrix{<:Number}, grid::CubicGrid)::Vector{Int}
-
-    # Compute half of the bin size
-    h_bin_width = grid.bin_width * 0.5
+function findIn3DGrid(
+    positions::Matrix{<:Number},
+    grid::CubicGrid;
+    cartesian::Bool=false,
+)::VecOrMat{Int}
 
     # Compute the physical position of the grid borders
-    x_borders = (grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width)
-    y_borders = (grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width)
-    z_borders = (grid.z_bins[1] - h_bin_width, grid.z_bins[end] + h_bin_width)
+    x_borders =  (first(grid.x_edges), last(grid.x_edges))
+    y_borders =  (first(grid.y_edges), last(grid.y_edges))
+    z_borders =  (first(grid.z_edges), last(grid.z_edges))
 
-    # Compute the edges of the grid
-    x_edges = range(x_borders[1], x_borders[end], grid.n_bins + 1)
-    y_edges = range(y_borders[1], y_borders[end], grid.n_bins + 1)
-    z_edges = range(z_borders[1], z_borders[end], grid.n_bins + 1)
+    if cartesian
+        coordinates = zeros(Int, (3, size(positions, 2)))
+    else
+        coordinates = zeros(Int, size(positions, 2))
+    end
 
-    coordinates = zeros(Int, size(positions, 2))
+    grid_linear_indices = LinearIndices(grid.n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the grid
     Threads.@threads for (idx, point) in collect(pairs(eachcol(positions)))
@@ -721,24 +726,28 @@ function findIn3DGrid(positions::Matrix{<:Number}, grid::CubicGrid)::Vector{Int}
         !(z > z_borders[2] || z < z_borders[1]) || continue
 
         if x == x_borders[1]
-            i_x = 1
+            idx_x = 1
         else
-            i_x = searchsortedfirst(x_edges, x) - 1
+            idx_x = searchsortedfirst(grid.x_edges, x) - 1
         end
 
         if y == y_borders[1]
-            i_y = 1
+            idx_y = 1
         else
-            i_y = searchsortedfirst(y_edges, y) - 1
+            idx_y = searchsortedfirst(grid.y_edges, y) - 1
         end
 
         if z == z_borders[1]
-            i_z = 1
+            idx_z = 1
         else
-            i_z = searchsortedfirst(z_edges, z) - 1
+            idx_z = searchsortedfirst(grid.z_edges, z) - 1
         end
 
-        coordinates[idx] = LinearIndices(grid.grid)[grid.n_bins - i_y + 1, i_x, i_z]
+        if cartesian
+            coordinates[:, idx] .= (idx_x, idx_y, idx_z)
+        else
+            coordinates[idx] = grid_linear_indices[idx_x, idx_y, idx_z]
+        end
 
     end
 
@@ -783,21 +792,13 @@ function histogram3D(
         $(size(positions, 2))"))
     )
 
-    # Compute half of the bin size
-    h_bin_width = grid.bin_width * 0.5
-
     # Compute the physical position of the grid borders
-    x_borders = (grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width)
-    y_borders = (grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width)
-    z_borders = (grid.z_bins[1] - h_bin_width, grid.z_bins[end] + h_bin_width)
+    x_borders =  (first(grid.x_edges), last(grid.x_edges))
+    y_borders =  (first(grid.y_edges), last(grid.y_edges))
+    z_borders =  (first(grid.z_edges), last(grid.z_edges))
 
-    # Compute the edges of the grid
-    x_edges = range(x_borders[1], x_borders[end], grid.n_bins + 1)
-    y_edges = range(y_borders[1], y_borders[end], grid.n_bins + 1)
-    z_edges = range(z_borders[1], z_borders[end], grid.n_bins + 1)
-
-    histogram = zeros(typeof(first(values)), size(grid.grid))
-    counts = zeros(Int, size(grid.grid))
+    histogram = zeros(eltype(values), grid.n_bins)
+    counts = zeros(Int, grid.n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the grid
     for (i, point) in pairs(eachcol(positions))
@@ -814,25 +815,25 @@ function histogram3D(
         !(z > z_borders[2] || z < z_borders[1]) || continue
 
         if x == x_borders[1]
-            i_x = 1
+            idx_x = 1
         else
-            i_x = searchsortedfirst(x_edges, x) - 1
+            idx_x = searchsortedfirst(grid.x_edges, x) - 1
         end
 
         if y == y_borders[1]
-            i_y = 1
+            idx_y = 1
         else
-            i_y = searchsortedfirst(y_edges, y) - 1
+            idx_y = searchsortedfirst(grid.y_edges, y) - 1
         end
 
         if z == z_borders[1]
-            i_z = 1
+            idx_z = 1
         else
-            i_z = searchsortedfirst(z_edges, z) - 1
+            idx_z = searchsortedfirst(grid.z_edges, z) - 1
         end
 
-        histogram[grid.n_bins - i_y + 1, i_x, i_z] += values[i]
-        counts[grid.n_bins - i_y + 1, i_x, i_z] += 1
+        histogram[idx_x, idx_y, idx_z] += values[i]
+        counts[idx_x, idx_y, idx_z] += 1
 
     end
 
@@ -856,43 +857,6 @@ function histogram3D(
     end
 
     return histogram
-
-end
-
-"""
-    project3DList(
-        histogram::Array{Vector{Int},3},
-        projection_plane::Symbol,
-    )::Array{Vector{Int},2}
-
-Project a 3D list of indices into a given plane.
-
-# Arguments
-
-  - `histogram::Array{Vector{Int},3}`: A tensor with the indices within each 3D bin. See [`listHistogram3D`](@ref).
-  - `projection_plane::Symbol`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
-
-# Returns
-
-    - A matrix with the indices within each 2D bin.
-"""
-function project3DList(
-    histogram::Array{Vector{Int},3},
-    projection_plane::Symbol,
-)::Array{Vector{Int},2}
-
-    if projection_plane == :xy
-        dims = 3
-    elseif projection_plane == :xz
-        dims = 2
-    elseif projection_plane == :yz
-        dims = 1
-    else
-        throw(ArgumentError("project3DList: The argument `projection_plane` must be \
-        :xy, :xz or :yz, but I got :$(projection_plane)"))
-    end
-
-    return dropdims(reduce(vcat, histogram; dims, init=Int[]); dims)
 
 end
 
@@ -943,7 +907,7 @@ function computeProfile(
             logging[] &&
             @warn("computeProfile: `quantity` is empty. The profile will be filled with NaNs")
         )
-        return fill(NaN, grid.size)
+        return fill(NaN, grid.n_bins)
     end
 
     # Compute the distances of the cells/particles to the origin of the grid
@@ -1030,7 +994,7 @@ function computeBandProfile(
             logging[] &&
             @warn("computeBandProfile: `quantity` is empty. The profile will be filled with NaNs")
         )
-        return fill(NaN, grid.size)
+        return fill(NaN, grid.n_bins)
     end
 
     # Compute the distances of the cells/particles to the origin of the grid

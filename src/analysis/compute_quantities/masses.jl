@@ -1911,9 +1911,9 @@ function quantity3DProjection(
             )
 
             if empty_nan
-                return fill(NaN, size(grid.grid)), Int[]
+                return fill(NaN, grid.n_bins), Int[]
             else
-                return zeros(size(grid.grid)), Int[]
+                return zeros(grid.n_bins), Int[]
             end
 
         end
@@ -1925,12 +1925,7 @@ function quantity3DProjection(
         kdtree = KDTree(ustrip.(l_unit, positions))
 
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        physical_grid = Matrix{Float64}(undef, 3, grid.n_bins^3)
-        Threads.@threads for i in eachindex(grid.grid)
-            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
-            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
-            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
-        end
+        physical_grid = gridToJuliaMatrix(grid, l_unit)
 
         # Find the nearest cell to each voxel
         nn_idxs, _ = nn(kdtree, physical_grid)
@@ -2030,9 +2025,9 @@ function quantity3DProjection(
         )
 
         if empty_nan
-            return fill(NaN, size(grid.grid)), Int[]
+            return fill(NaN, grid.n_bins), Int[]
         else
-            return zeros(size(grid.grid)), Int[]
+            return zeros(grid.n_bins), Int[]
         end
 
     end
@@ -2040,10 +2035,10 @@ function quantity3DProjection(
     if !isempty(nn_idxs)
 
         (
-            (length(nn_idxs) == length(grid.grid)) ||
+            (length(nn_idxs) == grid.n_voxels) ||
             throw(ArgumentError("quantity3DProjection: The argument `nn_idxs` should have as many \
             elements as `grid` has bins, but I got length(nn_idxs) = $(length(nn_idxs)) != \
-            length(grid.grid) = $(length(grid.grid)) "))
+            grid.n_voxels = $(grid.n_voxels) "))
         )
 
         # Scale the values by the voxel/cell volume quotient
@@ -2052,14 +2047,14 @@ function quantity3DProjection(
             # Compute the volume of each cell
             cell_volumes = filtered_dd[cp_type]["MASS"] ./ filtered_dd[cp_type]["RHO "]
 
-            volume_factor = ustrip.(Unitful.NoUnits, grid.bin_volume ./ cell_volumes)
+            volume_factor = ustrip.(Unitful.NoUnits, grid.bin_size_3D ./ cell_volumes)
 
             qty_values .*= volume_factor
 
         end
 
-        voxel_values = zeros(size(grid.grid))
-        Threads.@threads for i in eachindex(grid.grid)
+        voxel_values = zeros(grid.n_bins)
+        Threads.@threads for i in eachindex(voxel_values)
             voxel_values[i] = qty_values[nn_idxs[i]]
         end
 
@@ -2079,9 +2074,9 @@ function quantity3DProjection(
             )
 
             if empty_nan
-                return fill(NaN, size(grid.grid)), Int[]
+                return fill(NaN, grid.n_bins), Int[]
             else
-                return zeros(size(grid.grid)), Int[]
+                return zeros(grid.n_bins), Int[]
             end
 
         end
@@ -2101,7 +2096,7 @@ function quantity3DProjection(
             physical_factor = 1.0
         end
 
-        voxel_volume = ustrip(density^3, grid.bin_volume) * physical_factor
+        voxel_volume = ustrip(density^3, grid.bin_size_3D) * physical_factor
 
         voxel_values ./= voxel_volume
     end

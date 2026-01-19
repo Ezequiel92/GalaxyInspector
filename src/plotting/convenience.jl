@@ -443,6 +443,10 @@ function vtkFiles(
     # Set up the grid
     grid = CubicGrid(box_size, resolution)
 
+    x_edges = ustrip.(l_unit, grid.x_edges)
+    y_edges = ustrip.(l_unit, grid.y_edges)
+    z_edges = ustrip.(l_unit, grid.z_edges)
+
     temp_folder = joinpath(output_path, "_vtk_files")
 
     plotSnapshot(
@@ -461,22 +465,6 @@ function vtkFiles(
         da_kwargs=[(; density=density ? l_unit : nothing, filter_function=da_ff)],
         save_figures=false,
         backup_raw_results=true,
-    )
-
-    h_bin_width = grid.bin_width * 0.5
-    n_edges = grid.n_bins + 1
-
-    x_edges = ustrip.(
-        l_unit,
-        range(grid.x_bins[1] - h_bin_width, grid.x_bins[end] + h_bin_width, n_edges),
-    )
-    y_edges = ustrip.(
-        l_unit,
-        range(grid.y_bins[1] - h_bin_width, grid.y_bins[end] + h_bin_width, n_edges),
-    )
-    z_edges = ustrip.(
-        l_unit,
-        range(grid.z_bins[1] - h_bin_width, grid.z_bins[end] + h_bin_width, n_edges),
     )
 
     jldopen(joinpath(temp_folder, "$(quantity)_raw.jld2"), "r") do jld_file
@@ -4781,7 +4769,7 @@ function compareFeldmann2020(
     end
 
     if isone(n_sims)
-        filename = "$(scatter)_$(ylog)_$(xlog)_$(basename(simulation_paths[1]))_$(x_component)_vs_$(y_component)_Feldmann2020"
+        filename = "$(basename(simulation_paths[1]))_$(x_component)_vs_$(y_component)_Feldmann2020"
     else
         filename = "$(x_component)_vs_$(y_component)_Feldmann2020"
     end
@@ -5123,7 +5111,7 @@ function gasVelocityCubes(
     hdf5_file = h5open(output_file, "w")
 
     # Set the number of columns and rows
-    n_rows = grid.n_bins^3
+    n_rows = grid.n_voxels
     n_cols = 14
 
     base_request = mergeRequests(plotParams(:mass).request, Dict(:gas => ["POS ", "VEL "]))
@@ -5132,17 +5120,7 @@ function gasVelocityCubes(
     filter_function, request = selectFilter(filter_mode, trans_request)
 
     # For gas cells, reshape the grid to conform to the way `knn` expect the matrix to be structured
-    if gas_type == :cells
-
-        physical_grid = Matrix{Float64}(undef, 3, n_rows)
-
-        for i in eachindex(grid.grid)
-            physical_grid[1, i] = ustrip(l_unit, grid.grid[i][1])
-            physical_grid[2, i] = ustrip(l_unit, grid.grid[i][2])
-            physical_grid[3, i] = ustrip(l_unit, grid.grid[i][3])
-        end
-
-    end
+    physical_grid = gridToJuliaMatrix(grid, l_unit)
 
     for simulation_path in simulation_paths
 
@@ -5239,7 +5217,7 @@ function gasVelocityCubes(
                 dust_densities = ustrip.(m_unit * l_unit^-3, dust_masses ./ cell_volumes)
 
                 # Load the volume of the voxels
-                voxel_volume = ustrip(l_unit^3, grid.bin_volume)
+                voxel_volume = ustrip(l_unit^3, grid.bin_size_3D)
 
                 # Compute the tree for a nearest neighbor search
                 kdtree = KDTree(ustrip.(l_unit, positions))
@@ -5247,10 +5225,12 @@ function gasVelocityCubes(
                 # Find the `n_neighbors` nearest cells to each voxel
                 idxs, dists = knn(kdtree, physical_grid, n_neighbors, true)
 
-                Threads.@threads for i in eachindex(grid.grid)
+                Threads.@threads for i in LinearIndices(grid.n_bins)
 
                     # Physical coordinates of the voxel [l_unit]
-                    data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
+                    data_matrix[i, 1] = physical_grid[1, i]
+                    data_matrix[i, 2] = physical_grid[2, i]
+                    data_matrix[i, 3] = physical_grid[3, i]
 
                     # Ionized hydrogen mass [m_unit]
                     data_matrix[i, 4] = ion_densities[idxs[i][1]] * voxel_volume
@@ -5305,10 +5285,12 @@ function gasVelocityCubes(
                 # Find which particles are within each voxel
                 idxs = listHistogram3D(positions, grid)
 
-                Threads.@threads for i in eachindex(grid.grid)
+                Threads.@threads for i in LinearIndices(grid.n_bins)
 
                     # Physical coordinates of the voxel [l_unit]
-                    data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
+                    data_matrix[i, 1] = physical_grid[1, i]
+                    data_matrix[i, 2] = physical_grid[2, i]
+                    data_matrix[i, 3] = physical_grid[3, i]
 
                     # Ionized hydrogen mass [m_unit]
                     data_matrix[i, 4] = ustrip(m_unit, sum(ion_masses[idxs[i]]; init=0.0*m_unit))
@@ -5404,7 +5386,7 @@ function gasVelocityCubes(
             # Write the grid metadata
             attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [length unit]"] = ustrip.(
                 l_unit,
-                grid.grid_size,
+                grid.size,
             )
             attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"] = grid.n_bins
 
@@ -5508,13 +5490,15 @@ function stellarVelocityCubes(
     hdf5_file = h5open(output_file, "w")
 
     # Set the number of columns and rows
-    n_rows = grid.n_bins^3
+    n_rows = grid.n_voxels
     n_cols = 10
 
     base_request = Dict(:stellar => ["MASS", "POS ", "VEL "])
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
+
+    physical_grid = gridToJuliaMatrix(grid, l_unit)
 
     for simulation_path in simulation_paths
 
@@ -5577,10 +5561,12 @@ function stellarVelocityCubes(
             # Find which particles are within each voxel
             idxs = listHistogram3D(positions, grid)
 
-            Threads.@threads for i in eachindex(grid.grid)
+            Threads.@threads for i in LinearIndices(grid.n_bins)
 
                 # Physical coordinates of the voxel [l_unit]
-                data_matrix[i, 1:3] .= ustrip.(l_unit, grid.grid[i])
+                data_matrix[i, 1] = physical_grid[1, i]
+                data_matrix[i, 2] = physical_grid[1, i]
+                data_matrix[i, 3] = physical_grid[1, i]
 
                 # Stellar mass [m_unit]
                 data_matrix[i, 4] = ustrip(m_unit, sum(masses[idxs[i]]; init=0.0*m_unit))
@@ -5661,7 +5647,7 @@ function stellarVelocityCubes(
             # Write the grid metadata
             attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [length unit]"] = ustrip.(
                 l_unit,
-                grid.grid_size,
+                grid.size,
             )
             attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"] = grid.n_bins
 
@@ -7292,7 +7278,7 @@ Make a mockup image emulating an SDSS observation.
 
 !!! note
 
-    The stellar magnitudes (AB system of SDSS) from Millán-Irigoyen et al. (2025) are used.
+    We use the stellar magnitudes (AB system of SDSS) from Millán-Irigoyen et al. (2025).
 
 # Arguments
 
@@ -7303,7 +7289,6 @@ Make a mockup image emulating an SDSS observation.
   - `resolution::Int=800`: Number of bins per side of the cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
-  - `extinction::Bool=false`: If neutral gas extinction will be consider.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -7323,7 +7308,6 @@ function SDSSMockup(
     resolution::Int=800,
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
-    extinction::Bool=false,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     da_ff::Function=filterNothing,
@@ -7363,22 +7347,22 @@ function SDSSMockup(
         filter_function,
         da_functions=[daSDSSMockup],
         da_args=[(grid,)],
-        da_kwargs=[(; projection_plane, smooth, extinction, filter_function=da_ff)],
+        da_kwargs=[(; projection_plane, smooth, filter_function=da_ff)],
         save_figures=false,
         backup_results=false,
         backup_raw_results=true,
     )
 
     jld2_path = joinpath(temp_folder, "sdss_mockup_raw.jld2")
-    pp_string = string(projection_plane)
 
     l_unit = u"kpc"
-
     limit  = ustrip(l_unit, box_size / 2.0)
-    x_axis = extrema(ustrip.(l_unit, grid.x_bins))
-    y_axis = extrema(ustrip.(l_unit, grid.y_bins))
-    xlabel = getLabel(pp_string[1:1], 0, l_unit)
-    ylabel = getLabel(pp_string[2:2], 0, l_unit)
+    x_axis = extrema(ustrip.(l_unit, grid.x_axis))
+    y_axis = extrema(ustrip.(l_unit, grid.y_axis))
+
+    pp_string = string(projection_plane)
+    xlabel    = getLabel(pp_string[1:1], 0, l_unit)
+    ylabel    = getLabel(pp_string[2:2], 0, l_unit)
 
     current_theme = merge(
         theme,

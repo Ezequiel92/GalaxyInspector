@@ -2007,10 +2007,9 @@ function ppFeldmann2020!(
     # Set up the grid
     x_min, x_max = extrema(scaled_xs)
     grid         = LinearGrid(x_min, x_max, 50)
-    n_bins       = length(grid.grid)
-    bin_width    = (x_max - x_min) / n_bins
+    bin_width    = (x_max - x_min) / grid.n_bins
 
-    histogram = [Int[] for _ in 1:n_bins]
+    histogram = [Int[] for _ in 1:grid.n_bins]
 
     # Compute the indices that fall within each bin,
     # ignoring missings and values outside the grid range
@@ -2021,7 +2020,7 @@ function ppFeldmann2020!(
         elseif x_value == x_min
             hist_idx = 1
         elseif x_value == x_max
-            hist_idx = n_bins
+            hist_idx = grid.n_bins
         else
             hist_idx = ceil(Int, (x_value - x_min) / bin_width)
         end
@@ -2034,7 +2033,7 @@ function ppFeldmann2020!(
     # Values for the y axis
     ################################################################################################
 
-    y_axis = Vector{Union{Measurement{Float64},Missing}}(undef, n_bins)
+    y_axis = Vector{Union{Measurement{Float64},Missing}}(undef, grid.n_bins)
 
     for (i, hist_idxs) in pairs(histogram)
 
@@ -2074,7 +2073,7 @@ function ppFeldmann2020!(
     # Values for the x axis
     ################################################################################################
 
-    x_axis = grid.grid
+    x_axis = copy(grid.x_axis)
 
     # Delete the empty bins
     deleteat!(x_axis, missing_idxs)

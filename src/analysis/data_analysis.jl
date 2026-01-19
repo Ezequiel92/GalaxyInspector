@@ -825,7 +825,7 @@ function daHistogram(
             \n  Snapshot:    $(data_dict[:snap_data].global_index) \
             \n  Quantity:    $(quantity) \
             \n  Type:        $(cp_type) \
-            \n  Largest bin: $(grid.grid[argmax(counts)]) \
+            \n  Largest bin: $(grid.x_axis[argmax(counts)]) \
             \n  Max count:   $(maximum(counts)) \
             \n  Min - Max:   $(min_max_v) \
             \n  Mean:        $(mean_v) \
@@ -1093,7 +1093,7 @@ function daBarGasFractions(
     histograms = [histogram1D(gas_qty, mass, grid; empty_nan=false) for mass in masses]
 
     # Compute the number of bins
-    n_bins = grid.size
+    n_bins = grid.n_bins
 
     # Compute the number of bars per bin
     n_bars = length(components)
@@ -1318,7 +1318,7 @@ function daDensity2DProjection(
     end
 
     munit_factor = ustrip(m_unit, 1.0 * plotParams(quantity).unit)
-    voxel_area   = ustrip(l_unit^2, grid.bin_area) * physical_factor
+    voxel_area   = ustrip(l_unit^2, grid.bin_size_2D[dims]) * physical_factor
 
     density = dropdims(sum(mass_grid; dims); dims) .* (munit_factor / voxel_area)
 
@@ -1327,21 +1327,21 @@ function daDensity2DProjection(
         # Reduce the resolution of the result using a new square grid
         # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
         density = reduceMatrix(density, reduce_factor)
-        x_axis  = reduceTicks(grid.x_bins, reduce_factor)
-        y_axis  = reduceTicks(grid.y_bins, reduce_factor)
+        x_axis  = reduceTicks(grid.x_axis, reduce_factor)
+        y_axis  = reduceTicks(grid.y_axis, reduce_factor)
 
     elseif reduce_grid == :circular
 
         # Reduce the resolution of the result using a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
         density = projectIntoLinearGrid(density, reduce_factor)
-        x_axis  = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        x_axis  = [grid.size[1] * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis  = x_axis
 
     else
 
         throw(ArgumentError("daDensity2DProjection: `reduce_grid` can only be :square or \
-        :circular, but I got :$( reduce_grid)"))
+        :circular, but I got :$(reduce_grid)"))
 
     end
 
@@ -1470,21 +1470,21 @@ function daGasSFR2DProjection(
         # Reduce the resolution of the result using a new square grid
         # `reduce_factor` here is the factor by wich the number of rows and columns will be reduced
         sfr    = reduceMatrix(sfr, reduce_factor; total=true)
-        x_axis = reduceTicks(grid.x_bins, reduce_factor)
-        y_axis = reduceTicks(grid.y_bins, reduce_factor)
+        x_axis = reduceTicks(grid.x_axis, reduce_factor)
+        y_axis = reduceTicks(grid.y_axis, reduce_factor)
 
     elseif reduce_grid == :circular
 
         # Reduce the resolution of the result using a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
         sfr    = projectIntoLinearGrid(sfr, reduce_factor; total=true)
-        x_axis = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        x_axis = [grid.size[1] * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis = x_axis
 
     else
 
         throw(ArgumentError("daGasSFR2DProjection: `reduce_grid` can only be :square or :circular, \
-        but I got :$( reduce_grid)"))
+        but I got :$(reduce_grid)"))
 
     end
 
@@ -1646,8 +1646,8 @@ function daMetallicity2DProjection(
         metal_mass = reduceMatrix(metal_mass, reduce_factor; total=true)
         norm_mass  = reduceMatrix(norm_mass, reduce_factor; total=true)
 
-        x_axis = reduceTicks(grid.x_bins, reduce_factor)
-        y_axis = reduceTicks(grid.y_bins, reduce_factor)
+        x_axis = reduceTicks(grid.x_axis, reduce_factor)
+        y_axis = reduceTicks(grid.y_axis, reduce_factor)
 
         # Compute the metallicity in each bin
         metallicity = metal_mass ./ norm_mass
@@ -1659,7 +1659,7 @@ function daMetallicity2DProjection(
         metal_mass = projectIntoLinearGrid(metal_mass, reduce_factor; total=true)
         norm_mass  = projectIntoLinearGrid(norm_mass, reduce_factor; total=true)
 
-        x_axis = [grid.grid_size * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        x_axis  = [grid.size[1] * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
         y_axis = x_axis
 
         # Compute the metallicity in each bin
@@ -1760,6 +1760,7 @@ Project a 3D velocity field into a given plane.
       + A matrix with the mean velocity in the x direction at each grid point.
       + A matrix with the mean velocity in the y direction at each grid point.
 """
+#TODO
 function daVelocityField(
     data_dict::Dict,
     grid::SquareGrid,
@@ -1781,7 +1782,7 @@ function daVelocityField(
             logging[] &&
             @warn("daVelocityField: The data for the positions and/or the velocities is missing")
         )
-        return grid.x_bins, grid.y_bins, zeros(size(grid.grid)), zeros(size(grid.grid))
+        return grid.x_axis, grid.y_axis, zeros(grid.n_bins[1]), zeros(grid.n_bins[2])
     end
 
     # Project the cells/particles to the chosen plane
@@ -1814,7 +1815,7 @@ function daVelocityField(
     vx = ustrip.(v_unit, collect(reverse!(transpose(vx), dims=2)))
     vy = ustrip.(v_unit, collect(reverse!(transpose(vy), dims=2)))
 
-    return grid.x_bins, grid.y_bins, vx, vy
+    return grid.x_axis, grid.y_axis, vx, vy
 
 end
 
@@ -1833,7 +1834,6 @@ Compute a mockup image emulating an SDSS observation.
   - `grid::CubicGrid`: Cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
-  - `extinction::Bool=false`: If neutral gas extinction will be consider.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1845,47 +1845,71 @@ function daSDSSMockup(
     grid::CubicGrid;
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
-    extinction::Bool=false,
     filter_function::Function=filterNothing,
 )::AbstractArray
 
     filtered_dd = filterData(data_dict; filter_function)
 
+    # Get necessary quantities
+    positions     = filtered_dd[:stellar]["POS "]
+    masses        = ustrip.(u"Msun", filtered_dd[:stellar]["MASS"])
+    metallicities = scatterQty(filtered_dd, :stellar_metallicity)
+    log_ages      = log10.(ustrip.(u"yr", scatterQty(filtered_dd, :stellar_age)))
+
+    # Compute the neutral mass grid
+    Mn_grid, _ = quantity3DProjection(
+        filtered_dd,
+        grid,
+        :ode_neutral_mass,
+        :cells;
+        log=false,
+        empty_nan=false,
+    )
+
+    # Compute the 3D stellar index
+    stellar_3D_index = findIn3DGrid(positions, grid; cartesian=true)
+
+    # Compute the interpolation functions for the magnitudes in the g, r, and i filters of SDSS
+    g_interp, r_interp, i_interp = griMagnitudeInterpolation(MILLANIRIGOYEN2025_DATA_PATH)
+
     if projection_plane == :xy
-        dims = [1, 2]
+        extended_dims = [1, 2]
+        compact_dim = 3
     elseif projection_plane == :xz
-        dims = [1, 3]
+        extended_dims = [1, 3]
+        compact_dim  = 2
     elseif projection_plane == :yz
-        dims = [2, 3]
+        extended_dims = [2, 3]
+        compact_dim  = 1
     else
         throw(ArgumentError("daSDSSMockup: The argument `projection_plane` must be \
         :xy, :xz or :yz, but I got :$(projection_plane)"))
     end
 
-    grid_2d = flattenGrid(grid)
+    # For comological simulations with comoving units, correct
+    # the density so it is always in physical units
+    if !PHYSICAL_UNITS && filtered_dd[:sim_data].cosmological
+        # Correction factor for the area
+        # A [physical units] = A [comoving units] * a0^2
+        physical_factor = filtered_dd[:snap_data].scale_factor^2
+    else
+        physical_factor = 1.0
+    end
 
-    # Get necessary quantities
-    positions     = filtered_dd[:stellar]["POS "][dims, :]
-    masses        = ustrip.(u"Msun", filtered_dd[:stellar]["MASS"])
-    metallicities = scatterQty(filtered_dd, :stellar_metallicity)
-    log_ages      = log10.(ustrip.(u"yr", scatterQty(filtered_dd, :stellar_age)))
+    m_unit     = plotParams(:ode_neutral_mass).unit
+    ext_factor = 1.0 / ustrip(m_unit*u"pc^-2", EXTINCTION_FACTOR)
+    voxel_area = ustrip(u"pc^2", grid.bin_size_2D[compact_dim]) * physical_factor
 
-    # Compute the pixel index of each star
-    stellar_grid_coor = findIn2DGrid(positions, grid_2d)
+    # Allocate the memory to store the fluxes in each pixel
+    Fg = zeros(Float64, grid.n_bins[extended_dims])
+    Fr = zeros(Float64, grid.n_bins[extended_dims])
+    Fi = zeros(Float64, grid.n_bins[extended_dims])
 
-    # Compute the interpolation functions for the magnitudes in the g, r, and i filters of SDSS
-    g_interp, r_interp, i_interp = griMagnitudeInterpolation(MILLANIRIGOYEN2025_DATA_PATH)
+    for star_idx in eachindex(masses)
 
-    # Matrices to store the flux in each pixel of the image
-    Fg = similar(grid_2d.grid, Float64)
-    Fr = similar(grid_2d.grid, Float64)
-    Fi = similar(grid_2d.grid, Float64)
+        stellar_idx = stellar_3D_index[:, star_idx]
 
-    for star_idx in collect(eachindex(masses))
-
-        grid_coor = stellar_grid_coor[star_idx]
-
-        iszero(grid_coor) && continue
+        any(iszero, stellar_idx) && continue
 
         metallicity = metallicities[star_idx]
         log_age     = log_ages[star_idx]
@@ -1896,73 +1920,36 @@ function daSDSSMockup(
         Mr = r_interp(log_age, metallicity)
         Mi = i_interp(log_age, metallicity)
 
+        # Select the line of sight of the current star
+        idx = ntuple(i -> i == compact_dim ? (1:stellar_idx[compact_dim]) : stellar_idx[i], 3)
+
+        # Compute the column density of neutral gas in front of the star
+        Mn = sum(@view Mn_grid[idx...]) / voxel_area
+
+        # Compute the extinction in the V band
+        AV = Mn * ext_factor
+
+        # Compute the extinction in the g, r, and i bands
+        Ag = AV * AλAV_g
+        Ar = AV * AλAV_r
+        Ai = AV * AλAV_i
+
+        stellar_2D_idx = stellar_idx[extended_dims]
+
         # Compute the stellar flux
         # See https://en.wikipedia.org/wiki/Apparent_magnitude
         # The reference flux should be the same for each band in the SDSS AB system
         # so we don't need to normalize, as the relative value of fluxes is all we need
-        Fg[grid_coor] += mass * 10.0^(-0.4 * Mg)
-        Fr[grid_coor] += mass * 10.0^(-0.4 * Mr)
-        Fi[grid_coor] += mass * 10.0^(-0.4 * Mi)
+        Fg[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mg + Ag))
+        Fr[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mr + Ar))
+        Fi[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mi + Ai))
 
     end
 
-    if extinction
-
-        m_unit = plotParams(:ode_neutral_mass).unit
-
-        Mn_grid, _ = quantity3DProjection(
-            filtered_dd,
-            grid,
-            :ode_neutral_mass,
-            :cells;
-            log=false,
-            empty_nan=false,
-        )
-
-        # Project `nh_grid` to the target plane
-        if projection_plane == :xy
-            dims = 3
-        elseif projection_plane == :xz
-            dims = 2
-        elseif projection_plane == :yz
-            dims = 1
-        else
-            throw(ArgumentError("daSDSSMockup: The argument `projection_plane` must be \
-            :xy, :xz or :yz, but I got :$(projection_plane)"))
-        end
-
-        # For comological simulations with comoving units, correct
-        # the density so it is always in physical units
-        if !PHYSICAL_UNITS && filtered_dd[:sim_data].cosmological
-            # Correction factor for the area
-            # A [physical units] = A [comoving units] * a0^2
-            physical_factor = filtered_dd[:snap_data].scale_factor^2
-        else
-            physical_factor = 1.0
-        end
-
-        ef         = 1.0 / ustrip(m_unit*u"pc^-2", EXTINCTION_FACTOR)
-        voxel_area = ustrip(u"pc^2", grid.bin_area) * physical_factor
-
-        # Compute the neutral hydrogen mass density
-        Mn = dropdims(sum(Mn_grid; dims); dims) ./ voxel_area
-
-        # Compute the extinction in the V band
-        AV = Mn .* ef
-
-        # Compute the extinction in the g, r, and i bands
-        Ag = AV .* AλAV_g
-        Ar = AV .* AλAV_r
-        Ai = AV .* AλAV_i
-
-        # Apply the extinction to the fluxes
-        # See Section 2 of H. B. Yuan et al. (2013) for the relation between extinction and flux
-        # doi: 10.1093/mnras/stt039
-        Fg .*= 10.0.^(-0.4 .* Ag)
-        Fr .*= 10.0.^(-0.4 .* Ar)
-        Fi .*= 10.0.^(-0.4 .* Ai)
-
-    end
+    # AstroImage() expect the matrix to be in "image" format
+    Fg = reverse(Fg'; dims=2)
+    Fr = reverse(Fr'; dims=2)
+    Fi = reverse(Fi'; dims=2)
 
     # Turn the fluxes into RGB images
     red   = AstroImage(Fi)
@@ -3264,7 +3251,7 @@ function daClumpingFactorProfile(
     # Find which cells/particles fall within each bin of `grid`
     n_profile = listHistogram1D(distances, number_densities, grid)
 
-    Cρ = fill(NaN, grid.size)
+    Cρ = fill(NaN, grid.n_bins)
 
     Threads.@threads for (i, n) in collect(pairs(n_profile))
 
