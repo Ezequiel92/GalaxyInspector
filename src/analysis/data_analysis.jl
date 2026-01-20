@@ -1752,6 +1752,10 @@ end
 
 Project a 3D velocity field into a given plane.
 
+!!! note
+
+    This function computes the mean velocity in each direction of the target plane, at each pixel of the grid, using an 2D histogram. For low resolution grids, the result its the same even for a field made of cells, while being much facter and simpler that the full Voronoi rasterisation.
+
 # Arguments
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
@@ -1770,7 +1774,6 @@ Project a 3D velocity field into a given plane.
       + A matrix with the mean velocity in the x direction at each grid point.
       + A matrix with the mean velocity in the y direction at each grid point.
 """
-#TODO
 function daVelocityField(
     data_dict::Dict,
     grid::SquareGrid,
@@ -1817,13 +1820,9 @@ function daVelocityField(
 
     pos_2D = positions[idxs, :]
 
-    vx = histogram2D(pos_2D, vec(velocities[idxs[1], :]), grid; total=false)
-    vy = histogram2D(pos_2D, vec(velocities[idxs[2], :]), grid; total=false)
-
-    # The transpose and reverse operation are used to conform to the way arrows2d!
-    # expect the matrix to be structured
-    vx = ustrip.(v_unit, collect(reverse!(transpose(vx), dims=2)))
-    vy = ustrip.(v_unit, collect(reverse!(transpose(vy), dims=2)))
+    # Compute the mean velocity field in the target plane
+    vx = ustrip.(v_unit, histogram2D(pos_2D, vec(velocities[idxs[1], :]), grid; total=false))
+    vy = ustrip.(v_unit, histogram2D(pos_2D, vec(velocities[idxs[2], :]), grid; total=false))
 
     return grid.x_axis, grid.y_axis, vx, vy
 
