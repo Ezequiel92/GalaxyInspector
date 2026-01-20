@@ -1258,6 +1258,7 @@ Project a 3D mass density field into a given plane.
       + `:square`    -> The density distribution will be projected into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
       + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in some simulations. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves the opposite way than the `reduce_grid` = :square case.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1278,6 +1279,7 @@ function daDensity2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
+    mmap_path::String="./",
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"pc",
     filter_function::Function=filterNothing,
@@ -1285,13 +1287,14 @@ function daDensity2DProjection(
 
     quantity = Symbol(component, :_mass)
 
-    mass_grid, _ = quantity3DProjection(
+    mass_grid = quantity3DProjection(
         data_dict,
         grid,
         quantity,
         field_type;
-        log=false,
         empty_nan=false,
+        log=false,
+        mmap_path,
         filter_function,
     )
 
@@ -1415,6 +1418,7 @@ Project the 3D gas SFR field into a given plane.
       + `:square`    -> The density distribution will be projected into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
       + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in some simulations. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves the opposite way than the `reduce_grid` = :square case.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Time unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1434,18 +1438,20 @@ function daGasSFR2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
+    mmap_path::String="./",
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
-    sfr_grid, _ = quantity3DProjection(
+    sfr_grid = quantity3DProjection(
         data_dict,
         grid,
         :gas_sfr,
         field_type;
-        log=false,
         empty_nan=false,
+        log=false,
+        mmap_path,
         filter_function,
     )
 
@@ -1561,6 +1567,7 @@ Project the 3D metallicity field to a given plane.
       + `:square`    -> The density distribution will be projected into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
       + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in some simulations. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves the opposite way than the `reduce_grid` = :square case.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1580,6 +1587,7 @@ function daMetallicity2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
+    mmap_path::String="./",
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
@@ -1608,18 +1616,21 @@ function daMetallicity2DProjection(
         grid,
         metal_qty,
         field_type;
-        log=false,
         empty_nan=false,
+        log=false,
+        mmap_path,
+        return_idxs=true,
         filter_function,
     )
 
-    norm_grid, _ = quantity3DProjection(
+    norm_grid = quantity3DProjection(
         data_dict,
         grid,
         norm_qty,
         nn_idxs;
-        log=false,
         empty_nan=false,
+        log=false,
+        return_idxs=false,
         filter_function,
     )
 
@@ -1833,6 +1844,7 @@ Compute a mockup image emulating an SDSS observation.
   - `grid::CubicGrid`: Cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
+  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1844,6 +1856,7 @@ function daSDSSMockup(
     grid::CubicGrid;
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
+    mmap_path::String="./",
     filter_function::Function=filterNothing,
 )::AbstractArray
 
@@ -1856,13 +1869,14 @@ function daSDSSMockup(
     log_ages      = log10.(ustrip.(u"yr", scatterQty(filtered_dd, :stellar_age)))
 
     # Compute the neutral mass grid
-    Mn_grid, _ = quantity3DProjection(
+    Mn_grid = quantity3DProjection(
         filtered_dd,
         grid,
         :ode_neutral_mass,
         :cells;
-        log=false,
         empty_nan=false,
+        log=false,
+        mmap_path,
     )
 
     # Compute the 3D stellar index
@@ -3004,6 +3018,7 @@ Compute the gas density and the SFR density, used in the volumetric star formati
   - `age_limit::Unitful.Time=AGE_RESOLUTION`: Age limit for the SFR.
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. See the required signature and examples in `./src/analysis/filters.jl`.
   - `gas_ff::Function=filterNothing`: Filter function for the gas. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `m_unit::Unitful.Units=u"Msun"`: Target mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Target time unit.
   - `l_gas_unit::Unitful.Units=u"pc"`: Target length unit for the gas density.
@@ -3026,6 +3041,7 @@ function daVSFLaw(
     age_limit::Unitful.Time=AGE_RESOLUTION,
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
+    mmap_path::String="./",
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
     l_gas_unit::Unitful.Units=u"pc",
@@ -3041,7 +3057,7 @@ function daVSFLaw(
     # log10(ρsfr) = log10(ρ*) - log10Δt
     log10Δt = log10(ustrip(t_unit, age_limit))
 
-    gas_density, _ = quantity3DProjection(
+    gas_density = quantity3DProjection(
         data_dict,
         grid,
         Symbol(component, :_mass),
@@ -3049,12 +3065,13 @@ function daVSFLaw(
         scale_by_volume=true,
         density=l_gas_unit,
         log=false,
+        mmap_path,
         filter_function=gas_ff,
     )
 
     m_gas_factor = ustrip(m_unit, 1.0 * plotParams(Symbol(component, :_mass)).unit)
 
-    stellar_density, _ = quantity3DProjection(
+    stellar_density = quantity3DProjection(
         data_dict,
         grid,
         :stellar_mass,
@@ -3062,6 +3079,7 @@ function daVSFLaw(
         scale_by_volume=true,
         density=l_stellar_unit,
         log=false,
+        mmap_path,
         filter_function=stellar_ff,
     )
 

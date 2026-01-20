@@ -328,22 +328,15 @@ function gridToJuliaMatrix(
     use_mmap = grid.n_voxels > MMAP_THRESHOLD
 
     if use_mmap
-
-        # Path to the binary file to store the memory-mapped matrix
-        grid_path = joinpath(mmap_path, "grid.bin")
-
-        matrix = MmapArray(grid_path, Float64, (3, grid.n_voxels))
-
+        matrix = MmapArray(joinpath(mmap_path, "grid.bin"), Float64, (3, grid.n_voxels))
     else
-
         matrix = Matrix{Float64}(undef, 3, grid.n_voxels)
-
     end
 
     cartesian_indices = CartesianIndices(grid.n_bins)
     linear_indices    = LinearIndices(grid.n_bins)
 
-    for i in linear_indices
+    Threads.@threads for i in linear_indices
 
         idx_x, idx_y, idx_z = Tuple(cartesian_indices[i])
 

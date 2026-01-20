@@ -462,7 +462,9 @@ function vtkFiles(
         filter_function,
         da_functions=[quantity3DProjection],
         da_args=[(grid, quantity, field_type)],
-        da_kwargs=[(; density=density ? l_unit : nothing, filter_function=da_ff)],
+        da_kwargs=[
+            (; density=density ? l_unit : nothing, mmap_path=temp_folder, filter_function=da_ff),
+        ],
         save_figures=false,
         backup_raw_results=true,
     )
@@ -483,7 +485,7 @@ function vtkFiles(
                 )
 
                 vtk_grid(filename, x_edges, y_edges, z_edges) do vtk
-                    vtk["density"], _ = jld_file[dataset_key]
+                    vtk["density"] = jld_file[dataset_key]
                 end
 
             end
@@ -1640,7 +1642,14 @@ function densityMap(
                     da_functions=[daDensity2DProjection],
                     da_args=[(grid, component, field_type)],
                     da_kwargs=[
-                        (; projection_plane, reduce_factor, m_unit, l_unit, filter_function=da_ff),
+                        (;
+                            projection_plane,
+                            reduce_factor,
+                            mmap_path=output_path,
+                            m_unit,
+                            l_unit,
+                            filter_function=da_ff,
+                        ),
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
@@ -1795,7 +1804,14 @@ function densityMapVelField(
                     da_functions=[daDensity2DProjection, daVelocityField],
                     da_args=[(grid_hm, component, field_type), (grid_vf, component)],
                     da_kwargs=[
-                        (; projection_plane, reduce_factor, m_unit, l_unit, filter_function=da_ff),
+                        (;
+                            projection_plane,
+                            reduce_factor,
+                            mmap_path=output_path,
+                            m_unit,
+                            l_unit,
+                            filter_function=da_ff,
+                        ),
                         (; projection_plane, v_unit, filter_function=da_ff)
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
@@ -1941,6 +1957,7 @@ function gasSFRMap(
                     (;
                         projection_plane,
                         reduce_factor,
+                        mmap_path=output_path,
                         m_unit,
                         t_unit,
                         filter_function=da_ff,
@@ -2107,7 +2124,15 @@ function metallicityMap(
                     filter_function,
                     da_functions=[daMetallicity2DProjection],
                     da_args=[(grid, component, field_type)],
-                    da_kwargs=[(; element, projection_plane, reduce_factor, filter_function=da_ff)],
+                    da_kwargs=[
+                        (;
+                            element,
+                            projection_plane,
+                            reduce_factor,
+                            mmap_path=output_path,
+                            filter_function=da_ff,
+                        ),
+                    ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
                     pp_kwargs=(; color=:white),
@@ -3490,6 +3515,7 @@ function kennicuttSchmidtLaw(
             (;
                 reduce_grid,
                 reduce_factor,
+                mmap_path=temp_folder,
                 m_unit=Σs_m_unit,
                 l_unit=Σs_l_unit,
                 filter_function=dd->filterByStellarAge(dd),
@@ -3565,7 +3591,15 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args,
-        da_kwargs=[(; reduce_grid, reduce_factor, m_unit=Σg_m_unit, l_unit=Σg_l_unit)],
+        da_kwargs=[
+            (;
+                reduce_grid,
+                reduce_factor,
+                mmap_path=temp_folder,
+                m_unit=Σg_m_unit,
+                l_unit=Σg_l_unit,
+            ),
+        ],
         x_unit=u"kpc",
         y_unit=u"kpc",
         save_figures=false,
@@ -3578,6 +3612,8 @@ function kennicuttSchmidtLaw(
 
     if !isnothing(gas_weights)
 
+        mmap_path = temp_folder
+
         if gas_weights == :gas_area_density
 
             da_function = daDensity2DProjection
@@ -3585,7 +3621,7 @@ function kennicuttSchmidtLaw(
             m_unit      = Σg_m_unit
             l_unit      = Σg_l_unit
             c_unit      = Σg_unit
-            da_kwargs   = [(; reduce_grid, reduce_factor, m_unit, l_unit)]
+            da_kwargs   = [(; reduce_grid, reduce_factor, mmap_path, m_unit, l_unit)]
 
         elseif gas_weights == :gas_sfr
 
@@ -3594,14 +3630,14 @@ function kennicuttSchmidtLaw(
             m_unit      = Σg_m_unit
             t_unit      = u"yr"
             c_unit      = m_unit * t_unit^-1
-            da_kwargs   = [(; reduce_grid, reduce_factor, m_unit, t_unit)]
+            da_kwargs   = [(; reduce_grid, reduce_factor, mmap_path, m_unit, t_unit)]
 
         elseif gas_weights == :gas_metallicity
 
             da_function = daMetallicity2DProjection
             da_args     = [(gas_grid, :gas, gas_type)]
             c_unit      = Unitful.NoUnits
-            da_kwargs   = [(; reduce_grid, reduce_factor)]
+            da_kwargs   = [(; reduce_grid, reduce_factor, mmap_path)]
 
         else
 
@@ -4887,7 +4923,9 @@ function massMetallicityRelation(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args=[(grid, :stellar, :particles)],
-        da_kwargs=[(; reduce_factor, filter_function=dd->filterByStellarAge(dd))],
+        da_kwargs=[
+            (; reduce_factor, mmap_path=temp_folder, filter_function=dd->filterByStellarAge(dd)),
+        ],
         x_unit=u"kpc",
         y_unit=u"kpc",
         save_figures=false,
@@ -4922,7 +4960,7 @@ function massMetallicityRelation(
         filter_function,
         da_functions=[daMetallicity2DProjection],
         da_args=[(grid, :gas, :cells)],
-        da_kwargs=[(; element, reduce_factor)],
+        da_kwargs=[(; element, reduce_factor, mmap_path=temp_folder)],
         x_unit=u"kpc",
         y_unit=u"kpc",
         save_figures=false,
@@ -6100,6 +6138,7 @@ function fitVSFLaw(
                 (;
                     field_type,
                     stellar_ff=filterByStellarAge,
+                    mmap_path=output_path,
                     m_unit,
                     t_unit,
                     l_gas_unit,
@@ -6572,7 +6611,15 @@ function stellarDensityMaps(
                 filter_function,
                 da_functions=[daDensity2DProjection],
                 da_args=[(grid, :stellar, :particles)],
-                da_kwargs=[(; projection_plane, m_unit, l_unit, filter_function=da_ff)],
+                da_kwargs=[
+                    (;
+                        projection_plane,
+                        mmap_path=temp_folder,
+                        m_unit,
+                        l_unit,
+                        filter_function=da_ff,
+                    ),
+                ],
                 x_unit=l_unit,
                 y_unit=l_unit,
                 save_figures=false,
@@ -6766,7 +6813,15 @@ function gasDensityMaps(
                     filter_function,
                     da_functions=[daDensity2DProjection],
                     da_args=[(grid, quantity, :cells)],
-                    da_kwargs=[(; projection_plane, m_unit, l_unit, filter_function=da_ff)],
+                    da_kwargs=[
+                        (;
+                            projection_plane,
+                            mmap_path=temp_folder,
+                            m_unit,
+                            l_unit,
+                            filter_function=da_ff,
+                        ),
+                    ],
                     x_unit=l_unit,
                     y_unit=l_unit,
                     save_figures=false,
@@ -7033,7 +7088,15 @@ function evolutionVideo(
                     filter_function,
                     da_functions=[daDensity2DProjection],
                     da_args=[(grid, quantity, field_type)],
-                    da_kwargs=[(; projection_plane, m_unit, l_unit, filter_function=da_ff)],
+                    da_kwargs=[
+                        (;
+                            projection_plane,
+                            mmap_path=temp_folder,
+                            m_unit,
+                            l_unit,
+                            filter_function=da_ff,
+                        ),
+                    ],
                     x_unit=l_unit,
                     y_unit=l_unit,
                     save_figures=false,
@@ -7347,7 +7410,7 @@ function SDSSMockup(
         filter_function,
         da_functions=[daSDSSMockup],
         da_args=[(grid,)],
-        da_kwargs=[(; projection_plane, smooth, filter_function=da_ff)],
+        da_kwargs=[(; projection_plane, smooth, mmap_path=temp_folder, filter_function=da_ff)],
         save_figures=false,
         backup_results=false,
         backup_raw_results=true,

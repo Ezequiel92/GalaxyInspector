@@ -1849,9 +1849,9 @@ end
         quantity::Symbol,
         field_type::Symbol;
         <keyword arguments>
-    )::Tuple{Array{Float64,3},Vector{Int}}
+    )::Union{Array{Float64,3},Tuple{Array{Float64,3},AbstractArray{Int}}}
 
-Project a `quantity` field into a given regular 3D grid.
+Project a `quantity` field into a given 3D grid.
 
 !!! note
 
@@ -1866,15 +1866,17 @@ Project a `quantity` field into a given regular 3D grid.
   - `scale_by_volume::Bool=true`: If `quantity` is extensive (e.g. a mass), this should be set to true, so the values are correctly scaled to the voxel volume.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
-  - `log::Bool=true`: If the returned projection will have ``\\log_{10}`` applied to it.
+  - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
+  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
+  - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
 
-  - A tuple with two elements:
+  - A tuple with two elements (if `return_idxs` is true):
 
-      + A 3D tensor with the target value at each bin of the 3D grid.
-      + A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)).
+      + A 3D tensor with the target value at each bin of the 3D grid (always returned).
+      + A vector with the index of the closest cell to each voxel. The result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)) (only returned if `return_idxs` is true).
 """
 function quantity3DProjection(
     data_dict::Dict,
@@ -1885,8 +1887,10 @@ function quantity3DProjection(
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
+    mmap_path::String="./",
+    return_idxs::Bool=false,
     filter_function::Function=filterNothing,
-)::Tuple{Array{Float64,3},Vector{Int}}
+)::Union{Array{Float64,3},Tuple{Array{Float64,3},AbstractArray{Int}}}
 
     if field_type == :cells
 
@@ -1905,15 +1909,20 @@ function quantity3DProjection(
 
         if isempty(positions)
 
-            (
-                logging[] &&
-                @warn("quantity3DProjection: The positions are missing")
-            )
+            logging[] && @warn("quantity3DProjection: The positions are missing")
 
-            if empty_nan
-                return fill(NaN, grid.n_bins), Int[]
+            if return_idxs
+                if empty_nan
+                    return fill(NaN, grid.n_bins), Int[]
+                else
+                    return zeros(grid.n_bins), Int[]
+                end
             else
-                return zeros(grid.n_bins), Int[]
+                if empty_nan
+                    return fill(NaN, grid.n_bins)
+                else
+                    return zeros(grid.n_bins)
+                end
             end
 
         end
@@ -1924,11 +1933,49 @@ function quantity3DProjection(
         # Compute the tree for a nearest neighbor search
         kdtree = KDTree(ustrip.(l_unit, positions))
 
+        # Choose storage strategy
+        use_mmap = grid.n_voxels > MMAP_THRESHOLD
+
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        physical_grid = gridToJuliaMatrix(grid, l_unit)
+        physical_grid = gridToJuliaMatrix(grid, l_unit; mmap_path)
+
+        if use_mmap
+            nn_idxs = MmapArray(joinpath(mmap_path, "nn_indices.bin"), Int, (grid.n_voxels,))
+        else
+            nn_idxs = Vector{Int}(undef, grid.n_voxels)
+        end
 
         # Find the nearest cell to each voxel
-        nn_idxs, _ = nn(kdtree, physical_grid)
+        if use_mmap
+
+            # Batched computation
+            i = 1
+            while i <= grid.n_voxels
+
+                j = min(i + MMAP_THRESHOLD - 1, grid.n_voxels)
+
+                pg_batch = @view physical_grid[:, i:j]
+
+                idxs_batch, _ = nn(kdtree, pg_batch)
+
+                @inbounds nn_idxs[i:j] .= idxs_batch
+                Mmap.sync!(nn_idxs.data)
+
+                i = j + 1
+
+            end
+
+        else
+
+            # Single batch, fully in RAM
+            nn_idxs, _ = nn(kdtree, physical_grid)
+
+        end
+
+        # Delete intermediate mmap file if used
+        if physical_grid isa MmapArray
+            delete!(physical_grid)
+        end
 
     elseif field_type == :particles
 
@@ -1945,11 +1992,12 @@ function quantity3DProjection(
         data_dict,
         grid,
         quantity,
-        nn_idxs::Vector{Int};
+        nn_idxs;
         scale_by_volume,
         empty_nan,
         density,
         log,
+        return_idxs,
         filter_function,
     )
 
@@ -1960,11 +2008,11 @@ end
         data_dict::Dict,
         grid::CubicGrid,
         quantity::Symbol,
-        nn_idxs::Vector{Int};
+        nn_idxs::AbstractArray{Int};
         <keyword arguments>
-    )::Tuple{Array{Float64,3},Vector{Int}}
+    )::Union{Array{Float64,3},Tuple{Array{Float64,3},AbstractArray{Int}}}
 
-Project a `quantity` field into a given regular 3D grid.
+Project a `quantity` field into a given 3D grid.
 
 !!! note
 
@@ -1975,31 +2023,33 @@ Project a `quantity` field into a given regular 3D grid.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `grid::CubicGrid`: Cubic grid.
   - `quantity::Symbol`: Target quantity. It can be any quantity valid for [`scatterQty`](@ref), as long as it has a well defined cell/particle type (see [`plotParams`](@ref)).
-  - `nn_idxs::Vector{Int}`: A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)). If set to an empty vector, it is assumed that the field is made up of particles.
+  - `nn_idxs::AbstractArray{Int}`: A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)). If empty, it is assumed that the field is made up of particles.
   - `scale_by_volume::Bool=true`: If `quantity` is extensive (e.g. a mass), this should be set to true, so the values are correctly scaled to the voxel volume.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
-  - `log::Bool=true`: If the returned projection will have ``\\log_{10}`` applied to it.
+  - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
+  - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
 
-  - A tuple with two elements:
+  - A tuple with two elements (if `return_idxs` is true):
 
-      + A 3D tensor with the target value at each bin of the 3D grid.
-      + A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)).
+      + A 3D tensor with the target value at each bin of the 3D grid (always returned).
+      + A vector with the index of the closest cell to each voxel. The result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)) (only returned if `return_idxs` is true).
 """
 function quantity3DProjection(
     data_dict::Dict,
     grid::CubicGrid,
     quantity::Symbol,
-    nn_idxs::Vector{Int};
+    nn_idxs::AbstractArray{Int};
     scale_by_volume::Bool=true,
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
+    return_idxs::Bool=false,
     filter_function::Function=filterNothing,
-)::Tuple{Array{Float64,3},Vector{Int}}
+)::Union{Array{Float64,3},Tuple{Array{Float64,3},AbstractArray{Int}}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
@@ -2019,15 +2069,20 @@ function quantity3DProjection(
 
     if isempty(qty_values)
 
-        (
-            logging[] &&
-            @warn("quantity3DProjection: The data for $(quantity) is missing")
-        )
+        logging[] && @warn("quantity3DProjection: The data for $(quantity) is missing")
 
-        if empty_nan
-            return fill(NaN, grid.n_bins), Int[]
+        if return_idxs
+            if empty_nan
+                return fill(NaN, grid.n_bins), Int[]
+            else
+                return zeros(grid.n_bins), Int[]
+            end
         else
-            return zeros(grid.n_bins), Int[]
+            if empty_nan
+                return fill(NaN, grid.n_bins)
+            else
+                return zeros(grid.n_bins)
+            end
         end
 
     end
@@ -2068,15 +2123,20 @@ function quantity3DProjection(
 
         if isempty(positions)
 
-            (
-                logging[] &&
-                @warn("quantity3DProjection: The positions are missing")
-            )
+            logging[] && @warn("quantity3DProjection: The positions are missing")
 
-            if empty_nan
-                return fill(NaN, grid.n_bins), Int[]
+            if return_idxs
+                if empty_nan
+                    return fill(NaN, grid.n_bins), Int[]
+                else
+                    return zeros(grid.n_bins), Int[]
+                end
             else
-                return zeros(grid.n_bins), Int[]
+                if empty_nan
+                    return fill(NaN, grid.n_bins)
+                else
+                    return zeros(grid.n_bins)
+                end
             end
 
         end
@@ -2143,6 +2203,18 @@ function quantity3DProjection(
 
     end
 
-    return voxel_values, nn_idxs
+    if return_idxs
+
+        return voxel_values, nn_idxs
+
+    else
+
+        if nn_idxs isa MmapArray
+            delete!(nn_idxs)
+        end
+
+        return voxel_values
+
+    end
 
 end
