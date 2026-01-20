@@ -76,7 +76,6 @@ Reduce the number of rows and columns of a given square matrix by `factor`, aver
 
   - The new smaller matrix.
 """
-#TODO
 function reduceMatrix(hr_matrix::Matrix{<:Number}, factor::Int; total::Bool=false)::Matrix{<:Number}
 
     !isone(factor) || return hr_matrix
@@ -103,30 +102,47 @@ function reduceMatrix(hr_matrix::Matrix{<:Number}, factor::Int; total::Bool=fals
     # Compute the size of the new matrix
     new_size = r ÷ factor
 
-    lr_matrix = zeros(eltype(hr_matrix), new_size, new_size)
+    # Get the element type of the high resolution matrix
+    hr_type = eltype(hr_matrix)
 
-    # Compute the number of values in `hr_matrix` per position in the new matrix
-    old_n_pixels = factor * factor
+    # Define NaN and zero values of the high resolution matrix type
+    u_nan = NaN * one(hr_type)
+    u_zero = zero(hr_type)
 
-    for i in eachindex(lr_matrix)
+    lr_matrix = zeros(hr_type, new_size, new_size)
+    for nr in 1:new_size, nc in 1:new_size
 
-        # Compute the row and column index corresponding to global index i in the new matrix
-        row = mod1(i, new_size)
-        col = ceil(Int, i / new_size)
+        # Row range of the block in the high resolution matrix
+        r1 = (nr - 1) * factor + 1
+        r2 = nr * factor
 
-        for j in (factor * (row - 1) + 1):(factor * row)
-            for k in (factor * (col - 1) + 1):(factor * col)
+        # Column range of the block in the high resolution matrix
+        c1 = (nc - 1) * factor + 1
+        c2 = nc * factor
 
-                if !isnan(hr_matrix[j, k])
-                    lr_matrix[i] += hr_matrix[j, k]
-                end
+        s   = u_zero
+        cnt = 0
+        for i in r1:r2, j in c1:c2
 
+            x = hr_matrix[i, j]
+
+            if !isnan(x)
+                s += x
+                cnt += 1
             end
+
+        end
+
+        if cnt == 0
+            # If the entire block was NaN, propagate NaN
+            lr_matrix[nr, nc] = u_nan
+        else
+            lr_matrix[nr, nc] = total ? s : s / cnt
         end
 
     end
 
-    return total ? lr_matrix : lr_matrix ./ old_n_pixels
+    return lr_matrix
 
 end
 
