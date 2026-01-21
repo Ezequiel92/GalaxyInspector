@@ -718,7 +718,7 @@ function radialProfile(
     theme::Attributes=Theme(),
 )::Nothing
 
-    requests = [plotParams(quantity).request for quantity in quantities]
+
 
     # Compute the unit and request of the norm
     if isnothing(norm)
@@ -753,7 +753,12 @@ function radialProfile(
         y_log        = nothing
     end
 
-    base_request = mergeRequests(norm_request, ff_request, requests...)
+    base_request = mergeRequests(
+        norm_request,
+        ff_request,
+        Dict(plotParams(quantity).cp_type => ["POS "] for quantity in quantities),
+        [plotParams(quantity).request for quantity in quantities]...,
+    )
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
@@ -3014,7 +3019,7 @@ Plot a time series of the data in the `cpu.txt` file.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
-  - `target::String`: Target process.
+  - `target::String`: Target process (e.g. "total").
   - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:time_step`              -> Time step.

@@ -465,16 +465,10 @@ function parseHaloQuantity(s::Symbol)::Tuple{Symbol,Int}
     )
 
     # Extract captured groups
-    prefix_str = m.captures[1]
-    number_str = m.captures[2]
+    prefix = m.captures[1]
+    number = m.captures[2]
 
-    # Convert prefix string back to Symbol
-    prefix_symbol = Symbol(prefix_str)
-
-    # Convert number string to Int
-    suffix_number = parse(Int, number_str)
-
-    return (prefix_symbol, suffix_number)
+    return (Symbol(:halo_, Symbol(prefix)), parse(Int, number))
 
 end
 

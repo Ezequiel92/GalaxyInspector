@@ -507,7 +507,19 @@ function integrateQty(
 
             magnitude, halo_idx = parseHaloQuantity(quantity)
 
-            integrated_qty = data_dict[:group][HALO_KEYS[magnitude]][halo_idx]
+            halo_qty = data_dict[:group][HALO_KEYS[magnitude]]
+
+            if isempty(halo_qty)
+
+                unit = plotParams(quantity).unit
+
+                integrated_qty = NaN * unit
+
+            else
+
+                integrated_qty = halo_qty[halo_idx]
+
+            end
 
         #################
         # SFR quantities

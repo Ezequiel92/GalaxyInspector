@@ -988,7 +988,7 @@ For each process in `targets` a matrix with all the CPU usage data is returned.
 # Arguments
 
   - `file_path::String`: Path to the `cpu.txt` file.
-  - `targets::Vector{String}`: Target processes.
+  - `targets::Vector{String}`: Target processes (e.g. "total").
   - `step::Int=1`: Step used to traverse the rows.
 
 # Returns

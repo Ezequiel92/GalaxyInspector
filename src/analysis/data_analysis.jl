@@ -2402,7 +2402,7 @@ Compute the evolution of a measured quantity in the `cpu.txt` file, for a given 
 # Arguments
 
   - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
-  - `target::String`: Target process.
+  - `target::String`: Target process (e.g. "total").
   - `x_quantity::Symbol`: Quantity for the x axis. The options are:
 
       + `:time_step`              -> Time step.
