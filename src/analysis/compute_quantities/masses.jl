@@ -1527,24 +1527,24 @@ function computeVirialAccretion(
         :black_hole, :gas or :stellar, but I got :$(component)"))
     )
 
-    # Find the IDs of the component particles inside R200 in the present snapshot
+    # Find the IDs of the cells/particles of `component` inside R200 in the present snapshot
     present_ids = idWithinR200(present_dd, component; halo_idx)
 
-    # Find the IDs of the component particles inside R200 in the past snapshot
+    # Find the IDs of the cells/particles of `component` inside R200 in the past snapshot
     past_ids = idWithinR200(past_dd, component; halo_idx)
 
-    # Filter out IDs of component particles that are new to the present snapshot
+    # Filter out IDs of cells/particles of `component` that are new to the present snapshot
     # i.e., filter out created particles
     filterExistIDs!(past_dd, component, present_ids)
 
-    # Filter out IDs of component particles that are unique to the past snapshot
+    # Filter out IDs of cells/particles of `component` that are unique to the past snapshot
     # i.e., filter out destroyed particles
     filterExistIDs!(present_dd, component, past_ids)
 
-    # Find the IDs of the component particles that are inside R200 now, but were outside R200 in the past
+    # Find the IDs of the cells/particles of `component` that are inside R200 now, but were outside R200 in the past
     inflow_ids = setdiff(present_ids, past_ids)
 
-    # Find the IDs of the component particles that were inside R200 in the past, but are now outside R200
+    # Find the IDs of the cells/particles of `component` that were inside R200 in the past, but are now outside R200
     outflow_ids = setdiff(past_ids, present_ids)
 
     # Compute the inflow mass
@@ -1622,24 +1622,24 @@ function computeDiskAccretion(
         :black_hole, :gas or :stellar, but I got :$(component)"))
     )
 
-    # Find the IDs of the component particles inside R200 in the present snapshot
+    # Find the IDs of the cells/particles of `component` inside R200 in the present snapshot
     present_ids = idWithinDisk(present_dd, component, max_r, max_z, :zero)
 
-    # Find the IDs of the component particles inside R200 in the past snapshot
+    # Find the IDs of the cells/particles of `component` inside R200 in the past snapshot
     past_ids = idWithinDisk(past_dd, component, max_r, max_z, :zero)
 
-    # Filter out IDs of component particles that are new to the present snapshot
+    # Filter out IDs of cells/particles of `component` that are new to the present snapshot
     # i.e., filter out created particles
     filterExistIDs!(past_dd, component, present_ids)
 
-    # Filter out IDs of component particles that are unique to the past snapshot
+    # Filter out IDs of cells/particles of `component` that are unique to the past snapshot
     # i.e., filter out destroyed particles
     filterExistIDs!(present_dd, component, past_ids)
 
-    # Find the IDs of the component particles that are inside R200 now, but were outside R200 in the past
+    # Find the IDs of the cells/particles of `component` that are inside R200 now, but were outside R200 in the past
     inflow_ids = setdiff(present_ids, past_ids)
 
-    # Find the IDs of the component particles that were inside R200 in the past, but are now outside R200
+    # Find the IDs of the cells/particles of `component` that were inside R200 in the past, but are now outside R200
     outflow_ids = setdiff(past_ids, present_ids)
 
     # Compute the inflow mass
@@ -2116,6 +2116,8 @@ function quantity3DProjection(
         # Set bins with a value of 0 to NaN
         empty_nan && replace!(x -> iszero(x) ? NaN : x, voxel_values)
 
+        field_type = :cells
+
     else
 
         # Load the cell/particle positions
@@ -2142,6 +2144,8 @@ function quantity3DProjection(
         end
 
         voxel_values = histogram3D(positions, qty_values, grid; empty_nan)
+
+        field_type = :particles
 
     end
 

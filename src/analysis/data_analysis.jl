@@ -68,8 +68,8 @@ function daScatterGalaxy(
         number of elements. Maybe they are quantities for different types of cells/particles?"))
     )
 
-    x_idxs = isnothing(x_log) ? Int64[] : map(iszero, x_values)
-    y_idxs = isnothing(y_log) ? Int64[] : map(iszero, y_values)
+    x_idxs = isnothing(x_log) ? map(isinf, x_values) : map(x->iszero(x) || isinf(x), x_values)
+    y_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
 
     delete_idxs = x_idxs ∪ y_idxs
 
@@ -308,8 +308,8 @@ function daScatterWeightedDensity(
         have different lengths. Maybe they are quantities for different types of cells/particles?"))
     )
 
-    x_idxs = isnothing(x_log) ? Int64[] : map(iszero, x_values)
-    y_idxs = isnothing(y_log) ? Int64[] : map(iszero, y_values)
+    x_idxs = isnothing(x_log) ? map(isinf, x_values) : map(x->iszero(x) || isinf(x), x_values)
+    y_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
 
     delete_idxs = x_idxs ∪ y_idxs
 
@@ -480,8 +480,8 @@ function daProfile(
 
     if !isnothing(y_log)
 
-        # Delete zeros
-        idxs = map(iszero, profile)
+        # Delete zeros and infinities
+        idxs = map(x->iszero(x) || isinf(x), profile)
 
         deleteat!(x_axis, idxs)
         deleteat!(profile, idxs)
@@ -489,6 +489,12 @@ function daProfile(
         y_axis = log10.(ustrip.(y_log, profile))
 
     else
+
+        # Delete infinities
+        idxs = map(isinf, profile)
+
+        deleteat!(x_axis, idxs)
+        deleteat!(profile, idxs)
 
         y_axis = profile
 
@@ -575,19 +581,39 @@ function daBandProfile(
     end
 
     if ylog
-        idxs = map(iszero, values)
-        deleteat!(positions, idxs)
-        deleteat!(values, idxs)
+
+        delete_idxs = map(x->iszero(x) || isinf(x), values)
+
+        deleteat!(positions, delete_idxs)
+        deleteat!(values, delete_idxs)
 
         if any(isempty, [values, positions])
             (
                 logging[] &&
-                @warn("daBandProfile: After removing zeros, the results of scatterQty() are empty")
+                @warn("daBandProfile: After removing zeros and infinities, \
+                the results of scatterQty() are empty")
             )
             return nothing
         end
 
         values = log10.(ustrip.(plot_params.unit, values))
+
+    else
+
+        delete_idxs = map(isinf, values)
+
+        deleteat!(positions, delete_idxs)
+        deleteat!(values, delete_idxs)
+
+        if any(isempty, [values, positions])
+            (
+                logging[] &&
+                @warn("daBandProfile: After removing infinities, \
+                the results of scatterQty() are empty")
+            )
+            return nothing
+        end
+
     end
 
     center, low, high = computeBandProfile(positions, values, grid; flat, density)
@@ -711,11 +737,19 @@ function daStellarHistory(
 
     if ylog
 
-        idxs = map(iszero, y_axis)
-        deleteat!(x_axis, idxs)
-        deleteat!(y_axis, idxs)
+        delete_idxs = map(x->iszero(x) || isinf(x), y_axis)
+
+        deleteat!(x_axis, delete_idxs)
+        deleteat!(y_axis, delete_idxs)
 
         y_axis = log10.(ustrip.(plotParams(quantity).unit, y_axis))
+
+    else
+
+        delete_idxs = map(isinf, y_axis)
+
+        deleteat!(x_axis, delete_idxs)
+        deleteat!(y_axis, delete_idxs)
 
     end
 
@@ -1337,8 +1371,8 @@ function daDensity2DProjection(
 
         # Reduce the resolution of the result using a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
-        density = projectIntoLinearGrid(density, reduce_factor)
-        x_axis  = [grid.size[1] * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        density, lin_grid = projectIntoLinearGrid(density, reduce_factor)
+        x_axis  = lin_grid.x_axis .* grid.size[1]
         y_axis  = x_axis
 
     else
@@ -1376,8 +1410,8 @@ function daDensity2DProjection(
 
         @info(
             "\nMass density range - log₁₀(Σ [$(m_unit * l_unit^-2)]) \
-            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
-            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Simulation: $(basename(data_dict[:sim_data].path)) \
+            \n  Snapshot:   $(data_dict[:snap_data].global_index) \
             \n  Component:  $(component) \
             \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane) \
@@ -1483,8 +1517,8 @@ function daGasSFR2DProjection(
 
         # Reduce the resolution of the result using a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
-        sfr    = projectIntoLinearGrid(sfr, reduce_factor; total=true)
-        x_axis = [grid.size[1] * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        sfr, lin_grid = projectIntoLinearGrid(sfr, reduce_factor; total=true)
+        x_axis  = lin_grid.x_axis .* grid.size[1]
         y_axis = x_axis
 
     else
@@ -1667,10 +1701,10 @@ function daMetallicity2DProjection(
 
         # Reduce the resolution of the result into a circular grid
         # `reduce_factor` here is the number of bins for the circular grid
-        metal_mass = projectIntoLinearGrid(metal_mass, reduce_factor; total=true)
-        norm_mass  = projectIntoLinearGrid(norm_mass, reduce_factor; total=true)
+        metal_mass, lin_grid = projectIntoLinearGrid(metal_mass, reduce_factor; total=true)
+        norm_mass, _  = projectIntoLinearGrid(norm_mass, reduce_factor; total=true)
 
-        x_axis  = [grid.size[1] * (2 * i - 1) / (4 * reduce_factor) for i in 1:reduce_factor]
+        x_axis  = lin_grid.x_axis .* grid.size[1]
         y_axis = x_axis
 
         # Compute the metallicity in each bin
@@ -1725,8 +1759,8 @@ function daMetallicity2DProjection(
 
         @info(
             "\nMetallicity range - $(title) \
-            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
-            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Simulation: $(basename(data_dict[:sim_data].path)) \
+            \n  Snapshot:   $(data_dict[:snap_data].global_index) \
             \n  Component:  $(component) \
             \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane)\
@@ -1833,7 +1867,7 @@ end
         data_dict::Dict,
         grid::CubicGrid;
         <keyword arguments>
-    )::AbstractArray
+    )::Array
 
 Compute a mockup image emulating an SDSS observation.
 
@@ -1843,6 +1877,7 @@ Compute a mockup image emulating an SDSS observation.
   - `grid::CubicGrid`: Cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
+  - `extinction::Bool=true`: If true, the extinction due to the neutral gas in front of each star will be applied.
   - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -1855,9 +1890,10 @@ function daSDSSMockup(
     grid::CubicGrid;
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
+    extinction::Bool=true,
     mmap_path::String="./",
     filter_function::Function=filterNothing,
-)::AbstractArray
+)::Array
 
     filtered_dd = filterData(data_dict; filter_function)
 
@@ -1917,44 +1953,77 @@ function daSDSSMockup(
     Fr = zeros(Float64, grid.n_bins[extended_dims])
     Fi = zeros(Float64, grid.n_bins[extended_dims])
 
-    for star_idx in eachindex(masses)
+    if extinction
 
-        stellar_idx = stellar_3D_index[:, star_idx]
+        for star_idx in eachindex(masses)
 
-        any(iszero, stellar_idx) && continue
+            stellar_idx = stellar_3D_index[:, star_idx]
 
-        metallicity = metallicities[star_idx]
-        log_age     = log_ages[star_idx]
-        mass        = masses[star_idx]
+            any(iszero, stellar_idx) && continue
 
-        # Interpolate the stellar magnitudes
-        Mg = g_interp(log_age, metallicity)
-        Mr = r_interp(log_age, metallicity)
-        Mi = i_interp(log_age, metallicity)
+            metallicity = metallicities[star_idx]
+            log_age     = log_ages[star_idx]
+            mass        = masses[star_idx]
 
-        # Select the line of sight of the current star
-        idx = ntuple(i -> i == compact_dim ? (1:stellar_idx[compact_dim]) : stellar_idx[i], 3)
+            # Interpolate the stellar magnitudes
+            Mg = g_interp(log_age, metallicity)
+            Mr = r_interp(log_age, metallicity)
+            Mi = i_interp(log_age, metallicity)
 
-        # Compute the column density of neutral gas in front of the star
-        Mn = sum(@view Mn_grid[idx...]) / voxel_area
+            # Select the line of sight of the current star
+            idx = ntuple(i -> i == compact_dim ? (1:stellar_idx[compact_dim]) : stellar_idx[i], 3)
 
-        # Compute the extinction in the V band
-        AV = Mn * ext_factor
+            # Compute the column density of neutral gas in front of the current star
+            Mn = sum(@view Mn_grid[idx...]) / voxel_area
 
-        # Compute the extinction in the g, r, and i bands
-        Ag = AV * AλAV_g
-        Ar = AV * AλAV_r
-        Ai = AV * AλAV_i
+            # Compute the extinction in the V band
+            AV = Mn * ext_factor
 
-        stellar_2D_idx = stellar_idx[extended_dims]
+            # Compute the extinction in the g, r, and i bands
+            Ag = AV * AλAV_g
+            Ar = AV * AλAV_r
+            Ai = AV * AλAV_i
 
-        # Compute the stellar flux
-        # See https://en.wikipedia.org/wiki/Apparent_magnitude
-        # The reference flux should be the same for each band in the SDSS AB system
-        # so we don't need to normalize, as the relative value of fluxes is all we need
-        Fg[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mg + Ag))
-        Fr[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mr + Ar))
-        Fi[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mi + Ai))
+            stellar_2D_idx = stellar_idx[extended_dims]
+
+            # Compute the stellar flux
+            # See https://en.wikipedia.org/wiki/Apparent_magnitude
+            # The reference flux should be the same for each band in the SDSS AB system
+            # so we don't need to normalize, as the relative value of fluxes is all we need
+            Fg[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mg + Ag))
+            Fr[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mr + Ar))
+            Fi[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mi + Ai))
+
+        end
+
+    else
+
+        for star_idx in eachindex(masses)
+
+            stellar_idx = stellar_3D_index[:, star_idx]
+
+            any(iszero, stellar_idx) && continue
+
+            metallicity = metallicities[star_idx]
+            log_age     = log_ages[star_idx]
+            mass        = masses[star_idx]
+
+            # Interpolate the stellar magnitudes
+            Mg = g_interp(log_age, metallicity)
+            Mr = r_interp(log_age, metallicity)
+            Mi = i_interp(log_age, metallicity)
+
+            stellar_2D_idx = stellar_idx[extended_dims]
+
+            # Compute the stellar flux
+            # See https://en.wikipedia.org/wiki/Apparent_magnitude
+            # The reference flux should be the same for each band in the SDSS AB system
+            # so we don't need to normalize, as the relative value of fluxes is all we need
+            Fg[stellar_2D_idx...] += mass * 10.0^(-0.4 * Mg)
+            Fr[stellar_2D_idx...] += mass * 10.0^(-0.4 * Mr)
+            Fi[stellar_2D_idx...] += mass * 10.0^(-0.4 * Mi)
+
+        end
 
     end
 
@@ -1979,7 +2048,7 @@ function daSDSSMockup(
         rgb = imfilter(rgb, Kernel.gaussian(1200.0 / grid.n_bins))
     end
 
-    return rgb
+    return collect(rgb)
 
 end
 
@@ -2525,7 +2594,7 @@ function daCPUtxt(
 
     end
 
-    delete_idxs = isnothing(y_log) ? Int64[] : map(iszero, y_values)
+    delete_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
 
     deleteat!(x_axis, delete_idxs)
     deleteat!(y_values, delete_idxs)
@@ -2569,11 +2638,15 @@ Compute the evolution of the accreted mass into a sphere with the virial radius.
       + `:all`         -> All the matter.
   - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
 
-      + `:net_mass`     -> Net accreted mass.
-      + `:inflow_mass`  -> Inflow mass only.
-      + `:outflow_mass` -> Outflow mass only.
+      + `:net`     -> Net accreted mass.
+      + `:inflow`  -> Inflow mass only.
+      + `:outflow` -> Outflow mass only.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
+  - `trace::Symbol=:automatic`: How to trace the mass. The option are:
+
+      + `:automatic` -> Automatically decide whether to use tracers or not. It will use tracers for the :gas component, and the particles for every other component.
+      + `:tracers`   -> Use tracers to compute the mass flux.
+      + `:particles` -> Use the particles/cells directly to compute the mass flux.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeVirialAccretion`](@ref) is left as is.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `show_progress::Bool=true`: If a progress bar will be shown.
@@ -2590,7 +2663,7 @@ function daVirialAccretion(
     component::Symbol;
     flux_direction::Symbol=:net,
     halo_idx::Int=1,
-    tracers::Bool=false,
+    trace::Symbol=:automatic,
     y_log::Union{Unitful.Units,Nothing}=nothing,
     smooth::Int=0,
     show_progress::Bool=true,
@@ -2622,6 +2695,47 @@ function daVirialAccretion(
     first_snapshot = first(iterator)
 
     past_dd = makeDataDict(sim_data.path, first_snapshot[:row_id], request, sim_data.snapshot_table)
+
+    ################################################################################################
+    # Decide how to trace the mass
+    ################################################################################################
+
+    if trace == :automatic
+
+        tracers = Dict(
+            :gas         => true,
+            :stellar     => false,
+            :dark_matter => false,
+            :black_hole  => false,
+            :all         => false,
+        )
+
+    elseif trace == :tracers
+
+        tracers = Dict(
+            :gas         => true,
+            :stellar     => true,
+            :dark_matter => true,
+            :black_hole  => true,
+            :all         => true,
+        )
+
+    elseif trace == :particles
+
+        tracers = Dict(
+            :gas         => false,
+            :stellar     => false,
+            :dark_matter => false,
+            :black_hole  => false,
+            :all         => false,
+        )
+
+    else
+
+        throw(ArgumentError("daVirialAccretion: `trace` can only be :automatic, :tracers or \
+        :particles, but I got :$(trace)"))
+
+    end
 
     ################################################################################################
     # Iterate over the snapshots
@@ -2657,7 +2771,7 @@ function daVirialAccretion(
                 past_dd,
                 :gas;
                 halo_idx,
-                tracers=false,
+                tracers=tracers[:gas],
             )
 
             _, m_in_stars, m_out_stars = computeVirialAccretion(
@@ -2665,7 +2779,7 @@ function daVirialAccretion(
                 past_dd,
                 :stellar;
                 halo_idx,
-                tracers=false,
+                tracers=tracers[:stellar],
             )
 
             _, m_in_dm, m_out_dm = computeVirialAccretion(
@@ -2673,7 +2787,7 @@ function daVirialAccretion(
                 past_dd,
                 :dark_matter;
                 halo_idx,
-                tracers=false,
+                tracers=tracers[:dark_matter],
             )
 
             _, m_in_bh, m_out_bh = computeVirialAccretion(
@@ -2681,7 +2795,7 @@ function daVirialAccretion(
                 past_dd,
                 :black_hole;
                 halo_idx,
-                tracers=false,
+                tracers=tracers[:black_hole],
             )
 
             m_in  = m_in_gas + m_in_stars + m_in_dm + m_in_bh
@@ -2695,7 +2809,7 @@ function daVirialAccretion(
                 past_dd,
                 component;
                 halo_idx,
-                tracers,
+                tracers=tracers[component],
             )
 
         else
@@ -2705,22 +2819,22 @@ function daVirialAccretion(
 
         end
 
-        if flux_direction == :net_mass
+        if flux_direction == :net
 
             Δm[slice_index] = δm
 
-        elseif flux_direction == :inflow_mass
+        elseif flux_direction == :inflow
 
             Δm[slice_index] = m_in
 
-        elseif flux_direction == :outflow_mass
+        elseif flux_direction == :outflow
 
             Δm[slice_index] = m_out
 
         else
 
-            throw(ArgumentError("daVirialAccretion: `flux_direction` can only be :net_mass, \
-            :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
+            throw(ArgumentError("daVirialAccretion: `flux_direction` can only be :net, \
+            :inflow or :outflow, but I got :$(flux_direction)"))
 
         end
 
@@ -2739,7 +2853,7 @@ function daVirialAccretion(
     x_axis = t[2:end]
     y_values = Δm ./ Δt
 
-    delete_idxs = isnothing(y_log) ? Int64[] : map(iszero, y_values)
+    delete_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
 
     deleteat!(x_axis, delete_idxs)
     deleteat!(y_values, delete_idxs)
@@ -2782,13 +2896,17 @@ Compute the evolution of the accreted mass into a given galactic disc.
       + `:all`         -> All the matter.
   - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
 
-      + `:net_mass`     -> Net accreted mass.
-      + `:inflow_mass`  -> Inflow mass only.
-      + `:outflow_mass` -> Outflow mass only.
+      + `:net`     -> Net accreted mass.
+      + `:inflow`  -> Inflow mass only.
+      + `:outflow` -> Outflow mass only.
   - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
-  - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
+  - `trace::Symbol=:automatic`: How to trace the mass. The option are:
+
+      + `:automatic` -> Automatically decide whether to use tracers or not. It will use tracers for the :gas component, and the particles for every other component.
+      + `:tracers`   -> Use tracers to compute the mass flux.
+      + `:particles` -> Use the particles/cells directly to compute the mass flux.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeDiskAccretion`](@ref) is left as is.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `show_progress::Bool=true`: If a progress bar will be shown.
@@ -2807,7 +2925,7 @@ function daDiskAccretion(
     max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
-    tracers::Bool=false,
+    trace::Symbol=:automatic,
     y_log::Union{Unitful.Units,Nothing}=nothing,
     smooth::Int=0,
     show_progress::Bool=true,
@@ -2847,6 +2965,47 @@ function daDiskAccretion(
 
     # Rotate the data
     rotateData!(past_dd, rotation...)
+
+    ################################################################################################
+    # Decide how to trace the mass
+    ################################################################################################
+
+    if trace == :automatic
+
+        tracers = Dict(
+            :gas         => true,
+            :stellar     => false,
+            :dark_matter => false,
+            :black_hole  => false,
+            :all         => false,
+        )
+
+    elseif trace == :tracers
+
+        tracers = Dict(
+            :gas         => true,
+            :stellar     => true,
+            :dark_matter => true,
+            :black_hole  => true,
+            :all         => true,
+        )
+
+    elseif trace == :particles
+
+        tracers = Dict(
+            :gas         => false,
+            :stellar     => false,
+            :dark_matter => false,
+            :black_hole  => false,
+            :all         => false,
+        )
+
+    else
+
+        throw(ArgumentError("daDiskAccretion: `trace` can only be :automatic, :tracers or \
+        :particles, but I got :$(trace)"))
+
+    end
 
     ################################################################################################
     # Iterate over the snapshots
@@ -2889,7 +3048,7 @@ function daDiskAccretion(
                 :gas;
                 max_r,
                 max_z,
-                tracers=true,
+                tracers=tracers[:gas],
             )
 
             _, m_in_stars, m_out_stars = computeDiskAccretion(
@@ -2898,7 +3057,7 @@ function daDiskAccretion(
                 :stellar;
                 max_r,
                 max_z,
-                tracers=false,
+                tracers=tracers[:stellar],
             )
 
             _, m_in_dm, m_out_dm = computeDiskAccretion(
@@ -2907,7 +3066,7 @@ function daDiskAccretion(
                 :dark_matter;
                 max_r,
                 max_z,
-                tracers=false,
+                tracers=tracers[:dark_matter],
             )
 
             _, m_in_bh, m_out_bh = computeDiskAccretion(
@@ -2916,7 +3075,7 @@ function daDiskAccretion(
                 :black_hole;
                 max_r,
                 max_z,
-                tracers=false,
+                tracers=tracers[:black_hole],
             )
 
             m_in  = m_in_gas + m_in_stars + m_in_dm + m_in_bh
@@ -2931,7 +3090,7 @@ function daDiskAccretion(
                 component;
                 max_r,
                 max_z,
-                tracers,
+                tracers=tracers[component],
             )
 
         else
@@ -2941,22 +3100,22 @@ function daDiskAccretion(
 
         end
 
-        if flux_direction == :net_mass
+        if flux_direction == :net
 
             Δm[slice_index] = δm
 
-        elseif flux_direction == :inflow_mass
+        elseif flux_direction == :inflow
 
             Δm[slice_index] = m_in
 
-        elseif flux_direction == :outflow_mass
+        elseif flux_direction == :outflow
 
             Δm[slice_index] = m_out
 
         else
 
-            throw(ArgumentError("daDiskAccretion: `flux_direction` can only be :net_mass, \
-            :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
+            throw(ArgumentError("daDiskAccretion: `flux_direction` can only be :net, \
+            :inflow or :outflow, but I got :$(flux_direction)"))
 
         end
 
@@ -2975,7 +3134,7 @@ function daDiskAccretion(
     x_axis = t[2:end]
     y_values = Δm ./ Δt
 
-    delete_idxs = isnothing(y_log) ? Int64[] : map(iszero, y_values)
+    delete_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
 
     deleteat!(x_axis, delete_idxs)
     deleteat!(y_values, delete_idxs)
@@ -3190,8 +3349,8 @@ function daClumpingFactor(
         Cρ[i] = computeClumpingFactor(number_densities[idx])
     end
 
-    x_idxs = isnothing(x_log) ? Int64[] : map(iszero, V)
-    y_idxs = isnothing(y_log) ? Int64[] : map(iszero, Cρ)
+    x_idxs = isnothing(x_log) ? map(isinf, V) : map(x->iszero(x) || isinf(x), V)
+    y_idxs = isnothing(y_log) ? map(isinf, Cρ) : map(x->iszero(x) || isinf(x), Cρ)
 
     delete_idxs = x_idxs ∪ y_idxs
 

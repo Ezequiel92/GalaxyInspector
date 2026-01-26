@@ -161,6 +161,7 @@ Project a given matrix into a linear grid (in a 2D space), averaging or adding u
   - `n_bins::Int`: Number of bins for the circular grid.
   - `inscribed::Bool=true`: If the circular grid will be inscribed in `image` when doing the projection. If set to false, the matrix will be inscribed into the circular grid instead.
   - `total::Bool=false`: If the sum (`total` = true) or the mean (`total` = false) of the values in `image`, that fall within each ring, will be used.
+  -`log_shift::Float64=0.0`: If greater than zero, the radial bins will be logarithmically spaced, with a shift given by this parameter. It has to be in the range [0, 0.5).
 
 # Returns
 
@@ -171,7 +172,8 @@ function projectIntoLinearGrid(
     n_bins::Int;
     inscribed::Bool=true,
     total::Bool=false,
-)::Vector{<:Number}
+    log_shift::Float64=0.0,
+)::Tuple{Vector{<:Number},LinearGrid}
 
     r, c = size(image)
 
@@ -187,11 +189,17 @@ function projectIntoLinearGrid(
         but I got `n_bins` = $(n_bins)"))
     )
 
+    (
+        0 <= log_shift < 0.5 ||
+        throw(ArgumentError("projectIntoLinearGrid: `log_shift` must be in the range [0, 0.5), \
+        but I got `log_shift` = $(log_shift)"))
+    )
+
     # Construct a square grid centered at (0, 0)
     square_grid = SquareGrid(1.0, r)
 
     # Construct a linear grid centered at (0, 0)
-    linear_grid = LinearGrid(0.0, inscribed ? 0.5 : sqrt(0.5), n_bins)
+    linear_grid = LinearGrid(log_shift, inscribed ? 0.5 : sqrt(0.5), n_bins; log=!iszero(log_shift))
 
     cartesian_indices = CartesianIndices(image)
     positions = Vector{Float64}(undef, length(image))
@@ -210,7 +218,7 @@ function projectIntoLinearGrid(
 
     profile = histogram1D(positions, vec(image), linear_grid; total, empty_nan=false)
 
-    return profile
+    return profile, linear_grid
 
 end
 

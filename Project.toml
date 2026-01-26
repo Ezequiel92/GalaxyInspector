@@ -32,10 +32,3 @@ StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
-
-[compat]
-AstroImages = "0.5.1"
-Distances = "0.10.12"
-Interpolations = "0.16.2"
-Mmap = "1.11.0"
-WriteVTK = "1.21.2"

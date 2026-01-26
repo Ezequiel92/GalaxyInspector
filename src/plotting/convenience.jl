@@ -522,7 +522,7 @@ Plot a radial profile.
   - `norm::Union{Symbol,Nothing}=nothing`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`. It can be any of the valid quantities of [`scatterQty`](@ref). If set to `nothing`, no operation is applied.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
   - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
-  - `n_bins::Int=100`: Number of bins.
+  - `n_bins::Int=60`: Number of bins.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`) (after dividing by `norm`).
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin. This affects the values of `norm` too.
@@ -549,7 +549,7 @@ function radialProfile(
     norm::Union{Symbol,Nothing}=nothing,
     radius::Unitful.Length=DISK_R,
     shift::Number=zero(radius),
-    n_bins::Int=100,
+    n_bins::Int=60,
     ylog::Bool=false,
     flat::Bool=true,
     total::Bool=true,
@@ -676,7 +676,7 @@ Plot a density profile.
   - `q_unit::Unitful.Units=Unitful.NoUnits`: Unit of `quantities`. All must have the same units.
   - `norm::Union{Symbol,Nothing}=nothing`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`. It can be any of the valid quantities of [`scatterQty`](@ref). If set to `nothing`, no operation is applied.
   - `radius::Unitful.Length=DISK_R`: Radius of the profile.
-  - `n_bins::Int=100`: Number of bins.
+  - `n_bins::Int=60`: Number of bins.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`) (after dividing by `norm`).
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin. This affects the values of `norm` too.
@@ -703,7 +703,7 @@ function radialProfile(
     q_unit::Unitful.Units=Unitful.NoUnits,
     norm::Union{Symbol,Nothing}=nothing,
     radius::Unitful.Length=DISK_R,
-    n_bins::Int=100,
+    n_bins::Int=60,
     ylog::Bool=false,
     flat::Bool=true,
     total::Bool=true,
@@ -717,8 +717,6 @@ function radialProfile(
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
-
-
 
     # Compute the unit and request of the norm
     if isnothing(norm)
@@ -1703,7 +1701,7 @@ Plot a 2D projection of the mass density of `component`, with the velocity field
   - `field_types::Vector{Symbol}=[:cells]`: If the field, of each of the `components`, is made up of `:particles` or Voronoi `:cells`.
   - `projection_planes::Vector{Symbol}=[:xy]`: Projection planes. The options are `:xy`, `:xz`, and `:yz`.
   - `box_size::Unitful.Length=100u"kpc"`: Physical side length of the plot window.
-  - `pixel_length::Unitful.Length=0.1u"kpc"`: Side length of each bin.
+  - `pixel_length::Unitful.Length=0.1u"kpc"`: Side length of each bin for the mass density, the velocity field is fixed at 20 bins per side.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection, averaging the value of neighboring pixels. It has to divide the size of `grid` exactly.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
@@ -2184,8 +2182,8 @@ Plot a time series.
   - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the quantities valid for [`integrateQty`](@ref).
   - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the quantities valid for [`integrateQty`](@ref).
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
-  - `xlog::Bool=true`: If the x axis is will have a ``\\log_{10}`` scale.
-  - `ylog::Bool=true`: If the y axis is will have a ``\\log_{10}`` scale.
+  - `xlog::Bool=false`: If the x axis is will have a ``\\log_{10}`` scale.
+  - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -2202,8 +2200,8 @@ function timeSeries(
     x_quantity::Symbol,
     y_quantity::Symbol;
     slice::IndexType=(:),
-    xlog::Bool=true,
-    ylog::Bool=true,
+    xlog::Bool=false,
+    ylog::Bool=false,
     cumulative::Bool=false,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -2267,8 +2265,8 @@ Plot a time series.
 
       + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
-  - `xlog::Bool=true`: If the x axis is will have a ``\\log_{10}`` scale.
-  - `ylog::Bool=true`: If the y axis is will have a ``\\log_{10}`` scale.
+  - `xlog::Bool=false`: If the x axis is will have a ``\\log_{10}`` scale.
+  - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `file_name::String="time_series"`: Name of the output file (without extension).
   - `output_path::String="."`: Path to the output folder.
@@ -2287,8 +2285,8 @@ function timeSeries(
     y_plot_params::PlotParams,
     integration_functions::NTuple{2,Function};
     slice::IndexType=(:),
-    xlog::Bool=true,
-    ylog::Bool=true,
+    xlog::Bool=false,
+    ylog::Bool=false,
     cumulative::Bool=false,
     file_name::String="time_series",
     output_path::String=".",
@@ -2637,7 +2635,7 @@ Plot a time series of the gas components. Either their masses or their fractions
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
   - `fractions::Bool=true`: If the fractions (default), or the masses, will be plotted.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `ylog::Bool=true`: If the y axis is will have a ``\\log_{10}`` scale.
+  - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -2651,7 +2649,7 @@ function gasEvolution(
     simulation_paths::Vector{String};
     fractions::Bool=true,
     slice::IndexType=(:),
-    ylog::Bool=true,
+    ylog::Bool=false,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -2995,7 +2993,7 @@ function sfrTXT(
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing, xticks=0:14),
-                Legend=(halign=:left, valign=:top, nbanks=1),
+                Legend=(halign=:left, valign=:top, nbanks=1, margin=(0, 10, 0, 0)),
             ),
         ),
         sim_labels,
@@ -4865,7 +4863,7 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
-  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `element::Symbol=:all`: Which metals to consider. The options are:
 
       + `:all` -> Total metallicity in solar units.
@@ -4882,8 +4880,8 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function massMetallicityRelation(
-    simulation_paths::Vector{String};
-    slice::IndexType=(:),
+    simulation_paths::Vector{String},
+    slice::IndexType;
     element::Symbol=:all,
     grid::CubicGrid=CubicGrid(BOX_L, 400),
     age_limit::Unitful.Time=AGE_RESOLUTION,
@@ -4947,7 +4945,7 @@ function massMetallicityRelation(
         metal_request = plotParams(Symbol(element, "_gas_abundance")).request
     end
 
-    base_request = mergeRequests(metal_request, Dict(:gas => ["RHO "]))
+    base_request = mergeRequests(metal_request, Dict(:gas => ["RHO ", "POS "]))
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
@@ -5147,8 +5145,10 @@ function gasVelocityCubes(
     show_progress::Bool=true,
 )::Nothing
 
+    folder = dirname(output_file)
+
     # Create the output folder
-    mkpath(dirname(output_file))
+    mkpath(folder)
 
     # Create the output HDF5 file
     hdf5_file = h5open(output_file, "w")
@@ -5163,7 +5163,7 @@ function gasVelocityCubes(
     filter_function, request = selectFilter(filter_mode, trans_request)
 
     # For gas cells, reshape the grid to conform to the way `knn` expect the matrix to be structured
-    physical_grid = gridToJuliaMatrix(grid, l_unit)
+    physical_grid = gridToJuliaMatrix(grid, l_unit; mmap_path=folder)
 
     for simulation_path in simulation_paths
 
@@ -5416,25 +5416,28 @@ function gasVelocityCubes(
             sf = data_dict[:snap_data].scale_factor
             rs = data_dict[:snap_data].redshift
 
+            ########################################################################################
+            # Write the metadata
+            ########################################################################################
+
+            attributes = attrs(hdf5_group["snap_$(snapshot_number)"])
+
             # Write the time metadata
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Time [Gyr]"]   = pt
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Scale factor"] = sf
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Redshift"]     = rs
+            attributes["Time [Gyr]"]   = pt
+            attributes["Scale factor"] = sf
+            attributes["Redshift"]     = rs
 
             # Write the unit metadata
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Mass unit"]     = string(m_unit)
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Length unit"]   = string(l_unit)
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Velocity unit"] = string(v_unit)
+            attributes["Mass unit"]     = string(m_unit)
+            attributes["Length unit"]   = string(l_unit)
+            attributes["Velocity unit"] = string(v_unit)
 
             # Write the grid metadata
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [length unit]"] = ustrip.(
-                l_unit,
-                grid.size,
-            )
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"] = grid.n_bins
+            attributes["Grid size [length unit]"] = ustrip.(l_unit, grid.size)
+            attributes["Grid size [# voxels]"]    = collect(grid.n_bins)
 
             # Write the column names
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Columns"] = [
+            attributes["Columns"] = [
                 "x",     # Column 01: x coordinate [l_unit]
                 "y",     # Column 02: y coordinate [l_unit]
                 "z",     # Column 03: z coordinate [l_unit]
@@ -5455,6 +5458,11 @@ function gasVelocityCubes(
 
         end
 
+    end
+
+    # Delete intermediate mmap file if used
+    if physical_grid isa MmapArray
+        delete!(physical_grid)
     end
 
     close(hdf5_file)
@@ -5526,8 +5534,10 @@ function stellarVelocityCubes(
     show_progress::Bool=true,
 )::Nothing
 
+    folder = dirname(output_file)
+
     # Create the output folder
-    mkpath(dirname(output_file))
+    mkpath(folder)
 
     # Create the output HDF5 file
     hdf5_file = h5open(output_file, "w")
@@ -5541,7 +5551,7 @@ function stellarVelocityCubes(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    physical_grid = gridToJuliaMatrix(grid, l_unit)
+    physical_grid = gridToJuliaMatrix(grid, l_unit; mmap_path=folder)
 
     for simulation_path in simulation_paths
 
@@ -5672,30 +5682,33 @@ function stellarVelocityCubes(
                 hdf5_group["snap_$(snapshot_number)", shuffle=(), deflate=5] = data_matrix
             end
 
+            ########################################################################################
+            # Write the metadata
+            ########################################################################################
+
+            attributes = attrs(hdf5_group["snap_$(snapshot_number)"])
+
             # Read the time, scale factor, and redshift
             pt = ustrip.(u"Gyr", data_dict[:snap_data].physical_time)
             sf = data_dict[:snap_data].scale_factor
             rs = data_dict[:snap_data].redshift
 
             # Write the time metadata
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Time [Gyr]"]   = pt
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Scale factor"] = sf
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Redshift"]     = rs
+            attributes["Time [Gyr]"]   = pt
+            attributes["Scale factor"] = sf
+            attributes["Redshift"]     = rs
 
             # Write the unit metadata
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Mass unit"]     = string(m_unit)
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Length unit"]   = string(l_unit)
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Velocity unit"] = string(v_unit)
+            attributes["Mass unit"]     = string(m_unit)
+            attributes["Length unit"]   = string(l_unit)
+            attributes["Velocity unit"] = string(v_unit)
 
             # Write the grid metadata
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [length unit]"] = ustrip.(
-                l_unit,
-                grid.size,
-            )
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Grid size [# voxels]"] = grid.n_bins
+            attributes["Grid size [length unit]"] = ustrip.(l_unit, grid.size)
+            attributes["Grid size [# voxels]"]    = collect(grid.n_bins)
 
             # Write the column names
-            attrs(hdf5_group["snap_$(snapshot_number)"])["Columns"] = [
+            attributes["Columns"] = [
                 "x",  # Column 01: x coordinate [l_unit]
                 "y",  # Column 02: y coordinate [l_unit]
                 "z",  # Column 03: z coordinate [l_unit]
@@ -5712,6 +5725,11 @@ function stellarVelocityCubes(
 
         end
 
+    end
+
+    # Delete intermediate mmap file if used
+    if physical_grid isa MmapArray
+        delete!(physical_grid)
     end
 
     close(hdf5_file)
@@ -5734,9 +5752,9 @@ Plot a time series of the integrated mass flux into a sphere with the virial rad
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
 
-      + `:net_mass`     -> Net accreted mass.
-      + `:inflow_mass`  -> Inflow mass only.
-      + `:outflow_mass` -> Outflow mass only.
+      + `:net`     -> Net accreted mass.
+      + `:inflow`  -> Inflow mass only.
+      + `:outflow` -> Outflow mass only.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `component::Symbol=:all`: Component to compute the accreted mass for. The options are:
 
@@ -5745,7 +5763,11 @@ Plot a time series of the integrated mass flux into a sphere with the virial rad
       + `:gas`         -> Gas.
       + `:stellar`     -> Stars.
       + `:all`         -> All the matter.
-  - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
+  - `trace::Symbol=:automatic`: How to trace the mass. The option are:
+
+      + `:automatic` -> Automatically decide whether to use tracers or not. It will use tracers for the :gas component, and the particles for every other component.
+      + `:tracers`   -> Use tracers to compute the mass flux.
+      + `:particles` -> Use the particles/cells directly to compute the mass flux.
   - `ylog::Bool=false`: If true, sets the y axis to the ``\\log_{10}`` of the mass flux.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="."`: Path to the output folder.
@@ -5755,10 +5777,10 @@ Plot a time series of the integrated mass flux into a sphere with the virial rad
 function virialAccretionEvolution(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
-    flux_direction::Symbol=:net_mass,
+    flux_direction::Symbol=:net,
     halo_idx::Int=1,
     component::Symbol=:all,
-    tracers::Bool=false,
+    trace::Symbol=:automatic,
     ylog::Bool=false,
     smooth::Int=0,
     output_path::String=".",
@@ -5796,22 +5818,22 @@ function virialAccretionEvolution(
 
     end
 
-    if flux_direction == :net_mass
+    if flux_direction == :net
 
         yaxis_var_name = L"\dot{M}_{%$(c_label)\text{net}}^\text{R200}"
 
-    elseif flux_direction == :inflow_mass
+    elseif flux_direction == :inflow
 
         yaxis_var_name = L"\dot{M}_{%$(c_label)\text{inflow}}^\text{R200}"
 
-    elseif flux_direction == :outflow_mass
+    elseif flux_direction == :outflow
 
         yaxis_var_name = L"\dot{M}_{%$(c_label)\text{outflow}}^\text{R200}"
 
     else
 
-        throw(ArgumentError("virialAccretionEvolution: `flux_direction` can only be :net_mass, \
-        :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
+        throw(ArgumentError("virialAccretionEvolution: `flux_direction` can only be :net, \
+        :inflow or :outflow, but I got :$(flux_direction)"))
 
     end
 
@@ -5839,8 +5861,8 @@ function virialAccretionEvolution(
 
     end
 
-    if tracers
-        filename="$(component)_$(flux_direction)_virial_accretion_with_tracers"
+    if trace ∈ [:tracers, :particles]
+        filename="$(component)_$(flux_direction)_virial_accretion_with_$(trace)"
     else
         filename="$(component)_$(flux_direction)_virial_accretion"
     end
@@ -5853,7 +5875,7 @@ function virialAccretionEvolution(
         slice,
         da_functions=[daVirialAccretion],
         da_args=[(component,)],
-        da_kwargs=[(; flux_direction, halo_idx, tracers, y_log, smooth)],
+        da_kwargs=[(; flux_direction, halo_idx, trace, y_log, smooth)],
         post_processing,
         pp_args,
         pp_kwargs,
@@ -5895,9 +5917,9 @@ Plot a time series of the integrated mass flux into a given disk.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
 
-      + `:net_mass`     -> Net accreted mass.
-      + `:inflow_mass`  -> Inflow mass only.
-      + `:outflow_mass` -> Outflow mass only.
+      + `:net`     -> Net accreted mass.
+      + `:inflow`  -> Inflow mass only.
+      + `:outflow` -> Outflow mass only.
   - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles. For options see [`selectTransformation`](@ref).
@@ -5908,7 +5930,11 @@ Plot a time series of the integrated mass flux into a given disk.
       + `:gas`         -> Gas.
       + `:stellar`     -> Stars.
       + `:all`         -> All the matter.
-  - `tracers::Bool=false`: If tracers will be use to compute the mass accretion.
+  - `trace::Symbol=:automatic`: How to trace the mass. The option are:
+
+      + `:automatic` -> Automatically decide whether to use tracers or not. It will use tracers for the :gas component, and the particles for every other component.
+      + `:tracers`   -> Use tracers to compute the mass flux.
+      + `:particles` -> Use the particles/cells directly to compute the mass flux.
   - `ylog::Bool=false`: If true, sets the y axis to the ``\\log_{10}`` of the mass flux.
   - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `output_path::String="."`: Path to the output folder.
@@ -5918,12 +5944,12 @@ Plot a time series of the integrated mass flux into a given disk.
 function diskAccretionEvolution(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
-    flux_direction::Symbol=:net_mass,
+    flux_direction::Symbol=:net,
     max_r::Unitful.Length=DISK_R,
     max_z::Unitful.Length=5.0u"kpc",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     component::Symbol=:all,
-    tracers::Bool=false,
+    trace::Symbol=:automatic,
     ylog::Bool=false,
     smooth::Int=0,
     output_path::String=".",
@@ -5961,22 +5987,22 @@ function diskAccretionEvolution(
 
     end
 
-    if flux_direction == :net_mass
+    if flux_direction == :net
 
         yaxis_var_name = L"\dot{M}_{%$(c_label)\text{net}}^\text{disk}"
 
-    elseif flux_direction == :inflow_mass
+    elseif flux_direction == :inflow
 
         yaxis_var_name = L"\dot{M}_{%$(c_label)\text{inflow}}^\text{disk}"
 
-    elseif flux_direction == :outflow_mass
+    elseif flux_direction == :outflow
 
         yaxis_var_name = L"\dot{M}_{%$(c_label)\text{outflow}}^\text{disk}"
 
     else
 
-        throw(ArgumentError("diskAccretionEvolution: `flux_direction` can only be :net_mass, \
-        :inflow_mass or :outflow_mass, but I got :$(flux_direction)"))
+        throw(ArgumentError("diskAccretionEvolution: `flux_direction` can only be :net, \
+        :inflow or :outflow, but I got :$(flux_direction)"))
 
     end
 
@@ -6004,8 +6030,8 @@ function diskAccretionEvolution(
 
     end
 
-    if tracers
-        filename="$(component)_$(flux_direction)_disk_accretion_with_tracers"
+    if trace ∈ [:tracers, :particles]
+        filename="$(component)_$(flux_direction)_disk_accretion_with_$(trace)"
     else
         filename="$(component)_$(flux_direction)_disk_accretion"
     end
@@ -6018,7 +6044,7 @@ function diskAccretionEvolution(
         slice,
         da_functions=[daDiskAccretion],
         da_args=[(component,)],
-        da_kwargs=[(; flux_direction, max_r, max_z, trans_mode, tracers, y_log, smooth)],
+        da_kwargs=[(; flux_direction, max_r, max_z, trans_mode, trace, y_log, smooth)],
         post_processing,
         pp_args,
         pp_kwargs,
@@ -7357,6 +7383,7 @@ Make a mockup image emulating an SDSS observation.
   - `resolution::Int=800`: Number of bins per side of the cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
+  - `extinction::Bool=true`: If true, the extinction due to the neutral gas in front of each star will be applied.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -7376,6 +7403,7 @@ function SDSSMockup(
     resolution::Int=800,
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
+    extinction::Bool=true,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     da_ff::Function=filterNothing,
@@ -7415,7 +7443,9 @@ function SDSSMockup(
         filter_function,
         da_functions=[daSDSSMockup],
         da_args=[(grid,)],
-        da_kwargs=[(; projection_plane, smooth, mmap_path=temp_folder, filter_function=da_ff)],
+        da_kwargs=[
+            (; projection_plane, smooth, extinction, mmap_path=temp_folder, filter_function=da_ff),
+        ],
         save_figures=false,
         backup_results=false,
         backup_raw_results=true,

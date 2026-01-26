@@ -5,7 +5,7 @@ using Pkg
 Pkg.activate("../")
 Pkg.instantiate()
 
-using LaTeXStrings, Unitful, UnitfulAstro
+using CairoMakie, LaTeXStrings, Unitful, UnitfulAstro
 
 push!(LOAD_PATH, "../src/")
 using GalaxyInspector
@@ -71,7 +71,6 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     field_type=:cells,
 #     density=true,
 #     l_unit=u"kpc",
-#     box_size=GalaxyInspector.BOX_L,
 #     resolution=250,
 #     output_path=joinpath(BASE_OUT_PATH, "vtkFiles"),
 #     trans_mode=TRANS_MODE,
@@ -85,7 +84,6 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     field_type=:particles,
 #     density=true,
 #     l_unit=u"kpc",
-#     box_size=GalaxyInspector.BOX_L,
 #     resolution=250,
 #     output_path=joinpath(BASE_OUT_PATH, "vtkFiles"),
 #     trans_mode=TRANS_MODE,
@@ -97,8 +95,7 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     SNAP_N,
 #     :ode_dust_mass;
 #     norm=nothing,
-#     radius=GalaxyInspector.DISK_R,
-#     shift=1.0u"kpc",
+#     shift=0.5u"kpc",
 #     n_bins=30,
 #     ylog=true,
 #     output_path=joinpath(BASE_OUT_PATH, "radialProfile"),
@@ -110,8 +107,8 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     SIMULATION_PATHS,
 #     SNAP_N,
 #     [:ode_molecular_fraction, :ode_atomic_fraction],
-#     L"\text{Fractions}";
-#     radius=GalaxyInspector.DISK_R,
+#     "f";
+#     n_bins=30,
 #     ylog=true,
 #     density=false,
 #     output_path=joinpath(BASE_OUT_PATH, "radialProfile"),
@@ -187,7 +184,6 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     components=[:gas, :stellar],
 #     field_types=[:cells, :particles],
 #     projection_planes=[:xy, :xz, :yz],
-#     box_size=GalaxyInspector.BOX_L,
 #     pixel_length=GalaxyInspector.BOX_L/300.0,
 #     m_unit=u"Msun",
 #     l_unit=u"kpc",
@@ -202,8 +198,7 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     components=[:gas, :stellar],
 #     field_types=[:cells, :particles],
 #     projection_planes=[:xy, :xz, :yz],
-#     box_size=GalaxyInspector.BOX_L,
-#     pixel_length=GalaxyInspector.BOX_L/30.0,
+#     pixel_length=GalaxyInspector.BOX_L/300.0,
 #     output_path=joinpath(BASE_OUT_PATH, "densityMapVelField"),
 #     trans_mode=TRANS_MODE,
 #     filter_mode=FILTER_MODE,
@@ -213,8 +208,7 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     SIMULATION_PATHS,
 #     SNAP_N;
 #     field_type=:cells,
-#     projection_planes=[:xy, :xz, :yz],
-#     box_size=GalaxyInspector.BOX_L,
+#     projection_planes=[:xy, :xz, :yz]
 #     pixel_length=GalaxyInspector.BOX_L/300.0,
 #     output_path=joinpath(BASE_OUT_PATH, "gasSFRMap"),
 #     trans_mode=TRANS_MODE,
@@ -228,7 +222,6 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     field_types=[:cells, :particles],
 #     element=:all,
 #     projection_planes=[:xy, :xz, :yz],
-#     box_size=GalaxyInspector.BOX_L,
 #     pixel_length=GalaxyInspector.BOX_L/300.0,
 #     output_path=joinpath(BASE_OUT_PATH, "metallicityMap"),
 #     trans_mode=TRANS_MODE,
@@ -239,30 +232,33 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     SIMULATION_PATHS,
 #     :physical_time,
 #     :ode_molecular_mass;
-#     xlog=false,
+#     ylog=true,
 #     output_path=joinpath(BASE_OUT_PATH, "timeSeries"),
 #     trans_mode=TRANS_MODE,
 #     filter_mode=FILTER_MODE,
+#     theme=Theme(Axis=(xticks=0:14,),),
 # )
 
 # timeSeries(
 #     SIMULATION_PATHS,
 #     :physical_time,
 #     :sfr;
-#     xlog=false,
+#     ylog=true,
 #     output_path=joinpath(BASE_OUT_PATH, "timeSeries"),
 #     trans_mode=TRANS_MODE,
 #     filter_mode=FILTER_MODE,
+#     theme=Theme(Axis=(xticks=0:14,),),
 # )
 
 # timeSeries(
 #     SIMULATION_PATHS,
 #     :physical_time,
 #     :halo_R200_1;
-#     xlog=false,
+#     ylog=true,
 #     output_path=joinpath(BASE_OUT_PATH, "timeSeries"),
 #     trans_mode=TRANS_MODE,
 #     filter_mode=FILTER_MODE,
+#     theme=Theme(Axis=(xticks=0:14,),),
 # )
 
 # statisticsEvolution(
@@ -273,131 +269,333 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 #     output_path=joinpath(BASE_OUT_PATH, "statisticsEvolution"),
 #     trans_mode=TRANS_MODE,
 #     filter_mode=FILTER_MODE,
+#     theme=Theme(Axis=(xticks=0:14,),),
 # )
 
 # gasEvolution(
 #     SIMULATION_PATHS;
+#     ylog=true,
 #     output_path=joinpath(BASE_OUT_PATH, "gasEvolution"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+#     theme=Theme(Axis=(limits=(nothing, nothing, -11.5, 1.5),),),
+# )
+
+# gasFractionsEvolution(
+#     SIMULATION_PATHS;
+#     output_path=joinpath(BASE_OUT_PATH, "gasFractionsEvolution"),
 #     trans_mode=TRANS_MODE,
 #     filter_mode=FILTER_MODE,
 # )
 
-gasFractionsEvolution(
-    SIMULATION_PATHS;
-    output_path=joinpath(BASE_OUT_PATH, "gasFractionsEvolution"),
-    trans_mode=TRANS_MODE,
-    filter_mode=FILTER_MODE,
-)
-
-sfrTXT(
-    SIMULATION_PATHS,
-    :physical_time,
-    :stellar_mass;
-    output_path=joinpath(BASE_OUT_PATH, "sfrTXT"),
-    trans_mode=TRANS_MODE,
-    filter_mode=FILTER_MODE,
-)
-
-cpuTXT(
-    SIMULATION_PATHS,
-    "total",
-    :physical_time,
-    :clock_time_s;
-    ylog=true,
-    output_path=joinpath(BASE_OUT_PATH, "cpuTXT"),
-)
-
-# circularityHistogram(
-#     ["F:/simulations/current/SFM_06"],
-#     128;
-#     R_in=2.0u"kpc",
-#     R_out=GalaxyInspector.DISK_R,
-#     output_path="./test/new",
-#     trans_mode=:stellar_subhalo,
-#     filter_mode=:subhalo,
+# sfrTXT(
+#     SIMULATION_PATHS,
+#     :physical_time,
+#     :sfr;
+#     smooth=200,
+#     output_path=joinpath(BASE_OUT_PATH, "sfrTXT"),
 # )
 
-# efficiencyHistogram(
-#     ["F:/simulations/current/SFM_06"],
-#     128;
-#     range=(1.0e-4, 1.0),
-#     output_path="./test/new",
-#     trans_mode=:stellar_subhalo,
-#     filter_mode=:subhalo,
+# cpuTXT(
+#     SIMULATION_PATHS,
+#     "total",
+#     :physical_time,
+#     :tot_clock_time_s;
+#     smooth=100,
+#     ylog=true,
+#     output_path=joinpath(BASE_OUT_PATH, "cpuTXT"),
+#     theme=Theme(Axis=(xticks=0:14,),),
 # )
 
+# kennicuttSchmidtLaw(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     quantity=:molecular,
+#     reduce_grid=:circular,
+#     grid_size=30.0u"kpc",
+#     bin_size=1.5u"kpc",
+#     post_processing=GalaxyInspector.ppSun2023!,
+#     pp_kwargs=(; color=GalaxyInspector.WONG_ORANGE),
+#     fit=false,
+#     output_file=joinpath(BASE_OUT_PATH, "kennicuttSchmidtLaw/sun2023_molecular.png"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+#     theme=Theme(
+#         Legend=(margin=(10, 0, 0, 0),),
+#         Axis=(
+#             limits=(-2.5, 3.5, -4.5, 0.5),
+#             xticks=-1:1:3,
+#             yticks=-4:1:0,
+#         ),
+#     ),
+# )
+
+# kennicuttSchmidtLaw(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     quantity=:molecular,
+#     reduce_grid=:circular,
+#     grid_size=30.0u"kpc",
+#     bin_size=1.5u"kpc",
+#     post_processing=GalaxyInspector.ppLeroy2008!,
+#     pp_kwargs=(; color=GalaxyInspector.WONG_ORANGE),
+#     fit=false,
+#     output_file=joinpath(BASE_OUT_PATH, "kennicuttSchmidtLaw/leroy2008_molecular.png"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+#     theme=Theme(
+#         Legend=(margin=(10, 0, 0, 0),),
+#         Axis=(
+#             limits=(-2.5, 3.5, -4.5, 0.5),
+#             xticks=-1:1:3,
+#             yticks=-4:1:0,
+#         ),
+#     ),
+# )
+
+# kennicuttSchmidtLaw(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     quantity=:gas,
+#     reduce_grid=:circular,
+#     grid_size=30.0u"kpc",
+#     bin_size=1.5u"kpc",
+#     post_processing=GalaxyInspector.ppBigiel2010!,
+#     pp_kwargs=(; galaxy=:all, quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
+#     fit=false,
+#     output_file=joinpath(BASE_OUT_PATH, "kennicuttSchmidtLaw/bigiel2010_total.png"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+#     theme=Theme(
+#         Legend=(margin=(10, 0, 0, 20),),
+#         Axis=(
+#             limits=(0.4, 2.6, -4.5, 0.5),
+#             xticks=0.5:0.5:2.5,
+#             yticks=-4:1:0,
+#         ),
+#     ),
+# )
+
+# kennicuttSchmidtLaw(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     quantity=:gas,
+#     reduce_grid=:circular,
+#     grid_size=30.0u"kpc",
+#     bin_size=1.5u"kpc",
+#     post_processing=GalaxyInspector.ppLeroy2008!,
+#     pp_kwargs=(; quantity=:neutral, color=GalaxyInspector.WONG_ORANGE),
+#     fit=false,
+#     output_file=joinpath(BASE_OUT_PATH, "kennicuttSchmidtLaw/leroy2008_total.png"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+#     theme=Theme(
+#         Legend=(margin=(10, 0, 0, 20),),
+#         Axis=(
+#             limits=(0.4, 2.6, -4.5, 0.5),
+#             xticks=0.5:0.5:2.5,
+#             yticks=-4:1:0,
+#         ),
+#     ),
+# )
+
+# stellarBirthHalos(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     output_path=joinpath(BASE_OUT_PATH, "stellarBirthHalos"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# atomicMolecularTransition(
+#     SIMULATION_PATHS,
+#     SNAP_N,
+#     [(1.0e-2, 1.0e-1), (1.0e-1, 1.0), (1.0, 1.0e1)];
+#     output_path=joinpath(BASE_OUT_PATH, "atomicMolecularTransition"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
 
 # massProfile(
-#     ["F:/simulations/current/SFM_06"],
-#     128,
-#     [:stellar, :ode_molecular];
-#     cumulative=false,
+#     SIMULATION_PATHS,
+#     SNAP_N,
+#     [:ode_molecular, :ode_atomic, :ode_ionized];
 #     ylog=true,
-#     radius=GalaxyInspector.DISK_R,
-#     n_bins=50,
-#     output_path="./test/new",
-#     trans_mode=:stellar_subhalo,
-#     filter_mode=:subhalo,
+#     output_path=joinpath(BASE_OUT_PATH, "massProfile"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
 # )
 
 # velocityProfile(
-#     ["F:/simulations/current/SFM_06"],
-#     128,
+#     SIMULATION_PATHS,
+#     SNAP_N,
 #     :stellar_radial_velocity;
-#     radius=GalaxyInspector.DISK_R,
-#     n_bins=40,
-#     output_path="./test/new",
-#     trans_mode=:stellar_subhalo,
-#     filter_mode=:subhalo,
+#     output_path=joinpath(BASE_OUT_PATH, "velocityProfile"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
 # )
 
 # compareFeldmann2020(
-#     ["F:/simulations/current/SFM_06"],
+#     SIMULATION_PATHS,
+#     :molecular,
+#     :atomic;
+#     scatter=true,
+#     output_path=joinpath(BASE_OUT_PATH, "compareFeldmann2020"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# compareFeldmann2020(
+#     SIMULATION_PATHS,
 #     :stellar,
 #     :sfr;
-#     slice=128,
 #     scatter=true,
-#     xlog=true,
+#     output_path=joinpath(BASE_OUT_PATH, "compareFeldmann2020"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# massMetallicityRelation(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     output_path=joinpath(BASE_OUT_PATH, "massMetallicityRelation"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# gasVelocityCubes(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     output_file=joinpath(BASE_OUT_PATH, "gasVelocityCubes/gas_velocity_cube.hdf5"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# stellarVelocityCubes(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     output_file=joinpath(BASE_OUT_PATH, "stellarVelocityCubes/stellar_velocity_cube.hdf5"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# virialAccretionEvolution(
+#     SIMULATION_PATHS;
+#     flux_direction=:outflow,
 #     ylog=true,
-#     output_path="./test/new",
-#     trans_mode=:stellar_subhalo,
-#     filter_mode=:subhalo,
+#     smooth=80,
+#     output_path=joinpath(BASE_OUT_PATH, "virialAccretionEvolution"),
+# )
+
+# diskAccretionEvolution(
+#     SIMULATION_PATHS;
+#     flux_direction=:inflow,
+#     trans_mode=TRANS_MODE,
+#     ylog=true,
+#     smooth=80,
+#     output_path=joinpath(BASE_OUT_PATH, "diskAccretionEvolution"),
 # )
 
 # fitVSFLaw(
-#     ["F:/simulations/current/SFM_06"],
-#     128,
+#     SIMULATION_PATHS,
+#     SNAP_N,
 #     :ode_molecular;
-#     field_type=:cells,
-#     fit=true,
-#     box_size=GalaxyInspector.BOX_L,
-#     x_range=(-Inf, Inf),
-#     output_path="./test/new/vsf",
-#     trans_mode=:stellar_subhalo,
-#     filter_mode=:subhalo,
+#     output_path=joinpath(BASE_OUT_PATH, "fitVSFLaw"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
 # )
 
+# clumpingFactor(
+#     SIMULATION_PATHS,
+#     SNAP_N,
+#     :gas;
+#     xlog=true,
+#     ylog=true,
+#     output_path=joinpath(BASE_OUT_PATH, "clumpingFactor"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# circularityHistogram(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     R_in=2.0u"kpc",
+#     output_path=joinpath(BASE_OUT_PATH, "circularityHistogram"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# efficiencyHistogram(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     range=(1.0e-6, 1.0),
+#     output_path=joinpath(BASE_OUT_PATH, "efficiencyHistogram"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# stellarDensityMaps(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     output_path=joinpath(BASE_OUT_PATH, "stellarDensityMaps"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# gasDensityMaps(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     output_path=joinpath(BASE_OUT_PATH, "gasDensityMaps"),
+#     density_range=(2.0, NaN),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
 
 # SDSSMockup(
-#     ["F:/simulations/current/SFM_06"],
-#     128;
-#     output_path="./test/new/sdss",
-#     box_size=GalaxyInspector.BOX_L,
-#     resolution=800,
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     output_path=joinpath(BASE_OUT_PATH, "SDSSMockup"),
+#     resolution=300,
+#     projection_plane=:xy,
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+# SDSSMockup(
+#     SIMULATION_PATHS,
+#     SNAP_N;
+#     output_path=joinpath(BASE_OUT_PATH, "SDSSMockup"),
+#     resolution=300,
 #     projection_plane=:xz,
-#     smooth=false,
-#     trans_mode=:stellar_subhalo,
-#     filter_mode=:subhalo,
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
 # )
 
-# SDSSMockup(
-#     ["F:/simulations/current/SFM_06"],
-#     128;
-#     output_path="./test/new/sdss",
-#     box_size=GalaxyInspector.BOX_L,
-#     resolution=800,
-#     projection_plane=:yz,
-#     smooth=false,
-#     trans_mode=:stellar_subhalo,
-#     filter_mode=:subhalo,
+# simulationReport(SIMULATION_PATHS; output_path=joinpath(BASE_OUT_PATH, "reports"))
+
+# snapshotReport(
+#     SIMULATION_PATHS,
+#     [SNAP_N];
+#     output_path=joinpath(BASE_OUT_PATH, "reports"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
 # )
+
+# quantityReport(
+#     SIMULATION_PATHS,
+#     :ode_gas_tau_dg;
+#     output_path=joinpath(BASE_OUT_PATH, "reports"),
+#     trans_mode=TRANS_MODE,
+#     filter_mode=FILTER_MODE,
+# )
+
+#TODO
+evolutionVideo(
+    SIMULATION_PATHS,
+    :ode_molecular;
+    slice=108:128,
+    output_path=joinpath(BASE_OUT_PATH, "evolutionVideo"),
+    framerate=4,
+    trans_mode=TRANS_MODE,
+    filter_mode=FILTER_MODE,
+)

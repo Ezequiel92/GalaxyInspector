@@ -19,7 +19,7 @@ const logging = Ref(false)
 """
 Max grid size to be stored on memory, above this value memory-mapping will be used.
 """
-const MMAP_THRESHOLD = 200^3
+const MMAP_THRESHOLD = 600^3
 
 ########################
 # Characteristic scales
@@ -582,15 +582,6 @@ mutable struct MmapArray{T,N} <: AbstractArray{T,N}
     data :: Union{Array{T,N}, Nothing}
     io   :: Union{IOStream, Nothing}
     path :: String
-
-    # Array interface
-    Base.size(A::MmapArray) = size(A.data)
-
-    Base.getindex(A::MmapArray, I...) = getindex(A.data, I...)
-
-    Base.setindex!(A::MmapArray, v, I...) = setindex!(A.data, v, I...)
-
-    Base.IndexStyle(::Type{<:MmapArray}) = IndexStyle(Array)
 
     function Base.close(A::MmapArray)
         Mmap.sync!(A.data)
