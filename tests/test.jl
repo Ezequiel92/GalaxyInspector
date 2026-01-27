@@ -593,9 +593,10 @@ GalaxyInspector.setLogging!(true; stream=log_file)
 evolutionVideo(
     SIMULATION_PATHS,
     :ode_molecular;
-    slice=108:128,
+    slice=88:128,
     output_path=joinpath(BASE_OUT_PATH, "evolutionVideo"),
-    framerate=4,
+    density_range=(3.0, NaN),
+    framerate=2,
     trans_mode=TRANS_MODE,
     filter_mode=FILTER_MODE,
 )

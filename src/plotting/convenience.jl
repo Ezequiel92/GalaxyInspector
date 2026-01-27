@@ -7088,6 +7088,8 @@ function evolutionVideo(
         # Compute the rotation for the last snapshot
         rotation_matrix = computeRotation(last_dd, rotation...)
 
+        cosmological = last_dd[:sim_data].cosmological
+
         ############################################################################################
         # Compute the area densities
         ############################################################################################
@@ -7113,8 +7115,12 @@ function evolutionVideo(
                     slice,
                     output_path=temp_folder,
                     base_filename="$(quantity)_$(projection_plane)",
+                    show_progress,
                     transform_box=true,
-                    translation=(last_origin, last_vcm),
+                    # For cosmological simulatios only use the rotation of the last snapshot
+                    # In cosmological simulations the center of mass of the main subhalo can change
+                    # significantly through time (100s of kpc)
+                    translation=cosmological ? translation : (last_origin, last_vcm),
                     rotation=(rotation_matrix,),
                     filter_function,
                     da_functions=[daDensity2DProjection],
