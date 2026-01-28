@@ -7246,7 +7246,7 @@ function evolutionVideo(
         ############################################################################################
 
         prog_bar = Progress(
-            nrow(simulation_table),
+            length(times),
             dt=0.5,
             desc="Analyzing and plotting the data... ",
             color=:blue,
@@ -7272,7 +7272,7 @@ function evolutionVideo(
             f = Figure()
 
             # Initialize the animation stream
-            vs = VideoStream(f; framerate)
+            vs = VideoStream(f; format="mkv", framerate)
 
             col_iterator = enumerate(zip(quantities, labels, colorranges))
 
