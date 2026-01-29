@@ -4230,6 +4230,13 @@ Plot the atomic to molecular gas transition for a set of metallicity ranges.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+C. Christensen et al. (2012). *Implementing molecular hydrogen in hydrodynamic simulations of galaxy formation*. Monthly Notices of the Royal Astronomical Society, **425(4)**, 3058–3076. [doi:10.1111/j.1365-2966.2012.21628.x](https://doi.org/10.1111/j.1365-2966.2012.21628.x)
+
+N. Y. Gnedin et al. (2011). *ENVIRONMENTAL DEPENDENCE OF THE KENNICUTT-SCHMIDT RELATION IN GALAXIES*. The Astrophysical Journal, **728(2)**, 88. [doi:10.1088/0004-637x/728/2/88](https://doi.org/10.1088/0004-637x/728/2/88)
+
 """
 function atomicMolecularTransition(
     simulation_paths::Vector{String},
@@ -4245,15 +4252,17 @@ function atomicMolecularTransition(
     for simulation_path in simulation_paths
 
         # Set some plotting parameters
+        # See Fig. 2 and 3 of Christensen et al. (2012)
+        # See Fig. 1 of Gnedin et al. (2011)
         if isSimSFM(simulation_path)
 
-            x_quantity = :ode_atomic_number_density
-            y_quantity = ratio(:ode_molecular_stellar_mass, :ode_neutral_mass)
+            x_quantity = :gas_number_density
+            y_quantity = :ode_molecular_stellar_fraction
 
         else
 
-            x_quantity = :br_atomic_number_density
-            y_quantity = ratio(:br_molecular_mass, :neutral_mass)
+            x_quantity = :gas_number_density
+            y_quantity = :br_molecular_fraction
 
         end
 
