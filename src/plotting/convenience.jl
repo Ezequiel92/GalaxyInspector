@@ -3728,7 +3728,7 @@ function kennicuttSchmidtLaw(
     end
 
     # Set the plot theme
-    if integrated || reduce_grid == :circular
+    if integrated || reduce_grid ∈ [:circular, :log_circular]
         markersize = 20
     else
         markersize = 6

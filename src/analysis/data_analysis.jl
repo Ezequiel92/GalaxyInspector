@@ -1380,7 +1380,7 @@ function daDensity2DProjection(
 
         # Reduce the resolution of the result using a logarithmic circular grid
         # `reduce_factor` here is the number of bins for the circular grid
-        density, log_grid = projectIntoLogGrid(density, reduce_factor; log_shift=0.5e-3)
+        density, log_grid = projectIntoLinearGrid(density, reduce_factor; log_shift=0.5e-3)
         x_axis  = log_grid.x_axis .* grid.size[1]
         y_axis  = x_axis
 
@@ -1535,7 +1535,7 @@ function daGasSFR2DProjection(
 
         # Reduce the resolution of the result using a logarithmic circular grid
         # `reduce_factor` here is the number of bins for the circular grid
-        sfr, log_grid = projectIntoLogGrid(sfr, reduce_factor; log_shift=0.5e-3)
+        sfr, log_grid = projectIntoLinearGrid(sfr, reduce_factor; log_shift=0.5e-3)
         x_axis  = log_grid.x_axis .* grid.size[1]
         y_axis  = x_axis
 
