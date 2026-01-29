@@ -1289,8 +1289,9 @@ Project a 3D mass density field into a given plane.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `reduce_grid::Symbol=:square`: Type of 2D grid to do the final projection. The options are:
 
-      + `:square`    -> The density distribution will be projected into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
-      + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in some simulations. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves the opposite way than the `reduce_grid` = :square case.
+      + `:square`    -> The density distribution will be projected into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. `reduce_factor` = 1 means no reduction in resolution.
+      + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
+      + `:log_circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
   - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
@@ -1375,10 +1376,18 @@ function daDensity2DProjection(
         x_axis  = lin_grid.x_axis .* grid.size[1]
         y_axis  = x_axis
 
+    elseif reduce_grid == :log_circular
+
+        # Reduce the resolution of the result using a logarithmic circular grid
+        # `reduce_factor` here is the number of bins for the circular grid
+        density, log_grid = projectIntoLogGrid(density, reduce_factor; log_shift=0.5e-3)
+        x_axis  = log_grid.x_axis .* grid.size[1]
+        y_axis  = x_axis
+
     else
 
-        throw(ArgumentError("daDensity2DProjection: `reduce_grid` can only be :square or \
-        :circular, but I got :$(reduce_grid)"))
+        throw(ArgumentError("daDensity2DProjection: `reduce_grid` can only be :square, \
+        :circular or :log_circular, but I got :$(reduce_grid)"))
 
     end
 
@@ -1449,9 +1458,10 @@ Project the 3D gas SFR field into a given plane.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `reduce_grid::Symbol=:square`: Type of 2D grid to do the final projection. The options are:
 
-      + `:square`    -> The density distribution will be projected into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
-      + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in some simulations. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves the opposite way than the `reduce_grid` = :square case.
-  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+      + `:square`    -> The sfr distribution will be projected into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. `reduce_factor` = 1 means no reduction in resolution.
+      + `:circular` -> The sfr distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
+      + `:log_circular` -> The sfr distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
+  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the sfr projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
   - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Time unit.
@@ -1521,10 +1531,18 @@ function daGasSFR2DProjection(
         x_axis  = lin_grid.x_axis .* grid.size[1]
         y_axis = x_axis
 
+    elseif reduce_grid == :log_circular
+
+        # Reduce the resolution of the result using a logarithmic circular grid
+        # `reduce_factor` here is the number of bins for the circular grid
+        sfr, log_grid = projectIntoLogGrid(sfr, reduce_factor; log_shift=0.5e-3)
+        x_axis  = log_grid.x_axis .* grid.size[1]
+        y_axis  = x_axis
+
     else
 
-        throw(ArgumentError("daGasSFR2DProjection: `reduce_grid` can only be :square or :circular, \
-        but I got :$(reduce_grid)"))
+        throw(ArgumentError("daGasSFR2DProjection: `reduce_grid` can only be :square, \
+        :circular or :log_circular, but I got :$(reduce_grid)"))
 
     end
 
@@ -1598,9 +1616,10 @@ Project the 3D metallicity field to a given plane.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `reduce_grid::Symbol=:square`: Type of 2D grid to do the final projection. The options are:
 
-      + `:square`    -> The density distribution will be projected into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. This emulates the way the surface densities are measured in observations. `reduce_factor` = 1 means no reduction in resolution.
-      + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in some simulations. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves the opposite way than the `reduce_grid` = :square case.
-  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+      + `:square`    -> The metallicity distribution will be projected into a regular square grid, with a resolution `reduce_factor` times lower than `grid`. `reduce_factor` = 1 means no reduction in resolution.
+      + `:circular` -> The metallicity distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
+      + `:log_circular` -> The metallicity distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
+  - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the metallicity projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
   - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -1710,10 +1729,33 @@ function daMetallicity2DProjection(
         # Compute the metallicity in each bin
         metallicity = metal_mass ./ norm_mass
 
+    elseif reduce_grid == :log_circular
+
+        # Reduce the resolution of the result using a logarithmic circular grid
+        # `reduce_factor` here is the number of bins for the circular grid
+        metal_mass, lin_grid = projectIntoLinearGrid(
+            metal_mass,
+            reduce_factor;
+            total=true,
+            log_shift=0.5e-3,
+        )
+        norm_mass, _  = projectIntoLinearGrid(
+            norm_mass,
+            reduce_factor;
+            total=true,
+            log_shift=0.5e-3,
+        )
+
+        x_axis  = lin_grid.x_axis .* grid.size[1]
+        y_axis = x_axis
+
+        # Compute the metallicity in each bin
+        metallicity = metal_mass ./ norm_mass
+
     else
 
-        throw(ArgumentError("daMetallicity2DProjection: `reduce_grid` can only be :square or \
-        :circular, but I got :$(reduce_grid)"))
+        throw(ArgumentError("daMetallicity2DProjection: `reduce_grid` can only be :square, \
+        :circular or :log_circular, but I got :$(reduce_grid)"))
 
     end
 

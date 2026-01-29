@@ -199,7 +199,7 @@ const MAGNITUDES = [
     # Other
     ########
     :depletion_time,  # Depletion time [T]
-    :xy_distance,     # Proyected (to the xy plane) distance to the origin [L]
+    :xy_distance,     # Projected (to the xy plane) distance to the origin [L]
     :radial_distance, # Distance to the origin [L]
 ]
 
