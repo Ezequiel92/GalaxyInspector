@@ -3147,7 +3147,8 @@ Plot the Kennicutt-Schmidt law.
   - `reduce_grid::Symbol=:square`: Grid for the density projection. The options are:
 
       + `:square`   -> The gas and stellar distributions will be projected into a regular cubic grid first and then into a flat square one, to emulate the way the area densities are measured in observations.
-      + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations.
+      + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations. The number fo bins will be `grid_size` /  (2 * `bin_size`).
+      + `:log_circular` ->  The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric logarithmic rings. The first bin starts at 1e-3 of the radius. The number fo bins will be `grid_size` /  (2 * `bin_size`).
   - `grid_size::Unitful.Length=BOX_L`: Physical side length of the cubic and square grids (if `reduce_grid` = :square), and diameter of the circular grid (if `reduce_grid` = :circular). This limits which cells/particles will be consider. As a reference, Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
   - `bin_size::Unitful.Length=BIGIEL_PX_SIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`. For the cubic grids a default value of 200 pc is always used.
   - `age_limit::Unitful.Time=AGE_RESOLUTION`: Maximum age of the stars to consider for the star formation area density.
@@ -3269,9 +3270,9 @@ function kennicuttSchmidtLaw(
     )
 
     (
-        reduce_grid ∈ [:square, :circular] ||
-        throw(ArgumentError("kennicuttSchmidtLaw: `reduce_grid` can only be :square or :circular, \
-        but I got :$(reduce_grid)"))
+        reduce_grid ∈ [:square, :circular, :log_circular] ||
+        throw(ArgumentError("kennicuttSchmidtLaw: `reduce_grid` can only be :square, :circular or \
+        :log_circular, but I got :$(reduce_grid)"))
     )
 
     if integrated
@@ -3380,10 +3381,10 @@ function kennicuttSchmidtLaw(
 
         end
 
-        if reduce_grid == :circular && logging[]
+        if reduce_grid ∈ [:circular, :log_circular] && logging[]
 
             @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap and `reduce_grid` to \
-            :circular. Are you sure you want this?")
+            :circular or :log_circular. Are you sure you want this?")
 
         end
 
@@ -3480,7 +3481,8 @@ function kennicuttSchmidtLaw(
         stellar_grid = CubicGrid(grid_size, hr_n_bins)
         gas_grid     = CubicGrid(grid_size, hr_n_bins)
 
-        # Compute the ring width for the circular grid
+        # Compute the number of rings for the circular grid
+        # This will be used for linear and logarithmic circular grids
         reduce_factor = round(Int, uconvert(Unitful.NoUnits, (grid_size / 2.0) / bin_size))
 
     end
