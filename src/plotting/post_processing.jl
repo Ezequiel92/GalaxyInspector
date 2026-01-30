@@ -75,7 +75,7 @@ function ppVerticalFlags!(
 
     end
 
-    isnothing(label) && return nothing
+    isnothing(labels) && return nothing
 
     return (
         [

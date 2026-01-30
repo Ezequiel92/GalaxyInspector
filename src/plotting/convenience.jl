@@ -6540,6 +6540,8 @@ function efficiencyHistogram(
                 (; log=true, filter_function=stellar_ff),
                 (; log=true, filter_function=gas_ff),
             ],
+            post_processing=ppVerticalFlags!,
+            pp_args=([-2.0],),
             xaxis_label=L"\log_{10} \," * getLabel(plot_params.axis_label, 0, plot_params.unit),
             xaxis_var_name=plot_params.var_name,
             yaxis_var_name=L"\mathrm{Normalized \,\, counts}",
