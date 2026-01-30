@@ -583,6 +583,11 @@ mutable struct MmapArray{T,N} <: AbstractArray{T,N}
     io   :: Union{IOStream, Nothing}
     path :: String
 
+    # Array interface
+    Base.getindex(A::MmapArray, I...) = getindex(A.data, I...)
+    Base.setindex!(A::MmapArray, v, I...) = setindex!(A.data, v, I...)
+    Base.size(A::MmapArray) = size(A.data)
+
     function Base.close(A::MmapArray)
         Mmap.sync!(A.data)
         close(A.io)
