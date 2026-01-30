@@ -19,7 +19,7 @@ const logging = Ref(false)
 """
 Max grid size to be stored on memory, above this value memory-mapping will be used.
 """
-const MMAP_THRESHOLD = 600^3
+const MMAP_THRESHOLD = 400^3
 
 ########################
 # Characteristic scales
