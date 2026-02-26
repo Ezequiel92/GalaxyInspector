@@ -102,8 +102,6 @@ function computeVcirc(
     # `vcirc` the circular velocity of each cell/particle, in the order they have in the snapshot
     invpermute!(M, sortperm(rs))
 
-    logging[] && @info("computeVcirc: The circular velocity will be computed using $(snap_types)")
-
     vcirc = [iszero(r) ? 0.0u"km * s^-1" : sqrt(Unitful.G * m / r) for (m, r) in zip(M, rs)]
 
     return rs, vcirc
@@ -828,6 +826,8 @@ function computeVcirc(
         append!(distances, dists)
         append!(masses, mass_data)
     end
+
+    logging[] && @info("computeVcirc: The circular velocity will be computed using $(snap_types)")
 
     return computeVcirc(distances, masses, rs)
 
