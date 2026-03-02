@@ -63,6 +63,10 @@ t_\mathrm{dep} = \frac{M}{\dot{M}_\star} \, ,
 ```
 is the depletion time. $M$ and $\rho$ are the mass and density of the target gas phase, and $\dot{M}_\star$ is the SFR.
 
+!!! note
+
+    For densities below the star formation threshold (see `THRESHOLD_DENSITY` in `./src/constants/globals.jl`), I will return NaN, since the star formation rate is not well defined in those cases.
+
 # Arguments
 
   - `densities::Vector{<:Unitful.Density}`: Densities of the cells.
@@ -1088,6 +1092,10 @@ is the free-fall time, and
 t_\mathrm{dep} = \frac{M}{\dot{M}_\star} \, ,
 ```
 is the depletion time. $M$ and $\rho$ are the mass and density of the target gas phase, and $\dot{M}_\star$ is the SFR.
+
+!!! note
+
+    For densities below the star formation threshold (see `THRESHOLD_DENSITY` in `./src/constants/globals.jl`), I will return NaN, since the star formation rate is not well defined in those cases.
 
 # Arguments
 
