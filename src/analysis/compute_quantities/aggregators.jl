@@ -401,8 +401,17 @@ function integrateQty(
 
             elseif magnitude == :depletion_time
 
-                M   = sum(computeMass(data_dict, component); init=0.0u"Msun")
-                sfr = sum(scatterQty(data_dict, :sfr); init=0.0u"Msun * yr^-1")
+                M = sum(computeMass(data_dict, component); init=0.0u"Msun")
+                cp_type = plotParams(quantity).cp_type
+
+                if cp_type == :stellar
+                    sfr = sum(scatterQty(data_dict, :sfr); init=0.0u"Msun * yr^-1")
+                elseif cp_type == :gas
+                    sfr = sum(scatterQty(data_dict, :gas_sfr); init=0.0u"Msun * yr^-1")
+                else
+                    throw(ArgumentError("integrateQty: I don't know how to compute the SFR for \
+                    cp_type :$(cp_type)"))
+                end
 
                 integrated_qty = M / sfr
 
