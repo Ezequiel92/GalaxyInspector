@@ -41,7 +41,7 @@ function listHistogram1D(
     p_min = first(edges)
     p_max = last(edges)
 
-    histogram = [eltype(values)[] for _ in 1:n_bins]
+    histogram = [runtimeType(values)[] for _ in 1:n_bins]
 
     # Compute the histogram, ignoring NaNs and positions outside the grid
     for (position, value) in zip(positions, values)
@@ -137,7 +137,7 @@ function histogram1D(
     p_min = first(edges)
     p_max = last(edges)
 
-    histogram = zeros(eltype(values), n_bins)
+    histogram = zeros(runtimeType(values), n_bins)
     counts = zeros(Int, n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the range
@@ -354,7 +354,7 @@ function histogram2D(
     x_borders = (first(x_edges), last(x_edges))
     y_borders = (first(y_edges), last(y_edges))
 
-    histogram = zeros(eltype(values), (n_x_bins, n_y_bins))
+    histogram = zeros(runtimeType(values), (n_x_bins, n_y_bins))
     counts = zeros(Int, (n_x_bins, n_y_bins))
 
     # Compute the histogram, ignoring NaNs and positions outside the range
@@ -797,7 +797,7 @@ function histogram3D(
     y_borders =  (first(grid.y_edges), last(grid.y_edges))
     z_borders =  (first(grid.z_edges), last(grid.z_edges))
 
-    histogram = zeros(eltype(values), grid.n_bins)
+    histogram = zeros(runtimeType(values), grid.n_bins)
     counts = zeros(Int, grid.n_bins)
 
     # Compute the histogram, ignoring NaNs and positions outside the grid

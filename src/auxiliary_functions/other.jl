@@ -87,6 +87,17 @@ function volume(r::Number)::Number
 end
 
 """
+Get the most specific common type of the elements in an array.
+"""
+@inline function runtimeType(A)
+    T = Union{}
+    for x in A
+        T = typejoin(T, typeof(x))
+    end
+    return T
+end
+
+"""
 Always returns `nothing`, for any type and number of arguments.
 """
 getNothing(x...; y...)::Nothing = nothing

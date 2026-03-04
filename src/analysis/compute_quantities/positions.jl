@@ -480,7 +480,7 @@ function computeXYDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful
         return Unitful.Length[]
     end
 
-    return colwise(Euclidean(), positions[1:2, :], zeros(eltype(positions), 2))
+    return colwise(Euclidean(), positions[1:2, :], zeros(runtimeType(positions), 2))
 
 end
 
@@ -527,7 +527,7 @@ function computeRadialDistance(data_dict::Dict, component::Symbol)::Vector{<:Uni
         return Unitful.Length[]
     end
 
-    return colwise(Euclidean(), positions, zeros(eltype(positions), size(positions, 1)))
+    return colwise(Euclidean(), positions, zeros(runtimeType(positions), size(positions, 1)))
 
 end
 

@@ -5232,7 +5232,7 @@ function gasVelocityCubes(
                 ato_masses  = scatterQty(data_dict, :br_atomic_mass)
                 mol_masses  = scatterQty(data_dict, :br_molecular_mass)
                 Z_masses    = scatterQty(data_dict, :Z_gas_mass)
-                dust_masses = zeros(eltype(Z_masses), length(Z_masses))
+                dust_masses = zeros(runtimeType(Z_masses), length(Z_masses))
 
             end
 

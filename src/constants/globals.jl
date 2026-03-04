@@ -1035,12 +1035,12 @@ struct LinearGrid
     # Arguments
 
       - `x_edges :: Vector{<:Number}`: Relative position of (the edges of) the bins, relative to the `origin`.
-      - `origin  :: Vector{<:Number}=zeros(eltype(x_edges), 3)`: Physical position of the coordinate origin for the grid (passthrough argument).
+      - `origin  :: Vector{<:Number}=zeros(runtimeType(x_edges), 3)`: Physical position of the coordinate origin for the grid (passthrough argument).
       - `log     :: Bool=false`: If the `x_edges` are logarithmic, which means that `x_axis` will mark the center of the bins in logarithmic space instead of linear space.
     """
     function LinearGrid(
         x_edges :: Vector{<:Number};
-        origin  :: Vector{<:Number}=zeros(eltype(x_edges), 3),
+        origin  :: Vector{<:Number}=zeros(runtimeType(x_edges), 3),
         log     :: Bool=falsem
     )
 
@@ -1134,12 +1134,12 @@ struct SquareGrid
 
       - `size   :: Vector{<:Number}`: Physical side length of the grid in each direction.
       - `n_bins :: NTuple{2,Int}`: Number of bins in each direction.
-      - `origin :: Vector{<:Number}=zeros(eltype(grid_length), 3)`: Physical position of the center of the grid.
+      - `origin :: Vector{<:Number}=zeros(runtimeType(grid_length), 3)`: Physical position of the center of the grid.
     """
     function SquareGrid(
         size   :: Vector{<:Number},
         n_bins :: NTuple{2,Int};
-        origin :: Vector{<:Number}=zeros(eltype(grid_length), 3),
+        origin :: Vector{<:Number}=zeros(runtimeType(grid_length), 3),
     )
 
         (
@@ -1259,12 +1259,12 @@ struct CubicGrid
 
       - `size   :: Vector{<:Number}`: Physical side length of the grid in each direction.
       - `n_bins :: NTuple{3,Int}`: Number of bins in each direction.
-      - `origin :: Vector{<:Number}=zeros(eltype(grid_length), 3)`: Physical position of the center of the grid.
+      - `origin :: Vector{<:Number}=zeros(runtimeType(grid_length), 3)`: Physical position of the center of the grid.
     """
     function CubicGrid(
         size   :: Vector{<:Number},
         n_bins :: NTuple{3,Int};
-        origin :: Vector{<:Number}=zeros(eltype(grid_length), 3),
+        origin :: Vector{<:Number}=zeros(runtimeType(grid_length), 3),
     )
 
         (

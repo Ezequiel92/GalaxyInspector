@@ -95,7 +95,7 @@ function computeVcirc(
     edges = [0.0u"kpc", rs...]
 
     # Compute to total mass within each cell/particle radial distance
-    M = similar(rs, eltype(masses))
+    M = similar(rs, runtimeType(masses))
     cumsum!(M, histogram1D(distances, masses, edges; empty_nan=false))
 
     # The mass histogram is a sorted array, so it is reverted to the unsorted order of `r` to make
@@ -167,7 +167,7 @@ function computeVpolar(
 
     if vel_type == :radial
 
-        vp = similar(x, eltype(vx))
+        vp = similar(x, runtimeType(vx))
 
         for i in eachindex(vp)
             r = hypot(x[i], y[i])
@@ -186,7 +186,7 @@ function computeVpolar(
 
     elseif vel_type == :tangential
 
-        vp = similar(x, eltype(vx))
+        vp = similar(x, runtimeType(vx))
 
         for i in eachindex(vp)
             r = hypot(x[i], y[i])
@@ -334,7 +334,7 @@ function computeTotalAngularMomentum(
         return [0.0, 0.0, 1.0]
     end
 
-    unit_L = unit(eltype(masses)) * unit(eltype(positions)) * unit(eltype(velocities))
+    unit_L = unit(runtimeType(masses)) * unit(runtimeType(positions)) * unit(runtimeType(velocities))
 
     Lx = 0.0 * unit_L
     Ly = 0.0 * unit_L
@@ -440,7 +440,7 @@ function computeSpinParameter(
     )
 
     # Find the cells/particles within `R`
-    distances = colwise(Euclidean(), positions, zeros(eltype(positions), size(positions, 1)))
+    distances = colwise(Euclidean(), positions, zeros(runtimeType(positions), size(positions, 1)))
     idx = map(x -> x <= R, distances)
 
     # Compute the total mass within `R`
@@ -806,7 +806,7 @@ function computeVcirc(
 
     # Compute the radial distance to each cell/particle
     positions = data_dict[type]["POS "]
-    rs = colwise(Euclidean(), positions, zeros(eltype(positions), size(positions, 1)))
+    rs = colwise(Euclidean(), positions, zeros(runtimeType(positions), size(positions, 1)))
 
     snap_types = snapshotTypes(data_dict)
 
@@ -815,13 +815,13 @@ function computeVcirc(
     filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
     # Concatenate the distances and masses of all the cells and particles in the system
-    distances = Vector{eltype(positions)}()
+    distances = Vector{runtimeType(positions)}()
     masses    = Vector{typeof(1.0u"Msun")}()
     for st in snap_types
         pos_data  = data_dict[st]["POS "]
         mass_data = data_dict[st]["MASS"]
 
-        dists = colwise(Euclidean(), pos_data, zeros(eltype(pos_data), size(pos_data, 1)))
+        dists = colwise(Euclidean(), pos_data, zeros(runtimeType(pos_data), size(pos_data, 1)))
 
         append!(distances, dists)
         append!(masses, mass_data)

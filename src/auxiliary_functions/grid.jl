@@ -103,7 +103,7 @@ function reduceMatrix(hr_matrix::Matrix{<:Number}, factor::Int; total::Bool=fals
     new_size = r ÷ factor
 
     # Get the element type of the high resolution matrix
-    hr_type = eltype(hr_matrix)
+    hr_type = runtimeType(hr_matrix)
 
     # Define NaN and zero values of the high resolution matrix type
     u_nan = NaN * one(hr_type)

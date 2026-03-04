@@ -175,7 +175,11 @@ function computeMassRadius(
     mass_limit = sum(masses) * (percent / 100.0)
 
     # Compute the radial distance of each cell/particle to the origin
-    radial_distances = colwise(Euclidean(), positions, zeros(eltype(positions), size(positions, 1)))
+    radial_distances = colwise(
+        Euclidean(),
+        positions,
+        zeros(runtimeType(positions), size(positions, 1)),
+    )
 
     sort_idxs = sortperm(radial_distances)
 
@@ -290,7 +294,7 @@ function computeMassQty(
             logging[] &&
             @warn("computeMassQty: `quantity` or `masses` are empty, so I will return 0s")
         )
-        return zero(eltype(quantity))
+        return zero(runtimeType(quantity))
     end
 
     # Compute the mass limit
