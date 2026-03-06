@@ -407,7 +407,7 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
         end
 
     ################################################################################################
-    # Atomic gas or neutral gas
+    # Atomic gas or neutral gas (everything but the ionize, metals, and dust)
     ################################################################################################
 
     elseif component == :ode_atomic || component == :ode_neutral
@@ -455,9 +455,9 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
             Z   = GZ[i]
 
             metallicity = setPositive(Z)
-            fa = (1 - metallicity) * nh / (nhp + nh)
+            fn = (1 - metallicity) * nh / (nhp + nh)
 
-            return metallicity * (1.0 - Cxd * fa)
+            return metallicity * (1.0 - Cxd * fn)
 
         end
 
@@ -478,9 +478,9 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
             Z   = GZ[i]
 
             metallicity = setPositive(Z)
-            fa = (1.0 - metallicity) * nh / (nhp + nh)
+            fn = (1.0 - metallicity) * nh / (nhp + nh)
 
-            return metallicity * Cxd * fa
+            return metallicity * Cxd * fn
 
         end
 
@@ -850,9 +850,9 @@ function _compute_fraction(
     # Compute the number of gas cells
     n_cells = length(mass)
 
-    ##############################################################################################
-    # Ionized, atomic, molecular, stellar, metals, and dust fractions (according to our SF model)
-    ##############################################################################################
+    ##################################################################
+    # Ionized, atomic, molecular, stellar, metals, and dust fractions
+    ##################################################################
 
     if component ∈ [:ode_ionized, :ode_atomic, :ode_molecular, :ode_stellar, :ode_metals, :ode_dust]
 
@@ -890,9 +890,9 @@ function _compute_fraction(
 
         end
 
-    #########################################################
-    # Molecular-stellar fraction (according to our SF model)
-    #########################################################
+    #############################
+    # Molecular-stellar fraction
+    #############################
 
     elseif component == :ode_molecular_stellar
 
@@ -934,9 +934,9 @@ function _compute_fraction(
 
         end
 
-    ####################################################################################
-    # Neutral fraction (everything but the ionized fraction, according to our SF model)
-    ####################################################################################
+    #################################################################
+    # Neutral fraction (everything but the ionize, metals, and dust)
+    #################################################################
 
     elseif component == :ode_neutral
 
@@ -951,9 +951,9 @@ function _compute_fraction(
 
         else
 
-            fi = view(frac, SFM_IDX[:ode_ionized], :)
-            fZ = view(frac, SFM_IDX[:ode_metals], :)
-            fd = view(frac, SFM_IDX[:ode_dust], :)
+            fa = view(frac, SFM_IDX[:ode_atomic], :)
+            fm = view(frac, SFM_IDX[:ode_molecular], :)
+            fs = view(frac, SFM_IDX[:ode_stellar], :)
 
             fractions = Vector{Float64}(undef, n_cells)
 
@@ -962,7 +962,7 @@ function _compute_fraction(
                 if !isnan(fi[i]) && ρc[i] >= THRESHOLD_DENSITY
 
                     # Fraction of neutral hydrogen according to our SF model
-                    fractions[i] = 1.0 - fi[i] - fZ[i] - fd[i]
+                    fractions[i] = fa + fm + fs
 
                 else
 
@@ -976,9 +976,9 @@ function _compute_fraction(
 
         end
 
-    #############################################################################################
-    # Cold fraction (everything but the atomic and ionized fractions, according to our SF model)
-    #############################################################################################
+    ############################################################
+    # Cold fraction (everything but the atomic and ionized gas)
+    ############################################################
 
     elseif component == :ode_cold
 
