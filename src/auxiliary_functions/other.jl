@@ -858,3 +858,115 @@ function griMagnitudeInterpolation(path::String)::NTuple{3,Interpolations.Extrap
     return g_interp, r_interp, i_interp
 
 end
+
+"""
+    schreiber2015MS(Mstar::Unitful.Mass, z::Float64)::Float64
+
+Compute the sSFR of main-sequence galaxies as a function of stellar mass and redshift, from Schreiber et al. (2015) (Equation 9).
+
+# Arguments
+
+  - `Mstar::Unitful.Mass`: Stellar mass of the galaxy.
+  - `z::Float64`: Redshift of the galaxy.
+
+# Returns
+
+  - The ``\\log_{10} \\, \\mathrm{sSFR \\, [yr^{-1}]}``, specific star formation rate of the galaxy.
+
+# References
+
+C. Schreiber et al. (2015). *The Herschel view of the dominant mode of galaxy growth from z = 4 to the present day*. Astronomy & Astrophysics, **575**, A74. [doi:10.1051/0004-6361/201425017](https://doi.org/10.1051/0004-6361/201425017)
+"""
+function schreiber2015MS(Mstar::Unitful.Mass, z::Float64)::Float64
+
+    m_star = ustrip(u"Msun", Mstar)
+
+    r = log10(1.0 + z)
+    m = log10(m_star / 1.0e9)
+
+    # Eq. 9 of Schreiber et al. (2015)
+    x2 = max(0.0, m - SCHREIBER2015_m1 - SCHREIBER2015_a2 * r)^2
+
+    return -9.0 - SCHREIBER2015_m0 + SCHREIBER2015_a0 * r - SCHREIBER2015_a1 * x2
+
+end
+
+"""
+    lee2015MS(Mstar::Unitful.Mass, z::Float64)::Float64
+
+Compute the sSFR of main-sequence galaxies as a function of stellar mass and redshift, from Lee et al. (2015) ( Equation 2).
+
+# Arguments
+
+  - `Mstar::Unitful.Mass`: Stellar mass of the galaxy.
+  - `z::Float64`: Redshift of the galaxy.
+
+# Returns
+
+  - The ``\\log_{10} \\, \\mathrm{sSFR \\, [yr^{-1}]}``, specific star formation rate of the galaxy.
+
+# References
+
+N. Lee et al. (2015). *A TURNOVER IN THE GALAXY MAIN SEQUENCE OF STAR FORMATION AT M* ~ 10^10 M☉ FOR REDSHIFTS z < 1.3*. The Astrophysical Journal, **801(2)**, 80. [doi:10.1088/0004-637X/801/2/80](https://doi.org/10.1088/0004-637X/801/2/80)
+"""
+function lee2015MS(Mstar::Unitful.Mass, z::Float64)::Float64
+
+    S0, M0, γ = LEE2015_PARAMETERS(z)
+
+    m_star = ustrip(u"Msun", Mstar)
+
+    M = log10(m_star)
+
+    # Eq. 2 of Lee et al. (2015)
+    S = S0 - log10(1.0 + (exp10(M) / exp10(M0))^(-γ))
+
+    return S - M
+
+end
+
+"""
+    scoville2016fH2(
+        Mstar::Unitful.Mass,
+        z::Float64,
+        SFR::Unitful.MassFlow;
+        <keyword arguments>
+    )::Measurement{Float64}
+
+The gas mass fraction as a function of stellar mass, redshift, and sSFR, from Scoville et al. (2016) (Equation 1).
+
+# Arguments
+
+  - `Mstar::Unitful.Mass`: Stellar mass of the galaxy.
+  - `z::Float64`: Redshift of the galaxy.
+  - `SFR::Unitful.MassFlow`: Star formation rate of the galaxy.
+  - `main_sequence::Function=lee2015MS`: Function that gives the `\\log_{10} \\, \\mathrm{sSFR \\, [yr^{-1}]}`` of main-sequence galaxies as a function of stellar mass and redshift. Its signature should be `main_sequence(Mstar::Unitful.Mass, z::Float64)::Float64`.
+
+# Returns
+
+  - The gas mass fraction of the galaxy.
+
+# References
+
+N. Scoville et al. (2016). *ISM MASSES AND THE STAR FORMATION LAW AT Z = 1 TO 6: ALMA OBSERVATIONS OF DUST CONTINUUM IN 145 GALAXIES IN THE COSMOS SURVEY FIELD*. The Astrophysical Journal, **820(2)**, 83. [doi:10.3847/0004-637X/820/2/83](https://doi.org/10.3847/0004-637X/820/2/83)
+"""
+function scoville2016fH2(
+    Mstar::Unitful.Mass,
+    z::Float64,
+    SFR::Unitful.MassFlow;
+    main_sequence::Function=lee2015MS,
+)::Measurement{Float64}
+
+    m_scoville = (ustrip(u"Msun", Mstar) / 1.0e11)^SCOVILLE2016_α1
+    z_scoville = ((1.0 + z) / 3.0)^SCOVILLE2016_α2
+
+    sSFR   = ustrip(u"yr^-1", SFR / Mstar)
+    sSFRms = exp10(main_sequence(Mstar, z))
+
+    sSFR_scoville = (sSFR / sSFRms)^SCOVILLE2016_α3
+
+    # Eq. 1 of Scoville et al. (2016)
+    fH2 = SCOVILLE2016_α0 * m_scoville * z_scoville * sSFR_scoville
+
+    return fH2
+
+end
