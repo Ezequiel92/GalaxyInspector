@@ -823,7 +823,7 @@ Compute the fraction of a given :ode `component` in each cell/particle.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the :ode elements of [`COMPONENTS`](@ref).
-  - `ode_ic::F`: Fuction that gives the initial value of `component` for the `i`-th cell/particle. It must have the signature `ode_ic(i::Int)::Float64`.
+  - `ode_ic::F`: Function that gives the initial value of `component` for the `i`-th cell/particle. It must have the signature `ode_ic(i::Int)::Float64`.
 
 # Returns
 
