@@ -156,8 +156,8 @@ function scatterQty(
 
         qty_01, qty_02 = RATIO_SPLITS[quantity]
 
-        scatter_qty_01 = scatterQty(data_dict, qty_01)
-        scatter_qty_02 = scatterQty(data_dict, qty_02)
+        scatter_qty_01 = scatterQty(data_dict, qty_01; icGen)
+        scatter_qty_02 = scatterQty(data_dict, qty_02; icGen)
 
         scatter_qty = similar(scatter_qty_01, Float64)
 
@@ -513,8 +513,8 @@ function integrateQty(
 
             qty_01, qty_02 = RATIO_SPLITS[quantity]
 
-            integrated_qty_01 = integrateQty(data_dict, qty_01)
-            integrated_qty_02 = integrateQty(data_dict, qty_02)
+            integrated_qty_01 = integrateQty(data_dict, qty_01; icGen)
+            integrated_qty_02 = integrateQty(data_dict, qty_02; icGen)
 
             if iszero(integrated_qty_02)
                 integrated_qty = NaN
@@ -579,7 +579,7 @@ function integrateQty(
 
         elseif quantity == :molecular_stellar_fraction
 
-            m_H2 = integrateQty(data_dict, :ode_molecular_stellar_mass)
+            m_H2 = integrateQty(data_dict, :ode_molecular_stellar_mass; icGen)
             m_star = integrateQty(data_dict, :stellar_mass)
 
             m_tot = m_H2 + m_star
