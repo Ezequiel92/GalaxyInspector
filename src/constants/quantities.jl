@@ -438,7 +438,7 @@ the text part as a Symbol and the number part as an Int.
 
 # Returns
 
-  - A Tuple with two elements:
+  - A tuple with two elements:
 
       + A Symbol for the target quantity.
       + The index of the target halo.

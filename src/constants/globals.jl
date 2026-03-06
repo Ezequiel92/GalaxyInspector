@@ -353,6 +353,87 @@ L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressu
 """
 const ALPHA_BLITZ = -0.92
 
+"""
+Fitted parameters for the SFR of main-sequence galaxies as a function of stellar mass and redshift, from Schreiber et al. (2015) (Equation 9).
+
+C. Schreiber et al. (2015). *The Herschel view of the dominant mode of galaxy growth from z = 4 to the present day*. Astronomy & Astrophysics, **575**, A74. [doi:10.1051/0004-6361/201425017](https://doi.org/10.1051/0004-6361/201425017)
+"""
+const SCHREIBER2015_m0 = 0.5 ± 0.07
+const SCHREIBER2015_a0 = 1.5 ± 0.15
+const SCHREIBER2015_a1 = 0.3 ± 0.08
+const SCHREIBER2015_m1 = 0.36 ± 0.3
+const SCHREIBER2015_a2 = 2.5 ± 0.6
+
+"""
+Fitted parameters for the gas mass fraction as a function of stellar mass, redshift, and sSFR, from Scoville et al. (2016) (Equation 1).
+
+N. Scoville et al. (2016). *ISM MASSES AND THE STAR FORMATION LAW AT Z = 1 TO 6: ALMA OBSERVATIONS OF DUST CONTINUUM IN 145 GALAXIES IN THE COSMOS SURVEY FIELD*. The Astrophysical Journal, **820(2)**, 83. [doi:10.3847/0004-637X/820/2/83](https://doi.org/10.3847/0004-637X/820/2/83)
+"""
+const SCOVILLE2016_α0 = 0.3 ± 0.02
+const SCOVILLE2016_α1 = -0.02 ± 0.02
+const SCOVILLE2016_α2 = 0.44 ± 0.05
+const SCOVILLE2016_α3 = 0.32 ± 0.02
+
+"""
+    LEE2015_PARAMETERS(z::Float64)::NTuple{3,Measurements.Measurement{Float64}}
+
+Best-fit parameters for the SFR as a function of stellar mass, from Lee et al. (2015) (Table 1).
+
+# Arguments
+
+    - `z :: Float64`: Redshift. The parameters are only valid for 0.25 <= z <= 1.3, but the function will return the values for z = 0.25 or z = 1.3 if the input value is outside this range.
+
+# Returns
+
+  - A tuple with three elements (See Section 4.1 of Lee et al. (2015) for the definition of the parameters):
+
+      + S0 [log10(M⊙ * yr^-1)]: The maximum value of log10(SFR / M⊙ * yr^-1).
+      + M0 [log10(M⊙)]: Turnover mass.
+      + γ [dimensionless]: Power-law slope at low stellar masses.
+
+# References
+
+N. Lee et al. (2015). *A TURNOVER IN THE GALAXY MAIN SEQUENCE OF STAR FORMATION AT M* ~ 10^10 M☉ FOR REDSHIFTS z < 1.3*. The Astrophysical Journal, **801(2)**, 80. [doi:10.1088/0004-637X/801/2/80](https://doi.org/10.1088/0004-637X/801/2/80)
+"""
+function LEE2015_PARAMETERS(z::Float64)::NTuple{3,Measurements.Measurement{Float64}}
+
+    if z < 0.25 || z > 1.3
+        (
+            logging[] &&
+            @warn("The parameters from Lee et al. (2015) are only valid for 0.25 <= z <= 1.3. The returned values will be the same as for z = 0.25 or z = 1.3, respectively.")
+        )
+    end
+
+    if z < 0.46
+        S0 = 0.8 ± 0.019
+        M0 = 10.03 ± 0.042
+        γ  = 0.92 ± 0.017
+    elseif z < 0.63
+        S0 = 0.99 ± 0.015
+        M0 = 9.82 ± 0.031
+        γ  = 1.13 ± 0.033
+    elseif z < 0.78
+        S0 = 1.23 ± 0.016
+        M0 = 9.93 ± 0.031
+        γ  = 1.11 ± 0.025
+    elseif z < 0.93
+        S0 = 1.35 ± 0.014
+        M0 = 9.96 ± 0.025
+        γ  = 1.28 ± 0.034
+    elseif z < 1.11
+        S0 = 1.53 ± 0.017
+        M0 = 10.10 ± 0.029
+        γ  = 1.26 ± 0.032
+    else
+        S0 = 1.72 ± 0.024
+        M0 = 10.31 ± 0.043
+        γ  = 1.07 ± 0.028
+    end
+
+    return S0, M0, γ
+
+end
+
 ###############
 # Type aliases
 ###############

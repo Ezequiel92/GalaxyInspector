@@ -278,7 +278,7 @@ Creates a request dictionary, using `request` as a base, adding what is necessar
 
 # Returns
 
-  - A Tuple with tree elements:
+  - A tuple with tree elements:
 
       + The translation (see the posible arguments of [`translateData!`](@ref)).
       + The rotation (see the posible arguments of [`rotateData!`](@ref)).
@@ -360,7 +360,7 @@ Compatibility method to pass personalized transformations to functions that only
 
 # Returns
 
-  - A Tuple with tree elements:
+  - A tuple with tree elements:
 
       + The translation (see the posible arguments of [`translateData!`](@ref)).
       + The rotation (see the posible arguments of [`rotateData!`](@ref)).

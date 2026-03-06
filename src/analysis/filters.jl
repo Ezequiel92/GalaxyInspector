@@ -873,7 +873,7 @@ Creates a request dictionary, using `base_request` as a base, adding what is nec
 
 # Returns
 
-  - A Tuple with two elements:
+  - A tuple with two elements:
 
       + The filter function.
       + The new request dictionary.
@@ -957,7 +957,7 @@ Compatibility method to pass personalized filters to functions that only use the
 
 # Returns
 
-  - A Tuple with two elements:
+  - A tuple with two elements:
 
       + The filter function.
       + The new request dictionary.

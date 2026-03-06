@@ -2146,7 +2146,7 @@ Compute the time series of two quantities, using [`integrateQty`](@ref) to compu
 
 # Returns
 
-  - A Tuple with two elements:
+  - A tuple with two elements:
 
       + A Vector with the time series of `x_quantity`.
       + A Vector with the time series of `y_quantity`.
@@ -2224,7 +2224,7 @@ Compute the time series of two quantities, using the provided integration functi
 
 # Returns
 
-  - A Tuple with two elements:
+  - A tuple with two elements:
 
       + A Vector with the time series of `x_quantity`.
       + A Vector with the time series of `y_quantity`.
@@ -2387,7 +2387,7 @@ Compute the stellar mass or SFR evolution using the data in the `sfr.txt` file.
 
 # Returns
 
-  - A Tuple with two elements:
+  - A tuple with two elements:
 
       + A Vector with the time series of `x_quantity`.
       + A Vector with the time series of `y_quantity`.
@@ -2535,7 +2535,7 @@ Compute the evolution of a measured quantity in the `cpu.txt` file, for a given 
 
 # Returns
 
-  - A Tuple with two elements:
+  - A tuple with two elements:
 
       + A Vector with the time series of `x_quantity`.
       + A Vector with the time series of `y_quantity`.
@@ -2695,7 +2695,7 @@ Compute the evolution of the accreted mass into a sphere with the virial radius.
 
 # Returns
 
-  - A Tuple with two elements:
+  - A tuple with two elements:
 
       + A Vector with the physical times.
       + A Vector with the accreted mass at each time.
@@ -2955,7 +2955,7 @@ Compute the evolution of the accreted mass into a given galactic disc.
 
 # Returns
 
-  - A Tuple with two elements:
+  - A tuple with two elements:
 
       + A Vector with the physical times.
       + A Vector with the accreted mass at each time.
