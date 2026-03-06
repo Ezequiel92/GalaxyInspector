@@ -3,7 +3,11 @@
 ####################################################################################################
 
 """
-    scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
+    scatterQty(
+        data_dict::Dict,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Vector{<:Number}
 
 Compute `quantity` for each cell/particle in `data_dict`.
 
@@ -11,12 +15,17 @@ Compute `quantity` for each cell/particle in `data_dict`.
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. See [`plotParams`](@ref) for possibilities; only quantities well defined for each cell/particle individually are possible.
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. This keyword argument is only relevant if `quantity` depends on one of the :ode components (e.g., `:ode_atomic_fraction`).
 
 # Returns
 
   - The values of `quantity` for every cell/particle.
 """
-function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
+function scatterQty(
+    data_dict::Dict,
+    quantity::Symbol;
+    icGen::Function=initialConditionFunction,
+)::Vector{<:Number}
 
     #####################
     # Derived quantities
@@ -28,27 +37,27 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         if magnitude == :mass
 
-            scatter_qty = computeMass(data_dict, component)
+            scatter_qty = computeMass(data_dict, component; icGen)
 
         elseif magnitude == :mass_density
 
-            scatter_qty = computeMassDensity(data_dict, component)
+            scatter_qty = computeMassDensity(data_dict, component; icGen)
 
         elseif magnitude == :number_density
 
-            scatter_qty = computeNumberDensity(data_dict, component)
+            scatter_qty = computeNumberDensity(data_dict, component; icGen)
 
         elseif magnitude == :number
 
-            scatter_qty = computeNumber(data_dict, component)
+            scatter_qty = computeNumber(data_dict, component; icGen)
 
         elseif magnitude == :fraction
 
-            scatter_qty = computeFraction(data_dict, component)
+            scatter_qty = computeFraction(data_dict, component; icGen)
 
         elseif magnitude == :eff
 
-            scatter_qty = computeEfficiencyFF(data_dict, component)
+            scatter_qty = computeEfficiencyFF(data_dict, component; icGen)
 
         elseif magnitude == :specific_z_angular_momentum
 
@@ -94,19 +103,19 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
         elseif magnitude == :kinetic_energy
 
-            scatter_qty = computeKineticEnergy(data_dict, component)
+            scatter_qty = computeKineticEnergy(data_dict, component; icGen)
 
         elseif magnitude == :potential_energy
 
-            scatter_qty = computePotentialEnergy(data_dict, component)
+            scatter_qty = computePotentialEnergy(data_dict, component; icGen)
 
         elseif magnitude == :total_energy
 
-            scatter_qty = computeTotalEnergy(data_dict, component)
+            scatter_qty = computeTotalEnergy(data_dict, component; icGen)
 
         elseif magnitude == :depletion_time
 
-            scatter_qty = computeDepletionTime(data_dict, component)
+            scatter_qty = computeDepletionTime(data_dict, component; icGen)
 
         elseif magnitude == :xy_distance
 
@@ -256,7 +265,7 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
 
     elseif quantity == :ode_metallicity
 
-        scatter_qty = computeFraction(data_dict, :ode_metals) ./ SOLAR_METALLICITY
+        scatter_qty = computeFraction(data_dict, :ode_metals; icGen) ./ SOLAR_METALLICITY
 
     elseif quantity ∈ GAS_METALS_MASS
 
@@ -311,6 +320,7 @@ Compute `quantity` for the whole system of cell/particles in `data_dict`.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. See [`plotParams`](@ref) for possibilities.
   - `agg_function::Union{Function,Symbol}=:default`: If `quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `agg_function` to accumulate the values given by [`scatterQty`](@ref). If `agg_function` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. This keyword argument is only relevant if `quantity` depends on one of the :ode components (e.g., `:ode_atomic_fraction`).
 
 # Returns
 
@@ -320,6 +330,7 @@ function integrateQty(
     data_dict::Dict,
     quantity::Symbol;
     agg_function::Union{Function,Symbol}=:default,
+    icGen::Function=initialConditionFunction,
 )::Number
 
     if agg_function == :default
@@ -334,7 +345,7 @@ function integrateQty(
 
             if magnitude == :mass
 
-                integrated_qty = sum(computeMass(data_dict, component); init=0.0u"Msun")
+                integrated_qty = sum(computeMass(data_dict, component; icGen); init=0.0u"Msun")
 
             elseif magnitude == :number
 
@@ -360,7 +371,7 @@ function integrateQty(
                     type = :gas
                 end
 
-                comp_mass = sum(computeMass(data_dict, component); init=0.0u"Msun")
+                comp_mass = sum(computeMass(data_dict, component; icGen); init=0.0u"Msun")
                 ref_mass  = sum(computeMass(data_dict, type); init=0.0u"Msun")
 
                 if iszero(ref_mass)
@@ -371,7 +382,7 @@ function integrateQty(
 
             elseif magnitude == :clumping_factor
 
-                integrated_qty = computeClumpingFactor(data_dict, component)
+                integrated_qty = computeClumpingFactor(data_dict, component; icGen)
 
             elseif magnitude == :specific_z_angular_momentum
 
@@ -380,7 +391,7 @@ function integrateQty(
                     init=0.0u"Msun * pc^2 * yr^-1",
                 )
 
-                M = sum(computeMass(data_dict, component); init=0.0u"Msun")
+                M = sum(computeMass(data_dict, component; icGen); init=0.0u"Msun")
 
                 integrated_qty = Lz / M
 
@@ -397,11 +408,14 @@ function integrateQty(
 
             elseif magnitude == :potential_energy
 
-                integrated_qty = sum(computePotentialEnergy(data_dict, component); init=0.0u"erg")
+                integrated_qty = sum(
+                    computePotentialEnergy(data_dict, component; icGen);
+                    init=0.0u"erg",
+                )
 
             elseif magnitude == :depletion_time
 
-                M = sum(computeMass(data_dict, component); init=0.0u"Msun")
+                M = sum(computeMass(data_dict, component; icGen); init=0.0u"Msun")
                 cp_type = plotParams(quantity).cp_type
 
                 if cp_type == :stellar
@@ -563,6 +577,19 @@ function integrateQty(
 
             integrated_qty = 1.0 / AGE_RESOLUTION
 
+        elseif quantity == :molecular_stellar_fraction
+
+            m_H2 = integrateQty(data_dict, :ode_molecular_stellar_mass)
+            m_star = integrateQty(data_dict, :stellar_mass)
+
+            m_tot = m_H2 + m_star
+
+            if iszero(m_tot)
+                integrated_qty = NaN
+            else
+                integrated_qty = m_H2 / m_tot
+            end
+
         ##################
         # Time quantities
         ##################
@@ -619,7 +646,7 @@ function integrateQty(
 
         elseif quantity == :ode_metallicity
 
-            Mz = sum(computeMass(data_dict, :ode_metals); init=0.0u"Msun")
+            Mz = sum(computeMass(data_dict, :ode_metals; icGen); init=0.0u"Msun")
             Mg = sum(computeMass(data_dict, :gas); init=0.0u"Msun")
 
             if iszero(Mg)

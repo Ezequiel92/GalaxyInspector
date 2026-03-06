@@ -2195,6 +2195,24 @@ function plotParams(quantity::Symbol)::PlotParams
             unit     = u"Msun * yr^-1",
         )
 
+    elseif quantity == :molecular_stellar_fraction
+
+        plot_params_01 = plotParams(:ode_molecular_stellar_mass)
+        plot_params_02 = plotParams(:stellar_mass)
+
+        var_name_01 = plot_params_01.var_name
+        var_name_02 = plot_params_02.var_name
+
+        request_01 = plot_params_01.request
+        request_02 = plot_params_02.request
+
+        plot_params = PlotParams(;
+            request  = mergeRequests(request_01, request_02),
+            var_name = LaTeXString(
+                var_name_01 * L"\, / \, (" * var_name_01 * L"+" * var_name_02 * L")",
+            ),
+        )
+
     else
 
         throw(ArgumentError("plotParams: I don't recognize the quantity :$(quantity)"))

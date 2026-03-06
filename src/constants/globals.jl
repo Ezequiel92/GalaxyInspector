@@ -1025,7 +1025,7 @@ struct LinearGrid
             start  :: Number,
             stop   :: Number,
             n_bins :: Int;
-            <keyword arguments>,
+            <keyword arguments>
         )
 
     Constructor for `LinearGrid`.
@@ -1108,7 +1108,7 @@ struct LinearGrid
     """
         LinearGrid(
             x_edges :: Vector{<:Number};
-            <keyword arguments>,
+            <keyword arguments>
         )
 
     Constructor for `LinearGrid`.

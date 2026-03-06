@@ -402,7 +402,11 @@ function computeDepletionTime(
 end
 
 @doc raw"""
-    computeDepletionTime(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Time}
+    computeDepletionTime(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Vector{<:Unitful.Time}
 
 Compute the depletion time,
 
@@ -428,19 +432,24 @@ t_\mathrm{ff} = \frac{M_\mathrm{gas}}{\dot{M}_\star} \, .
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
 
 # Returns
 
   - The depletion time of `component`.
 """
-function computeDepletionTime(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Time}
+function computeDepletionTime(
+    data_dict::Dict,
+    component::Symbol;
+    icGen::Function=initialConditionFunction,
+)::Vector{<:Unitful.Time}
 
     if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeDepletionTime: `component` can only be one of the gas elements \
         of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
     end
 
-    masses = computeMass(data_dict, component)
+    masses = computeMass(data_dict, component; icGen)
     sfrs   = data_dict[:gas]["SFR "]
 
     return computeDepletionTime(masses, sfrs)

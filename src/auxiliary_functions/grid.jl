@@ -327,7 +327,7 @@ end
     gridToJuliaMatrix(
         grid::CubicGrid,
         l_unit::Unitful.Units;
-        <keyword arguments>,
+        <keyword arguments>
     )::Matrix{Float64}
 
 Create a 3×n matrix with the coordinates of every voxel in `grid`, where n is the total number of voxels.

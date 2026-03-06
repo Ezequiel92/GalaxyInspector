@@ -524,7 +524,11 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
 end
 
 """
-    computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
+    computeFraction(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Vector{Float64}
 
 Compute the fraction of a given `component` in each cell/particle.
 
@@ -548,6 +552,7 @@ Compute the fraction of a given `component` in each cell/particle.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) (except :stellar, :dark_matter, and :black_hole).
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
 
 # Returns
 
@@ -557,10 +562,14 @@ Compute the fraction of a given `component` in each cell/particle.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
+function computeFraction(
+    data_dict::Dict,
+    component::Symbol;
+    icGen::Function=initialConditionFunction,
+)::Vector{Float64}
 
     # Initial condition for our star formation model
-    ode_ic = initialConditionFunction(data_dict, component)
+    ode_ic = icGen(data_dict, component)
 
     if isnothing(ode_ic)
 
@@ -1033,7 +1042,11 @@ end
 ###################
 
 @doc raw"""
-    computeClumpingFactor(data_dict::Dict, component::Symbol)::Float64
+    computeClumpingFactor(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Float64
 
 Compute the clumping factor,
 
@@ -1059,26 +1072,35 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
 
 # Returns
 
   - The clumping factor.
 """
-function computeClumpingFactor(data_dict::Dict, component::Symbol)::Float64
+function computeClumpingFactor(
+    data_dict::Dict,
+    component::Symbol;
+    icGen::Function=initialConditionFunction,
+)::Float64
 
     if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
         of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
     end
 
-    ρ = computeMassDensity(data_dict, component)
+    ρ = computeMassDensity(data_dict, component; icGen)
 
     return computeClumpingFactor(ρ)
 
 end
 
 @doc raw"""
-    computeEfficiencyFF(data_dict::Dict, component::Symbol)::Vector{Float64}
+    computeEfficiencyFF(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Vector{Float64}
 
 Compute the star formation efficiency per free-fall time, according to the definition in eq. 1 of Krumholz et al. (2012),
 
@@ -1121,6 +1143,7 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
 
 # Returns
 
@@ -1130,7 +1153,11 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
 
 M. R. Krumholz et al. (2012). *A UNIVERSAL, LOCAL STAR FORMATION LAW IN GALACTIC CLOUDS, NEARBY GALAXIES, HIGH-REDSHIFT DISKS, AND STARBURSTS*. The Astrophysical Journal, **745(1)**, 69. [doi:10.1088/0004-637X/745/1/69](https://doi.org/10.1088/0004-637X/745/1/69)
 """
-function computeEfficiencyFF(data_dict::Dict, component::Symbol)::Vector{Float64}
+function computeEfficiencyFF(
+    data_dict::Dict,
+    component::Symbol;
+    icGen::Function=initialConditionFunction,
+)::Vector{Float64}
 
     if component ∉ COMPONENTS || component ∈ [:dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
@@ -1146,8 +1173,8 @@ function computeEfficiencyFF(data_dict::Dict, component::Symbol)::Vector{Float64
 
     else
 
-        densities = computeMassDensity(data_dict, component)
-        masses    = computeMass(data_dict, component)
+        densities = computeMassDensity(data_dict, component; icGen)
+        masses    = computeMass(data_dict, component; icGen)
         sfrs      = data_dict[:gas]["SFR "]
 
     end
@@ -1157,7 +1184,11 @@ function computeEfficiencyFF(data_dict::Dict, component::Symbol)::Vector{Float64
 end
 
 """
-    computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
+    computeMass(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Vector{<:Unitful.Mass}
 
 Compute the mass in each cell/particle of a given `component`.
 
@@ -1183,6 +1214,7 @@ Compute the mass in each cell/particle of a given `component`.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
 
 # Returns
 
@@ -1192,7 +1224,11 @@ Compute the mass in each cell/particle of a given `component`.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
+function computeMass(
+    data_dict::Dict,
+    component::Symbol;
+    icGen::Function=initialConditionFunction,
+)::Vector{<:Unitful.Mass}
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeMass: `component` can only be one of the elements of \
@@ -1205,7 +1241,7 @@ function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
     else
 
-        fractions = computeFraction(data_dict, component)
+        fractions = computeFraction(data_dict, component; icGen)
 
         if isempty(fractions)
 
@@ -1238,7 +1274,11 @@ function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 end
 
 """
-    computeMassDensity(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Density}
+    computeMassDensity(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Vector{<:Unitful.Density}
 
 Compute the mass density of a given gas `component` for each cell.
 
@@ -1260,6 +1300,7 @@ Compute the mass density of a given gas `component` for each cell.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
 
 # Returns
 
@@ -1269,7 +1310,11 @@ Compute the mass density of a given gas `component` for each cell.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeMassDensity(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Density}
+function computeMassDensity(
+    data_dict::Dict,
+    component::Symbol;
+    icGen::Function=initialConditionFunction,
+)::Vector{<:Unitful.Density}
 
     if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
@@ -1282,7 +1327,7 @@ function computeMassDensity(data_dict::Dict, component::Symbol)::Vector{<:Unitfu
 
     else
 
-        fractions = computeFraction(data_dict, component)
+        fractions = computeFraction(data_dict, component; icGen)
 
         if isempty(fractions)
 
@@ -1312,7 +1357,11 @@ function computeMassDensity(data_dict::Dict, component::Symbol)::Vector{<:Unitfu
 end
 
 """
-    computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:NumberDensity}
+    computeNumberDensity(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Vector{<:NumberDensity}
 
 Compute the number density of a given gas `component` for each cell.
 
@@ -1338,6 +1387,7 @@ Compute the number density of a given gas `component` for each cell.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
 
 # Returns
 
@@ -1347,7 +1397,11 @@ Compute the number density of a given gas `component` for each cell.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:NumberDensity}
+function computeNumberDensity(
+    data_dict::Dict,
+    component::Symbol;
+    icGen::Function=initialConditionFunction,
+)::Vector{<:NumberDensity}
 
     if component ∈ [:helium, :br_molecular, :ode_molecular, :ode_molecular_stellar]
 
@@ -1355,7 +1409,7 @@ function computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:Numb
         # Number density as the amount of elements (atoms/molecules) per unit volume
         ############################################################################################
 
-        ρ = computeMassDensity(data_dict, component)
+        ρ = computeMassDensity(data_dict, component; icGen)
 
         n = ρ / (2.0 * Unitful.mp)
 
@@ -1365,7 +1419,7 @@ function computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:Numb
         # Number density as the mass density in units of proton mass per unit volume
         ############################################################################################
 
-        ρ = computeMassDensity(data_dict, component)
+        ρ = computeMassDensity(data_dict, component; icGen)
 
         n = ρ / Unitful.mp
 
@@ -1387,7 +1441,11 @@ function computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:Numb
 end
 
 """
-    computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
+    computeNumber(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Vector{Float64}
 
 Compute the number of a given `component`.
 
@@ -1417,6 +1475,7 @@ Compute the number of a given `component`.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
 
 # Returns
 
@@ -1426,7 +1485,11 @@ Compute the number of a given `component`.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
+function computeNumber(
+    data_dict::Dict,
+    component::Symbol;
+    icGen::Function=initialConditionFunction,
+)::Vector{Float64}
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeNumber: `component` can only be one of the elements of \
@@ -1455,7 +1518,7 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
         # Number as the amount of elements (atoms/molecules) in each cell
         ############################################################################################
 
-        M = computeMass(data_dict, component)
+        M = computeMass(data_dict, component; icGen)
 
         N = ustrip.(Unitful.NoUnits, M / (2.0 * Unitful.mp))
 
@@ -1465,7 +1528,7 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
         # Number as the mass in units of proton mass
         ############################################################################################
 
-        M = computeMass(data_dict, component)
+        M = computeMass(data_dict, component; icGen)
 
         N = ustrip.(Unitful.NoUnits, M / Unitful.mp)
 
