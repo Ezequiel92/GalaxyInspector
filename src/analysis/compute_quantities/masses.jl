@@ -968,10 +968,10 @@ function _compute_fraction(
 
             Threads.@threads for i in eachindex(fractions)
 
-                if !isnan(fi[i]) && ρc[i] >= THRESHOLD_DENSITY
+                if !isnan(fa[i]) && ρc[i] >= THRESHOLD_DENSITY
 
                     # Fraction of neutral hydrogen according to our SF model
-                    fractions[i] = fa + fm + fs
+                    fractions[i] = fa[i] + fm[i] + fs[i]
 
                 else
 
