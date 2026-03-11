@@ -188,6 +188,113 @@ function computeTimeStamps(
 end
 
 """
+    getTimeTicks(
+        simulation_path::String,
+        time_quantity::Symbol;
+        <keyword arguments>
+    )::Vector{<:Union{Float64,Unitful.Time}}
+
+Compute the given time stamp associated with each snapshot of a simulation.
+
+# Arguments
+
+  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `time_quantity::Symbol`: Target time stamp. The options are:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be analyzed. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+
+# Returns
+
+  - A vector with the time stamps.
+"""
+function getTimeTicks(
+    simulation_path::String,
+    time_quantity::Symbol;
+    slice::IndexType=(:),
+)::Vector{<:Union{Float64,Unitful.Time}}
+
+    (
+        time_quantity ∈ [:scale_factor, :redshift, :physical_time, :lookback_time] ) ||
+        throw(ArgumentError("getTimeTicks: The argument `time_quantity` has to be \
+        :scale_factor, :redshift, :physical_time or :lookback_time, but I got :$(time_quantity)")
+    )
+
+    snapshot_paths = getSnapshotPaths(simulation_path)[:paths]
+
+    (
+        isempty(snapshot_paths) &&
+        throw(ArgumentError("getTimeTicks: There are no snapshots in $(simulation_path), \
+        after slicing with slice = $(slice)"))
+    )
+
+    first_snapshot = first(snapshot_paths)
+
+    if isSimCosmological(simulation_path)
+
+        scale_factors = [readTime(path) for path in snapshot_paths]
+
+        if time_quantity == :scale_factor
+
+            # For cosmological simulations, the time field in the Header of the snapshot is the scale factor
+            time_ticks = scale_factors
+
+        elseif time_quantity == :redshift
+
+            time_ticks = @. (1.0 / scale_factors) - 1.0
+
+        elseif time_quantity == :physical_time
+
+            time_ticks = computeTime(scale_factors, readSnapHeader(first_snapshot))
+
+        elseif time_quantity == :lookback_time
+
+            physical_times = computeTime(scale_factors, readSnapHeader(first_snapshot))
+            time_ticks     = maximum(physical_times) .- physical_times
+
+        end
+
+    else
+
+        if time_quantity == :scale_factor
+
+            # a = 1.0 for non-cosmological simulations
+            time_ticks = ones(length(snapshot_paths))
+
+        elseif time_quantity == :redshift
+
+            # z = 0.0 for non-cosmological simulations
+            time_ticks = zeros(length(snapshot_paths))
+
+        elseif time_quantity == :physical_time
+
+            # Compute the factor for internal units of time
+            u_time = internalUnits("CLKT", first_snapshot)
+
+            # For non-cosmological simulations, the time field in the Header of the snapshot is the physical time
+            time_ticks = [readTime(path) * u_time for path in snapshot_paths]
+
+        elseif time_quantity == :lookback_time
+
+            # Compute the factor for internal units of time
+            u_time = internalUnits("CLKT", first_snapshot)
+
+            # For non-cosmological simulations, the time field in the Header of the snapshot is the physical time
+            physical_times = [readTime(path) * u_time for path in snapshot_paths]
+            time_ticks     = maximum(physical_times) .- physical_times
+
+        end
+
+    end
+
+    return safeSlice(time_ticks, slice)
+
+end
+
+"""
     computeStellarBirthTime(data_dict::Dict)::Vector{<:Unitful.Time}
 
 Compute the stellar birth times.
