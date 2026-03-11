@@ -806,14 +806,14 @@ Metadata for a simulation.
 
 # Fields
 
-  - `path           :: String`: Full path to the simulation directory.
-  - `index          :: Int`: An index associated with the simulation.
-  - `slice          :: IndexType`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots).
-  - `cosmological   :: Bool`: If the simulation is cosmological,
+  - `path             :: String`: Full path to the simulation directory.
+  - `index            :: Int`: An index associated with the simulation.
+  - `slice            :: IndexType`: Slice of the simulation, i.e. which snapshots will be read. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots).
+  - `cosmological     :: Bool`: If the simulation is cosmological,
 
       + `false` -> Newtonian simulation    (`ComovingIntegrationOn` = 0).
       + `true`  -> Cosmological simulation (`ComovingIntegrationOn` = 1).
-  - `snapshot_table :: DataFrame`: A dataframe where each row is a snapshot, and the colums are
+  - `simulation_table :: DataFrame`: A dataframe where each row is a snapshot, and the colums are
 
       + `:ids`            -> Dataframe index, i.e. if there are 10 snapshots in total it runs from 1 to 10.
       + `:numbers`        -> Number in the file name.
@@ -825,11 +825,11 @@ Metadata for a simulation.
       + `:groupcat_paths` -> Full path to each group catalog files.
 """
 struct Simulation
-    path           :: String
-    index          :: Int
-    slice          :: IndexType
-    cosmological   :: Bool
-    snapshot_table :: DataFrame
+    path             :: String
+    index            :: Int
+    slice            :: IndexType
+    cosmological     :: Bool
+    simulation_table :: DataFrame
 end
 
 """

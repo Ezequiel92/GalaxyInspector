@@ -2128,1119 +2128,6 @@ function daSDSSMockup(
 
 end
 
-####################################################################################################
-# Signature for data analysis functions targeting plotTimeSeries() in ./src/plotting/pipelines.jl
-####################################################################################################
-#
-# A data analysis functions targeting plotTimeSeries() must take a Simulation struct (see
-# ./src/constants/globals.jl for the canonical description), and return two vectors.
-# It should return `nothing` if the input data has some problem that prevents computation
-# (e.g. is empty).
-#
-# Expected signature:
-#
-#   da_function(sim_data, args...; kw_args...) -> (processed_data_x, processed_data_y) or `nothing`
-#
-# where:
-#
-#   - sim_data::Simulation
-#   - processed_data_x::Vector{<:Number}
-#   - processed_data_y::Vector{<:Number}
-#
-####################################################################################################
-
-"""
-    daEvolution(
-        sim_data::Simulation,
-        x_quantity::Symbol,
-        y_quantity::Symbol;
-        <keyword arguments>
-    )::NTuple{2,Vector{<:Number}}
-
-Compute the time series of two quantities, using [`integrateQty`](@ref) to compute their values at each time.
-
-!!! note
-
-    The log10 operation, if requested, is applied after the integration of the quantities.
-
-# Arguments
-
-  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
-  - `x_quantity::Symbol`: Quantity for the x axis.
-  - `y_quantity::Symbol`: Quantity for the y axis.
-  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
-  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
-  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
-  - `x_agg_func::Union{Function,Symbol}=:default`: If `x_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `x_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `x_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
-  - `y_agg_func::Union{Function,Symbol}=:default`: If `y_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `y_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `y_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
-  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
-  - `show_progress::Bool=true`: If a progress bar will be shown.
-
-# Returns
-
-  - A tuple with two elements:
-
-      + A Vector with the time series of `x_quantity`.
-      + A Vector with the time series of `y_quantity`.
-"""
-function daEvolution(
-    sim_data::Simulation,
-    x_quantity::Symbol,
-    y_quantity::Symbol;
-    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    extra_filter::Function=filterNothing,
-    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    x_log::Union{Unitful.Units,Nothing}=nothing,
-    y_log::Union{Unitful.Units,Nothing}=nothing,
-    x_agg_func::Union{Function,Symbol}=:default,
-    y_agg_func::Union{Function,Symbol}=:default,
-    smooth::Int=0,
-    cumulative::Bool=false,
-    icGen::Function=initialConditionFunction,
-    show_progress::Bool=true,
-)::NTuple{2,Vector{<:Number}}
-
-    qty_request = mergeRequests(plotParams(x_quantity).request, plotParams(y_quantity).request)
-
-    integration_functions = (
-        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func, icGen),
-        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func, icGen),
-    )
-
-    return daEvolution(
-        sim_data,
-        qty_request,
-        integration_functions;
-        trans_mode,
-        filter_mode,
-        extra_filter,
-        ff_request,
-        x_log,
-        y_log,
-        smooth,
-        cumulative,
-        show_progress,
-    )
-
-end
-
-"""
-    daEvolution(
-        sim_data::Simulation,
-        qty_request::Dict{Symbol,Vector{String}},
-        integration_functions::NTuple{2,Function};
-        <keyword arguments>
-    )::NTuple{2,Vector{<:Number}}
-
-Compute the time series of two quantities, using the provided integration functions to compute their values at each time.
-
-!!! note
-
-    The log10 operation, if requested, is applied after the integration of the quantities.
-
-# Arguments
-
-  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
-  - `qty_request::Dict{Symbol,Vector{String}}`: Request dictionary for both quantities.
-  - `integration_functions::NTuple{2,Function}`: Functions to compute the integral value of the x and y quantities at a given time. The functions must have the signature:
-
-    `integration_functions(data_dict::Dict)::Number`
-
-    where
-
-      + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
-  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
-  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
-  - `smooth::Int=0`: The result of `integration_functions` will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
-  - `show_progress::Bool=true`: If a progress bar will be shown.
-
-# Returns
-
-  - A tuple with two elements:
-
-      + A Vector with the time series of `x_quantity`.
-      + A Vector with the time series of `y_quantity`.
-"""
-function daEvolution(
-    sim_data::Simulation,
-    qty_request::Dict{Symbol,Vector{String}},
-    integration_functions::NTuple{2,Function};
-    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
-    extra_filter::Function=filterNothing,
-    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    x_log::Union{Unitful.Units,Nothing}=nothing,
-    y_log::Union{Unitful.Units,Nothing}=nothing,
-    smooth::Int=0,
-    cumulative::Bool=false,
-    show_progress::Bool=true,
-)::NTuple{2,Vector{<:Number}}
-
-    base_request = mergeRequests(qty_request, ff_request)
-
-    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
-    filter_function, request = selectFilter(filter_mode, trans_request)
-
-    # Iterate over each snapshot in the slice
-    iterator = eachrow(DataFrame(sim_data.snapshot_table[sim_data.slice, :]))
-
-    n_frames = length(iterator)
-
-    x_values = Vector{Number}(fill(NaN, n_frames))
-    y_values = Vector{Number}(fill(NaN, n_frames))
-
-    # Initialize the progress bar
-    prog_bar = Progress(
-        n_frames,
-        dt=0.5,
-        desc="Analyzing and plotting the data... ",
-        color=:blue,
-        barglyphs=BarGlyphs("|#  |"),
-        enabled=show_progress,
-    )
-
-    for (i, sim_table_row) in pairs(iterator)
-
-        # Skip missing snapshots
-        if ismissing(sim_table_row[:snapshot_paths])
-
-            logging[] && @warn("daEvolution: The snapshot $(sim_table_row[:row_id]) is missing")
-
-            next!(prog_bar)
-
-            continue
-
-        end
-
-        data_dict = makeDataDict(
-            sim_data.path,
-            sim_table_row[:row_id],
-            request,
-            sim_data.snapshot_table,
-        )
-
-        # Translate the data
-        translateData!(data_dict, translation...)
-
-        # Rotate the data
-        rotateData!(data_dict, rotation...)
-
-        # Filter the data
-        filterData!(data_dict; filter_function)
-
-        # Filter the data again
-        filterData!(data_dict; filter_function=extra_filter)
-
-        # Compute the value for the x axis
-        x_values[i] = integration_functions[1](data_dict)
-
-        # Compute the value for the y axis
-        y_values[i] = integration_functions[2](data_dict)
-
-        # Move the progress bar forward
-        next!(prog_bar)
-
-    end
-
-    # Sort by the x axis
-    sort_idxs = sortperm(x_values)
-
-    x_values = x_values[sort_idxs]
-    y_values = y_values[sort_idxs]
-
-    if cumulative
-        y_values = cumsum(y_values)
-    end
-
-    # Inf values break the plot auto limits computation, so we remove them
-    if isnothing(x_log)
-        x_filter = isinf
-    else
-        x_filter = x -> isinf(x) || !isPositive(x)
-    end
-
-    if isnothing(y_log)
-        y_filter = isinf
-    else
-        y_filter = y -> isinf(y) || !isPositive(y)
-    end
-
-    x_idxs = map(x_filter, x_values)
-    y_idxs = map(y_filter, y_values)
-
-    delete_idxs = x_idxs ∪ y_idxs
-
-    deleteat!(x_values, delete_idxs)
-    deleteat!(y_values, delete_idxs)
-
-    if any(isempty, [x_values, y_values])
-
-        logging[] && @warn("daEvolution: The results of `integration_functions` are empty")
-
-        return Float64[], Float64[]
-
-    end
-
-    x_axis = isnothing(x_log) ? x_values : log10.(ustrip.(x_log, x_values))
-    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
-
-    if iszero(smooth)
-        return x_axis, y_axis
-    else
-        return smoothWindow(x_axis, y_axis, smooth)
-    end
-
-end
-
-"""
-    daSFRtxt(
-        sim_data::Simulation,
-        x_quantity::Symbol,
-        y_quantity::Symbol;
-        <keyword arguments>
-    )::NTuple{2,Vector{<:Number}}
-
-Compute the stellar mass or SFR evolution using the data in the `sfr.txt` file.
-
-# Arguments
-
-  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
-  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
-
-      + `:scale_factor`  -> Scale factor.
-      + `:redshift`      -> Redshift.
-      + `:physical_time` -> Physical time since the Big Bang.
-      + `:lookback_time` -> Physical time left to reach the last snapshot.
-  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
-
-      + `:stellar_mass` -> Cumulative stellar mass.
-      + `:sfr`          -> Star formation rate.
-  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-
-# Returns
-
-  - A tuple with two elements:
-
-      + A Vector with the time series of `x_quantity`.
-      + A Vector with the time series of `y_quantity`.
-"""
-function daSFRtxt(
-    sim_data::Simulation,
-    x_quantity::Symbol,
-    y_quantity::Symbol;
-    smooth::Int=0,
-)::NTuple{2,Vector{<:Number}}
-
-    snapshot_paths = sim_data.snapshot_table[!, :snapshot_paths]
-
-    idx = findfirst(!ismissing, snapshot_paths)
-
-    (
-        !isnothing(idx) ||
-        throw(ArgumentError("daSFRtxt: I couldn't find any snapshots in $(sim_data.path), \
-        and I need at least one for unit conversion"))
-    )
-
-    # Read the first snapshot
-    snapshot_path = snapshot_paths[idx]
-
-    # Read its header
-    header = readSnapHeader(snapshot_path)
-
-    # Read the data in the `sfr.txt` file
-    sfr_txt_data = readSfrFile(joinpath(sim_data.path, SFR_REL_PATH), snapshot_path)
-
-    # Read the time axis
-    time_ticks = sfr_txt_data[!, 1]
-
-    if x_quantity == :scale_factor
-
-        (
-            !sim_data.cosmological &&
-            logging[] &&
-            @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
-            :physical_time")
-        )
-
-        x_axis = time_ticks
-
-    elseif x_quantity == :redshift
-
-        if sim_data.cosmological
-
-            x_axis = (1.0 ./ time_ticks) .- 1.0
-
-        else
-
-            (
-                logging[] &&
-                @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
-                :physical_time")
-            )
-
-            x_axis = time_ticks
-
-        end
-
-    elseif x_quantity == :physical_time
-
-        if sim_data.cosmological
-            x_axis = computeTime(time_ticks, header)
-        else
-            x_axis = time_ticks
-        end
-
-    elseif x_quantity == :lookback_time
-
-        if sim_data.cosmological
-            physical_times = computeTime(time_ticks, header)
-        else
-            physical_times = time_ticks
-        end
-
-        x_axis = maximum(physical_times) .- physical_times
-
-    else
-
-        throw(ArgumentError("daSFRtxt: `x_quantity` can only be :scale_factor, :redshift, \
-        :physical_time or :lookback_time, but I got :$(x_quantity)"))
-
-    end
-
-    if y_quantity == :stellar_mass
-
-        y_axis = sfr_txt_data[!, 6]
-
-    elseif y_quantity == :sfr
-
-        y_axis = sfr_txt_data[!, 3]
-
-    else
-
-        throw(ArgumentError("daSFRtxt: `y_quantity` can only be :stellar_mass or :sfr, \
-        but I got :$(y_quantity)"))
-
-    end
-
-    # Apply smoothing if required
-    if !iszero(smooth)
-        x_axis, y_axis = smoothWindow(x_axis, y_axis, smooth)
-    end
-
-    return x_axis, y_axis
-
-end
-
-"""
-    daCPUtxt(
-        sim_data::Simulation,
-        target::String,
-        x_quantity::Symbol,
-        y_quantity::Symbol;
-        <keyword arguments>
-    )::NTuple{2,Vector{<:Number}}
-
-Compute the evolution of a measured quantity in the `cpu.txt` file, for a given `target` process.
-
-# Arguments
-
-  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
-  - `target::String`: Target process (e.g. "total").
-  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
-
-      + `:time_step`              -> Time step.
-      + `:physical_time`          -> Physical time since the Big Bang.
-      + `:clock_time_s`           -> Clock time duration of the time step in seconds.
-      + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
-      + `:tot_clock_time_s`       -> Total clock time in seconds.
-      + `:tot_clock_time_percent` -> Total clock time as a percentage.
-  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
-
-      + `:time_step`              -> Time step.
-      + `:physical_time`          -> Physical time since the Big Bang.
-      + `:clock_time_s`           -> Clock time duration of the time step in seconds.
-      + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
-      + `:tot_clock_time_s`       -> Total clock time in seconds.
-      + `:tot_clock_time_percent` -> Total clock time as a percentage.
-  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from `cpu.txt` is left as is.
-  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-
-# Returns
-
-  - A tuple with two elements:
-
-      + A Vector with the time series of `x_quantity`.
-      + A Vector with the time series of `y_quantity`.
-"""
-function daCPUtxt(
-    sim_data::Simulation,
-    target::String,
-    x_quantity::Symbol,
-    y_quantity::Symbol;
-    y_log::Union{Unitful.Units,Nothing}=nothing,
-    smooth::Int=0,
-)::NTuple{2,Vector{<:Number}}
-
-    snapshot_paths = sim_data.snapshot_table[!, :snapshot_paths]
-
-    idx = findfirst(!ismissing, snapshot_paths)
-
-    (
-        !isnothing(idx) ||
-        throw(ArgumentError("daCPUtxt: I couldn't find any snapshots in $(sim_data.path), \
-        and I need at least one for unit conversion"))
-    )
-
-    # Read the first snapshot
-    snapshot_path = snapshot_paths[idx]
-
-    # Read its header
-    header = readSnapHeader(snapshot_path)
-
-    # Read the data in the `sfr.txt` file
-    cpu_txt_data = readCpuFile(joinpath(sim_data.path, CPU_REL_PATH), [target])[target]
-
-    if x_quantity == :time_step
-
-        x_axis = cpu_txt_data[:, 1]
-
-    elseif x_quantity == :physical_time
-
-        if sim_data.cosmological
-            x_axis = computeTime(cpu_txt_data[:, 2], header)
-        else
-            x_axis = cpu_txt_data[:, 2] .* internalUnits("CLKT", snapshot_path)
-        end
-
-    elseif x_quantity == :clock_time_s
-
-        x_axis = cpu_txt_data[:, 3] .* u"s"
-
-    elseif x_quantity == :clock_time_percent
-
-        x_axis = cpu_txt_data[:, 4]
-
-    elseif x_quantity == :tot_clock_time_s
-
-        x_axis = cpu_txt_data[:, 5] .* u"s"
-
-    elseif x_quantity == :tot_clock_time_percent
-
-        x_axis = cpu_txt_data[:, 6]
-
-    else
-
-        throw(ArgumentError("daCPUtxt: I don't recognize the x_quantity :$(x_quantity)"))
-
-    end
-
-    if y_quantity == :time_step
-
-        y_values = cpu_txt_data[:, 1]
-
-    elseif y_quantity == :physical_time
-
-        if sim_data.cosmological
-            y_values = computeTime(cpu_txt_data[:, 2], header)
-        else
-            y_values = cpu_txt_data[:, 2] .* internalUnits("CLKT", snapshot_path)
-        end
-
-    elseif y_quantity == :clock_time_s
-
-        y_values = cpu_txt_data[:, 3] .* u"s"
-
-    elseif y_quantity == :clock_time_percent
-
-        y_values = cpu_txt_data[:, 4]
-
-    elseif y_quantity == :tot_clock_time_s
-
-        y_values = cpu_txt_data[:, 5] .* u"s"
-
-    elseif y_quantity == :tot_clock_time_percent
-
-        y_values = cpu_txt_data[:, 6]
-
-    else
-
-        throw(ArgumentError("daCPUtxt: I don't recognize the y_quantity :$(y_quantity)"))
-
-    end
-
-    delete_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
-
-    deleteat!(x_axis, delete_idxs)
-    deleteat!(y_values, delete_idxs)
-
-    if any(isempty, [x_axis, y_values])
-
-        logging[] && @warn("daCPUtxt: The results of `cpu.txt` are empty")
-
-        return Float64[], Float64[]
-
-    end
-
-    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
-
-    # Apply smoothing if required
-    if !iszero(smooth)
-        x_axis, y_axis = smoothWindow(x_axis, y_axis, smooth)
-    end
-
-    return x_axis, y_axis
-
-end
-
-"""
-    daVirialAccretion(
-        sim_data::Simulation;
-        <keyword arguments>
-    )::NTuple{2,Vector{<:Number}}
-
-Compute the evolution of the accreted mass into a sphere with the virial radius.
-
-# Arguments
-
-  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
-  - `component::Symbol`: Component to compute the accreted mass for. The options are:
-
-      + `:dark_matter` -> Dark matter.
-      + `:black_hole`  -> Black holes.
-      + `:gas`         -> Gas.
-      + `:stellar`     -> Stars.
-      + `:all`         -> All the matter.
-  - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
-
-      + `:net`     -> Net accreted mass.
-      + `:inflow`  -> Inflow mass only.
-      + `:outflow` -> Outflow mass only.
-  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
-  - `trace::Symbol=:automatic`: How to trace the mass. The option are:
-
-      + `:automatic` -> Automatically decide whether to use tracers or not. It will use tracers for the :gas component, and the particles for every other component.
-      + `:tracers`   -> Use tracers to compute the mass flux.
-      + `:particles` -> Use the particles/cells directly to compute the mass flux.
-  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeVirialAccretion`](@ref) is left as is.
-  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `show_progress::Bool=true`: If a progress bar will be shown.
-
-# Returns
-
-  - A tuple with two elements:
-
-      + A Vector with the physical times.
-      + A Vector with the accreted mass at each time.
-"""
-function daVirialAccretion(
-    sim_data::Simulation,
-    component::Symbol;
-    flux_direction::Symbol=:net,
-    halo_idx::Int=1,
-    trace::Symbol=:automatic,
-    y_log::Union{Unitful.Units,Nothing}=nothing,
-    smooth::Int=0,
-    show_progress::Bool=true,
-)::NTuple{2,Vector{<:Number}}
-
-    request = plotParams(:mass_accretion).request
-
-    # Read the metadata table for the simulation
-    simulation_dataframe = DataFrame(sim_data.snapshot_table[sim_data.slice, :])
-
-    # Delete missing snapshots
-    filter!(row -> !ismissing(row[:snapshot_paths]), simulation_dataframe)
-
-    # Iterate over each snapshot in the slice
-    iterator = eachrow(simulation_dataframe)
-
-    # Check that there are at least 2 snapshots left
-    (
-        length(iterator) >= 2 ||
-        throw(ArgumentError("daVirialAccretion: The given slice, $(sim_data.slice), selected for \
-        less than two snapshots. I need at least two snapshots to compute a time series of mass \
-        accretion"))
-    )
-
-    ################################################################################################
-    # First snapshot
-    ################################################################################################
-
-    first_snapshot = first(iterator)
-
-    past_dd = makeDataDict(sim_data.path, first_snapshot[:row_id], request, sim_data.snapshot_table)
-
-    ################################################################################################
-    # Decide how to trace the mass
-    ################################################################################################
-
-    if trace == :automatic
-
-        tracers = Dict(
-            :gas         => true,
-            :stellar     => false,
-            :dark_matter => false,
-            :black_hole  => false,
-            :all         => false,
-        )
-
-    elseif trace == :tracers
-
-        tracers = Dict(
-            :gas         => true,
-            :stellar     => true,
-            :dark_matter => true,
-            :black_hole  => true,
-            :all         => true,
-        )
-
-    elseif trace == :particles
-
-        tracers = Dict(
-            :gas         => false,
-            :stellar     => false,
-            :dark_matter => false,
-            :black_hole  => false,
-            :all         => false,
-        )
-
-    else
-
-        throw(ArgumentError("daVirialAccretion: `trace` can only be :automatic, :tracers or \
-        :particles, but I got :$(trace)"))
-
-    end
-
-    ################################################################################################
-    # Iterate over the snapshots
-    ################################################################################################
-
-    n_frames = length(iterator) - 1
-
-    Δm = Vector{typeof(1.0u"Msun")}(undef, n_frames)
-
-    # Initialize the progress bar
-    prog_bar = Progress(
-        n_frames,
-        dt=0.5,
-        desc="Analyzing and plotting the data... ",
-        color=:blue,
-        barglyphs=BarGlyphs("|#  |"),
-        enabled=show_progress,
-    )
-
-    for (slice_index, snapshot_data) in pairs(iterator[2:end])
-
-        present_dd = makeDataDict(
-            sim_data.path,
-            snapshot_data[:row_id],
-            request,
-            sim_data.snapshot_table,
-        )
-
-        if component == :all
-
-            _, m_in_gas, m_out_gas = computeVirialAccretion(
-                present_dd,
-                past_dd,
-                :gas;
-                halo_idx,
-                tracers=tracers[:gas],
-            )
-
-            _, m_in_stars, m_out_stars = computeVirialAccretion(
-                present_dd,
-                past_dd,
-                :stellar;
-                halo_idx,
-                tracers=tracers[:stellar],
-            )
-
-            _, m_in_dm, m_out_dm = computeVirialAccretion(
-                present_dd,
-                past_dd,
-                :dark_matter;
-                halo_idx,
-                tracers=tracers[:dark_matter],
-            )
-
-            _, m_in_bh, m_out_bh = computeVirialAccretion(
-                present_dd,
-                past_dd,
-                :black_hole;
-                halo_idx,
-                tracers=tracers[:black_hole],
-            )
-
-            m_in  = m_in_gas + m_in_stars + m_in_dm + m_in_bh
-            m_out = m_out_gas + m_out_stars + m_out_dm + m_out_bh
-            δm    = m_in - m_out
-
-        elseif component ∈ [:gas, :stellar, :dark_matter, :black_hole]
-
-            δm, m_in, m_out = computeVirialAccretion(
-                present_dd,
-                past_dd,
-                component;
-                halo_idx,
-                tracers=tracers[component],
-            )
-
-        else
-
-            throw(ArgumentError("daVirialAccretion: `component` can only be :gas, :stellar, \
-            :dark_matter, :black_hole or :all, but I got :$(component)"))
-
-        end
-
-        if flux_direction == :net
-
-            Δm[slice_index] = δm
-
-        elseif flux_direction == :inflow
-
-            Δm[slice_index] = m_in
-
-        elseif flux_direction == :outflow
-
-            Δm[slice_index] = m_out
-
-        else
-
-            throw(ArgumentError("daVirialAccretion: `flux_direction` can only be :net, \
-            :inflow or :outflow, but I got :$(flux_direction)"))
-
-        end
-
-        past_dd = present_dd
-
-        next!(prog_bar)
-
-    end
-
-    # Compure the time ticks
-    t  = sim_data.snapshot_table[sim_data.slice, :physical_times]
-
-    # Compure the time axis
-    Δt = diff(t)
-
-    x_axis = t[2:end]
-    y_values = Δm ./ Δt
-
-    delete_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
-
-    deleteat!(x_axis, delete_idxs)
-    deleteat!(y_values, delete_idxs)
-
-    if any(isempty, [x_axis, y_values])
-
-        logging[] && @warn("daVirialAccretion: The results of `computeVirialAccretion` are empty")
-
-        return Float64[], Float64[]
-
-    end
-
-    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
-
-    if iszero(smooth)
-        return x_axis, y_axis
-    else
-        return smoothWindow(x_axis, y_axis, smooth)
-    end
-
-end
-
-"""
-    daDiskAccretion(
-        sim_data::Simulation;
-        <keyword arguments>
-    )::NTuple{2,Vector{<:Number}}
-
-Compute the evolution of the accreted mass into a given galactic disc.
-
-# Arguments
-
-  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
-  - `component::Symbol`: Component to compute the accreted mass for. The options are:
-
-      + `:dark_matter` -> Dark matter.
-      + `:black_hole`  -> Black holes.
-      + `:gas`         -> Gas.
-      + `:stellar`     -> Stars.
-      + `:all`         -> All the matter.
-  - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
-
-      + `:net`     -> Net accreted mass.
-      + `:inflow`  -> Inflow mass only.
-      + `:outflow` -> Outflow mass only.
-  - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
-  - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
-  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
-  - `trace::Symbol=:automatic`: How to trace the mass. The option are:
-
-      + `:automatic` -> Automatically decide whether to use tracers or not. It will use tracers for the :gas component, and the particles for every other component.
-      + `:tracers`   -> Use tracers to compute the mass flux.
-      + `:particles` -> Use the particles/cells directly to compute the mass flux.
-  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeDiskAccretion`](@ref) is left as is.
-  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `show_progress::Bool=true`: If a progress bar will be shown.
-
-# Returns
-
-  - A tuple with two elements:
-
-      + A Vector with the physical times.
-      + A Vector with the accreted mass at each time.
-"""
-function daDiskAccretion(
-    sim_data::Simulation,
-    component::Symbol;
-    flux_direction::Symbol=:net,
-    max_r::Unitful.Length=DISK_R,
-    max_z::Unitful.Length=5.0u"kpc",
-    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
-    trace::Symbol=:automatic,
-    y_log::Union{Unitful.Units,Nothing}=nothing,
-    smooth::Int=0,
-    show_progress::Bool=true,
-)::NTuple{2,Vector{<:Number}}
-
-    base_request = plotParams(:mass_accretion).request
-
-    translation, rotation, request = selectTransformation(trans_mode, base_request)
-
-    # Read the metadata table for the simulation
-    simulation_dataframe = DataFrame(sim_data.snapshot_table[sim_data.slice, :])
-
-    # Delete missing snapshots
-    filter!(row -> !ismissing(row[:snapshot_paths]), simulation_dataframe)
-
-    # Iterate over each snapshot in the slice
-    iterator = eachrow(simulation_dataframe)
-
-    # Check that there are at least 2 snapshots left
-    (
-        length(iterator) >= 2 ||
-        throw(ArgumentError("daDiskAccretion: The given slice, $(sim_data.slice), selected for \
-        less than two snapshots. I need at least two snapshots to compute a time series of mass \
-        accretion"))
-    )
-
-    ################################################################################################
-    # First snapshot
-    ################################################################################################
-
-    first_snapshot = first(iterator)
-
-    past_dd = makeDataDict(sim_data.path, first_snapshot[:row_id], request, sim_data.snapshot_table)
-
-    # Translate the data
-    translateData!(past_dd, translation...)
-
-    # Rotate the data
-    rotateData!(past_dd, rotation...)
-
-    ################################################################################################
-    # Decide how to trace the mass
-    ################################################################################################
-
-    if trace == :automatic
-
-        tracers = Dict(
-            :gas         => true,
-            :stellar     => false,
-            :dark_matter => false,
-            :black_hole  => false,
-            :all         => false,
-        )
-
-    elseif trace == :tracers
-
-        tracers = Dict(
-            :gas         => true,
-            :stellar     => true,
-            :dark_matter => true,
-            :black_hole  => true,
-            :all         => true,
-        )
-
-    elseif trace == :particles
-
-        tracers = Dict(
-            :gas         => false,
-            :stellar     => false,
-            :dark_matter => false,
-            :black_hole  => false,
-            :all         => false,
-        )
-
-    else
-
-        throw(ArgumentError("daDiskAccretion: `trace` can only be :automatic, :tracers or \
-        :particles, but I got :$(trace)"))
-
-    end
-
-    ################################################################################################
-    # Iterate over the snapshots
-    ################################################################################################
-
-    n_frames = length(iterator) - 1
-
-    Δm = Vector{typeof(1.0u"Msun")}(undef, n_frames)
-
-    # Initialize the progress bar
-    prog_bar = Progress(
-        n_frames,
-        dt=0.5,
-        desc="Analyzing and plotting the data... ",
-        color=:blue,
-        barglyphs=BarGlyphs("|#  |"),
-        enabled=show_progress,
-    )
-
-    for (slice_index, snapshot_data) in pairs(iterator[2:end])
-
-        present_dd = makeDataDict(
-            sim_data.path,
-            snapshot_data[:row_id],
-            request,
-            sim_data.snapshot_table,
-        )
-
-        # Translate the data
-        translateData!(present_dd, translation...)
-
-        # Rotate the data
-        rotateData!(present_dd, rotation...)
-
-        if component == :all
-
-            _, m_in_gas, m_out_gas = computeDiskAccretion(
-                present_dd,
-                past_dd,
-                :gas;
-                max_r,
-                max_z,
-                tracers=tracers[:gas],
-            )
-
-            _, m_in_stars, m_out_stars = computeDiskAccretion(
-                present_dd,
-                past_dd,
-                :stellar;
-                max_r,
-                max_z,
-                tracers=tracers[:stellar],
-            )
-
-            _, m_in_dm, m_out_dm = computeDiskAccretion(
-                present_dd,
-                past_dd,
-                :dark_matter;
-                max_r,
-                max_z,
-                tracers=tracers[:dark_matter],
-            )
-
-            _, m_in_bh, m_out_bh = computeDiskAccretion(
-                present_dd,
-                past_dd,
-                :black_hole;
-                max_r,
-                max_z,
-                tracers=tracers[:black_hole],
-            )
-
-            m_in  = m_in_gas + m_in_stars + m_in_dm + m_in_bh
-            m_out = m_out_gas + m_out_stars + m_out_dm + m_out_bh
-            δm    = m_in - m_out
-
-        elseif component ∈ [:gas, :stellar, :dark_matter, :black_hole]
-
-            δm, m_in, m_out = computeDiskAccretion(
-                present_dd,
-                past_dd,
-                component;
-                max_r,
-                max_z,
-                tracers=tracers[component],
-            )
-
-        else
-
-            throw(ArgumentError("daDiskAccretion: `component` can only be :gas, :stellar, \
-            :dark_matter, :black_hole or :all, but I got :$(component)"))
-
-        end
-
-        if flux_direction == :net
-
-            Δm[slice_index] = δm
-
-        elseif flux_direction == :inflow
-
-            Δm[slice_index] = m_in
-
-        elseif flux_direction == :outflow
-
-            Δm[slice_index] = m_out
-
-        else
-
-            throw(ArgumentError("daDiskAccretion: `flux_direction` can only be :net, \
-            :inflow or :outflow, but I got :$(flux_direction)"))
-
-        end
-
-        past_dd = present_dd
-
-        next!(prog_bar)
-
-    end
-
-    # Compure the time ticks
-    t  = sim_data.snapshot_table[sim_data.slice, :physical_times]
-
-    # Compure the time axis
-    Δt = diff(t)
-
-    x_axis = t[2:end]
-    y_values = Δm ./ Δt
-
-    delete_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
-
-    deleteat!(x_axis, delete_idxs)
-    deleteat!(y_values, delete_idxs)
-
-    if any(isempty, [x_axis, y_values])
-
-        logging[] && @warn("computeDiskAccretion: The results of `computeVirialAccretion` are empty")
-
-        return Float64[], Float64[]
-
-    end
-
-    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
-
-    if iszero(smooth)
-        return x_axis, y_axis
-    else
-        return smoothWindow(x_axis, y_axis, smooth)
-    end
-
-end
 
 """
     daVSFLaw(
@@ -3530,6 +2417,1120 @@ function daClumpingFactorProfile(
 
 end
 
+####################################################################################################
+# Signature for data analysis functions targeting plotTimeSeries() in ./src/plotting/pipelines.jl
+####################################################################################################
+#
+# A data analysis functions targeting plotTimeSeries() must take a Simulation struct (see
+# ./src/constants/globals.jl for the canonical description), and return two vectors.
+# It should return `nothing` if the input data has some problem that prevents computation
+# (e.g. is empty).
+#
+# Expected signature:
+#
+#   da_function(sim_data, args...; kw_args...) -> (processed_data_x, processed_data_y) or `nothing`
+#
+# where:
+#
+#   - sim_data::Simulation
+#   - processed_data_x::Vector{<:Number}
+#   - processed_data_y::Vector{<:Number}
+#
+####################################################################################################
+
+"""
+    daEvolution(
+        sim_data::Simulation,
+        x_quantity::Symbol,
+        y_quantity::Symbol;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the time series of two quantities, using [`integrateQty`](@ref) to compute their values at each time.
+
+!!! note
+
+    The log10 operation, if requested, is applied after the integration of the quantities.
+
+# Arguments
+
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `x_quantity::Symbol`: Quantity for the x axis.
+  - `y_quantity::Symbol`: Quantity for the y axis.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
+  - `x_agg_func::Union{Function,Symbol}=:default`: If `x_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `x_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `x_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
+  - `y_agg_func::Union{Function,Symbol}=:default`: If `y_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `y_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `y_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
+  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the time series of `x_quantity`.
+      + A vector with the time series of `y_quantity`.
+"""
+function daEvolution(
+    sim_data::Simulation,
+    x_quantity::Symbol,
+    y_quantity::Symbol;
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    x_log::Union{Unitful.Units,Nothing}=nothing,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
+    x_agg_func::Union{Function,Symbol}=:default,
+    y_agg_func::Union{Function,Symbol}=:default,
+    smooth::Int=0,
+    cumulative::Bool=false,
+    icGen::Function=initialConditionFunction,
+    show_progress::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    qty_request = mergeRequests(plotParams(x_quantity).request, plotParams(y_quantity).request)
+
+    integration_functions = (
+        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func, icGen),
+        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func, icGen),
+    )
+
+    return daEvolution(
+        sim_data,
+        qty_request,
+        integration_functions;
+        trans_mode,
+        filter_mode,
+        extra_filter,
+        ff_request,
+        x_log,
+        y_log,
+        smooth,
+        cumulative,
+        show_progress,
+    )
+
+end
+
+"""
+    daEvolution(
+        sim_data::Simulation,
+        qty_request::Dict{Symbol,Vector{String}},
+        integration_functions::NTuple{2,Function};
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the time series of two quantities, using the provided integration functions to compute their values at each time.
+
+!!! note
+
+    The log10 operation, if requested, is applied after the integration of the quantities.
+
+# Arguments
+
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `qty_request::Dict{Symbol,Vector{String}}`: Request dictionary for both quantities.
+  - `integration_functions::NTuple{2,Function}`: Functions to compute the integral value of the x and y quantities at a given time. The functions must have the signature:
+
+    `integration_functions(data_dict::Dict)::Number`
+
+    where
+
+      + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
+  - `smooth::Int=0`: The result of `integration_functions` will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the time series of `x_quantity`.
+      + A vector with the time series of `y_quantity`.
+"""
+function daEvolution(
+    sim_data::Simulation,
+    qty_request::Dict{Symbol,Vector{String}},
+    integration_functions::NTuple{2,Function};
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    x_log::Union{Unitful.Units,Nothing}=nothing,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
+    smooth::Int=0,
+    cumulative::Bool=false,
+    show_progress::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    base_request = mergeRequests(qty_request, ff_request)
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    # Iterate over each snapshot in the slice
+    iterator = eachrow(DataFrame(sim_data.simulation_table[sim_data.slice, :]))
+
+    n_frames = length(iterator)
+
+    x_values = Vector{Number}(fill(NaN, n_frames))
+    y_values = Vector{Number}(fill(NaN, n_frames))
+
+    # Initialize the progress bar
+    prog_bar = Progress(
+        n_frames,
+        dt=0.5,
+        desc="Analyzing and plotting the data... ",
+        color=:blue,
+        barglyphs=BarGlyphs("|#  |"),
+        enabled=show_progress,
+    )
+
+    for (i, sim_table_row) in pairs(iterator)
+
+        # Skip missing snapshots
+        if ismissing(sim_table_row[:snapshot_paths])
+
+            logging[] && @warn("daEvolution: The snapshot $(sim_table_row[:row_id]) is missing")
+
+            next!(prog_bar)
+
+            continue
+
+        end
+
+        data_dict = makeDataDict(
+            sim_data.path,
+            sim_table_row[:row_id],
+            request,
+            sim_data.simulation_table,
+        )
+
+        # Translate the data
+        translateData!(data_dict, translation...)
+
+        # Rotate the data
+        rotateData!(data_dict, rotation...)
+
+        # Filter the data
+        filterData!(data_dict; filter_function)
+
+        # Filter the data again
+        filterData!(data_dict; filter_function=extra_filter)
+
+        # Compute the value for the x axis
+        x_values[i] = integration_functions[1](data_dict)
+
+        # Compute the value for the y axis
+        y_values[i] = integration_functions[2](data_dict)
+
+        # Move the progress bar forward
+        next!(prog_bar)
+
+    end
+
+    # Sort by the x axis
+    sort_idxs = sortperm(x_values)
+
+    x_values = x_values[sort_idxs]
+    y_values = y_values[sort_idxs]
+
+    if cumulative
+        y_values = cumsum(y_values)
+    end
+
+    # Inf values break the plot auto limits computation, so we remove them
+    if isnothing(x_log)
+        x_filter = isinf
+    else
+        x_filter = x -> isinf(x) || !isPositive(x)
+    end
+
+    if isnothing(y_log)
+        y_filter = isinf
+    else
+        y_filter = y -> isinf(y) || !isPositive(y)
+    end
+
+    x_idxs = map(x_filter, x_values)
+    y_idxs = map(y_filter, y_values)
+
+    delete_idxs = x_idxs ∪ y_idxs
+
+    deleteat!(x_values, delete_idxs)
+    deleteat!(y_values, delete_idxs)
+
+    if any(isempty, [x_values, y_values])
+
+        logging[] && @warn("daEvolution: The results of `integration_functions` are empty")
+
+        return Float64[], Float64[]
+
+    end
+
+    x_axis = isnothing(x_log) ? x_values : log10.(ustrip.(x_log, x_values))
+    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
+
+    if iszero(smooth)
+        return x_axis, y_axis
+    else
+        return smoothWindow(x_axis, y_axis, smooth)
+    end
+
+end
+
+"""
+    daSFRtxt(
+        sim_data::Simulation,
+        x_quantity::Symbol,
+        y_quantity::Symbol;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the stellar mass or SFR evolution using the data in the `sfr.txt` file.
+
+# Arguments
+
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
+
+      + `:scale_factor`  -> Scale factor.
+      + `:redshift`      -> Redshift.
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
+
+      + `:stellar_mass` -> Cumulative stellar mass.
+      + `:sfr`          -> Star formation rate.
+  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the time series of `x_quantity`.
+      + A vector with the time series of `y_quantity`.
+"""
+function daSFRtxt(
+    sim_data::Simulation,
+    x_quantity::Symbol,
+    y_quantity::Symbol;
+    smooth::Int=0,
+)::NTuple{2,Vector{<:Number}}
+
+    snapshot_paths = sim_data.simulation_table[!, :snapshot_paths]
+
+    idx = findfirst(!ismissing, snapshot_paths)
+
+    (
+        !isnothing(idx) ||
+        throw(ArgumentError("daSFRtxt: I couldn't find any snapshots in $(sim_data.path), \
+        and I need at least one for unit conversion"))
+    )
+
+    # Read the first snapshot
+    snapshot_path = snapshot_paths[idx]
+
+    # Read its header
+    header = readSnapHeader(snapshot_path)
+
+    # Read the data in the `sfr.txt` file
+    sfr_txt_data = readSfrFile(joinpath(sim_data.path, SFR_REL_PATH), snapshot_path)
+
+    # Read the time axis
+    time_ticks = sfr_txt_data[!, 1]
+
+    if x_quantity == :scale_factor
+
+        (
+            !sim_data.cosmological &&
+            logging[] &&
+            @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
+            :physical_time")
+        )
+
+        x_axis = time_ticks
+
+    elseif x_quantity == :redshift
+
+        if sim_data.cosmological
+
+            x_axis = (1.0 ./ time_ticks) .- 1.0
+
+        else
+
+            (
+                logging[] &&
+                @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
+                :physical_time")
+            )
+
+            x_axis = time_ticks
+
+        end
+
+    elseif x_quantity == :physical_time
+
+        if sim_data.cosmological
+            x_axis = computeTime(time_ticks, header)
+        else
+            x_axis = time_ticks
+        end
+
+    elseif x_quantity == :lookback_time
+
+        if sim_data.cosmological
+            physical_times = computeTime(time_ticks, header)
+        else
+            physical_times = time_ticks
+        end
+
+        x_axis = maximum(physical_times) .- physical_times
+
+    else
+
+        throw(ArgumentError("daSFRtxt: `x_quantity` can only be :scale_factor, :redshift, \
+        :physical_time or :lookback_time, but I got :$(x_quantity)"))
+
+    end
+
+    if y_quantity == :stellar_mass
+
+        y_axis = sfr_txt_data[!, 6]
+
+    elseif y_quantity == :sfr
+
+        y_axis = sfr_txt_data[!, 3]
+
+    else
+
+        throw(ArgumentError("daSFRtxt: `y_quantity` can only be :stellar_mass or :sfr, \
+        but I got :$(y_quantity)"))
+
+    end
+
+    # Apply smoothing if required
+    if !iszero(smooth)
+        x_axis, y_axis = smoothWindow(x_axis, y_axis, smooth)
+    end
+
+    return x_axis, y_axis
+
+end
+
+"""
+    daCPUtxt(
+        sim_data::Simulation,
+        target::String,
+        x_quantity::Symbol,
+        y_quantity::Symbol;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the evolution of a measured quantity in the `cpu.txt` file, for a given `target` process.
+
+# Arguments
+
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `target::String`: Target process (e.g. "total").
+  - `x_quantity::Symbol`: Quantity for the x axis. The options are:
+
+      + `:time_step`              -> Time step.
+      + `:physical_time`          -> Physical time since the Big Bang.
+      + `:clock_time_s`           -> Clock time duration of the time step in seconds.
+      + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
+      + `:tot_clock_time_s`       -> Total clock time in seconds.
+      + `:tot_clock_time_percent` -> Total clock time as a percentage.
+  - `y_quantity::Symbol`: Quantity for the y axis. The options are:
+
+      + `:time_step`              -> Time step.
+      + `:physical_time`          -> Physical time since the Big Bang.
+      + `:clock_time_s`           -> Clock time duration of the time step in seconds.
+      + `:clock_time_percent`     -> Clock time duration of the time step as a percentage.
+      + `:tot_clock_time_s`       -> Total clock time in seconds.
+      + `:tot_clock_time_percent` -> Total clock time as a percentage.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from `cpu.txt` is left as is.
+  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the time series of `x_quantity`.
+      + A vector with the time series of `y_quantity`.
+"""
+function daCPUtxt(
+    sim_data::Simulation,
+    target::String,
+    x_quantity::Symbol,
+    y_quantity::Symbol;
+    y_log::Union{Unitful.Units,Nothing}=nothing,
+    smooth::Int=0,
+)::NTuple{2,Vector{<:Number}}
+
+    snapshot_paths = sim_data.simulation_table[!, :snapshot_paths]
+
+    idx = findfirst(!ismissing, snapshot_paths)
+
+    (
+        !isnothing(idx) ||
+        throw(ArgumentError("daCPUtxt: I couldn't find any snapshots in $(sim_data.path), \
+        and I need at least one for unit conversion"))
+    )
+
+    # Read the first snapshot
+    snapshot_path = snapshot_paths[idx]
+
+    # Read its header
+    header = readSnapHeader(snapshot_path)
+
+    # Read the data in the `sfr.txt` file
+    cpu_txt_data = readCpuFile(joinpath(sim_data.path, CPU_REL_PATH), [target])[target]
+
+    if x_quantity == :time_step
+
+        x_axis = cpu_txt_data[:, 1]
+
+    elseif x_quantity == :physical_time
+
+        if sim_data.cosmological
+            x_axis = computeTime(cpu_txt_data[:, 2], header)
+        else
+            x_axis = cpu_txt_data[:, 2] .* internalUnits("CLKT", snapshot_path)
+        end
+
+    elseif x_quantity == :clock_time_s
+
+        x_axis = cpu_txt_data[:, 3] .* u"s"
+
+    elseif x_quantity == :clock_time_percent
+
+        x_axis = cpu_txt_data[:, 4]
+
+    elseif x_quantity == :tot_clock_time_s
+
+        x_axis = cpu_txt_data[:, 5] .* u"s"
+
+    elseif x_quantity == :tot_clock_time_percent
+
+        x_axis = cpu_txt_data[:, 6]
+
+    else
+
+        throw(ArgumentError("daCPUtxt: I don't recognize the x_quantity :$(x_quantity)"))
+
+    end
+
+    if y_quantity == :time_step
+
+        y_values = cpu_txt_data[:, 1]
+
+    elseif y_quantity == :physical_time
+
+        if sim_data.cosmological
+            y_values = computeTime(cpu_txt_data[:, 2], header)
+        else
+            y_values = cpu_txt_data[:, 2] .* internalUnits("CLKT", snapshot_path)
+        end
+
+    elseif y_quantity == :clock_time_s
+
+        y_values = cpu_txt_data[:, 3] .* u"s"
+
+    elseif y_quantity == :clock_time_percent
+
+        y_values = cpu_txt_data[:, 4]
+
+    elseif y_quantity == :tot_clock_time_s
+
+        y_values = cpu_txt_data[:, 5] .* u"s"
+
+    elseif y_quantity == :tot_clock_time_percent
+
+        y_values = cpu_txt_data[:, 6]
+
+    else
+
+        throw(ArgumentError("daCPUtxt: I don't recognize the y_quantity :$(y_quantity)"))
+
+    end
+
+    delete_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
+
+    deleteat!(x_axis, delete_idxs)
+    deleteat!(y_values, delete_idxs)
+
+    if any(isempty, [x_axis, y_values])
+
+        logging[] && @warn("daCPUtxt: The results of `cpu.txt` are empty")
+
+        return Float64[], Float64[]
+
+    end
+
+    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
+
+    # Apply smoothing if required
+    if !iszero(smooth)
+        x_axis, y_axis = smoothWindow(x_axis, y_axis, smooth)
+    end
+
+    return x_axis, y_axis
+
+end
+
+"""
+    daVirialAccretion(
+        sim_data::Simulation;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the evolution of the accreted mass into a sphere with the virial radius.
+
+# Arguments
+
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `component::Symbol`: Component to compute the accreted mass for. The options are:
+
+      + `:dark_matter` -> Dark matter.
+      + `:black_hole`  -> Black holes.
+      + `:gas`         -> Gas.
+      + `:stellar`     -> Stars.
+      + `:all`         -> All the matter.
+  - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
+
+      + `:net`     -> Net accreted mass.
+      + `:inflow`  -> Inflow mass only.
+      + `:outflow` -> Outflow mass only.
+  - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
+  - `trace::Symbol=:automatic`: How to trace the mass. The option are:
+
+      + `:automatic` -> Automatically decide whether to use tracers or not. It will use tracers for the :gas component, and the particles for every other component.
+      + `:tracers`   -> Use tracers to compute the mass flux.
+      + `:particles` -> Use the particles/cells directly to compute the mass flux.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeVirialAccretion`](@ref) is left as is.
+  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the physical times.
+      + A vector with the accreted mass at each time.
+"""
+function daVirialAccretion(
+    sim_data::Simulation,
+    component::Symbol;
+    flux_direction::Symbol=:net,
+    halo_idx::Int=1,
+    trace::Symbol=:automatic,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
+    smooth::Int=0,
+    show_progress::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    request = plotParams(:mass_accretion).request
+
+    # Read the metadata table for the simulation
+    simulation_dataframe = DataFrame(sim_data.simulation_table[sim_data.slice, :])
+
+    # Delete missing snapshots
+    filter!(row -> !ismissing(row[:snapshot_paths]), simulation_dataframe)
+
+    # Iterate over each snapshot in the slice
+    iterator = eachrow(simulation_dataframe)
+
+    # Check that there are at least 2 snapshots left
+    (
+        length(iterator) >= 2 ||
+        throw(ArgumentError("daVirialAccretion: The given slice, $(sim_data.slice), selected for \
+        less than two snapshots. I need at least two snapshots to compute a time series of mass \
+        accretion"))
+    )
+
+    ################################################################################################
+    # First snapshot
+    ################################################################################################
+
+    first_snapshot = first(iterator)
+
+    past_dd = makeDataDict(sim_data.path, first_snapshot[:row_id], request, sim_data.simulation_table)
+
+    ################################################################################################
+    # Decide how to trace the mass
+    ################################################################################################
+
+    if trace == :automatic
+
+        tracers = Dict(
+            :gas         => true,
+            :stellar     => false,
+            :dark_matter => false,
+            :black_hole  => false,
+            :all         => false,
+        )
+
+    elseif trace == :tracers
+
+        tracers = Dict(
+            :gas         => true,
+            :stellar     => true,
+            :dark_matter => true,
+            :black_hole  => true,
+            :all         => true,
+        )
+
+    elseif trace == :particles
+
+        tracers = Dict(
+            :gas         => false,
+            :stellar     => false,
+            :dark_matter => false,
+            :black_hole  => false,
+            :all         => false,
+        )
+
+    else
+
+        throw(ArgumentError("daVirialAccretion: `trace` can only be :automatic, :tracers or \
+        :particles, but I got :$(trace)"))
+
+    end
+
+    ################################################################################################
+    # Iterate over the snapshots
+    ################################################################################################
+
+    n_frames = length(iterator) - 1
+
+    Δm = Vector{typeof(1.0u"Msun")}(undef, n_frames)
+
+    # Initialize the progress bar
+    prog_bar = Progress(
+        n_frames,
+        dt=0.5,
+        desc="Analyzing and plotting the data... ",
+        color=:blue,
+        barglyphs=BarGlyphs("|#  |"),
+        enabled=show_progress,
+    )
+
+    for (slice_index, snapshot_data) in pairs(iterator[2:end])
+
+        present_dd = makeDataDict(
+            sim_data.path,
+            snapshot_data[:row_id],
+            request,
+            sim_data.simulation_table,
+        )
+
+        if component == :all
+
+            _, m_in_gas, m_out_gas = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                :gas;
+                halo_idx,
+                tracers=tracers[:gas],
+            )
+
+            _, m_in_stars, m_out_stars = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                :stellar;
+                halo_idx,
+                tracers=tracers[:stellar],
+            )
+
+            _, m_in_dm, m_out_dm = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                :dark_matter;
+                halo_idx,
+                tracers=tracers[:dark_matter],
+            )
+
+            _, m_in_bh, m_out_bh = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                :black_hole;
+                halo_idx,
+                tracers=tracers[:black_hole],
+            )
+
+            m_in  = m_in_gas + m_in_stars + m_in_dm + m_in_bh
+            m_out = m_out_gas + m_out_stars + m_out_dm + m_out_bh
+            δm    = m_in - m_out
+
+        elseif component ∈ [:gas, :stellar, :dark_matter, :black_hole]
+
+            δm, m_in, m_out = computeVirialAccretion(
+                present_dd,
+                past_dd,
+                component;
+                halo_idx,
+                tracers=tracers[component],
+            )
+
+        else
+
+            throw(ArgumentError("daVirialAccretion: `component` can only be :gas, :stellar, \
+            :dark_matter, :black_hole or :all, but I got :$(component)"))
+
+        end
+
+        if flux_direction == :net
+
+            Δm[slice_index] = δm
+
+        elseif flux_direction == :inflow
+
+            Δm[slice_index] = m_in
+
+        elseif flux_direction == :outflow
+
+            Δm[slice_index] = m_out
+
+        else
+
+            throw(ArgumentError("daVirialAccretion: `flux_direction` can only be :net, \
+            :inflow or :outflow, but I got :$(flux_direction)"))
+
+        end
+
+        past_dd = present_dd
+
+        next!(prog_bar)
+
+    end
+
+    # Compure the time ticks
+    t  = sim_data.simulation_table[sim_data.slice, :physical_times]
+
+    # Compure the time axis
+    Δt = diff(t)
+
+    x_axis = t[2:end]
+    y_values = Δm ./ Δt
+
+    delete_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
+
+    deleteat!(x_axis, delete_idxs)
+    deleteat!(y_values, delete_idxs)
+
+    if any(isempty, [x_axis, y_values])
+
+        logging[] && @warn("daVirialAccretion: The results of `computeVirialAccretion` are empty")
+
+        return Float64[], Float64[]
+
+    end
+
+    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
+
+    if iszero(smooth)
+        return x_axis, y_axis
+    else
+        return smoothWindow(x_axis, y_axis, smooth)
+    end
+
+end
+
+"""
+    daDiskAccretion(
+        sim_data::Simulation;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the evolution of the accreted mass into a given galactic disc.
+
+# Arguments
+
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `component::Symbol`: Component to compute the accreted mass for. The options are:
+
+      + `:dark_matter` -> Dark matter.
+      + `:black_hole`  -> Black holes.
+      + `:gas`         -> Gas.
+      + `:stellar`     -> Stars.
+      + `:all`         -> All the matter.
+  - `flux_direction::Symbol=:net`: What flux direction will be plotted. The options are:
+
+      + `:net`     -> Net accreted mass.
+      + `:inflow`  -> Inflow mass only.
+      + `:outflow` -> Outflow mass only.
+  - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
+  - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `trace::Symbol=:automatic`: How to trace the mass. The option are:
+
+      + `:automatic` -> Automatically decide whether to use tracers or not. It will use tracers for the :gas component, and the particles for every other component.
+      + `:tracers`   -> Use tracers to compute the mass flux.
+      + `:particles` -> Use the particles/cells directly to compute the mass flux.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeDiskAccretion`](@ref) is left as is.
+  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the physical times.
+      + A vector with the accreted mass at each time.
+"""
+function daDiskAccretion(
+    sim_data::Simulation,
+    component::Symbol;
+    flux_direction::Symbol=:net,
+    max_r::Unitful.Length=DISK_R,
+    max_z::Unitful.Length=5.0u"kpc",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    trace::Symbol=:automatic,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
+    smooth::Int=0,
+    show_progress::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    base_request = plotParams(:mass_accretion).request
+
+    translation, rotation, request = selectTransformation(trans_mode, base_request)
+
+    # Read the metadata table for the simulation
+    simulation_dataframe = DataFrame(sim_data.simulation_table[sim_data.slice, :])
+
+    # Delete missing snapshots
+    filter!(row -> !ismissing(row[:snapshot_paths]), simulation_dataframe)
+
+    # Iterate over each snapshot in the slice
+    iterator = eachrow(simulation_dataframe)
+
+    # Check that there are at least 2 snapshots left
+    (
+        length(iterator) >= 2 ||
+        throw(ArgumentError("daDiskAccretion: The given slice, $(sim_data.slice), selected for \
+        less than two snapshots. I need at least two snapshots to compute a time series of mass \
+        accretion"))
+    )
+
+    ################################################################################################
+    # First snapshot
+    ################################################################################################
+
+    first_snapshot = first(iterator)
+
+    past_dd = makeDataDict(sim_data.path, first_snapshot[:row_id], request, sim_data.simulation_table)
+
+    # Translate the data
+    translateData!(past_dd, translation...)
+
+    # Rotate the data
+    rotateData!(past_dd, rotation...)
+
+    ################################################################################################
+    # Decide how to trace the mass
+    ################################################################################################
+
+    if trace == :automatic
+
+        tracers = Dict(
+            :gas         => true,
+            :stellar     => false,
+            :dark_matter => false,
+            :black_hole  => false,
+            :all         => false,
+        )
+
+    elseif trace == :tracers
+
+        tracers = Dict(
+            :gas         => true,
+            :stellar     => true,
+            :dark_matter => true,
+            :black_hole  => true,
+            :all         => true,
+        )
+
+    elseif trace == :particles
+
+        tracers = Dict(
+            :gas         => false,
+            :stellar     => false,
+            :dark_matter => false,
+            :black_hole  => false,
+            :all         => false,
+        )
+
+    else
+
+        throw(ArgumentError("daDiskAccretion: `trace` can only be :automatic, :tracers or \
+        :particles, but I got :$(trace)"))
+
+    end
+
+    ################################################################################################
+    # Iterate over the snapshots
+    ################################################################################################
+
+    n_frames = length(iterator) - 1
+
+    Δm = Vector{typeof(1.0u"Msun")}(undef, n_frames)
+
+    # Initialize the progress bar
+    prog_bar = Progress(
+        n_frames,
+        dt=0.5,
+        desc="Analyzing and plotting the data... ",
+        color=:blue,
+        barglyphs=BarGlyphs("|#  |"),
+        enabled=show_progress,
+    )
+
+    for (slice_index, snapshot_data) in pairs(iterator[2:end])
+
+        present_dd = makeDataDict(
+            sim_data.path,
+            snapshot_data[:row_id],
+            request,
+            sim_data.simulation_table,
+        )
+
+        # Translate the data
+        translateData!(present_dd, translation...)
+
+        # Rotate the data
+        rotateData!(present_dd, rotation...)
+
+        if component == :all
+
+            _, m_in_gas, m_out_gas = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                :gas;
+                max_r,
+                max_z,
+                tracers=tracers[:gas],
+            )
+
+            _, m_in_stars, m_out_stars = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                :stellar;
+                max_r,
+                max_z,
+                tracers=tracers[:stellar],
+            )
+
+            _, m_in_dm, m_out_dm = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                :dark_matter;
+                max_r,
+                max_z,
+                tracers=tracers[:dark_matter],
+            )
+
+            _, m_in_bh, m_out_bh = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                :black_hole;
+                max_r,
+                max_z,
+                tracers=tracers[:black_hole],
+            )
+
+            m_in  = m_in_gas + m_in_stars + m_in_dm + m_in_bh
+            m_out = m_out_gas + m_out_stars + m_out_dm + m_out_bh
+            δm    = m_in - m_out
+
+        elseif component ∈ [:gas, :stellar, :dark_matter, :black_hole]
+
+            δm, m_in, m_out = computeDiskAccretion(
+                present_dd,
+                past_dd,
+                component;
+                max_r,
+                max_z,
+                tracers=tracers[component],
+            )
+
+        else
+
+            throw(ArgumentError("daDiskAccretion: `component` can only be :gas, :stellar, \
+            :dark_matter, :black_hole or :all, but I got :$(component)"))
+
+        end
+
+        if flux_direction == :net
+
+            Δm[slice_index] = δm
+
+        elseif flux_direction == :inflow
+
+            Δm[slice_index] = m_in
+
+        elseif flux_direction == :outflow
+
+            Δm[slice_index] = m_out
+
+        else
+
+            throw(ArgumentError("daDiskAccretion: `flux_direction` can only be :net, \
+            :inflow or :outflow, but I got :$(flux_direction)"))
+
+        end
+
+        past_dd = present_dd
+
+        next!(prog_bar)
+
+    end
+
+    # Compure the time ticks
+    t  = sim_data.simulation_table[sim_data.slice, :physical_times]
+
+    # Compure the time axis
+    Δt = diff(t)
+
+    x_axis = t[2:end]
+    y_values = Δm ./ Δt
+
+    delete_idxs = isnothing(y_log) ? map(isinf, y_values) : map(x->iszero(x) || isinf(x), y_values)
+
+    deleteat!(x_axis, delete_idxs)
+    deleteat!(y_values, delete_idxs)
+
+    if any(isempty, [x_axis, y_values])
+
+        logging[] && @warn("computeDiskAccretion: The results of `computeVirialAccretion` are empty")
+
+        return Float64[], Float64[]
+
+    end
+
+    y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
+
+    if iszero(smooth)
+        return x_axis, y_axis
+    else
+        return smoothWindow(x_axis, y_axis, smooth)
+    end
+
+end
+
 """
     daTrajectory(
         simulation_path::String,
@@ -3542,7 +3543,7 @@ Compute the trajectory of a set of cells/particles, given their IDs.
 
 # Arguments
 
-  - `simulation_path::String`: Path to the simulation directory, set in the code variable `OutputDir`.
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
   - `target_ids::Vector{<:Unsigned}`: IDs of the cells/particles whose trajectories will be computed.
   - `cp_type::Symbol`: Target type of cell/particle. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -3561,30 +3562,21 @@ Compute the trajectory of a set of cells/particles, given their IDs.
       If the target ID is not found at a given physical time the position and velocity are NaN.
 """
 function daTrajectory(
-    simulation_path::String,
+    sim_data::Simulation,
     target_ids::Vector{<:Unsigned},
     cp_type::Symbol;
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
 )::Dict{UInt64,Matrix{Quantity}}
 
-    # Make a dataframe for the simulation with the following columns:
-    #  - DataFrame index         -> :row_id
-    #  - Number in the file name -> :numbers
-    #  - Scale factor            -> :scale_factors
-    #  - Redshift                -> :redshifts
-    #  - Physical time           -> :physical_times
-    #  - Lookback time           -> :lookback_times
-    #  - Snapshot path           -> :snapshot_paths
-    #  - Group catalog path      -> :groupcat_paths
-    simulation_table = makeSimulationTable(simulation_path)
+    simulation_table = copy(sim_data.simulation_table)
 
     # Delete missing snapshots
     filter!(row -> !ismissing(row[:snapshot_paths]), simulation_table)
 
     (
         isempty(simulation_table) &&
-        throw(ArgumentError("daTrajectory: There are no snapshots in $(simulation_path)"))
+        throw(ArgumentError("daTrajectory: There are no snapshots in $(sim_data.path)"))
     )
 
     (
@@ -3619,7 +3611,7 @@ function daTrajectory(
     for idx_row in 1:nrow(simulation_table)
 
         # Read the data in the snapshot
-        data_dict = makeDataDict(simulation_path, idx_row, request, simulation_table)
+        data_dict = makeDataDict(sim_data.path, idx_row, request, simulation_table)
 
         # Translate the data
         translateData!(data_dict, translation...)
@@ -3648,5 +3640,160 @@ function daTrajectory(
     end
 
     return trajectories
+
+end
+
+"""
+    daScoville2016(
+        sim_data::Simulation;
+        <keyword arguments>
+    )::Tuple{Vector{Float64},Vector{<:Measurement{Float64}}}
+
+Compute the time series of the gas mass fraction, from Scoville et al. (2016) (Equation 1).
+
+# Arguments
+
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `x_quantity::Symbol=:physical_time`: Quantity for the x axis. The options are:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `log::Bool=true`: If you want to apply ``\\log_{10}`` to the y axis.
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the time series of `x_quantity`.
+      + A vector with the time series of the gas mass fraction.
+
+# References
+
+N. Scoville et al. (2016). *ISM MASSES AND THE STAR FORMATION LAW AT Z = 1 TO 6: ALMA OBSERVATIONS OF DUST CONTINUUM IN 145 GALAXIES IN THE COSMOS SURVEY FIELD*. The Astrophysical Journal, **820(2)**, 83. [doi:10.3847/0004-637X/820/2/83](https://doi.org/10.3847/0004-637X/820/2/83)
+"""
+function daScoville2016(
+    sim_data::Simulation;
+    x_quantity::Symbol=:physical_time,
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    log::Bool=true,
+    show_progress::Bool=true,
+)::Tuple{Vector{Float64},Vector{<:Measurement{Float64}}}
+
+    base_request = mergeRequests(
+        plotParams(:stellar_mass).request,
+        plotParams(:sfr).request,
+        ff_request,
+    )
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    # Iterate over each snapshot in the slice
+    iterator = eachrow(DataFrame(sim_data.simulation_table[sim_data.slice, :]))
+
+    n_frames = length(iterator)
+
+    x_values = Vector{Float64}(fill(NaN, n_frames))
+    y_values = Vector{Measurement{Float64}}(fill(NaN, n_frames))
+
+    # Initialize the progress bar
+    prog_bar = Progress(
+        n_frames,
+        dt=0.5,
+        desc="Analyzing and plotting the data... ",
+        color=:blue,
+        barglyphs=BarGlyphs("|#  |"),
+        enabled=show_progress,
+    )
+
+    for (i, sim_table_row) in pairs(iterator)
+
+        # Skip missing snapshots
+        if ismissing(sim_table_row[:snapshot_paths])
+
+            logging[] && @warn("daScoville2016: The snapshot $(sim_table_row[:row_id]) is missing")
+
+            next!(prog_bar)
+
+            continue
+
+        end
+
+        data_dict = makeDataDict(
+            sim_data.path,
+            sim_table_row[:row_id],
+            request,
+            sim_data.simulation_table,
+        )
+
+        # Translate the data
+        translateData!(data_dict, translation...)
+
+        # Rotate the data
+        rotateData!(data_dict, rotation...)
+
+        # Filter the data
+        filterData!(data_dict; filter_function)
+
+        # Filter the data again
+        filterData!(data_dict; filter_function=extra_filter)
+
+        # Compute the value for the x axis
+        x_values[i] = integrateQty(data_dict, x_quantity)
+
+        # Compute the galatic SFR
+        sfr = integrateQty(data_dict, :sfr)
+
+        # Compute the galatic stellar mass
+        ms = integrateQty(data_dict, :stellar_mass)
+
+        # Read the redshift
+        redshift = sim_table_row[:redshifts]
+
+        # Compute the gas mass fraction, from Scoville et al. (2016)
+        y_values[i] = scoville2016fH2(ms, redshift, sfr)
+
+        # Move the progress bar forward
+        next!(prog_bar)
+
+    end
+
+    # Sort by the x axis
+    sort_idxs = sortperm(x_values)
+
+    x_values = x_values[sort_idxs]
+    y_values = y_values[sort_idxs]
+
+    # Inf values break the plot auto limits computation, so we remove them
+    delete_idxs = map(isinf, y_values)
+
+    deleteat!(x_values, delete_idxs)
+    deleteat!(y_values, delete_idxs)
+
+    if any(isempty, [x_values, y_values])
+
+        logging[] && @warn("daScoville2016: The results of `scoville2016fH2` are empty")
+
+        return Float64[], Measurement{Float64}[]
+
+    end
+
+    y_axis = if log
+        y_values
+    else
+        exp10.(y_values)
+    end
+
+    return x_values, y_axis
 
 end

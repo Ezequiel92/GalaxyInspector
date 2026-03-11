@@ -769,7 +769,7 @@ function filterOldStars(data_dict::Dict)::Dict{Symbol,IndexType}
             end
 
             # Get the physical times
-            times = data_dict[:sim_data].snapshot_table[!, :physical_times]
+            times = data_dict[:sim_data].simulation_table[!, :physical_times]
 
             filter_dict[:stellar] = map(t -> t >= times[present_idx - 1], birth_times)
 

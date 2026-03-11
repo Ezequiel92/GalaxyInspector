@@ -979,7 +979,7 @@ function plotTimeSeries(
         if save_figures || backup_results
 
             # Unit conversion
-            axis_data = [ustrip.(x_unit, da_output[1]), ustrip.(y_unit, da_output[2])]
+            axis_data = (ustrip.(x_unit, da_output[1]), ustrip.(y_unit, da_output[2]))
 
             x_flag, y_flag, _, _ = sanitizeData!(
                 axis_data[1],

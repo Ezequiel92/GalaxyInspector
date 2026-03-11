@@ -199,7 +199,7 @@ function scatterQty(
         else
 
             # Read the physical times
-            times = data_dict[:sim_data].snapshot_table[!, :physical_times]
+            times = data_dict[:sim_data].simulation_table[!, :physical_times]
 
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
@@ -222,7 +222,7 @@ function scatterQty(
         else
 
             # Read the physical times
-            times = data_dict[:sim_data].snapshot_table[!, :physical_times]
+            times = data_dict[:sim_data].simulation_table[!, :physical_times]
 
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
@@ -564,7 +564,7 @@ function integrateQty(
             else
 
                 # Get the physical times
-                times = data_dict[:sim_data].snapshot_table[!, :physical_times]
+                times = data_dict[:sim_data].simulation_table[!, :physical_times]
 
                 # Compute the time between snapshots
                 Δt = times[present_idx] - times[present_idx - 1]
@@ -598,25 +598,25 @@ function integrateQty(
 
             snap_idx = data_dict[:snap_data].global_index
 
-            integrated_qty = data_dict[:sim_data].snapshot_table[snap_idx, :scale_factors]
+            integrated_qty = data_dict[:sim_data].simulation_table[snap_idx, :scale_factors]
 
         elseif quantity == :redshift
 
             snap_idx = data_dict[:snap_data].global_index
 
-            integrated_qty = data_dict[:sim_data].snapshot_table[snap_idx, :redshifts]
+            integrated_qty = data_dict[:sim_data].simulation_table[snap_idx, :redshifts]
 
         elseif quantity == :physical_time
 
             snap_idx = data_dict[:snap_data].global_index
 
-            integrated_qty = data_dict[:sim_data].snapshot_table[snap_idx, :physical_times]
+            integrated_qty = data_dict[:sim_data].simulation_table[snap_idx, :physical_times]
 
         elseif quantity == :lookback_time
 
             snap_idx = data_dict[:snap_data].global_index
 
-            integrated_qty = data_dict[:sim_data].snapshot_table[snap_idx, :lookback_times]
+            integrated_qty = data_dict[:sim_data].simulation_table[snap_idx, :lookback_times]
 
         #########################
         # Metallicity quantities
