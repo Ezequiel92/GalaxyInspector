@@ -7047,6 +7047,230 @@ function gasDensityMaps(
 
 end
 
+@doc raw"""
+    molecularFractionEvolution(
+        simulation_paths::Vector{String};
+        <keyword arguments>
+    )::Nothing
+
+Plot the gas mass fraction evolution, according to the definition in Scoville et al. (2016):
+
+```math
+f_\mathrm{H_2} = \frac{M_\mathrm{H_2}}{M_\mathrm{H_2} + M_\star} \, ,
+```
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure if `measurements` = true, and together in a single figure is `measurements` = false.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `x_quantity::Symbol=:physical_time`: Quantity for the x axis. The options are:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `measurements::Bool=false`: If the experimental fits from Scoville et al. (2016) will be added to the plot. If set to `true`, each simulation will have its own figure because the fits have to be calibrated to each of them.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `icGen::Vector{<:Function}=[initialConditionFunction]`: Functions (one per simulation) that generates a initial condition function for each of the :ode components. Each must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `extra_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Extra request dictionary (maybe useful for the different `icGen` functions).
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+N. Scoville et al. (2016). *ISM MASSES AND THE STAR FORMATION LAW AT Z = 1 TO 6: ALMA OBSERVATIONS OF DUST CONTINUUM IN 145 GALAXIES IN THE COSMOS SURVEY FIELD*. The Astrophysical Journal, **820(2)**, 83. [doi:10.3847/0004-637X/820/2/83](https://doi.org/10.3847/0004-637X/820/2/83)
+"""
+function molecularFractionEvolution(
+    simulation_paths::Vector{String};
+    slice::IndexType=(:),
+    x_quantity::Symbol=:physical_time,
+    measurements::Bool=false,
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    icGen::Vector{<:Function}=[initialConditionFunction],
+    sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    extra_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    (
+        x_quantity ∈ [:scale_factor, :redshift, :physical_time, :lookback_time] ) ||
+        throw(ArgumentError("molecularFractionEvolution: The argument `x_quantity` has to \
+        be :scale_factor, :redshift, :physical_time or :lookback_time, but I got :$(x_quantity)")
+    )
+
+    x_plot_params = plotParams(x_quantity)
+    y_plot_params = plotParams(:molecular_stellar_fraction)
+
+    xlabel = LaTeXString(L"\log_{10} \, " * getLabel(x_plot_params.var_name, 0, x_plot_params.unit))
+    ylabel = LaTeXString(L"\log_{10} \, " * getLabel(y_plot_params.var_name, 0, y_plot_params.unit))
+
+    current_theme = merge(
+        theme,
+        Theme(
+            size=(1400, 880),
+            figure_padding=(10, 15, 5, 15),
+            palette=(linestyle=[:solid],),
+            Axis=(aspect=nothing,),
+            Legend=(nbanks=1, halign=:left),
+        ),
+        DEFAULT_THEME,
+        theme_latexfonts(),
+    )
+
+    if measurements
+
+        for (i, (simulation, label)) in pairs(collect(zip(simulation_paths, sim_labels)))
+
+            if !isSimCosmological(simulation)
+
+                (
+                    logging[] ||
+                    @warn("molecularFractionEvolution: The simulation $(simulation) is not \
+                    cosmological, so it cannot be plotted with `measurements` = true")
+                )
+
+                continue
+
+            end
+
+            temp_folder = joinpath(output_path, "_gas_fraction_evolution")
+
+            plotTimeSeries(
+                [simulation],
+                [lines!];
+                output_path=temp_folder,
+                slice,
+                filename="gas_mass_fraction",
+                da_functions=[daEvolution],
+                da_args=[(x_quantity, :molecular_stellar_fraction)],
+                da_kwargs=[
+                    (;
+                        trans_mode,
+                        filter_mode,
+                        ff_request=extra_request,
+                        y_log=y_plot_params.unit,
+                        icGen=ring(icGen, i),
+                    ),
+                ],
+                x_unit=x_plot_params.unit,
+                save_figures=false,
+                backup_results=true,
+            )
+
+            plotTimeSeries(
+                [simulation],
+                [lines!];
+                output_path=temp_folder,
+                slice,
+                filename="scoville_2016",
+                da_functions=[daScoville2016],
+                da_kwargs=[
+                    (;
+                        x_quantity,
+                        trans_mode,
+                        filter_mode,
+                        ff_request=extra_request,
+                        log=true,
+                    ),
+                ],
+                x_unit=x_plot_params.unit,
+                save_figures=false,
+                backup_results=true,
+            )
+
+            with_theme(current_theme) do
+
+                f = Figure()
+
+                ax = CairoMakie.Axis(f[1, 1]; xlabel, ylabel)
+
+                jldopen(joinpath(temp_folder, "gas_mass_fraction.jld2"), "r") do jld2_file
+
+                    x, y = jld2_file["gas_mass_fraction"][basename(simulation)]
+
+                    lines!(ax, x, y; label, color=WONG_BLUE)
+
+                end
+
+                jldopen(joinpath(temp_folder, "scoville_2016.jld2"), "r") do jld2_file
+
+                    x, y = jld2_file["scoville_2016"][basename(simulation)]
+
+                    scoville_mean = Measurements.value.(y)
+                    scoville_std  = Measurements.uncertainty.(y)
+
+                    band!(
+                        ax,
+                        x,
+                        scoville_mean .- scoville_std,
+                        scoville_mean .+ scoville_std;
+                        color=(WONG_RED, 0.3),
+                    )
+
+                    lines!(
+                        ax,
+                        x,
+                        scoville_mean;
+                        label="Scoville et al. (2016)",
+                        color=WONG_RED,
+                        linewidth=3,
+                    )
+
+                end
+
+                axislegend(
+                    ax;
+                    position=(current_theme.Legend.halign[], current_theme.Legend.valign[]),
+                )
+
+                filename = "$(basename(simulation))_gas_mass_fraction_evolution.png"
+
+                save(joinpath(output_path, filename), f)
+
+            end
+
+            # rm(temp_folder; recursive=true)
+
+        end
+
+    else
+
+        n_sims = length(simulation_paths)
+
+        plotTimeSeries(
+            simulation_paths,
+            [lines!];
+            output_path,
+            slice,
+            filename="gas_mass_fraction_evolution",
+            da_functions=fill(daEvolution, n_sims),
+            da_args=[(x_quantity, :molecular_stellar_fraction)],
+            da_kwargs=[
+                (;
+                    trans_mode,
+                    filter_mode,
+                    ff_request=extra_request,
+                    y_log=y_plot_params.unit,
+                    icGen=ring(icGen, i),
+                ) for i in 1:n_sims
+            ],
+            x_unit=x_plot_params.unit,
+            xaxis_label=xlabel,
+            yaxis_label=ylabel,
+            theme=current_theme,
+            sim_labels,
+        )
+
+    end
+
+    return nothing
+
+end
+
 """
     evolutionVideo(
         simulation_paths::Vector{String},

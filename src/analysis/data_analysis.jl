@@ -3789,9 +3789,9 @@ function daScoville2016(
     end
 
     y_axis = if log
-        y_values
+        log10.(y_values)
     else
-        exp10.(y_values)
+        y_values
     end
 
     return x_values, y_axis
