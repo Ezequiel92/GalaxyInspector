@@ -1251,7 +1251,7 @@ function gasBarPlot(
     )
 
     # Set the color list
-    colors = safeSelect(current_theme[:palette][:color][], dodge)
+    colors = safeSlice(current_theme[:palette][:color][], dodge)
 
     for simulation_path in simulation_paths
 
@@ -7139,8 +7139,8 @@ function evolutionVideo(
 
         simulation_table = makeSimulationTable(simulation_path)
 
-        numbers = safeSelect(simulation_table[!, :numbers], slice)
-        times   = safeSelect(simulation_table[!, :physical_times], slice)
+        numbers = safeSlice(simulation_table[!, :numbers], slice)
+        times   = safeSlice(simulation_table[!, :physical_times], slice)
 
         last_address = "$(SNAP_BASENAME)_$(last(numbers))/$(basename(simulation_path))"
 
@@ -7560,7 +7560,7 @@ function SDSSMockup(
 
                 simulation_table = makeSimulationTable(simulation_path)
 
-                times = safeSelect(simulation_table[!, :physical_times], slice)
+                times = safeSlice(simulation_table[!, :physical_times], slice)
 
                 for (snap, time) in zip(keys(jld2_file), times)
 
@@ -8674,7 +8674,7 @@ function quantityReport(
         groupcat_n = count(!ismissing, simulation_table[!, :groupcat_paths])
 
         # Get the snapshot paths
-        snapshot_paths = safeSelect(simulation_table[!, :snapshot_paths], slice)
+        snapshot_paths = safeSlice(simulation_table[!, :snapshot_paths], slice)
 
         # Check that the snapshots for `slice` exist
         (
@@ -8684,14 +8684,14 @@ function quantityReport(
         )
 
         # Get the snapshot paths
-        global_indices = safeSelect(simulation_table[!, :row_id], slice)
+        global_indices = safeSlice(simulation_table[!, :row_id], slice)
 
         # Get the number in the filename
-        snapshot_numbers = safeSelect(simulation_table[!, :numbers], slice)
+        snapshot_numbers = safeSlice(simulation_table[!, :numbers], slice)
 
         # Get the times and redshifts
-        physical_times = safeSelect(simulation_table[!, :physical_times], slice)
-        redshifts      = safeSelect(simulation_table[!, :redshifts], slice)
+        physical_times = safeSlice(simulation_table[!, :physical_times], slice)
+        redshifts      = safeSlice(simulation_table[!, :redshifts], slice)
 
         if isnothing(label)
             qty_str = "quantity"

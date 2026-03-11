@@ -177,7 +177,7 @@ function computeTimeStamps(
         scale_factors  = ones(length(snapshot_paths))
         # z = 0.0 for non-cosmological simulations
         redshifts      = zeros(length(snapshot_paths))
-        # For non-cosmological simulations, the time in the snapshot is the physical time
+        # For non-cosmological simulations, the time field in the Header of the snapshot is the physical time
         physical_times = [readTime(path) * u_time for path in snapshot_paths]
         lookback_times = maximum(physical_times) .- physical_times
 

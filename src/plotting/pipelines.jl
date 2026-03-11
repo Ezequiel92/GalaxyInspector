@@ -175,7 +175,7 @@ function plotSnapshot(
 
     # Compute the different ways to index the snapshots
     snapshot_numbers = longest_sim_table[!, :numbers]
-    slice_indices    = safeSelect(longest_sim_table[!, :row_id], slice)
+    slice_indices    = safeSlice(longest_sim_table[!, :row_id], slice)
 
     # Compute the required number of snapshots
     n_frames = length(slice_indices)

@@ -275,6 +275,70 @@ function safeSelect(vec::Vector, index::IndexType)
 end
 
 """
+    safeSlice(vec::Vector, slice::IndexType)::Vector
+
+Do the slicing operation `vec[slice]` while ignoring indices that are out of bounds.
+
+!!! note
+
+    This method is like [`SafeSelect`](@ref), but it always return a vector (a slice).
+
+# Arguments
+
+  - `vec::Vector`: Vector.
+  - `slice::IndexType`: Indices. It can be an integer (a single element), a vector of integers (several elements), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (every element).
+
+# Returns
+
+  - `[vec[slice (minus out of bounds indices)]...]`
+
+# Examples
+
+```julia-repl
+julia> safeSlice([1, 2, 3], 11)
+Int[]
+
+julia> safeSlice([1, 2, 3], 1:5)
+3-element Vector{Int}:
+ 1
+ 2
+ 3
+
+julia> safeSlice([1, 2, 3], 1:3:10)
+1-element Vector{Int64}:
+ 1
+
+julia> safeSlice([1, 2, 3], [1, 2, 5, 9])
+2-element Vector{Int}:
+ 1
+ 2
+
+julia> safeSlice([1, 2, 3], (:))
+3-element Vector{Int}:
+ 1
+ 2
+ 3
+```
+"""
+function safeSlice(vec::Vector, slice::IndexType)::Vector
+
+    slice == (:) && return vec
+
+    slice_list = [slice...]
+
+    safe_slice = filter(x -> x <= length(vec), slice_list)
+
+    (
+        length(slice_list) != length(safe_slice ) &&
+        logging[] &&
+        @info("safeSelect: There are out of bounds indices")
+    )
+
+    return vec[safe_slice]
+
+end
+
+"""
     evaluateNormal(values::Vector{<:Number})::Vector{<:Number}
 
 Evaluate a normal distribution at `values`.
