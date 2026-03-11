@@ -860,7 +860,7 @@ function griMagnitudeInterpolation(path::String)::NTuple{3,Interpolations.Extrap
 end
 
 """
-    schreiber2015MS(Mstar::Unitful.Mass, z::Float64)::Float64
+    schreiber2015MS(Mstar::Unitful.Mass, z::Float64)::Measurements.Measurement{Float64}
 
 Compute the sSFR of main-sequence galaxies as a function of stellar mass and redshift, from Schreiber et al. (2015) (Equation 9).
 
@@ -877,7 +877,7 @@ Compute the sSFR of main-sequence galaxies as a function of stellar mass and red
 
 C. Schreiber et al. (2015). *The Herschel view of the dominant mode of galaxy growth from z = 4 to the present day*. Astronomy & Astrophysics, **575**, A74. [doi:10.1051/0004-6361/201425017](https://doi.org/10.1051/0004-6361/201425017)
 """
-function schreiber2015MS(Mstar::Unitful.Mass, z::Float64)::Float64
+function schreiber2015MS(Mstar::Unitful.Mass, z::Float64)::Measurements.Measurement{Float64}
 
     m_star = ustrip(u"Msun", Mstar)
 
@@ -892,7 +892,7 @@ function schreiber2015MS(Mstar::Unitful.Mass, z::Float64)::Float64
 end
 
 """
-    lee2015MS(Mstar::Unitful.Mass, z::Float64)::Float64
+    lee2015MS(Mstar::Unitful.Mass, z::Float64)::Measurements.Measurement{Float64}
 
 Compute the sSFR of main-sequence galaxies as a function of stellar mass and redshift, from Lee et al. (2015) ( Equation 2).
 
@@ -909,7 +909,7 @@ Compute the sSFR of main-sequence galaxies as a function of stellar mass and red
 
 N. Lee et al. (2015). *A TURNOVER IN THE GALAXY MAIN SEQUENCE OF STAR FORMATION AT M* ~ 10^10 M☉ FOR REDSHIFTS z < 1.3*. The Astrophysical Journal, **801(2)**, 80. [doi:10.1088/0004-637X/801/2/80](https://doi.org/10.1088/0004-637X/801/2/80)
 """
-function lee2015MS(Mstar::Unitful.Mass, z::Float64)::Float64
+function lee2015MS(Mstar::Unitful.Mass, z::Float64)::Measurements.Measurement{Float64}
 
     S0, M0, γ = LEE2015_PARAMETERS(z)
 

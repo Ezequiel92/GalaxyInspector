@@ -552,7 +552,7 @@ Compute the fraction of a given `component` in each cell/particle.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) (except :stellar, :dark_matter, and :black_hole).
-  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1072,7 +1072,7 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1143,7 +1143,7 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1214,7 +1214,7 @@ Compute the mass in each cell/particle of a given `component`.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1300,7 +1300,7 @@ Compute the mass density of a given gas `component` for each cell.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1387,7 +1387,7 @@ Compute the number density of a given gas `component` for each cell.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1475,7 +1475,7 @@ Compute the number of a given `component`.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1942,6 +1942,7 @@ Project a `quantity` field into a given 3D grid.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
   - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1962,6 +1963,7 @@ function quantity3DProjection(
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
+    icGen::Function=initialConditionFunction,
     mmap_path::String="./",
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
@@ -2072,6 +2074,7 @@ function quantity3DProjection(
         empty_nan,
         density,
         log,
+        icGen,
         return_idxs,
         filter_function,
     )
@@ -2103,6 +2106,7 @@ Project a `quantity` field into a given 3D grid.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
   - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -2122,6 +2126,7 @@ function quantity3DProjection(
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
+    icGen::Function=initialConditionFunction,
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{Array{Float64,3},Tuple{Array{Float64,3},AbstractArray{Int}}}
@@ -2140,7 +2145,7 @@ function quantity3DProjection(
     qty_unit = plotParams(quantity).unit
 
     # Compute the values of the target quantity
-    qty_values = ustrip.(qty_unit, scatterQty(filtered_dd, quantity))
+    qty_values = ustrip.(qty_unit, scatterQty(filtered_dd, quantity; icGen))
 
     if isempty(qty_values)
 

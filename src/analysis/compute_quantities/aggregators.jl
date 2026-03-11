@@ -15,7 +15,7 @@ Compute `quantity` for each cell/particle in `data_dict`.
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. See [`plotParams`](@ref) for possibilities; only quantities well defined for each cell/particle individually are possible.
-  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. This keyword argument is only relevant if `quantity` depends on one of the :ode components (e.g., `:ode_atomic_fraction`).
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -320,7 +320,7 @@ Compute `quantity` for the whole system of cell/particles in `data_dict`.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. See [`plotParams`](@ref) for possibilities.
   - `agg_function::Union{Function,Symbol}=:default`: If `quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `agg_function` to accumulate the values given by [`scatterQty`](@ref). If `agg_function` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
-  - `icGen::Function=initialConditionFunction`: Function that generates the initial condition function for the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. This keyword argument is only relevant if `quantity` depends on one of the :ode components (e.g., `:ode_atomic_fraction`).
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -701,7 +701,7 @@ function integrateQty(
 
         if quantity ∈ QTY_GLOBAL_LIST
 
-            scatter_qty = scatterQty(data_dict, quantity)
+            scatter_qty = scatterQty(data_dict, quantity; icGen)
 
             if isempty(scatter_qty)
 

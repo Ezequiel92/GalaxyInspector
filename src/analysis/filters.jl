@@ -605,6 +605,7 @@ end
         component::Symbol,
         min::Number,
         max::Number,
+        <keyword arguments>
     )::Dict{Symbol,IndexType}
 
 Select particles/cells with a value of `quantity` within [`min`, `max`].
@@ -616,6 +617,7 @@ Select particles/cells with a value of `quantity` within [`min`, `max`].
   - `component::Symbol`: Type of particle/cell. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `min::Number`: Minimum value of `quantity`.
   - `max::Number`: Maximum value of `quantity`.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -626,7 +628,8 @@ function filterByQuantity(
     quantity::Symbol,
     component::Symbol,
     min::Number,
-    max::Number,
+    max::Number;
+    icGen::Function=initialConditionFunction,
 )::Dict{Symbol,IndexType}
 
     (
@@ -638,7 +641,7 @@ function filterByQuantity(
     filter_dict = Dict{Symbol,IndexType}(type => (:) for type in snapshotTypes(data_dict))
 
     # Compute the `quantity`
-    values = scatterQty(data_dict, quantity)
+    values = scatterQty(data_dict, quantity; icGen)
 
     if isempty(values)
         filter_dict[component] = Int[]
