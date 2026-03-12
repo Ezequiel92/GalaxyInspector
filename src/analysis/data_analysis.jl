@@ -2128,7 +2128,6 @@ function daSDSSMockup(
 
 end
 
-
 """
     daVSFLaw(
         data_dict::Dict,
