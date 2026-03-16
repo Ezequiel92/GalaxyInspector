@@ -310,7 +310,19 @@ We assume that an atom mass is the proton mass.
 
 T. Güver et al. (2009). *The relation between optical extinction and hydrogen column density in the Galaxy*. Monthly Notices of the Royal Astronomical Society **400(4)**, 2050-2053. [doi:10.1111/j.1365-2966.2009.15598.x](https://doi.org/10.1111/j.1365-2966.2009.15598.x)
 """
-const EXTINCTION_FACTOR = 17.7006u"Msun*pc^-2"
+const EXTINCTION_FACTOR_NH = 17.7006u"Msun*pc^-2"
+
+#TODO
+@doc raw"""
+Extinction factor from Nozawa et al. (2013) eq. 12.
+
+```math
+\text{Extinction factor}^{-1} = \frac{A(V)}{\Sigma_\text{dust}} = (3.7 \pm 0.5) \times 10^{4} \, \mathrm{g^{-1} \, cm^2 \, mag} \, .
+```
+
+T. Nozawa et al. (2013). *PROPERTIES OF DUST GRAINS PROBED WITH EXTINCTION CURVES*. The Astrophysical Journal **770(1)**, 27. [doi:10.1088/0004-637X/770/1/27](https://doi.org/10.1088/0004-637X/770/1/27)
+"""
+const EXTINCTION_FACTOR_D = 0.171u"Msun*pc^-2"
 
 @doc raw"""
 Relation between the extinction in the g, r, and i bands of SDSS and the extinction in the V band from Table 3 of S. Wang et al. (2019).

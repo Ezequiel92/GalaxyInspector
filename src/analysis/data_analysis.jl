@@ -1950,8 +1950,9 @@ Compute a mockup image emulating an SDSS observation.
   - `grid::CubicGrid`: Cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
-  - `extinction::Bool=true`: If true, the extinction due to the neutral gas in front of each star will be applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
+  - `extinction::Bool=true`: If true, the extinction due to the neutral gas in front of each star will be applied.
+  - `force_neutral_extinction::Bool=false`: Use neutral gas extinction even when there is dust data. Only relevant if `extinction` = true.
   - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -1964,8 +1965,9 @@ function daSDSSMockup(
     grid::CubicGrid;
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
-    extinction::Bool=true,
     icGen::Function=initialConditionFunction,
+    extinction::Bool=true,
+    force_neutral_extinction::Bool=false,
     mmap_path::String="./",
     filter_function::Function=filterNothing,
 )::Array
@@ -1977,18 +1979,6 @@ function daSDSSMockup(
     masses        = ustrip.(u"Msun", filtered_dd[:stellar]["MASS"])
     metallicities = scatterQty(filtered_dd, :stellar_metallicity)
     log_ages      = log10.(ustrip.(u"yr", scatterQty(filtered_dd, :stellar_age)))
-
-    # Compute the neutral mass grid
-    Mn_grid = quantity3DProjection(
-        filtered_dd,
-        grid,
-        :ode_neutral_mass,
-        :cells;
-        empty_nan=false,
-        log=false,
-        icGen,
-        mmap_path,
-    )
 
     # Compute the 3D stellar index
     stellar_3D_index = findIn3DGrid(positions, grid; cartesian=true)
@@ -2020,8 +2010,17 @@ function daSDSSMockup(
         physical_factor = 1.0
     end
 
-    m_unit     = plotParams(:ode_neutral_mass).unit
-    ext_factor = 1.0 / ustrip(m_unit*u"pc^-2", EXTINCTION_FACTOR)
+    # If there is dust data use it for the extinction, if not use the neutral gas
+    if isSnapSFM(filtered_dd[:snap_data].path) && !force_neutral_extinction
+        extinction_factor   = EXTINCTION_FACTOR_D
+        extinction_quantity = :ode_dust_mass
+    else
+        extinction_factor   = EXTINCTION_FACTOR_NH
+        extinction_quantity = :neutral_mass
+    end
+
+    m_unit     = plotParams(extinction_quantity).unit
+    ext_factor = 1.0 / ustrip(m_unit*u"pc^-2", extinction_factor)
     voxel_area = ustrip(u"pc^2", grid.bin_size_2D[compact_dim]) * physical_factor
 
     # Allocate the memory to store the fluxes in each pixel
@@ -2030,6 +2029,18 @@ function daSDSSMockup(
     Fi = zeros(Float64, grid.n_bins[extended_dims])
 
     if extinction
+
+        # Compute the mass grid for the extinction
+        M_grid = quantity3DProjection(
+            filtered_dd,
+            grid,
+            extinction_quantity,
+            :cells;
+            empty_nan=false,
+            log=false,
+            icGen,
+            mmap_path,
+        )
 
         for star_idx in eachindex(masses)
 
@@ -2049,11 +2060,11 @@ function daSDSSMockup(
             # Select the line of sight of the current star
             idx = ntuple(i -> i == compact_dim ? (1:stellar_idx[compact_dim]) : stellar_idx[i], 3)
 
-            # Compute the column density of neutral gas in front of the current star
-            Mn = sum(@view Mn_grid[idx...]) / voxel_area
+            # Compute the column density of neutral gas or dust in front of the current star
+            Σ = sum(@view M_grid[idx...]) / voxel_area
 
             # Compute the extinction in the V band
-            AV = Mn * ext_factor
+            AV = Σ * ext_factor
 
             # Compute the extinction in the g, r, and i bands
             Ag = AV * AλAV_g

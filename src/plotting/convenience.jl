@@ -7115,7 +7115,7 @@ function molecularFractionEvolution(
             figure_padding=(10, 15, 5, 15),
             palette=(linestyle=[:solid],),
             Axis=(aspect=nothing,),
-            Legend=(nbanks=1, halign=:left),
+            Legend=(nbanks=1, halign=:left, margin=(10, 0, 0, 0)),
         ),
         DEFAULT_THEME,
         theme_latexfonts(),
@@ -7685,7 +7685,9 @@ Make a mockup image emulating an SDSS observation.
   - `resolution::Int=800`: Number of bins per side of the cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `extinction::Bool=true`: If true, the extinction due to the neutral gas in front of each star will be applied.
+  - `force_neutral_extinction::Bool=false`: Use neutral gas extinction even when there is dust data. Only relevant if `extinction` = true.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -7705,7 +7707,9 @@ function SDSSMockup(
     resolution::Int=800,
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
+    icGen::Function=initialConditionFunction,
     extinction::Bool=true,
+    force_neutral_extinction::Bool=false,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     da_ff::Function=filterNothing,
@@ -7718,7 +7722,8 @@ function SDSSMockup(
         plotParams(:stellar_age).request,
         plotParams(:stellar_metallicity).request,
         plotParams(:stellar_mass).request,
-        plotParams(:ode_neutral_mass).request,
+        plotParams(:ode_dust_mass).request,
+        plotParams(:neutral_mass).request,
         Dict(:stellar=>["POS "], :gas=>["POS "]),
         ff_request,
     )
@@ -7746,7 +7751,15 @@ function SDSSMockup(
         da_functions=[daSDSSMockup],
         da_args=[(grid,)],
         da_kwargs=[
-            (; projection_plane, smooth, extinction, mmap_path=temp_folder, filter_function=da_ff),
+            (;
+                projection_plane,
+                smooth,
+                icGen,
+                extinction,
+                force_neutral_extinction,
+                mmap_path=temp_folder,
+                filter_function=da_ff,
+            ),
         ],
         save_figures=false,
         backup_results=false,
