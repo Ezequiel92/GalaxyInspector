@@ -557,6 +557,7 @@ SDSSMockup(
     output_path=joinpath(BASE_OUT_PATH, "SDSSMockup"),
     resolution=300,
     projection_plane=:xy,
+    extinction=:neutral,
     trans_mode=TRANS_MODE,
     filter_mode=FILTER_MODE,
 )
@@ -567,6 +568,7 @@ SDSSMockup(
     output_path=joinpath(BASE_OUT_PATH, "SDSSMockup"),
     resolution=300,
     projection_plane=:xz,
+    extinction=:neutral,
     trans_mode=TRANS_MODE,
     filter_mode=FILTER_MODE,
 )
@@ -598,4 +600,15 @@ evolutionVideo(
     framerate=2,
     trans_mode=TRANS_MODE,
     filter_mode=FILTER_MODE,
+)
+
+molecularFractionEvolution(
+    SIMULATION_PATHS;
+    slice=50:128,
+    x_quantity=:redshift,
+    measurements=true,
+    output_path=joinpath(BASE_OUT_PATH, "molecularFractionEvolution"),
+    trans_mode=TRANS_MODE,
+    filter_mode=FILTER_MODE,
+    theme=Theme(Axis=(xreversed=true,),),
 )

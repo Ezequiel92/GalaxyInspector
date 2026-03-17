@@ -1951,8 +1951,11 @@ Compute a mockup image emulating an SDSS observation.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
-  - `extinction::Bool=true`: If true, the extinction due to the neutral gas in front of each star will be applied.
-  - `force_neutral_extinction::Bool=false`: Use neutral gas extinction even when there is dust data. Only relevant if `extinction` = true.
+  - `extinction::Union{Symbol,Nothing}=nothing`: Type of extinction. The options are:
+
+      + `:nothing` -> No extinction.
+      + `:neutral` -> Neutral gass extinction.
+      + `:dust`    -> Dust mass extinction.
   - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -1966,8 +1969,7 @@ function daSDSSMockup(
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
     icGen::Function=initialConditionFunction,
-    extinction::Bool=true,
-    force_neutral_extinction::Bool=false,
+    extinction::Union{Symbol,Nothing}=nothing,
     mmap_path::String="./",
     filter_function::Function=filterNothing,
 )::Array
@@ -2010,25 +2012,73 @@ function daSDSSMockup(
         physical_factor = 1.0
     end
 
-    # If there is dust data use it for the extinction, if not use the neutral gas
-    if isSnapSFM(filtered_dd[:snap_data].path) && !force_neutral_extinction
-        extinction_factor   = EXTINCTION_FACTOR_D
-        extinction_quantity = :ode_dust_mass
-    else
-        extinction_factor   = EXTINCTION_FACTOR_NH
-        extinction_quantity = :neutral_mass
-    end
-
-    m_unit     = plotParams(extinction_quantity).unit
-    ext_factor = 1.0 / ustrip(m_unit*u"pc^-2", extinction_factor)
-    voxel_area = ustrip(u"pc^2", grid.bin_size_2D[compact_dim]) * physical_factor
-
     # Allocate the memory to store the fluxes in each pixel
     Fg = zeros(Float64, grid.n_bins[extended_dims])
     Fr = zeros(Float64, grid.n_bins[extended_dims])
     Fi = zeros(Float64, grid.n_bins[extended_dims])
 
-    if extinction
+    if isnothing(extinction)
+
+        for star_idx in eachindex(masses)
+
+            stellar_idx = stellar_3D_index[:, star_idx]
+
+            any(iszero, stellar_idx) && continue
+
+            metallicity = metallicities[star_idx]
+            log_age     = log_ages[star_idx]
+            mass        = masses[star_idx]
+
+            # Interpolate the stellar magnitudes
+            Mg = g_interp(log_age, metallicity)
+            Mr = r_interp(log_age, metallicity)
+            Mi = i_interp(log_age, metallicity)
+
+            stellar_2D_idx = stellar_idx[extended_dims]
+
+            # Compute the stellar flux
+            # See https://en.wikipedia.org/wiki/Apparent_magnitude
+            # The reference flux should be the same for each band in the SDSS AB system
+            # so we don't need to normalize, as the relative value of fluxes is all we need
+            Fg[stellar_2D_idx...] += mass * 10.0^(-0.4 * Mg)
+            Fr[stellar_2D_idx...] += mass * 10.0^(-0.4 * Mr)
+            Fi[stellar_2D_idx...] += mass * 10.0^(-0.4 * Mi)
+
+        end
+
+    else
+
+        if extinction == :neutral
+
+            extinction_factor   = EXTINCTION_FACTOR_NH
+
+            if isSnapSFM(filtered_dd[:snap_data].path)
+                extinction_quantity = :ode_dust_mass
+            else
+                extinction_quantity = :neutral_mass
+            end
+
+        elseif extinction == :dust
+
+            extinction_factor   = EXTINCTION_FACTOR_D
+            extinction_quantity = :ode_dust_mass
+
+            if !isSnapSFM(filtered_dd[:snap_data].path)
+                throw(ArgumentError("daSDSSMockup: The argument `extinction` is set to :dust but \
+                the SFM is not active in the simulation $(data_dict[:sim_data].path), so there is \
+                no dust data. Set `extinction` to `nothing` or :neutral instead."))
+            end
+
+        else
+
+            throw(ArgumentError("daSDSSMockup: The argument `extinction` can only be `nothing`, \
+            :neutral or :dust, but I got :$(extinction)"))
+
+        end
+
+        m_unit     = plotParams(extinction_quantity).unit
+        ext_factor = 1.0 / ustrip(m_unit*u"pc^-2", extinction_factor)
+        voxel_area = ustrip(u"pc^2", grid.bin_size_2D[compact_dim]) * physical_factor
 
         # Compute the mass grid for the extinction
         M_grid = quantity3DProjection(
@@ -2080,35 +2130,6 @@ function daSDSSMockup(
             Fg[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mg + Ag))
             Fr[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mr + Ar))
             Fi[stellar_2D_idx...] += mass * 10.0^(-0.4 * (Mi + Ai))
-
-        end
-
-    else
-
-        for star_idx in eachindex(masses)
-
-            stellar_idx = stellar_3D_index[:, star_idx]
-
-            any(iszero, stellar_idx) && continue
-
-            metallicity = metallicities[star_idx]
-            log_age     = log_ages[star_idx]
-            mass        = masses[star_idx]
-
-            # Interpolate the stellar magnitudes
-            Mg = g_interp(log_age, metallicity)
-            Mr = r_interp(log_age, metallicity)
-            Mi = i_interp(log_age, metallicity)
-
-            stellar_2D_idx = stellar_idx[extended_dims]
-
-            # Compute the stellar flux
-            # See https://en.wikipedia.org/wiki/Apparent_magnitude
-            # The reference flux should be the same for each band in the SDSS AB system
-            # so we don't need to normalize, as the relative value of fluxes is all we need
-            Fg[stellar_2D_idx...] += mass * 10.0^(-0.4 * Mg)
-            Fr[stellar_2D_idx...] += mass * 10.0^(-0.4 * Mr)
-            Fi[stellar_2D_idx...] += mass * 10.0^(-0.4 * Mi)
 
         end
 

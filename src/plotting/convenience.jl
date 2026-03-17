@@ -7686,8 +7686,11 @@ Make a mockup image emulating an SDSS observation.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
-  - `extinction::Bool=true`: If true, the extinction due to the neutral gas in front of each star will be applied.
-  - `force_neutral_extinction::Bool=false`: Use neutral gas extinction even when there is dust data. Only relevant if `extinction` = true.
+  - `extinction::Union{Symbol,Nothing}=nothing`: Type of extinction. The options are:
+
+      + `:nothing` -> No extinction.
+      + `:neutral` -> Neutral gass extinction.
+      + `:dust`    -> Dust mass extinction.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -7708,8 +7711,7 @@ function SDSSMockup(
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
     icGen::Function=initialConditionFunction,
-    extinction::Bool=true,
-    force_neutral_extinction::Bool=false,
+    extinction::Union{Symbol,Nothing}=nothing,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     da_ff::Function=filterNothing,
@@ -7718,13 +7720,34 @@ function SDSSMockup(
     show_progress::Bool=true,
 )::Nothing
 
+    if isnothing(extinction)
+
+        extinction_request = Dict{Symbol,Vector{String}}()
+
+    elseif extinction == :neutral
+
+        extinction_request = mergeRequests(
+            plotParams(:ode_neutral_mass).request,
+            plotParams(:neutral_mass).request,
+        )
+
+    elseif extinction == :dust
+
+        extinction_request = plotParams(:ode_dust_mass).request
+
+    else
+
+        throw(ArgumentError("SDSSMockup: The argument `extinction` can only be `nothing`, :neutral \
+        or :dust, but I got :$(extinction)"))
+
+    end
+
     base_request = mergeRequests(
         plotParams(:stellar_age).request,
         plotParams(:stellar_metallicity).request,
         plotParams(:stellar_mass).request,
-        plotParams(:ode_dust_mass).request,
-        plotParams(:neutral_mass).request,
         Dict(:stellar=>["POS "], :gas=>["POS "]),
+        extinction_request,
         ff_request,
     )
 
@@ -7756,7 +7779,6 @@ function SDSSMockup(
                 smooth,
                 icGen,
                 extinction,
-                force_neutral_extinction,
                 mmap_path=temp_folder,
                 filter_function=da_ff,
             ),
