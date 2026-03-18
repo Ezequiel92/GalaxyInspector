@@ -9,7 +9,7 @@
 """
 If physical units (lengths) will be used, instead of comoving units (lengths).
 """
-PHYSICAL_UNITS = false
+const PHYSICAL_UNITS = Ref(false)
 
 """
 If logging messages will be printed out.
@@ -232,7 +232,7 @@ Path to Table 3 from Bigiel et al. (2010).
 
 # References
 
-F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)MILLANIRIGOYEN2025_DATA_PATH
 """
 const BIGIEL2010_TABLE_3 = joinpath(@__DIR__, "../../experimental_data/bigiel_2010/table_03.txt")
 
@@ -312,7 +312,6 @@ T. Güver et al. (2009). *The relation between optical extinction and hydrogen c
 """
 const EXTINCTION_FACTOR_NH = 17.7006u"Msun*pc^-2"
 
-#TODO
 @doc raw"""
 Extinction factor from Nozawa et al. (2013) eq. 12.
 

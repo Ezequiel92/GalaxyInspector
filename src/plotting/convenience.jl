@@ -2248,8 +2248,8 @@ function timeSeries(
 )::Nothing
 
     integration_functions = (
-        dd->integrateQty(dd, x_quantity; x_agg_func, icGen),
-        dd->integrateQty(dd, y_quantity; y_agg_func, icGen),
+        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func, icGen),
+        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func, icGen),
     )
 
     timeSeries(
@@ -3286,7 +3286,7 @@ function kennicuttSchmidtLaw(
     ################################################################################################
 
     # Save the origial value of the global `PHYSICAL_UNITS`
-    og_pu_value = PHYSICAL_UNITS
+    og_pu_value = PHYSICAL_UNITS[]
 
     if !og_pu_value && logging[]
 
@@ -3297,7 +3297,7 @@ function kennicuttSchmidtLaw(
     end
 
     # Kennicutt-Schmidt law plots must be in physical units even for cosmological simulations
-    global PHYSICAL_UNITS = true
+    PHYSICAL_UNITS[] = true
 
     ################################################################################################
     # Check arguments
@@ -4155,7 +4155,7 @@ function kennicuttSchmidtLaw(
     rm(temp_folder; recursive=true)
 
     # Restore the original value of `PHYSICAL_UNITS`
-    global PHYSICAL_UNITS = og_pu_value
+    PHYSICAL_UNITS[] = og_pu_value
 
     return nothing
 
@@ -7928,7 +7928,7 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
             println(file, "Cosmological:     No")
         end
 
-        if !PHYSICAL_UNITS && cosmological
+        if !PHYSICAL_UNITS[] && cosmological
             println(file, "Lenght units:     Comoving\n")
         else
             println(file, "Lenght units:     Physical\n")
@@ -8661,7 +8661,7 @@ function snapshotReport(
 
         println(file, "Physical time:       $(physical_time) Gyr")
 
-        if !PHYSICAL_UNITS && cosmological
+        if !PHYSICAL_UNITS[] && cosmological
             println(file, "Lenght units:        Comoving\n")
         else
             println(file, "Lenght units:        Physical\n")
@@ -8990,7 +8990,7 @@ function quantityReport(
             println(file, "Filter function:  $(String(Symbol(filter_function)))")
         end
 
-        if !PHYSICAL_UNITS && cosmological
+        if !PHYSICAL_UNITS[] && cosmological
             println(file, "Lenght units:  Comoving\n")
         else
             println(file, "Lenght units:  Physical\n")

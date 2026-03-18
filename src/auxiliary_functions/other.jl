@@ -65,6 +65,57 @@ New method for `Base.round` to use with the `Unitful.Quantity` type.
 Base.round(value::Unitful.Quantity; kwargs...) = round(typeof(value), value; kwargs...)
 
 """
+New methods for `Unitful.showrep` to use with parsec derived units.
+"""
+function Unitful.showrep(io::IO, x::Unitful.Unit{:Parsec,Unitful.𝐋})
+
+    # Prepend the comoving "c" prefix when not in physical-units mode
+    PHYSICAL_UNITS[] || print(io, "c")
+
+    # Reproduce Unitful's standard rendering, found in Unitful.jl/src/display.jl
+    print(io, Unitful.prefix(x))
+    print(io, Unitful.abbr(x))
+    print(io, (Unitful.power(x) == 1//1 ? "" : Unitful.superscript(Unitful.power(x); io=io)))
+
+    nothing
+
+end
+
+"""
+New methods for `Unitful.showrep` to use with light year derived units.
+"""
+function Unitful.showrep(io::IO, x::Unitful.Unit{:LightYear,Unitful.𝐋})
+
+    # Prepend the comoving "c" prefix when not in physical-units mode
+    PHYSICAL_UNITS[] || print(io, "c")
+
+    # Reproduce Unitful's standard rendering, found in Unitful.jl/src/display.jl
+    print(io, Unitful.prefix(x))
+    print(io, Unitful.abbr(x))
+    print(io, (Unitful.power(x) == 1//1 ? "" : Unitful.superscript(Unitful.power(x); io=io)))
+
+    nothing
+
+end
+
+"""
+New methods for `Unitful.showrep` to use with AU derived units.
+"""
+function Unitful.showrep(io::IO, x::Unitful.Unit{:AstronomicalUnit,Unitful.𝐋})
+
+    # Prepend the comoving "c" prefix when not in physical-units mode
+    PHYSICAL_UNITS[] || print(io, "c")
+
+    # Reproduce Unitful's standard rendering, found in Unitful.jl/src/display.jl
+    print(io, Unitful.prefix(x))
+    print(io, Unitful.abbr(x))
+    print(io, (Unitful.power(x) == 1//1 ? "" : Unitful.superscript(Unitful.power(x); io=io)))
+
+    nothing
+
+end
+
+"""
 Area of a circle with radius `r`.
 """
 function area(r::Number)::Number

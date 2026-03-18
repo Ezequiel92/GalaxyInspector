@@ -2232,7 +2232,7 @@ function quantity3DProjection(
     if !isnothing(density)
         # For comological simulations with comoving units, correct
         # the density so it is always in physical units
-        if !PHYSICAL_UNITS && data_dict[:sim_data].cosmological
+        if !PHYSICAL_UNITS[] && data_dict[:sim_data].cosmological
             # Correction factor for the volume
             # V [physical units] = V [comoving units] * a0^3
             physical_factor = data_dict[:snap_data].scale_factor^3

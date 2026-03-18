@@ -1378,7 +1378,7 @@ function daDensity2DProjection(
 
     # For comological simulations with comoving units, correct
     # the density so it is always in physical units
-    if !PHYSICAL_UNITS && data_dict[:sim_data].cosmological
+    if !PHYSICAL_UNITS[] && data_dict[:sim_data].cosmological
         # Correction factor for the area
         # A [physical units] = A [comoving units] * a0^2
         physical_factor = data_dict[:snap_data].scale_factor^2
@@ -2004,7 +2004,7 @@ function daSDSSMockup(
 
     # For comological simulations with comoving units, correct
     # the density so it is always in physical units
-    if !PHYSICAL_UNITS && filtered_dd[:sim_data].cosmological
+    if !PHYSICAL_UNITS[] && filtered_dd[:sim_data].cosmological
         # Correction factor for the area
         # A [physical units] = A [comoving units] * a0^2
         physical_factor = filtered_dd[:snap_data].scale_factor^2
@@ -2053,7 +2053,7 @@ function daSDSSMockup(
             extinction_factor   = EXTINCTION_FACTOR_NH
 
             if isSnapSFM(filtered_dd[:snap_data].path)
-                extinction_quantity = :ode_dust_mass
+                extinction_quantity = :ode_neutral_mass
             else
                 extinction_quantity = :neutral_mass
             end

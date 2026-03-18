@@ -2039,18 +2039,19 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
 
         elseif dimensions == Unitful.𝐋
 
-            if !PHYSICAL_UNITS && !cosmological
+            if !PHYSICAL_UNITS[] && !cosmological
                 @warn(
                     "internalUnits: You have set the unit system to use comoving lengths \
-                    (`PHYSICAL_UNITS` = $(PHYSICAL_UNITS)), but the simulation is not \
+                    (`PHYSICAL_UNITS` = $(PHYSICAL_UNITS[])), but the simulation is not \
                     cosmological. internalUnits will default to physical lengths \
                     (`PHYSICAL_UNITS` = true). Check `PHYSICAL_UNITS` in `constants/globals.jl`",
                     maxlog = 1,
                 )
+                PHYSICAL_UNITS[] = true
             end
 
             # From internal units to kpc
-            if !PHYSICAL_UNITS && cosmological
+            if !PHYSICAL_UNITS[] && cosmological
                 return IU.x_comoving
             else
                 return IU.x_cosmo
