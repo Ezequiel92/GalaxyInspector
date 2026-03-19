@@ -34,6 +34,16 @@ const QUANTITIES = Dict(
     "VEL " => Qty("Velocities", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
     "TSTP" => Qty("TimeStep", Unitful.𝐓, :internal),
     "POT " => Qty("Potential", Unitful.𝐋^2 * Unitful.𝐓^-2, :pot),
+    "GDCM" => Qty("GFM_DustCapMass", Unitful.𝐌, :internal),
+    "TAGR" => Qty("GFM_DustTauGrowth", Unitful.𝐓, u"Gyr"),
+    "GDZ " => Qty("GFM_DustMetallicity", Unitful.NoDims, Unitful.NoUnits),
+    "GDZ2" => Qty("GFM_DustMetallicity", Unitful.NoDims, Unitful.NoUnits),
+    "GDAG" => Qty("GFM_DustAGB", Unitful.NoDims, Unitful.NoUnits),
+    "GDA2" => Qty("GFM_DustAGB", Unitful.NoDims, Unitful.NoUnits),
+    "GDII" => Qty("GFM_DustSNII", Unitful.NoDims, Unitful.NoUnits),
+    "GDI2" => Qty("GFM_DustSNII", Unitful.NoDims, Unitful.NoUnits),
+    "GDIa" => Qty("GFM_DustSNIa", Unitful.NoDims, Unitful.NoUnits),
+    "GDJ2" => Qty("GFM_DustSNIa", Unitful.NoDims, Unitful.NoUnits),
 
     #####################
     # sfr.txt quantities
