@@ -108,6 +108,7 @@ function computeEfficiencyFF(
 
     for (i, (ρ, m, sfr)) in enumerate(zip(densities, masses, sfrs))
 
+        # The efficiency will be computed only for star forming gas cells
         if iszero(m) || iszero(sfr) || ρ < THRESHOLD_DENSITY
 
             ϵff[i] = NaN
@@ -1173,6 +1174,8 @@ function computeEfficiencyFF(
 
     else
 
+        # The efficiency will be computed only for star forming gas cells
+        # See the other method for computeEfficiencyFF
         densities = computeMassDensity(data_dict, component; icGen)
         masses    = computeMass(data_dict, component; icGen)
         sfrs      = data_dict[:gas]["SFR "]

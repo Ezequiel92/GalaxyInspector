@@ -373,7 +373,7 @@ function selectTransformation(
 
     translation, rotation, trans_request = trans_mode
 
-    new_request = mergeRequests(base_request, trans_request )
+    new_request = mergeRequests(base_request, trans_request)
 
     return translation, rotation, new_request
 
