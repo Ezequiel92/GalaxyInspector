@@ -3568,7 +3568,7 @@ end
         target_ids::Vector{<:Unsigned},
         cp_type::Symbol;
         <keyword arguments>
-    )::Dict{UInt64,Matrix{Quantity}}
+    )::Dict{UInt,Matrix{Quantity}}
 
 Compute the trajectory of a set of cells/particles, given their IDs.
 
@@ -3584,7 +3584,7 @@ Compute the trajectory of a set of cells/particles, given their IDs.
 
   - A dictionary with the following shape:
 
-      + `target_id::UInt64` -> A matrix with the trajectory of the cell/particle with ID `target_id`. The matrix has 7 rows, where:
+      + `target_id::UInt` -> A matrix with the trajectory of the cell/particle with ID `target_id`. The matrix has 7 rows, where:
 
           * Row 1: Physical time.
           * Rows 2-4: Position [x, y, z].
@@ -3598,7 +3598,7 @@ function daTrajectory(
     cp_type::Symbol;
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-)::Dict{UInt64,Matrix{Quantity}}
+)::Dict{UInt,Matrix{Quantity}}
 
     simulation_table = copy(sim_data.simulation_table)
 
@@ -3625,7 +3625,7 @@ function daTrajectory(
     nan_pos = NaN * u"kpc"
     nan_vel = NaN * u"km * s^-1"
 
-    trajectories = Dict{UInt64, Matrix{Quantity}}()
+    trajectories = Dict{UInt, Matrix{Quantity}}()
 
     Threads.@threads for target_id in target_ids
 
