@@ -7981,7 +7981,7 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
 
             t = round(ustrip(u"Gyr", simulation_table[1, :physical_times]), digits=2)
 
-            println(file, "Physical time:             $(p) Gyr")
+            println(file, "Physical time:             $(t) Gyr")
 
             if cosmological
 

@@ -143,19 +143,19 @@ const CPU_REL_PATH = "output/cpu.txt"
 ################
 
 """
-Default internal unit of length.
+Default internal unit of length. Change via: DEFAULT_L_UNIT[] = 1.0u"kpc"
 """
-const DEFAULT_L_UNIT = ILLUSTRIS_L_UNIT
+const DEFAULT_L_UNIT = Ref{Unitful.Length}(ILLUSTRIS_L_UNIT)
 
 """
-Default internal unit of mass.
+Default internal unit of mass. Change via: DEFAULT_M_UNIT[] = 1.0u"Msun"
 """
-const DEFAULT_M_UNIT = ILLUSTRIS_M_UNIT
+const DEFAULT_M_UNIT = Ref{Unitful.Mass}(ILLUSTRIS_M_UNIT)
 
 """
-Default internal unit of velocity.
+Default internal unit of velocity. Change via: DEFAULT_V_UNIT[] = 1.0u"km/s"
 """
-const DEFAULT_V_UNIT = ILLUSTRIS_V_UNIT
+const DEFAULT_V_UNIT = Ref{Unitful.Velocity}(ILLUSTRIS_V_UNIT)
 
 ######################
 # Cell/particle types
