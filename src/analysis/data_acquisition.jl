@@ -197,21 +197,21 @@ function readSnapHeader(path::String)::SnapshotHeader
         if "UnitLength_in_cm" ∈ attrs_present
             l_unit = read_attribute(head, "UnitLength_in_cm") * u"cm"
         else
-            l_unit = DEFAULT_L_UNIT
+            l_unit = DEFAULT_L_UNIT[]
         end
 
         # Check if the mass units are in the header, otherwise use the default values
         if "UnitMass_in_g" ∈ attrs_present
             m_unit = read_attribute(head, "UnitMass_in_g") * u"g"
         else
-            m_unit = DEFAULT_M_UNIT
+            m_unit = DEFAULT_M_UNIT[]
         end
 
         # Check if the velocity units are in the header, otherwise use the default values
         if "UnitVelocity_in_cm_per_s" ∈ attrs_present
             v_unit = read_attribute(head, "UnitVelocity_in_cm_per_s") * u"cm * s^-1"
         else
-            v_unit = DEFAULT_V_UNIT
+            v_unit = DEFAULT_V_UNIT[]
         end
 
         SnapshotHeader(
