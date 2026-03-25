@@ -724,8 +724,8 @@ function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity
         filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
         # Concatenate the velocities and masses of all the cells and particles in the system
-        velocities = hcat([data_dict[st]["VEL "] for st in snap_types]...)
-        masses     = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+        velocities = mapreduce(st -> data_dict[st]["VEL "], hcat, snap_types)
+        masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
         return computeVcm(velocities, masses)
 
@@ -1027,9 +1027,9 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
     filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
     # Concatenate the position, velocities, and masses of all the cells and particles in the system
-    positions  = hcat([data_dict[st]["POS "] for st in snap_types]...)
-    velocities = hcat([data_dict[st]["VEL "] for st in snap_types]...)
-    masses     = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+    positions  = mapreduce(st -> data_dict[st]["POS "], hcat, snap_types)
+    velocities = mapreduce(st -> data_dict[st]["VEL "], hcat, snap_types)
+    masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
     (
         logging[] &&
@@ -1180,9 +1180,9 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R)::
     filter!(ts -> !isempty(data_dict[ts]["POS "]), snap_types)
 
     # Concatenate the position and masses of all the cells and particles in the system
-    positions  = hcat([data_dict[component]["POS "] for component in snap_types]...)
-    velocities = hcat([data_dict[component]["VEL "] for component in snap_types]...)
-    masses     = vcat([data_dict[component]["MASS"] for component in snap_types]...)
+    positions  = mapreduce(st -> data_dict[st]["POS "], hcat, snap_types)
+    velocities = mapreduce(st -> data_dict[st]["VEL "], hcat, snap_types)
+    masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
     (
         logging[] &&

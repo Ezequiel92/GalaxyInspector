@@ -223,8 +223,8 @@ function computeCenterOfMass(data_dict::Dict, component::Symbol)::Vector{<:Unitf
         filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
         # Concatenate the position and masses of all the cells and particles in the system
-        positions = hcat([data_dict[st]["POS "] for st in snap_types]...)
-        masses    = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+        positions = mapreduce(st -> data_dict[st]["POS "], hcat, snap_types)
+        masses    = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
         (
             logging[] &&
@@ -1004,9 +1004,9 @@ function computeAMRotationMatrix(
         filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
         # Concatenate the position, velocities, and masses of all the cells and particles in the system
-        positions  = hcat([data_dict[st]["POS "] for st in snap_types]...)
-        velocities = hcat([data_dict[st]["VEL "] for st in snap_types]...)
-        masses     = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+        positions  = mapreduce(st -> data_dict[st]["POS "], hcat, snap_types)
+        velocities = mapreduce(st -> data_dict[st]["VEL "], hcat, snap_types)
+        masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
         (
             logging[] &&
@@ -1084,9 +1084,9 @@ function computePARotationMatrix(
         filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
         # Concatenate the position, velocities, and masses of all the cells and particles in the system
-        positions  = hcat([data_dict[st]["POS "] for st in snap_types]...)
-        velocities = hcat([data_dict[st]["VEL "] for st in snap_types]...)
-        masses     = vcat([data_dict[st]["MASS"] for st in snap_types]...)
+        positions  = mapreduce(st -> data_dict[st]["POS "], hcat, snap_types)
+        velocities = mapreduce(st -> data_dict[st]["VEL "], hcat, snap_types)
+        masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
         (
             logging[] &&

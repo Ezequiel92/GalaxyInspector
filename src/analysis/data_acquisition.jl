@@ -1633,15 +1633,34 @@ function findRealStars(path::String)::Vector{Bool}
             HDF5 format, I don't know how to read it"))
         )
 
-        time_of_birth = h5open(path, "r") do snapshot
-            if haskey(snapshot, PARTICLE_CODE_NAME[:stellar])
-                read(snapshot[PARTICLE_CODE_NAME[:stellar]], QUANTITIES["GAGE"].hdf5_name)
-            else
-                Float64[]
-            end
-        end
+        h5open(path, "r") do snapshot
 
-        return isempty(time_of_birth) ? Bool[] : map(isPositive, time_of_birth)
+            if !haskey(snapshot, PARTICLE_CODE_NAME[:stellar])
+                return Bool[]
+            end
+
+            group = snapshot[PARTICLE_CODE_NAME[:stellar]]
+
+            if isBlockPresent("GAGE", group)
+
+                time_of_birth = read(group, QUANTITIES["GAGE"].hdf5_name)
+
+                return map(isPositive, time_of_birth)
+
+            elseif haskey(snapshot, "Header")
+
+                header = snapshot["Header"]
+                num_stars = read_attribute(header, "NumPart_Total")[PARTICLE_INDEX[:stellar] + 1]
+
+                return fill(true, num_stars)
+
+            else
+
+                return Bool[]
+
+            end
+
+        end
 
     elseif isdir(path)
 
@@ -1653,7 +1672,7 @@ function findRealStars(path::String)::Vector{Bool}
             snapshot sub-files in the HDF5 format"))
         )
 
-        return vcat([findRealStars(sub_file) for sub_file in sub_files]...)
+        return mapreduce(findRealStars, vcat, sub_files)
 
     else
 
