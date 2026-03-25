@@ -162,7 +162,7 @@ const DEFAULT_V_UNIT = Ref{Unitful.Velocity}(ILLUSTRIS_V_UNIT)
 ######################
 
 """
-Code index for each type of cell/particle.
+Code index for each type of cell/particle, in C zero-based numbering
 
 # References
 
