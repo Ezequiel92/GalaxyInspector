@@ -6536,6 +6536,7 @@ Plot two histogram of the efficiency per free-fall time, for each simulation. On
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `range::NTuple{2,Float64}=(1.0e-4, 1.0)`: Range for the efficiency per free-fall time (x axis).
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -6555,6 +6556,7 @@ Plot two histogram of the efficiency per free-fall time, for each simulation. On
 function efficiencyHistogram(
     simulation_paths::Vector{String},
     slice::IndexType;
+    component::Symbol=:gas,
     range::NTuple{2,Float64}=(1.0e-4, 1.0),
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -6594,12 +6596,12 @@ function efficiencyHistogram(
             rotation,
             filter_function,
             da_functions=[daHistogram, daHistogram],
-            da_args=[(:stellar_eff, grid), (:gas_eff, grid)],
+            da_args=[(:stellar_eff, grid), (Symbol(component, :_eff), grid)],
             da_kwargs=[
                 (; log=true, filter_function=stellar_ff),
                 (; log=true, filter_function=gas_ff),
             ],
-            post_processing=ppLee2016Evans2014!,
+            post_processing=ppLee2016!,
             xaxis_label=L"\log_{10} \," * getLabel(plot_params.axis_label, 0, plot_params.unit),
             xaxis_var_name=plot_params.var_name,
             yaxis_var_name=L"\mathrm{Normalized \,\, counts}",
