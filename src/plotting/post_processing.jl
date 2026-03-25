@@ -2127,3 +2127,99 @@ function ppFeldmann2020!(
     )
 
 end
+
+"""
+    ppLee2016Evans2014!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}}
+
+Draw the measurements of the star formation efficiency per free-fall time, from Lee et al. (2016) and Evans et al. (2014).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `eff_axis::Symbol=:x`: Axis in the original plot with the ϵff:
+
+      + `:x` -> x axis.
+      + `:y` -> y axis.
+  - `log::Bool=true`: If the quantity in the `eff_axis` axis is  ``\\log_{10} \\, \\epsilon_\\text{ff}``.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `MarkerElement` to be used as the marker.
+      + The label.
+
+# References
+
+E. J. Lee et al. (2016). *OBSERVATIONAL EVIDENCE OF DYNAMIC STAR FORMATION RATE IN MILKY WAY GIANT MOLECULAR CLOUDS*. The Astrophysical Journal, **833(2)**, 229. [doi:10.3847/1538-4357/833/2/229](https://doi.org/10.3847/1538-4357/833/2/229)
+
+N. J. Evans II et al. (2014). *STAR FORMATION RELATIONS IN NEARBY MOLECULAR CLOUDS*. The Astrophysical Journal, **782(2)**, 114. [doi:10.1088/0004-637X/782/2/114](https://doi.org/10.1088/0004-637X/782/2/114)
+"""
+function ppLee2016Evans2014!(
+    figure::Makie.Figure;
+    eff_axis::Symbol=:x,
+    log::Bool=true,
+)::Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}}
+
+    if log
+        lee_2016 = log10(LEE2016_ϵff)
+        evans_2014 = log10(EVANS2014_ϵff)
+    else
+        lee_2016 = LEE2016_ϵff
+        evans_2014 = EVANS2014_ϵff
+    end
+
+    # Median of ϵff
+    p50_lee2016 = Measurements.value(lee_2016)
+    p50_evans2014 = Measurements.value(evans_2014)
+
+    # Plot function for the median value
+    if eff_axis == :x
+        line_func = vlines!
+        band_func = vspan!
+    elseif eff_axis == :y
+        line_func = hlines!
+        band_func = band!
+    else
+        throw(ArgumentError("ppLee2016Evans2014!: `eff_axis` can only be :x or :y, \
+        but I got :$(eff_axis)"))
+    end
+
+    lp = line_func(
+        figure.current_axis.x,
+        [p50_lee2016, p50_evans2014];
+        color=[WONG_RED, WONG_BLUE],
+    )
+
+    # Standar deviation of ϵff
+    σ_lee2016 = Measurements.uncertainty(lee_2016)
+    σ_evans2014 = Measurements.uncertainty(evans_2014)
+
+    bp = band_func(
+        figure.current_axis.x,
+        [p50_lee2016 - σ_lee2016, p50_evans2014 - σ_evans2014],
+        [p50_lee2016 + σ_lee2016, p50_evans2014 + σ_evans2014],
+        color=[WONG_RED, WONG_BLUE],
+    )
+
+    translate!(Accum, lp, 0, 0, -9)
+    translate!(Accum, bp, 0, 0, -10)
+
+    return (
+        [
+            [
+                PolyElement(; color=(WONG_RED, Makie.current_default_theme().Band.alpha)),
+                LineElement(; color=WONG_RED),
+            ],
+            [
+                PolyElement(; color=(WONG_BLUE, Makie.current_default_theme().Band.alpha)),
+                LineElement(; color=WONG_BLUE),
+            ],
+        ],
+        ["Lee et al. (2016)", "Evans et al. (2014)"],
+    )
+
+end
