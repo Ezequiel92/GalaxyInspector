@@ -687,7 +687,11 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         if isempty(Z)
 
-            logging[] && @warn("_compute_fraction: I could not compute the gas metallicity")
+            (
+                logging[] &&
+                @warn("_compute_fraction: I could not compute the gas metallicity. \
+                The block 'GZ  ' is empty")
+            )
 
             fractions = Float64[]
 
@@ -706,11 +710,19 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         nh  = dg["NH  "]
         nhp = dg["NHP "]
 
-        if any(isempty, [nh, nhp])
+        if isempty(nhp)
 
-            logging[] && @warn("_compute_fraction: I could not compute the ionized fraction")
+            (
+                logging[] &&
+                @warn("_compute_fraction: I could not compute the neutral fraction. \
+                The block 'NHP ' is empty")
+            )
 
             fractions = Float64[]
+
+        elseif isempty(nh)
+
+            fractions = nhp
 
         else
 
@@ -727,11 +739,19 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         nh  = dg["NH  "]
         nhp = dg["NHP "]
 
-        if any(isempty, [nh, nhp])
+        if isempty(nh)
 
-            logging[] && @warn("_compute_fraction: I could not compute the neutral fraction")
+            (
+                logging[] &&
+                @warn("_compute_fraction: I could not compute the neutral fraction. \
+                The block 'NH  ' is empty")
+            )
 
             fractions = Float64[]
+
+        elseif isempty(nhp)
+
+            fractions = nh
 
         else
 
@@ -749,9 +769,13 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         nhp = dg["NHP "]
         P   = dg["PRES"]
 
-        if any(isempty, [nh, nhp, P])
+        if any(isempty, [nh, P])
 
-            logging[] && @warn("_compute_fraction: I could not compute the BR atomic fraction")
+            (
+                logging[] &&
+                @warn("_compute_fraction: I could not compute the BR atomic fraction. \
+                The blocks 'NH  ' and/or 'P   ' are empty")
+            )
 
             fractions = Float64[]
 
@@ -764,7 +788,11 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
             fa = @. relative_pressure / (1.0 + relative_pressure)
 
             # Compute the fraction of neutral gas according to Arepo
-            fn = @. nh / (nhp + nh)
+            if isempty(nhp)
+                fn = nh
+            else
+                fn = @. nh / (nhp + nh)
+            end
 
             fractions = fa .* fn
 
@@ -780,9 +808,13 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         nhp = dg["NHP "]
         P   = dg["PRES"]
 
-        if any(isempty, [nh, nhp, P])
+        if any(isempty, [nh, P])
 
-            logging[] && @warn("_compute_fraction: I could not compute the BR molecular fraction")
+            (
+                logging[] &&
+                @warn("_compute_fraction: I could not compute the BR molecular fraction. \
+                The blocks 'NH  ' and/or 'P   ' are empty")
+            )
 
             fractions = Float64[]
 
@@ -795,7 +827,11 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
             fm = @. 1.0 / (1.0 + relative_pressure)
 
             # Compute the fraction of neutral gas according to Arepo
-            fn = @. nh / (nhp + nh)
+            if isempty(nhp)
+                fn = nh
+            else
+                fn = @. nh / (nhp + nh)
+            end
 
             fractions = fm .* fn
 
@@ -860,22 +896,33 @@ function _compute_fraction(
     # Compute the number of gas cells
     n_cells = length(mass)
 
-    ##################################################################
-    # Ionized, atomic, molecular, stellar, metals, and dust fractions
-    ##################################################################
+    frac = dg["FRAC"]
+    ρc   = dg["RHO "]
 
-    if component ∈ [:ode_ionized, :ode_atomic, :ode_molecular, :ode_stellar, :ode_metals, :ode_dust]
+    if any(isempty, [frac, ρc])
 
-        frac = dg["FRAC"]
-        ρc   = dg["RHO "]
+        (
+            logging[] &&
+            @warn("_compute_fraction: I could not compute the $(component) fraction. \
+            The blocks 'FRAC' and/or 'RHO ' are empty")
+        )
 
-        if any(isempty, [frac, ρc])
+        fractions = Float64[]
 
-            logging[] && @warn("_compute_fraction: I could not compute the $(component) fraction")
+    else
 
-            fractions = Float64[]
+        ##################################################################
+        # Ionized, atomic, molecular, stellar, metals, and dust fractions
+        ##################################################################
 
-        else
+        if component ∈ [
+            :ode_ionized,
+            :ode_atomic,
+            :ode_molecular,
+            :ode_stellar,
+            :ode_metals,
+            :ode_dust,
+        ]
 
             fg = view(frac, SFM_IDX[component], :)
 
@@ -898,27 +945,11 @@ function _compute_fraction(
 
             end
 
-        end
+        #############################
+        # Molecular-stellar fraction
+        #############################
 
-    #############################
-    # Molecular-stellar fraction
-    #############################
-
-    elseif component == :ode_molecular_stellar
-
-        frac = dg["FRAC"]
-        ρc   = dg["RHO "]
-
-        if any(isempty, [frac, ρc])
-
-            (
-                logging[] &&
-                @warn("_compute_fraction: I could not compute the ODE molecular-stellar fraction")
-            )
-
-            fractions = Float64[]
-
-        else
+        elseif component == :ode_molecular_stellar
 
             fm = view(frac, SFM_IDX[:ode_molecular], :)
             fs = view(frac, SFM_IDX[:ode_stellar], :)
@@ -942,24 +973,11 @@ function _compute_fraction(
 
             end
 
-        end
+        #################################################################
+        # Neutral fraction (everything but the ionize, metals, and dust)
+        #################################################################
 
-    #################################################################
-    # Neutral fraction (everything but the ionize, metals, and dust)
-    #################################################################
-
-    elseif component == :ode_neutral
-
-        frac = dg["FRAC"]
-        ρc   = dg["RHO "]
-
-        if any(isempty, [frac, ρc])
-
-            logging[] && @warn("_compute_fraction: I could not compute the ODE neutral fraction")
-
-            fractions = Float64[]
-
-        else
+        elseif component == :ode_neutral
 
             fa = view(frac, SFM_IDX[:ode_atomic], :)
             fm = view(frac, SFM_IDX[:ode_molecular], :)
@@ -984,24 +1002,11 @@ function _compute_fraction(
 
             end
 
-        end
+        ############################################################
+        # Cold fraction (everything but the atomic and ionized gas)
+        ############################################################
 
-    ############################################################
-    # Cold fraction (everything but the atomic and ionized gas)
-    ############################################################
-
-    elseif component == :ode_cold
-
-        frac = dg["FRAC"]
-        ρc   = dg["RHO "]
-
-        if any(isempty, [frac, ρc])
-
-            logging[] && @warn("_compute_fraction: I could not compute the ODE neutral fraction")
-
-            fractions = Float64[]
-
-        else
+        elseif component == :ode_cold
 
             fi = view(frac, SFM_IDX[:ode_ionized], :)
             fa = view(frac, SFM_IDX[:ode_atomic], :)
@@ -1025,12 +1030,13 @@ function _compute_fraction(
 
             end
 
+
+        else
+
+            throw(ArgumentError("_compute_fraction: `component` can only be one of the :ode \
+            elements of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+
         end
-
-    else
-
-        throw(ArgumentError("_compute_fraction: `component` can only be one of the :ode \
-        elements of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
 
     end
 
