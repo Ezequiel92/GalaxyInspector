@@ -1117,11 +1117,7 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = [
-        glob("*/*/$(SNAP_BASENAME)_*", simulation_path)
-        glob("*/$(SNAP_BASENAME)_*", simulation_path)
-        glob("$(SNAP_BASENAME)_*", simulation_path)
-    ]
+    path_list = glob("**/$(SNAP_BASENAME)_*.*.hdf5", simulation_path)
 
     # Check for an empty folder
     if isempty(path_list)
@@ -1180,11 +1176,7 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     )
 
     # Get the full list of paths to every group catalog in `simulation_path`
-    path_list = [
-        glob("*/*/$(GC_BASENAME)_*", simulation_path)
-        glob("*/$(GC_BASENAME)_*", simulation_path)
-        glob("$(GC_BASENAME)_*", simulation_path)
-    ]
+    path_list = glob("**/$(GC_BASENAME)_*.*.hdf5", simulation_path)
 
     # Check for an empty folder
     if isempty(path_list)
@@ -1469,11 +1461,7 @@ function countSnapshot(simulation_path::String)::Int
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = [
-        glob("*/*/$(SNAP_BASENAME)_*", simulation_path)
-        glob("*/$(SNAP_BASENAME)_*", simulation_path)
-        glob("$(SNAP_BASENAME)_*", simulation_path)
-    ]
+    path_list = glob("**/$(SNAP_BASENAME)_*.*.hdf5", simulation_path)
 
     # Check for an empty folder
     if isempty(path_list)
@@ -1886,11 +1874,7 @@ function isSimCosmological(simulation_path::String)::Bool
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = [
-        glob("*/*/$(SNAP_BASENAME)_*", simulation_path)
-        glob("*/$(SNAP_BASENAME)_*", simulation_path)
-        glob("$(SNAP_BASENAME)_*", simulation_path)
-    ]
+    path_list = glob("**/$(SNAP_BASENAME)_*.*.hdf5", simulation_path)
 
     # Check for an empty folder
     if isempty(path_list)
@@ -1993,11 +1977,7 @@ function isSimSFM(simulation_path::String)::Bool
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = [
-        glob("*/*/$(SNAP_BASENAME)_*", simulation_path)
-        glob("*/$(SNAP_BASENAME)_*", simulation_path)
-        glob("$(SNAP_BASENAME)_*", simulation_path)
-    ]
+    path_list = glob("**/$(SNAP_BASENAME)_*.*.hdf5", simulation_path)
 
     # Check for an empty folder
     if isempty(path_list)
