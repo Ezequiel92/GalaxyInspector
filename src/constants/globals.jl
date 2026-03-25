@@ -445,6 +445,20 @@ function LEE2015_PARAMETERS(z::Float64)::NTuple{3,Measurements.Measurement{Float
 
 end
 
+"""
+Median star formation efficiency per free-fall time, from Evans et al. (2014) (Section 1.1).
+
+N. J. Evans II et al. (2014). *STAR FORMATION RELATIONS IN NEARBY MOLECULAR CLOUDS*. The Astrophysical Journal, **782(2)**, 114. [doi:10.1088/0004-637X/782/2/114](https://doi.org/10.1088/0004-637X/782/2/114)
+"""
+const EVANS2014_ϵff = 0.016 ± 0.013
+
+"""
+Median star formation efficiency per free-fall time, from Lee et al. (2016) (Table 3 and eq. 15).
+
+E. J. Lee et al. (2016). *OBSERVATIONAL EVIDENCE OF DYNAMIC STAR FORMATION RATE IN MILKY WAY GIANT MOLECULAR CLOUDS*. The Astrophysical Journal, **833(2)**, 229. [doi:10.3847/1538-4357/833/2/229](https://doi.org/10.3847/1538-4357/833/2/229)
+"""
+const LEE2016_ϵff = 0.018 ± 0.039
+
 ###############
 # Type aliases
 ###############
