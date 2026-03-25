@@ -637,9 +637,9 @@ version = "4.1.1"
 
 [[deps.FreeType2_jll]]
 deps = ["Artifacts", "Bzip2_jll", "JLLWrappers", "Libdl", "Zlib_jll"]
-git-tree-sha1 = "2c5512e11c791d1baed2049c5652441b28fc6a31"
+git-tree-sha1 = "70329abc09b886fd2c5d94ad2d9527639c421e3e"
 uuid = "d7e528f0-a631-5988-bf34-fe36492bcfd7"
-version = "2.13.4+0"
+version = "2.14.3+1"
 
 [[deps.FreeTypeAbstraction]]
 deps = ["BaseDirs", "ColorVectorSpace", "Colors", "FreeType", "GeometryBasics", "Mmap"]
@@ -787,9 +787,9 @@ version = "0.1.18"
 
 [[deps.Hwloc_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "XML2_jll", "Xorg_libpciaccess_jll"]
-git-tree-sha1 = "157e2e5838984449e44af851a52fe374d56b9ada"
+git-tree-sha1 = "baaaebd42ed9ee1bd9173cfd56910e55a8622ee1"
 uuid = "e33a78d0-f292-5ffc-b300-72abe9b543c8"
-version = "2.13.0+0"
+version = "2.13.0+1"
 
 [[deps.HypergeometricFunctions]]
 deps = ["LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
@@ -982,9 +982,9 @@ version = "0.16.2"
 
 [[deps.IntervalArithmetic]]
 deps = ["CRlibm", "MacroTools", "OpenBLASConsistentFPCSR_jll", "Printf", "Random", "RoundingEmulator"]
-git-tree-sha1 = "02b61501dbe6da3b927cc25dacd7ce32390ee970"
+git-tree-sha1 = "2cce1fed119ca7b6cc230c4a3b85202478af7924"
 uuid = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
-version = "1.0.2"
+version = "1.0.3"
 
     [deps.IntervalArithmetic.extensions]
     IntervalArithmeticArblibExt = "Arblib"
@@ -1623,9 +1623,9 @@ version = "1.5.2"
 
 [[deps.PrettyTables]]
 deps = ["Crayons", "LaTeXStrings", "Markdown", "PrecompileTools", "Printf", "REPL", "Reexport", "StringManipulation", "Tables"]
-git-tree-sha1 = "211530a7dc76ab59087f4d4d1fc3f086fbe87594"
+git-tree-sha1 = "568dec03462a2b686e9e6ce37dfd0f5aad3301b1"
 uuid = "08abe8d2-0d0c-5749-adfa-8a2ac140af0d"
-version = "3.2.3"
+version = "3.3.1"
 
     [deps.PrettyTables.extensions]
     PrettyTablesTypstryExt = "Typstry"
@@ -2004,13 +2004,14 @@ version = "0.7.2"
 
 [[deps.StructUtils]]
 deps = ["Dates", "UUIDs"]
-git-tree-sha1 = "28145feabf717c5d65c1d5e09747ee7b1ff3ed13"
+git-tree-sha1 = "fa95b3b097bcef5845c142ea2e085f1b2591e92c"
 uuid = "ec057cc2-7a8d-4b58-b3b3-92acb9f63b42"
-version = "2.6.3"
-weakdeps = ["Measurements", "Tables"]
+version = "2.7.1"
+weakdeps = ["Measurements", "StaticArraysCore", "Tables"]
 
     [deps.StructUtils.extensions]
     StructUtilsMeasurementsExt = ["Measurements"]
+    StructUtilsStaticArraysCoreExt = ["StaticArraysCore"]
     StructUtilsTablesExt = ["Tables"]
 
 [[deps.StyledStrings]]
