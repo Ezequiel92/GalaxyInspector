@@ -246,6 +246,17 @@ J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Gal
 const SUN2023_TABLE = joinpath(@__DIR__, "../../experimental_data/sun_2023.txt")
 
 """
+Path to Table 4 (corrected) from de los Reyes et al. (2019).
+
+# References
+
+M. A. C. de los Reyes et al. (2019). *Revisiting the Integrated Star Formation Law. I. Non-starbursting Galaxies*. The Astrophysical Journal, **872(1)**, 16. [doi:10.3847/1538-4357/aafa82)](https://doi.org/10.3847/1538-4357/aafa82)
+
+M. A. C. de los Reyes et al. (2019). *Erratum: “Revisiting the Integrated Star Formation Law. I. Non-starbursting Galaxies” (2019 ApJ, 872, 16)*. The Astrophysical Journal, **878(1)**, 74. [doi:10.3847/1538-4357/ab22af)](https://doi.org/10.3847/1538-4357/ab22af)
+"""
+const DELOSREYES2019_TABLE = joinpath(@__DIR__, "../../experimental_data/de_los_reyes_2019.txt")
+
+"""
 Path to the file with the Milky Way profiles from Mollá et al. (2015).
 
 # References

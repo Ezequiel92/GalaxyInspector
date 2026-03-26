@@ -973,3 +973,8 @@ function griMagnitudeInterpolation(path::String)::NTuple{3,Interpolations.Extrap
     return g_interp, r_interp, i_interp
 
 end
+
+"""
+Parse a string as a Float64.
+"""
+parse_string(s::String) = isempty(strip(s)) ? NaN : parse(Float64, strip(s))

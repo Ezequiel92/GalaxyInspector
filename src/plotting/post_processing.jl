@@ -1524,6 +1524,139 @@ function ppLeroy2008!(
 end
 
 """
+    ppdelosReyes2019!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+Draw a scatter plot of the SFR surface density vs gas surface density (Kennicutt-Schmidt law), using the data from de los Reyes et al. (2019).
+
+!!! note
+
+    The resolution used in Leroy et al. (2008) is 800 pc for spirals and 400 pc for dwarf galaxies (Section 3.1).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `quantity::Symbol=:molecular`: Gas quantity for the x axis. The options are:
+
+      + `:molecular` -> Surface density of molecular gas.
+      + `:neutral`   -> Surface density of neutral gas.
+      + `:atomic`    -> Surface density of atomic gas.
+  - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
+  - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
+  - `x_log::Bool=true`: If the x axis will be plotted as the ``\\log_{10}`` of the gas surface density.
+  - `y_log::Bool=true`: If the y axis will be plotted as the ``\\log_{10}`` of the SFR surface density.
+  - `color::ColorType=WONG_RED,`: Color for the markers.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `MarkerElement` to be used as the marker.
+      + The label.
+
+# References
+
+M. A. C. de los Reyes et al. (2019). *Revisiting the Integrated Star Formation Law. I. Non-starbursting Galaxies*. The Astrophysical Journal, **872(1)**, 16. [doi:10.3847/1538-4357/aafa82)](https://doi.org/10.3847/1538-4357/aafa82)
+
+M. A. C. de los Reyes et al. (2019). *Erratum: “Revisiting the Integrated Star Formation Law. I. Non-starbursting Galaxies” (2019 ApJ, 872, 16)*. The Astrophysical Journal, **878(1)**, 74. [doi:10.3847/1538-4357/ab22af)](https://doi.org/10.3847/1538-4357/ab22af)
+"""
+function ppdelosReyes2019!(
+    figure::Makie.Figure;
+    quantity::Symbol=:molecular,
+    x_unit::Unitful.Units=u"Msun * kpc^-2",
+    y_unit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2",
+    x_log::Bool=true,
+    y_log::Bool=true,
+    color::ColorType=WONG_RED,
+)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+
+    ################################################################################################
+    # Load table 4 (corrected) from de los Reyes et al. (2019)
+    ################################################################################################
+
+    # Byte ranges
+    ranges = (
+        logSigSFRcorr = 54:58, # [log10(M⊙ * yr⁻¹ * kpc⁻²)]
+        logSigHI      = 60:64, # [log10(M⊙ * pc⁻²)]
+        logSigH2      = 80:84, # [log10(M⊙ * pc⁻²)]
+    )
+
+    logSigSFRcorr = Union{Float64}[]
+    logSigHI      = Union{Float64}[]
+    logSigH2      = Union{Float64}[]
+
+    open(DELOSREYES2019_TABLE, "r") do io
+        for (i, line) in enumerate(eachline(io))
+            if i < 152
+                continue
+            end
+
+            # Ensure line is long enough (pad if needed)
+            line = rpad(line, 84)
+
+            push!(logSigSFRcorr, parse_string(line[ranges.logSigSFRcorr]))
+            push!(logSigHI,      parse_string(line[ranges.logSigHI]))
+            push!(logSigH2,      parse_string(line[ranges.logSigH2]))
+        end
+    end
+
+    table_04 = DataFrame(; logSigSFRcorr, logSigHI, logSigH2)
+
+    logΣH2  = table_04[!, :logSigH2]
+    logΣHI  = table_04[!, :logSigHI]
+    logΣsfr = table_04[!, :logSigSFRcorr]
+
+    ΣH2  = exp10.(logΣH2) .* u"Msun * pc^-2"
+    ΣHI  = exp10.(logΣHI) .* u"Msun * pc^-2"
+    Σsfr = exp10.(logΣsfr) .* u"Msun * yr^-1 *  kpc^-2"
+
+    if quantity == :molecular
+
+        Σgas = ΣH2
+
+    elseif quantity == :atomic
+
+        Σgas = ΣHI
+
+    elseif quantity == :neutral
+
+        Σgas = ΣH2 .+ ΣHI
+
+    else
+
+        throw(ArgumentError("ppdelosReyes2019!: `quantity` can only be :molecular, :atomic or \
+        :neutral, but I got :$(quantity)"))
+
+    end
+
+    # Set the correct scale and units
+    if x_log
+        Σg = log10.(ustrip.(x_unit, Σgas))
+    else
+        Σg = ustrip.(x_unit, Σgas)
+    end
+
+    if y_log
+        Σsf = logΣsfr .+ ustrip(y_unit, 1.0u"Msun * yr^-1 *  kpc^-2")
+    else
+        Σsf = ustrip.(y_unit, Σsfr)
+    end
+
+    ################################################################################################
+    # Plot the galactic data
+    ################################################################################################
+
+    sp = scatter!(figure.current_axis.x, Σg, Σsf; color=(color, 0.5), marker=:star4, markersize=10)
+
+    translate!(Accum, sp, 0, 0, -10)
+
+    return ([MarkerElement(; color, marker=:star4)], ["de los Reyes et al. 2019"])
+
+end
+
+"""
     ppMolla2015!(
         figure::Makie.Figure,
         quantity::Symbol,

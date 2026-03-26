@@ -3206,7 +3206,7 @@ Plot the Kennicutt-Schmidt law.
       + `:gas_area_density` -> Gas mass area density of each bin. See the documentation for the function [`daDensity2DProjection`](@ref).
       + `:gas_sfr`          -> The total gas SFR of the column associated with each bin. See the documentation for the function [`daGasSFR2DProjection`](@ref).
       + `:gas_metallicity`  -> The total metallicity of the column associated with each bin. See the documentation for the function [`daMetallicity2DProjection`](@ref).
-  - `post_processing::Function=getNothing`: Post processing function. It can only be [`getNothing`](@ref), [`ppBigiel2008!`](@ref), [`ppBigiel2010!`](@ref), [`ppKennicutt1998!`](@ref), [`ppSun2023!`](@ref) or [`ppLeroy2008!`](@ref). The default units will be force into the post processing function.
+  - `post_processing::Function=getNothing`: Post processing function. It can only be [`getNothing`](@ref), [`ppBigiel2008!`](@ref), [`ppBigiel2010!`](@ref), [`ppKennicutt1998!`](@ref), [`ppSun2023!`](@ref), [`ppdelosReyes2019!`](@ref) or [`ppLeroy2008!`](@ref). The default units will be force into the post processing function.
   - `pp_args::Tuple=()`: Positional arguments for the post processing function.
   - `pp_kwargs::NamedTuple=(;)`: Keyword arguments for the post processing function.
   - `fit::Bool=false`: If the simulation data will be fitted with a power law. The fit will be plotted as a line. This option is only valid if `integrated` = false and `plot_type` = `:scatter`, otherwise it will be ignored.
@@ -3467,14 +3467,15 @@ function kennicuttSchmidtLaw(
         ppBigiel2010!,
         ppKennicutt1998!,
         ppSun2023!,
+        ppdelosReyes2019!,
         ppLeroy2008!,
     ]
 
         (
             logging[] &&
             @warn("kennicuttSchmidtLaw: `post_processing` can only be getNothing, ppBigiel2008!, \
-            ppBigiel2010!, ppKennicutt1998!, ppSun2023! or ppLeroy2008!, but I got \
-            $(post_processing) which will be ignored and default to getNothing")
+            ppBigiel2010!, ppKennicutt1998!, ppSun2023!, ppdelosReyes2019! or ppLeroy2008!, but I \
+            got $(post_processing) which will be ignored and default to getNothing")
         )
 
         post_processing = getNothing
@@ -3857,7 +3858,7 @@ function kennicuttSchmidtLaw(
                     x_data = x_file[x_address][3]
                 end
 
-                x_idxs = map(x -> isnan(x) || iszero(x), x_data)
+                x_idxs = map(isnan, x_data)
 
                 ##############
                 # SFR density
@@ -3872,7 +3873,7 @@ function kennicuttSchmidtLaw(
                     y_data = y_file[y_address][3]
                 end
 
-                y_idxs = map(x -> isnan(x) || iszero(x), y_data)
+                y_idxs = map(isnan, y_data)
 
                 delete_idxs = x_idxs ∪ y_idxs
 
@@ -3891,7 +3892,7 @@ function kennicuttSchmidtLaw(
                         z_data = z_file[z_address][3]
                     end
 
-                    z_idxs = map(x -> isnan(x) || iszero(x), z_data)
+                    z_idxs = map(isnan, z_data)
 
                     delete_idxs = delete_idxs ∪ z_idxs
 
