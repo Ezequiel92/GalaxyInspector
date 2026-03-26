@@ -3,6 +3,49 @@
 ####################################################################################################
 
 """
+    findFiles(base_path::String, pattern_string::AbstractString)::Vector{String}
+
+Find every file that matches `pattern_string`, within `base_path`.
+
+!!! note
+
+    This method does a recursive search to any depth within `base_path`.
+
+# Arguments
+
+  - `base_path::String`: High level path from when the search starts.
+  - `pattern_string::AbstractString`: Glob like pattern.
+
+# Returns
+
+  - A vector with the full path to every file that matched.
+"""
+function findFiles(base_path::String, pattern_string::AbstractString)::Vector{String}
+
+    pattern = Glob.FilenameMatch(pattern_string, "d")
+    matched_files = String[]
+
+    # Traverse the directory tree
+    for (root, _, files) in walkdir(base_path)
+
+        for file in files
+
+            full_path = joinpath(root, file)
+            rel_path  = relpath(full_path, base_path)
+
+            if occursin(pattern, rel_path)
+                push!(matched_files, full_path)
+            end
+
+        end
+
+    end
+
+    return matched_files
+
+end
+
+"""
     readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
 Read the header of a group catalog file in the HDF5 format.
@@ -39,7 +82,7 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     elseif isdir(path)
 
-        sub_files = glob("$(GC_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -139,7 +182,7 @@ function readSnapHeader(path::String)::SnapshotHeader
 
     elseif isdir(path)
 
-        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -295,7 +338,7 @@ function isBlockPresent(component::Symbol, block::String, path::String)::Bool
 
     elseif isdir(path)
 
-        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -358,7 +401,7 @@ function readTime(path::String)::Float64
 
     elseif isdir(path)
 
-        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -765,7 +808,7 @@ function readGroupCatalog(
 
     elseif isdir(path)
 
-        sub_files = glob("$(GC_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -848,7 +891,7 @@ function readSnapshot(
 
     elseif isdir(path)
 
-        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1117,7 +1160,7 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = glob(Glob.GlobMatch("**/$(SNAP_BASENAME)_*.hdf5"), simulation_path)
+    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME)_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
@@ -1176,7 +1219,7 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     )
 
     # Get the full list of paths to every group catalog in `simulation_path`
-    path_list = glob(Glob.GlobMatch("**/$(GC_BASENAME)_*.hdf5"), simulation_path)
+    path_list = findFiles(simulation_path, "**/$(GC_BASENAME)_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
@@ -1461,7 +1504,7 @@ function countSnapshot(simulation_path::String)::Int
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = glob(Glob.GlobMatch("**/$(SNAP_BASENAME)_*.hdf5"), simulation_path)
+    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME)_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
@@ -1562,7 +1605,7 @@ function isSubfindActive(path::String)::Bool
 
     elseif isdir(path)
 
-        sub_files = glob("$(GC_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1652,7 +1695,7 @@ function findRealStars(path::String)::Vector{Bool}
 
     elseif isdir(path)
 
-        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1814,7 +1857,7 @@ function isSnapCosmological(path::String)::Bool
 
     elseif isdir(path)
 
-        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1874,7 +1917,7 @@ function isSimCosmological(simulation_path::String)::Bool
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = glob(Glob.GlobMatch("**/$(SNAP_BASENAME)_*.hdf5"), simulation_path)
+    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME)_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
@@ -1924,7 +1967,7 @@ function isSnapSFM(path::String)::Bool
 
     elseif isdir(path)
 
-        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1977,7 +2020,7 @@ function isSimSFM(simulation_path::String)::Bool
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = glob(Glob.GlobMatch("**/$(SNAP_BASENAME)_*.hdf5"), simulation_path)
+    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME)_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
@@ -2155,7 +2198,7 @@ function snapshotTypes(path::String)::Vector{Symbol}
 
     elseif isdir(path)
 
-        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -2225,7 +2268,7 @@ function groupCatTypes(path::String)::Vector{Symbol}
 
     elseif isdir(path)
 
-        sub_files = glob("$(SNAP_BASENAME)_*.*.hdf5", path)
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
