@@ -1739,6 +1739,13 @@ function derivedSFMQtyPlotParams(quantity::Symbol)::PlotParams
         unit     = u"Gyr"
         request  = Dict(cp_type => ["RHOC", "FRAC"])
 
+    elseif magnitude == :tau_dd
+
+        # Dust destruction timescale
+        var_name = L"\tau_\text{dd}^{%$(c_label)}"
+        unit     = u"Gyr"
+        request  = Dict(cp_type => ["RHOC", "FRAC", "PARS"])
+
     elseif magnitude == :tau_ion
 
         # Ionization optical depth

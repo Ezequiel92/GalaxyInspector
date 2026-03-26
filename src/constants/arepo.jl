@@ -282,3 +282,4 @@ const σdiss = 2.1e-19u"cm^2"                 # H2 dissociation cross section in
 const σd    = 4.0e-21u"cm^2"                 # Effective dust cross-section per hydrogen atom
 const ωH2   = 0.2                            # Constant for the H2 self-shielding factor
 const xnf   = 5.0e14u"cm^-2"                 # H2 self-shielding column density factor
+const Cswm  = 2.233e3u"Msun"                 # Mass swept-up by a SNe shock times the efficiency of dust destruction

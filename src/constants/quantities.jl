@@ -70,6 +70,8 @@ const QUANTITIES = Dict(
     "ODIT" => Qty("ODE_IntegrationTime", Unitful.𝐓, u"Myr"),
     # Scale factor, for gas cells and stellar particles
     "PARA" => Qty("ODE_ParameterA", Unitful.NoDims, Unitful.NoUnits),
+    # SNII fraction, for gas cells and stellar particles
+    "PARS" => Qty("ODE_ParameterSNII", Unitful.𝐌^-1, u"Msun^-1"),
     # Redshift parameter, for gas cells and stellar particles
     "PARz" => Qty("ODE_Parameterz", Unitful.NoDims, Unitful.NoUnits),
     # UVB photoionization rate, for gas cells and stellar particles
@@ -294,6 +296,7 @@ const SFM_KEYS = Dict(
     :integration_time        => "ODIT",
     :parameter_z             => "PARz",
     :parameter_a             => "PARA",
+    :parameter_snii          => "PARS",
     :parameter_uvb           => "PARU",
     :parameter_lwb           => "PARL",
     :tau_s                   => "TAUS",
@@ -339,6 +342,7 @@ const SFM_DERIVED_MAGNITUDES = [
     :tau_cond,          # Condensation timescale
     :tau_dg,            # Dust growth timescale
     :tau_dc,            # Dust creation timescale
+    :tau_dd,            # Dust destruction timescale
     :tau_ion,           # Ionization optical depth
     :tau_diss,          # Dissociation optical depth
     :S_d,               # Dust shielding factor

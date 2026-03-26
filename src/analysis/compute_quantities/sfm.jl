@@ -22,6 +22,8 @@ Compute a derived code `quantity` for our star formation model.
           * type => ["RHOC", "FRAC"]
       + If `magnitude` == :tau_dc
           * type => ["RHOC", "FRAC"]
+      + If `magnitude` == :tau_dd
+          * type => ["RHOC", "FRAC", "PARS"]
       + If `magnitude` == :tau_ion
           * type => ["RHOC", "PARH", "FRAC"]
       + If `magnitude` == :tau_diss
@@ -154,6 +156,33 @@ function computeDerivedSFMQty(data_dict::Dict, quantity::Symbol)::Vector{<:Numbe
         fn = @. fa + fm
 
         derived_qty = @. 1.0 / (Cdg * fZ * fn * fn * ρ)
+
+        replace!(x -> isinf(x) ? t_nan : x, derived_qty)
+
+    elseif magnitude == :tau_dd
+
+        #############################
+        # Dust destruction timescale
+        #############################
+
+        fractions = dd["FRAC"]
+        SNII_frac = dd["PARS"]
+
+        isempty(fractions) && return Number[]
+
+        # Molecular fraction
+        fm = view(fractions, SFM_IDX[:ode_molecular], :)
+
+        # Free-fall time
+        tff = @. sqrt(3π / (32 * Unitful.G * ρ))
+
+        # Star formation timescale
+        τstar = @. tff / εff
+
+        # Fractional SFR
+        ψ = @. fm / τstar
+
+        derived_qty = @. 1.0 / (SNII_frac * Cswm * ψ)
 
         replace!(x -> isinf(x) ? t_nan : x, derived_qty)
 
