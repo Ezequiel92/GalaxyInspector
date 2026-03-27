@@ -3195,13 +3195,13 @@ Plot the Kennicutt-Schmidt law.
       + `:square`   -> The gas and stellar distributions will be projected into a regular cubic grid first and then into a flat square one, to emulate the way the area densities are measured in observations.
       + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations. The number fo bins will be `grid_size` /  (2 * `bin_size`).
       + `:log_circular` ->  The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric logarithmic rings. The first bin starts at 1e-3 of the radius. The number fo bins will be `grid_size` /  (2 * `bin_size`).
-  - `grid_size::Unitful.Length=BOX_L`: Physical side length of the cubic and square grids (if `reduce_grid` = :square), and diameter of the circular grid (if `reduce_grid` = :circular). This limits which cells/particles will be consider. As a reference, Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
-  - `bin_size::Unitful.Length=BIGIEL_PX_SIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`. For the cubic grids a default value of 200 pc is always used.
+  - `grid_size::Unitful.Length=BOX_L`: Physical side length of the cubic and square grids, if `reduce_grid` = :square, and diameter of the circular grid if `reduce_grid` = :circular. This limits which cells/particles will be consider. As a reference, Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
+  - `bin_size::Unitful.Length=BIGIEL_PX_SIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`.
   - `age_limit::Unitful.Time=AGE_RESOLUTION`: Maximum age of the stars to consider for the star formation area density.
   - `plot_type::Symbol=:scatter`: If the plot will be a `:scatter` plot or a `:heatmap`. Heatmaps will not show legends or several simulations at once. Scatter plots show one mark per pixel, and heatmaps show a 2D histogram for the number of pixel in each bin.
-  - `integrated::Bool=false`: If the integrated (one mark per galaxy) or resolved (several marks per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = `:scatter`. The central value is the weighted median and the error bars are the median absolute deviations.
+  - `integrated::Bool=false`: If the integrated (one mark per galaxy) or resolved (several marks per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = `:scatter`.
   - `sfr_density::Bool=true`: If the quantity for the y axis will be the SFR area density or, if `sfr_density` = false, the stellar mass area density.
-  - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = `:scatter`, each point (a bin in the 2D grid) can be weighted by a gas quantity. If `integrated` = true, the median will be computed with these weights. If `integrated` = false, each point will have a color given by the weight. The possible weights are:
+  - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = `:scatter`, each point (a bin in the 2D grid) can be weighted by a gas quantity. If `integrated` = true, this option is ignored. If `integrated` = false, each point will have a color given by the weight. The possible weights are:
 
       + `:gas_area_density` -> Gas mass area density of each bin. See the documentation for the function [`daDensity2DProjection`](@ref).
       + `:gas_sfr`          -> The total gas SFR of the column associated with each bin. See the documentation for the function [`daGasSFR2DProjection`](@ref).
@@ -3347,15 +3347,50 @@ function kennicuttSchmidtLaw(
 
         end
 
+        if !isnothing(gas_weights)
+
+            (
+                logging[] &&
+                @warn("kennicuttSchmidtLaw: `integrated` is set to true, so `gas_weights` will be \
+                ignored and default to `nothing`")
+            )
+
+            gas_weights = nothing
+
+        end
+
+        if reduce_grid != :square
+
+            (
+                logging[] &&
+                @warn("kennicuttSchmidtLaw: `integrated` is set to true, so `reduce_grid` = \
+                $(reduce_grid) will be ignored and default to :square")
+            )
+
+            reduce_grid = :square
+
+        end
+
+        if bin_size != voxel_size
+
+            (
+                logging[] &&
+                @warn("kennicuttSchmidtLaw: `integrated` is set to true, so `bin_size` = \
+                $(bin_size) will be ignored and default to $(voxel_size)")
+            )
+
+            bin_size = voxel_size
+
+        end
+
     end
 
     if bin_size < voxel_size
 
         (
             logging[] &&
-            @warn("kennicuttSchmidtLaw: `reduce_grid` is set to :square and `bin_size` is set to \
-            a value lower than $(voxel_size). This is not allowed. `bin_size` will be ignored and \
-            default to $(voxel_size)")
+            @warn("kennicuttSchmidtLaw: `bin_size` is set to a value lower than $(voxel_size). \
+            This is not allowed. `bin_size` will be ignored and default to $(voxel_size)")
         )
 
         bin_size = voxel_size
@@ -3503,10 +3538,16 @@ function kennicuttSchmidtLaw(
 
     if reduce_grid == :square
 
-        if grid_size != bin_size
+        if bin_size != voxel_size
 
             # Compute the number of bins for the low resolution grids
             lr_n_bins = round(Int, uconvert(Unitful.NoUnits, grid_size / bin_size))
+
+            (
+                lr_n_bins >= 2 ||
+                throw(ArgumentError("kennicuttSchmidtLaw: lr_n_bins = $(lr_n_bins) < 2 for \
+                reduce_grid = :square, this should be imposible!"))
+            )
 
             # Compute the interger factor between the high resolution grids (`hr_n_bins`px)
             # and the low resolution grids (`lr_n_bins`px)
@@ -3514,7 +3555,7 @@ function kennicuttSchmidtLaw(
 
         else
 
-            # If the grid size is equal to the bin size, there is no need to reduce the grid
+            # If the bin_size is equal to the voxel_size, there is no need to reduce the grid
             lr_n_bins     = hr_n_bins
             reduce_factor = 1
 
@@ -3531,6 +3572,12 @@ function kennicuttSchmidtLaw(
         # Compute the number of rings for the circular grid
         # This will be used for linear and logarithmic circular grids
         reduce_factor = round(Int, uconvert(Unitful.NoUnits, (grid_size / 2.0) / bin_size))
+
+        (
+            reduce_factor > 1 ||
+            throw(ArgumentError("kennicuttSchmidtLaw: reduce_factor = $(reduce_factor) <= 1 for \
+            reduce_grid = :$(reduce_grid), this should be imposible!"))
+        )
 
     end
 
@@ -3907,32 +3954,12 @@ function kennicuttSchmidtLaw(
                     y_data .-= log10Δt
                 end
 
-                # For the integrated Kennicutt-Schmidt law, compute the median and median absolute
-                # deviation of the gas and stellar densities
+                # For the integrated Kennicutt-Schmidt law, compute the total gas and stellar densities
+                # Since the area of each pixel is the same, the total density is the mean of the densities
                 if integrated
 
-                    lin_x = exp10.(x_data)
-                    lin_y = exp10.(y_data)
-
-                    if !isnothing(gas_weights)
-
-                        w_z = weights(exp10.(z_data))
-
-                        μx = median(lin_x, w_z)
-                        μy = median(lin_y, w_z)
-
-                    else
-
-                        μx = median(lin_x)
-                        μy = median(lin_y)
-
-                    end
-
-                    σx = mad(lin_x; center=μx, normalize=false)
-                    σy = mad(lin_y; center=μy, normalize=false)
-
-                    x_data = [log10(μx ± σx)]
-                    y_data = [log10(μy ± σy)]
+                    x_data = [log10(mean(exp10.(x_data)))]
+                    y_data = [log10(mean(exp10.(y_data)))]
 
                 end
 
@@ -3953,35 +3980,13 @@ function kennicuttSchmidtLaw(
 
                 if  plot_type == :scatter
 
-                    if integrated
-
-                        x_values = Measurements.value.(x_data)
-                        y_values = Measurements.value.(y_data)
-
-                        x_uncertainty = Measurements.uncertainty.(x_data)
-                        y_uncertainty = Measurements.uncertainty.(y_data)
-
+                    if isnothing(gas_weights)
                         color = ring(colors, sim_idx)
-
-                        scatter!(ax, x_values, y_values; color)
-                        errorbars!(ax, x_values, y_values, x_uncertainty; color, direction=:x)
-                        errorbars!(ax, x_values, y_values, y_uncertainty; color, direction=:y)
-
                     else
-
-                        if isnothing(gas_weights)
-
-                            color = ring(colors, sim_idx)
-
-                        else
-
-                            color = z_data
-
-                        end
-
-                        scatter!(ax, x_data, y_data; color)
-
+                        color = z_data
                     end
+
+                    scatter!(ax, x_data, y_data; color)
 
                 end
 
