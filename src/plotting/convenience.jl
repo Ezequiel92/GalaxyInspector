@@ -1576,6 +1576,7 @@ Plot a 2D projection of the `component` mass density.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `output_path::String="."`: Path to the output folder.
+  -`icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1603,6 +1604,7 @@ function densityMap(
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"pc",
     output_path::String=".",
+    icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     da_ff::Function=filterNothing,
@@ -1675,6 +1677,7 @@ function densityMap(
                         (;
                             projection_plane,
                             reduce_factor,
+                            icGen,
                             mmap_path=output_path,
                             m_unit,
                             l_unit,
@@ -1734,6 +1737,7 @@ Plot a 2D projection of the mass density of `component`, with the velocity field
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `v_unit::Unitful.Units=u"km * s^-1",`: Velocity unit
   - `output_path::String="."`: Path to the output folder.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) and [`daVelocityField`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1762,6 +1766,7 @@ function densityMapVelField(
   l_unit::Unitful.Units=u"pc",
   v_unit::Unitful.Units=u"km * s^-1",
   output_path::String=".",
+  icGen::Function=initialConditionFunction,
   trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
   filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
   da_ff::Function=filterNothing,
@@ -1837,6 +1842,7 @@ function densityMapVelField(
                         (;
                             projection_plane,
                             reduce_factor,
+                            icGen,
                             mmap_path=output_path,
                             m_unit,
                             l_unit,
@@ -3214,6 +3220,7 @@ Plot the Kennicutt-Schmidt law.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the y values will be used. Only relevant if `plot_type` = :heatmap.
   - `n_bins::Int=100`: Number of bins per side of the heatmap grid. Only relevant if `plot_type` = `:heatmap`.
   - `colorbar::Bool=false`: If a colorbar will be added.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}. See [`initialConditionFunction`](@ref) an example. This keyword argument is only relevant if the target component is one of the :ode components (e.g. :ode_atomic_fraction).
   - `output_file::String="./kennicutt_schmidt_law.png"`: Path to the output file.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -3249,6 +3256,7 @@ function kennicuttSchmidtLaw(
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     n_bins::Int=100,
     colorbar::Bool=false,
+    icGen::Function=initialConditionFunction,
     output_file::String="./kennicutt_schmidt_law.png",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -3694,6 +3702,7 @@ function kennicuttSchmidtLaw(
             (;
                 reduce_grid,
                 reduce_factor,
+                icGen,
                 mmap_path=temp_folder,
                 m_unit=Σg_m_unit,
                 l_unit=Σg_l_unit,
@@ -3720,7 +3729,7 @@ function kennicuttSchmidtLaw(
             m_unit      = Σg_m_unit
             l_unit      = Σg_l_unit
             c_unit      = Σg_unit
-            da_kwargs   = [(; reduce_grid, reduce_factor, mmap_path, m_unit, l_unit)]
+            da_kwargs   = [(; reduce_grid, reduce_factor, icGen, mmap_path, m_unit, l_unit)]
 
         elseif gas_weights == :gas_sfr
 
@@ -6830,6 +6839,7 @@ Plot the density map of five gas components for the xy and xz projections, in se
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `box_size::Unitful.Length=BOX_L`: Size of the plotting box.
   - `output_path::String="."`: Path to the output folder.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `density_range::NTuple{2,Float64}=(NaN,NaN)`: Area density range in ``\\log_{10} \\mathrm{[M_\\odot \\, kpc^{-2}]``. If set to NaN a value is chosen automatically.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -6842,6 +6852,7 @@ function gasDensityMaps(
     slice::IndexType;
     box_size::Unitful.Length=BOX_L,
     output_path::String=".",
+    icGen::Function=initialConditionFunction,
     density_range::NTuple{2,Float64}=(NaN,NaN),
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -6926,6 +6937,7 @@ function gasDensityMaps(
                     da_kwargs=[
                         (;
                             projection_plane,
+                            icGen,
                             mmap_path=temp_folder,
                             m_unit,
                             l_unit,
@@ -7295,6 +7307,7 @@ Make a video of how the projected density (xy and xz planes) evolves through tim
   - `field_type::Symbol=cells`: If the gas field is made up of `:particles` or Voronoi `:cells`.
   - `box_size::Unitful.Length=BOX_L`: Size of the plotting box.
   - `output_path::String="."`: Path to the output folder.
+  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `density_range::NTuple{2,Float64}=(NaN,NaN)`: Area density range in ``\\log_{10} \\mathrm{[M_\\odot \\, kpc^{-2}]`` for the `component` and gas. If set to NaN a value is chosen automatically.
   - `framerate::Int64=20`: Video framerate.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -7312,6 +7325,7 @@ function evolutionVideo(
     field_type::Symbol=:cells,
     box_size::Unitful.Length=BOX_L,
     output_path::String=".",
+    icGen::Function=initialConditionFunction,
     density_range::NTuple{2,Float64}=(NaN,NaN),
     framerate::Int64=20,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -7431,6 +7445,7 @@ function evolutionVideo(
                     da_kwargs=[
                         (;
                             projection_plane,
+                            icGen,
                             mmap_path=temp_folder,
                             m_unit,
                             l_unit,
