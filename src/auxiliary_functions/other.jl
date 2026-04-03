@@ -1049,21 +1049,21 @@ function memoryThreshold(mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION)::In
 end
 
 """
-    allocateArray(T::Type, dims::Tuple; mmap::Bool=false)::Array{T}
+    allocateArray(T::Type, dims::NTuple{N, Integer}; mmap::Bool=false) where {N}
 
 Allocate an array of type `T` and dimensions `dims`, using memory-mapping if the size exceeds a certain threshold.
 
 # Arguments
 
   - `T::Type`: The element type of the array.
-  - `dims::Tuple`: The dimensions of the array.
+  - `dims::NTuple{N, Integer}`: The dimensions of the array.
   - `mmap::Bool=false`: Whether to use memory-mapping. If `false`, the method will decide based on the size of the array and the available physical memory.
 
 # Returns
 
   - An array of type `T` and dimensions `dims`, allocated in RAM or using memory-mapping depending on the size.
 """
-function allocateArray(T::Type, dims::Tuple; mmap::Bool=false)::Array{T}
+function allocateArray(T::Type, dims::NTuple{N, Integer}; mmap::Bool=false) where {N}
 
     # Compute the total number of bytes needed
     size_bytes = prod(dims) * sizeof(T)
@@ -1077,7 +1077,7 @@ function allocateArray(T::Type, dims::Tuple; mmap::Bool=false)::Array{T}
         io = open(filepath, "w+")
 
         # Memory-map the file to an Array of the desired type and dimensions
-        A = Mmap.mmap(io, Array{T, length(dims)}, dims)
+        A = Mmap.mmap(io, Array{T, N}, dims)
 
         close(io)
 
@@ -1086,7 +1086,7 @@ function allocateArray(T::Type, dims::Tuple; mmap::Bool=false)::Array{T}
     else
 
         # Standard RAM allocation
-        return Array{T}(undef, dims)
+        return Array{T, N}(undef, dims)
 
     end
 
