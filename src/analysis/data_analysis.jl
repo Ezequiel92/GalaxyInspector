@@ -1322,7 +1322,6 @@ Project a 3D mass density field into a given plane.
       + `:log_circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
-  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1344,7 +1343,6 @@ function daDensity2DProjection(
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
     icGen::Function=initialConditionFunction,
-    mmap_path::String="./",
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"pc",
     filter_function::Function=filterNothing,
@@ -1360,7 +1358,6 @@ function daDensity2DProjection(
         empty_nan=false,
         log=false,
         icGen,
-        mmap_path,
         filter_function,
     )
 
@@ -1493,7 +1490,6 @@ Project the 3D gas SFR field into a given plane.
       + `:circular` -> The sfr distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
       + `:log_circular` -> The sfr distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the sfr projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
-  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Time unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1513,7 +1509,6 @@ function daGasSFR2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
-    mmap_path::String="./",
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
     filter_function::Function=filterNothing,
@@ -1526,7 +1521,6 @@ function daGasSFR2DProjection(
         field_type;
         empty_nan=false,
         log=false,
-        mmap_path,
         filter_function,
     )
 
@@ -1651,7 +1645,6 @@ Project the 3D metallicity field to a given plane.
       + `:circular` -> The metallicity distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
       + `:log_circular` -> The metallicity distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the metallicity projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
-  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1671,7 +1664,6 @@ function daMetallicity2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
-    mmap_path::String="./",
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
@@ -1702,7 +1694,6 @@ function daMetallicity2DProjection(
         field_type;
         empty_nan=false,
         log=false,
-        mmap_path,
         return_idxs=true,
         filter_function,
     )
@@ -1956,7 +1947,6 @@ Compute a mockup image emulating an SDSS observation.
       + `:nothing` -> No extinction.
       + `:neutral` -> Neutral gass extinction.
       + `:dust`    -> Dust mass extinction.
-  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1970,7 +1960,6 @@ function daSDSSMockup(
     smooth::Bool=false,
     icGen::Function=initialConditionFunction,
     extinction::Union{Symbol,Nothing}=nothing,
-    mmap_path::String="./",
     filter_function::Function=filterNothing,
 )::Array
 
@@ -2089,7 +2078,6 @@ function daSDSSMockup(
             empty_nan=false,
             log=false,
             icGen,
-            mmap_path,
         )
 
         for star_idx in eachindex(masses)
@@ -2180,7 +2168,6 @@ Compute the gas density and the SFR density, used in the volumetric star formati
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. See the required signature and examples in `./src/analysis/filters.jl`.
   - `gas_ff::Function=filterNothing`: Filter function for the gas. See the required signature and examples in `./src/analysis/filters.jl`.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
-  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `m_unit::Unitful.Units=u"Msun"`: Target mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Target time unit.
   - `l_gas_unit::Unitful.Units=u"pc"`: Target length unit for the gas density.
@@ -2204,7 +2191,6 @@ function daVSFLaw(
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
     icGen::Function=initialConditionFunction,
-    mmap_path::String="./",
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
     l_gas_unit::Unitful.Units=u"pc",
@@ -2229,7 +2215,6 @@ function daVSFLaw(
         density=l_gas_unit,
         log=false,
         icGen,
-        mmap_path,
         filter_function=gas_ff,
     )
 
@@ -2243,7 +2228,6 @@ function daVSFLaw(
         scale_by_volume=true,
         density=l_stellar_unit,
         log=false,
-        mmap_path,
         filter_function=stellar_ff,
     )
 

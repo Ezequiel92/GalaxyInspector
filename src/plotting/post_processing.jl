@@ -1596,9 +1596,9 @@ function ppdelosReyes2019!(
             # Ensure line is long enough (pad if needed)
             line = rpad(line, 84)
 
-            push!(logSigSFRcorr, parse_string(line[ranges.logSigSFRcorr]))
-            push!(logSigHI,      parse_string(line[ranges.logSigHI]))
-            push!(logSigH2,      parse_string(line[ranges.logSigH2]))
+            push!(logSigSFRcorr, parseString(line[ranges.logSigSFRcorr]))
+            push!(logSigHI,      parseString(line[ranges.logSigHI]))
+            push!(logSigH2,      parseString(line[ranges.logSigH2]))
         end
     end
 

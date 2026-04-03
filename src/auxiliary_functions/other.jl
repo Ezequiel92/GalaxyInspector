@@ -867,7 +867,7 @@ function ratio(qty_1::Symbol, qty_2::Symbol)::Symbol
 end
 
 """
-    format_seconds(sec::Float64)::String
+    formatSeconds(sec::Float64)::String
 
 Format given number of seconds as "DDd-HHh:MM':SS''", where D is days, H is hours, M is minutes, and S is seconds.
 
@@ -879,7 +879,7 @@ Format given number of seconds as "DDd-HHh:MM':SS''", where D is days, H is hour
 
   - String with the formatted time.
 """
-function format_seconds(sec::Float64)::String
+function formatSeconds(sec::Float64)::String
 
     days    = floor(sec / (24 * 3600))
     rem1    = sec - days * (24 * 3600)
@@ -977,4 +977,117 @@ end
 """
 Parse a string as a Float64.
 """
-parse_string(s::String) = isempty(strip(s)) ? NaN : parse(Float64, strip(s))
+parseString(s::String) = isempty(strip(s)) ? NaN : parse(Float64, strip(s))
+
+"""
+    findFiles(base_path::String, pattern_string::AbstractString)::Vector{String}
+
+Find every file that matches `pattern_string` within `base_path`.
+
+!!! note
+
+    This method does a recursive search to any depth within `base_path`.
+
+# Arguments
+
+  - `base_path::String`: High level path from when the search starts.
+  - `pattern_string::AbstractString`: Glob like pattern.
+
+# Returns
+
+  - A vector with the full path to every file that matched.
+"""
+function findFiles(base_path::String, pattern_string::AbstractString)::Vector{String}
+
+    pattern = Glob.FilenameMatch(pattern_string, "d")
+    matched_files = String[]
+
+    # Traverse the directory tree
+    for (root, _, files) in walkdir(base_path)
+
+        for file in files
+
+            full_path = joinpath(root, file)
+            rel_path  = relpath(full_path, base_path)
+
+            if occursin(pattern, rel_path)
+                push!(matched_files, full_path)
+            end
+
+        end
+
+    end
+
+    return matched_files
+
+end
+
+"""
+
+    memoryThreshold(mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION)::Int
+
+Compute the threshold for memory-mapping as a fraction of the free physical memory.
+
+# Arguments
+
+  - `mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION`: Fraction of the free physical memory that will be used as the threshold for memory-mapping. It has to be a number between 0 and 1.
+
+# Returns
+
+  - The threshold for memory-mapping in bytes.
+"""
+function memoryThreshold(mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION)::Int
+
+    (
+        0.0 < mmap_memory_fraction < 1.0 ||
+        throw(ArgumentError("memoryThreshold: `mmap_memory_fraction` has to be a number between 0 \
+        and 1, but I got `mmap_memory_fraction` = $(mmap_memory_fraction)"))
+    )
+
+    return floor(UInt, Sys.free_physical_memory() * mmap_memory_fraction)
+
+end
+
+"""
+    allocateArray(T::Type, dims::Tuple; mmap::Bool=false)::Array{T}
+
+Allocate an array of type `T` and dimensions `dims`, using memory-mapping if the size exceeds a certain threshold.
+
+# Arguments
+
+  - `T::Type`: The element type of the array.
+  - `dims::Tuple`: The dimensions of the array.
+  - `mmap::Bool=false`: Whether to use memory-mapping. If `false`, the method will decide based on the size of the array and the available physical memory.
+
+# Returns
+
+  - An array of type `T` and dimensions `dims`, allocated in RAM or using memory-mapping depending on the size.
+"""
+function allocateArray(T::Type, dims::Tuple; mmap::Bool=false)::Array{T}
+
+    # Compute the total number of bytes needed
+    size_bytes = prod(dims) * sizeof(T)
+
+    # If the size exceeds the threshold, we will use memory-mapping regardless of the `mmap` argument
+    if mmap || size_bytes > memoryThreshold()
+
+        # Create a temporary file for the memory-mapped array
+        filepath = tempname(MMAP_TEMP_DIR; cleanup=true, suffix=".bin")
+
+        io = open(filepath, "w+")
+
+        # Memory-map the file to an Array of the desired type and dimensions
+        A = Mmap.mmap(io, Array{T, length(dims)}, dims)
+
+        close(io)
+
+        return A
+
+    else
+
+        # Standard RAM allocation
+        return Array{T}(undef, dims)
+
+    end
+
+end

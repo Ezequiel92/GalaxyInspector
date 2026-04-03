@@ -1,2 +1,3 @@
 docs/build/
 tests/test_plots
+tmp_mmap

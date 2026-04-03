@@ -476,7 +476,6 @@ function vtkFiles(
             (;
                 density=density ? l_unit : nothing,
                 icGen,
-                mmap_path=temp_folder,
                 filter_function=da_ff,
             ),
         ],
@@ -1678,7 +1677,6 @@ function densityMap(
                             projection_plane,
                             reduce_factor,
                             icGen,
-                            mmap_path=output_path,
                             m_unit,
                             l_unit,
                             filter_function=da_ff,
@@ -1843,7 +1841,6 @@ function densityMapVelField(
                             projection_plane,
                             reduce_factor,
                             icGen,
-                            mmap_path=output_path,
                             m_unit,
                             l_unit,
                             filter_function=da_ff,
@@ -1993,7 +1990,6 @@ function gasSFRMap(
                     (;
                         projection_plane,
                         reduce_factor,
-                        mmap_path=output_path,
                         m_unit,
                         t_unit,
                         filter_function=da_ff,
@@ -2165,7 +2161,6 @@ function metallicityMap(
                             element,
                             projection_plane,
                             reduce_factor,
-                            mmap_path=output_path,
                             filter_function=da_ff,
                         ),
                     ],
@@ -3622,7 +3617,6 @@ function kennicuttSchmidtLaw(
             (;
                 reduce_grid,
                 reduce_factor,
-                mmap_path=temp_folder,
                 m_unit=Σs_m_unit,
                 l_unit=Σs_l_unit,
                 filter_function=dd->filterByStellarAge(dd),
@@ -3703,7 +3697,6 @@ function kennicuttSchmidtLaw(
                 reduce_grid,
                 reduce_factor,
                 icGen,
-                mmap_path=temp_folder,
                 m_unit=Σg_m_unit,
                 l_unit=Σg_l_unit,
             ),
@@ -3720,8 +3713,6 @@ function kennicuttSchmidtLaw(
 
     if !isnothing(gas_weights)
 
-        mmap_path = temp_folder
-
         if gas_weights == :gas_area_density
 
             da_function = daDensity2DProjection
@@ -3729,7 +3720,7 @@ function kennicuttSchmidtLaw(
             m_unit      = Σg_m_unit
             l_unit      = Σg_l_unit
             c_unit      = Σg_unit
-            da_kwargs   = [(; reduce_grid, reduce_factor, icGen, mmap_path, m_unit, l_unit)]
+            da_kwargs   = [(; reduce_grid, reduce_factor, icGen, m_unit, l_unit)]
 
         elseif gas_weights == :gas_sfr
 
@@ -3738,14 +3729,14 @@ function kennicuttSchmidtLaw(
             m_unit      = Σg_m_unit
             t_unit      = u"yr"
             c_unit      = m_unit * t_unit^-1
-            da_kwargs   = [(; reduce_grid, reduce_factor, mmap_path, m_unit, t_unit)]
+            da_kwargs   = [(; reduce_grid, reduce_factor, m_unit, t_unit)]
 
         elseif gas_weights == :gas_metallicity
 
             da_function = daMetallicity2DProjection
             da_args     = [(gas_grid, :gas, gas_type)]
             c_unit      = Unitful.NoUnits
-            da_kwargs   = [(; reduce_grid, reduce_factor, mmap_path)]
+            da_kwargs   = [(; reduce_grid, reduce_factor)]
 
         else
 
@@ -5009,7 +5000,7 @@ function massMetallicityRelation(
         da_functions=[daDensity2DProjection],
         da_args=[(grid, :stellar, :particles)],
         da_kwargs=[
-            (; reduce_factor, mmap_path=temp_folder, filter_function=dd->filterByStellarAge(dd)),
+            (; reduce_factor, filter_function=dd->filterByStellarAge(dd)),
         ],
         x_unit=u"kpc",
         y_unit=u"kpc",
@@ -5045,7 +5036,7 @@ function massMetallicityRelation(
         filter_function,
         da_functions=[daMetallicity2DProjection],
         da_args=[(grid, :gas, :cells)],
-        da_kwargs=[(; element, reduce_factor, mmap_path=temp_folder)],
+        da_kwargs=[(; element, reduce_factor)],
         x_unit=u"kpc",
         y_unit=u"kpc",
         save_figures=false,
@@ -5247,7 +5238,7 @@ function gasVelocityCubes(
     filter_function, request = selectFilter(filter_mode, trans_request)
 
     # For gas cells, reshape the grid to conform to the way `knn` expect the matrix to be structured
-    physical_grid = gridToJuliaMatrix(grid, l_unit; mmap_path=folder)
+    physical_grid = gridToJuliaMatrix(grid, l_unit)
 
     for simulation_path in simulation_paths
 
@@ -5543,11 +5534,6 @@ function gasVelocityCubes(
 
     end
 
-    # Delete intermediate mmap file if used
-    if physical_grid isa MmapArray
-        delete!(physical_grid)
-    end
-
     close(hdf5_file)
 
     return nothing
@@ -5634,7 +5620,7 @@ function stellarVelocityCubes(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    physical_grid = gridToJuliaMatrix(grid, l_unit; mmap_path=folder)
+    physical_grid = gridToJuliaMatrix(grid, l_unit)
 
     for simulation_path in simulation_paths
 
@@ -5808,11 +5794,6 @@ function stellarVelocityCubes(
 
         end
 
-    end
-
-    # Delete intermediate mmap file if used
-    if physical_grid isa MmapArray
-        delete!(physical_grid)
     end
 
     close(hdf5_file)
@@ -6252,7 +6233,6 @@ function fitVSFLaw(
                 (;
                     field_type,
                     stellar_ff=filterByStellarAge,
-                    mmap_path=output_path,
                     m_unit,
                     t_unit,
                     l_gas_unit,
@@ -6733,7 +6713,6 @@ function stellarDensityMaps(
                 da_kwargs=[
                     (;
                         projection_plane,
-                        mmap_path=temp_folder,
                         m_unit,
                         l_unit,
                         filter_function=da_ff,
@@ -6938,7 +6917,6 @@ function gasDensityMaps(
                         (;
                             projection_plane,
                             icGen,
-                            mmap_path=temp_folder,
                             m_unit,
                             l_unit,
                             filter_function=da_ff,
@@ -7446,7 +7424,6 @@ function evolutionVideo(
                         (;
                             projection_plane,
                             icGen,
-                            mmap_path=temp_folder,
                             m_unit,
                             l_unit,
                             filter_function=da_ff,
@@ -7801,7 +7778,6 @@ function SDSSMockup(
                 smooth,
                 icGen,
                 extinction,
-                mmap_path=temp_folder,
                 filter_function=da_ff,
             ),
         ],
@@ -7992,7 +7968,7 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
             if isfile(cpu_txt_path)
                 cpu_txt_data = readCpuFile(cpu_txt_path, ["total"])["total"]
                 run_time     = cpu_txt_data[end, 5]
-                println(file, "Run time:       $(format_seconds(run_time))")
+                println(file, "Run time:       $(formatSeconds(run_time))")
             else
                 println(file, "Run time:       Missing cpu.txt file!")
             end

@@ -1933,7 +1933,7 @@ end
         quantity::Symbol,
         field_type::Symbol;
         <keyword arguments>
-    )::Union{Array{Float64,3},Tuple{Array{Float64,3},AbstractArray{Int}}}
+    )::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
 
 Project a `quantity` field into a given 3D grid.
 
@@ -1952,7 +1952,6 @@ Project a `quantity` field into a given 3D grid.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
   - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
-  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
   - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -1973,10 +1972,9 @@ function quantity3DProjection(
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
     icGen::Function=initialConditionFunction,
-    mmap_path::String="./",
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
-)::Union{Array{Float64,3},Tuple{Array{Float64,3},AbstractArray{Int}}}
+)::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
 
     if field_type == :cells
 
@@ -2019,33 +2017,31 @@ function quantity3DProjection(
         # Compute the tree for a nearest neighbor search
         kdtree = KDTree(ustrip.(l_unit, positions))
 
-        # Choose storage strategy
-        use_mmap = grid.n_voxels > MMAP_THRESHOLD
-
         # Reshape the grid to conform to the way `nn` expect the matrix to be structured
-        physical_grid = gridToJuliaMatrix(grid, l_unit; mmap_path)
+        physical_grid = gridToJuliaMatrix(grid, l_unit)
 
-        if use_mmap
-            nn_idxs = MmapArray(joinpath(mmap_path, "nn_indices.bin"), Int, (grid.n_voxels,))
-        else
-            nn_idxs = Vector{Int}(undef, grid.n_voxels)
-        end
+        # Allocate the array for the indices of the nearest neighbors
+        nn_idxs = allocateArray(Int, (grid.n_voxels,))
+
+        # Compute the threshold for batching the nearest neighbor search, as a fraction of the free physical memory
+        threshold = memoryThreshold(0.01)
 
         # Find the nearest cell to each voxel
-        if use_mmap
+        if sizeof(nn_idxs) > threshold
+
+            batch_size = floor(Int, threshold / sizeof(Int))
 
             # Batched computation
             i = 1
             while i <= grid.n_voxels
 
-                j = min(i + MMAP_THRESHOLD - 1, grid.n_voxels)
+                j = min(i + batch_size - 1, grid.n_voxels)
 
                 pg_batch = @view physical_grid[:, i:j]
 
                 idxs_batch, _ = nn(kdtree, pg_batch)
 
                 @inbounds nn_idxs[i:j] .= idxs_batch
-                Mmap.sync!(nn_idxs.data)
 
                 i = j + 1
 
@@ -2053,14 +2049,9 @@ function quantity3DProjection(
 
         else
 
-            # Single batch, fully in RAM
+            # Single batch
             nn_idxs, _ = nn(kdtree, physical_grid)
 
-        end
-
-        # Delete intermediate mmap file if used
-        if physical_grid isa MmapArray
-            delete!(physical_grid)
         end
 
     elseif field_type == :particles
@@ -2095,9 +2086,9 @@ end
         data_dict::Dict,
         grid::CubicGrid,
         quantity::Symbol,
-        nn_idxs::AbstractArray{Int};
+        nn_idxs::Array{Int};
         <keyword arguments>
-    )::Union{Array{Float64,3},Tuple{Array{Float64,3},AbstractArray{Int}}}
+    )::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
 
 Project a `quantity` field into a given 3D grid.
 
@@ -2110,7 +2101,7 @@ Project a `quantity` field into a given 3D grid.
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `grid::CubicGrid`: Cubic grid.
   - `quantity::Symbol`: Target quantity. It can be any quantity valid for [`scatterQty`](@ref), as long as it has a well defined cell/particle type (see [`plotParams`](@ref)).
-  - `nn_idxs::AbstractArray{Int}`: A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)). If empty, it is assumed that the field is made up of particles.
+  - `nn_idxs::Array{Int}`: A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)). If empty, it is assumed that the field is made up of particles.
   - `scale_by_volume::Bool=true`: If `quantity` is extensive (e.g. a mass), this should be set to true, so the values are correctly scaled to the voxel volume.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
@@ -2130,7 +2121,7 @@ function quantity3DProjection(
     data_dict::Dict,
     grid::CubicGrid,
     quantity::Symbol,
-    nn_idxs::AbstractArray{Int};
+    nn_idxs::Array{Int};
     scale_by_volume::Bool=true,
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
@@ -2138,7 +2129,7 @@ function quantity3DProjection(
     icGen::Function=initialConditionFunction,
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
-)::Union{Array{Float64,3},Tuple{Array{Float64,3},AbstractArray{Int}}}
+)::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
@@ -2301,10 +2292,6 @@ function quantity3DProjection(
         return voxel_values, nn_idxs
 
     else
-
-        if nn_idxs isa MmapArray
-            delete!(nn_idxs)
-        end
 
         return voxel_values
 

@@ -324,11 +324,7 @@ function equalVolumeBins(radius::Number, n_bins::Int; shift::Number=zero(radius)
 end
 
 """
-    gridToJuliaMatrix(
-        grid::CubicGrid,
-        l_unit::Unitful.Units;
-        <keyword arguments>
-    )::Matrix{Float64}
+    gridToJuliaMatrix(grid::CubicGrid, l_unit::Unitful.Units)::AbstractMatrix{Float64}
 
 Create a 3×n matrix with the coordinates of every voxel in `grid`, where n is the total number of voxels.
 
@@ -336,26 +332,14 @@ Create a 3×n matrix with the coordinates of every voxel in `grid`, where n is t
 
   - `grid::CubicGrid`: Cubic grid.
   - `l_unit::Unitful.Units`: Length unit.
-  - `mmap_path::String="./"`: Path to store the memory-mapped file if needed (for matrices larger than [`MMAP_THRESHOLD`](@ref)).
 
 # Returns
 
   - A matrix with the coordinates of every voxel in `grid`.
 """
-function gridToJuliaMatrix(
-    grid::CubicGrid,
-    l_unit::Unitful.Units;
-    mmap_path::String="./"
-)::AbstractMatrix{Float64}
+function gridToJuliaMatrix(grid::CubicGrid, l_unit::Unitful.Units)::AbstractMatrix{Float64}
 
-    # Choose storage strategy
-    use_mmap = grid.n_voxels > MMAP_THRESHOLD
-
-    if use_mmap
-        matrix = MmapArray(joinpath(mmap_path, "grid.bin"), Float64, (3, grid.n_voxels))
-    else
-        matrix = Matrix{Float64}(undef, 3, grid.n_voxels)
-    end
+    matrix = allocateArray(Float64, (3, grid.n_voxels))
 
     cartesian_indices = CartesianIndices(grid.n_bins)
     linear_indices    = LinearIndices(grid.n_bins)

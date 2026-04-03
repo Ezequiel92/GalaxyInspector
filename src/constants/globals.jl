@@ -17,9 +17,14 @@ If logging messages will be printed out.
 const logging = Ref(false)
 
 """
-Max grid size to be stored on memory, above this value memory-mapping will be used.
+Path to the directory where the memory-mapped arrays will be stored.
 """
-const MMAP_THRESHOLD = 200^3
+const MMAP_TEMP_DIR = mkpath(joinpath(@__DIR__, "../../tmp_mmap"))
+
+"""
+Maximum fraction of the free physical memory that an array can occupy before we start using memory mapping.
+"""
+const MMAP_MEMORY_FRACTION = 0.25
 
 ########################
 # Characteristic scales
@@ -686,74 +691,6 @@ const DEFAULT_THEME = Theme(
 #########
 # Strucs
 #########
-
-"""
-Memory-mapped array structure.
-
-# Fields
-
-  - `data :: Array{T,N}`: Array data.
-  - `io   :: IOStream`: IO stream to the memory-mapped file.
-  - `path :: String`: Path to the memory-mapped file.
-"""
-mutable struct MmapArray{T,N} <: AbstractArray{T,N}
-    data :: Union{Array{T,N}, Nothing}
-    io   :: Union{IOStream, Nothing}
-    path :: String
-
-    # Array interface
-    Base.getindex(A::MmapArray, I...) = getindex(A.data, I...)
-    Base.setindex!(A::MmapArray, v, I...) = setindex!(A.data, v, I...)
-    Base.size(A::MmapArray) = size(A.data)
-
-    function Base.close(A::MmapArray)
-        Mmap.sync!(A.data)
-        close(A.io)
-        return nothing
-    end
-
-    function Base.delete!(A::MmapArray)
-        close(A)
-        A.data = nothing
-        GC.gc(true)
-        rm(A.path; force=true)
-        return nothing
-    end
-
-    """
-        MmapArray(
-            path :: AbstractString,
-                 :: Type{T},
-            dims :: NTuple{N,Int},
-        ) where {T,N}
-
-    Constructor for `MmapArray`.
-
-    # Arguments
-
-      - `path :: String`: Path to the memory-mapped file.
-      - `     :: Type{T}`: Element type of the array.
-      - `dims :: NTuple{N,Int}`: Dimensions of the array.
-    """
-    function MmapArray(
-        path :: String,
-             :: Type{T},
-        dims :: NTuple{N,Int},
-    ) where {T,N}
-
-        bytes = prod(dims) * sizeof(T)
-
-        io = open(path, "w+")
-        seek(io, bytes - 1)
-        write(io, UInt8(0))
-        flush(io)
-
-        data = Mmap.mmap(io, Array{T,N}, dims)
-
-        new{T, N}(data, io, path)
-
-    end
-end
 
 """
 Dimensional information about a physical quantity.
@@ -1465,7 +1402,7 @@ Plotting parameters for a quantity.
 
 # Fields
 
-  - `request::Dict{Symbol,Vector{String}} = Dict{Symbol,Vector{String}}()`: Data request for [`readSnapshot`](@ref). It must have the shape `cell/particle type` -> [`block name`, `block name`, `block name`, ...].
+  - `request::Dict{Symbol,Vector{String}} = Dict{Symbol,Vector{String}}()`: Data request for [`readSnapshot`](@ref). It must have the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), :group, and :subhalo, and the possible blocks are the keys of [`QUANTITIES`](@ref).
   - `var_name::AbstractString = ""`: Name of the quantity for the axis label. It should not include units or scaling factors.
   - `exp_factor::Int = 0`: Numerical exponent to scale down the axis, e.g. if `exp_factor` = 10 the values will be divided by ``10^{10}``. The default is no scaling.
   - `unit::Unitful.Units = Unitful.NoUnits`: Target unit for the axis.
