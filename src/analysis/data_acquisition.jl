@@ -212,6 +212,63 @@ function getRequestSize(file_path::String, request::Dict{Symbol,Vector{String}})
 
 end
 
+"""
+    readBlock(
+        group::HDF5.Group,
+        block::String;
+        <keyword arguments>
+    )::VecOrMat{<:Number}
+
+Read a given data block from an HDF5 group, applying the correct units.
+
+# Arguments
+
+  - `group::HDF5.Group`: The HDF5 group containing the data block.
+  - `block::String`: The name of the target data block.
+  - `unit::Union{Unitful.Quantity,Unitful.Units}=Unitful.NoUnits`: The unit of the data block according to [`internalUnits`](@ref).
+  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data block. If false, the method will decide based on the size of the data block and the available free physical memory.
+
+# Returns
+
+  - The data block as an array, with the correct units applied.
+"""
+function readBlock(
+    group::HDF5.Group,
+    block::String;
+    unit::Union{Unitful.Quantity,Unitful.Units}=Unitful.NoUnits,
+    mmap::Bool=false,
+)::VecOrMat{<:Number}
+
+    (
+        isBlockPresent(block, group) ||
+        throw(ArgumentError("readBlock: The block $(block) is missing from the HDF5 group"))
+    )
+
+    dataset = group[QUANTITIES[block].hdf5_name]
+
+    if unit == Unitful.NoUnits
+
+        data_array = allocateArray(eltype(dataset), size(dataset); mmap)
+
+        # Directly copy the HDF5 dataset to the preallocated buffer
+        copyto!(data_array, dataset)
+
+        return data_array
+
+    end
+
+    data_type  = typeof(one(eltype(dataset)) * unit)
+    data_array = allocateArray(data_type, size(dataset); mmap)
+
+    raw_data = read(dataset)
+
+    @inbounds @simd for i in eachindex(raw_data)
+        data_array[i] = raw_data[i] * unit
+    end
+
+    return data_array
+
+end
 
 """
     findRealStars(path::String)::Vector{Bool}
