@@ -311,7 +311,7 @@ function findRealStars(path::String)::Vector{Bool}
 
             if isBlockPresent("GAGE", group)
 
-                time_of_birth = read(group, QUANTITIES["GAGE"].hdf5_name)
+                time_of_birth = readBlock(group, "GAGE")
 
                 return map(isPositive, time_of_birth)
 
