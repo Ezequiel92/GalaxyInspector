@@ -454,27 +454,34 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
     # List of blocks needed to compute the temperature
     blocks = ["U   ", "NE  "]
 
-    temp_data = h5open(file_path, "r") do snapshot
+    h5open(file_path, "r") do snapshot
 
         group = snapshot[PARTICLE_CODE_NAME[:gas]]
 
-        # Get the indices of the missing blocks
-        idx_missing = map(x -> !isBlockPresent(x, group), blocks)
+        for block in blocks
+            isBlockPresent(block, group) || throw(ArgumentError("readTemperature: The block \
+            $(block) is missing, and I need it to compute the temperature"))
+        end
 
-        (
-            !any(idx_missing) ||
-            throw(ArgumentError("readTemperature: The blocks $(blocks[idx_missing]) \
-            are missing, and I need them to compute the temperature"))
-        )
+        mmap = getBlockSize(group, blocks) > memoryThreshold()
 
-        # Compute the unit factor for each block
         units = internalUnits.(blocks, file_path)
 
-        [read(group, QUANTITIES[block].hdf5_name) .* unit for (unit, block) in zip(units, blocks)]
+        if mmap
 
+            u  = readBlock(group, "U   "; unit=units[1], mmap=true)
+            ne = readBlock(group, "NE  "; unit=units[2], mmap=true)
+
+            return computeTemperature(u, ne)
+
+        else
+
+            data = (read(group, QUANTITIES[b].hdf5_name) .* u for (b, u) in zip(blocks, units))
+
+            return computeTemperature(data...)
+
+        end
     end
-
-    return computeTemperature(temp_data...)
 
 end
 
