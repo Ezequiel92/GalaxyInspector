@@ -373,7 +373,7 @@ julia> safeSlice([1, 2, 3], (:))
 """
 function safeSlice(vec::Vector, slice::IndexType)::Vector
 
-    slice == (:) && return vec
+    slice isa Colon && return vec
 
     slice_list = [slice...]
 

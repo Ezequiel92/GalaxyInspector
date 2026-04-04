@@ -271,6 +271,88 @@ function readBlock(
 end
 
 """
+    readBlock(
+        group::HDF5.Group,
+        block::String,
+        mask::Union{Vector{Bool},Colon};
+        <keyword arguments>
+    )::VecOrMat{<:Number}
+
+Read a given data block from an HDF5 group, applying the correct units.
+
+# Arguments
+
+  - `group::HDF5.Group`: The HDF5 group containing the data block.
+  - `block::String`: The name of the target data block.
+  - `mask::Union{Vector{Bool},Colon}`: A boolean vector to select only a subset of the data along its last dimension. It must have the same length as the last dimension of the data block. If `mask` is `(:)`, the whole data block will be read.
+  - `unit::Union{Unitful.Quantity,Unitful.Units}=Unitful.NoUnits`: The unit of the data block according to [`internalUnits`](@ref).
+  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data block. If false, the method will decide based on the size of the data block and the available free physical memory.
+
+# Returns
+
+  - The data block as an array, with the correct units applied.
+"""
+function readBlock(
+    group::HDF5.Group,
+    block::String,
+    mask::Union{Vector{Bool},Colon};
+    unit::Union{Unitful.Quantity,Unitful.Units}=Unitful.NoUnits,
+    mmap::Bool=false,
+)::VecOrMat{<:Number}
+
+    if mask isa Colon
+        return readBlock(group, block; unit, mmap)
+    end
+
+    (
+        isBlockPresent(block, group) ||
+        throw(ArgumentError("readBlock: The block $(block) is missing from the HDF5 group"))
+    )
+
+    dataset   = group[QUANTITIES[block].hdf5_name]
+    data_type = typeof(one(eltype(dataset)) * unit)
+    dims      = size(dataset)
+    nd        = length(dims)
+
+    last_dim_size = dims[end]
+    (
+        length(mask) == last_dim_size ||
+        throw(DimensionMismatch("readBlock: mask has length $(length(mask)) but the last dimension \
+        of the data in the HDF5 file has length $(size(dataset, nd))"))
+    )
+
+    num_selected = count(mask)
+    outdims = nd == 1 ? (num_selected,) : (dims[1], num_selected)
+
+    data_array = allocateArray(data_type, outdims; mmap)
+
+    # Bulk read the entire dataset into RAM
+    raw_data = read(dataset)
+
+    out_col = 1
+    if nd == 1
+        @inbounds for i in eachindex(mask)
+            if mask[i]
+                data_array[out_col] = raw_data[i] * unit
+                out_col += 1
+            end
+        end
+    else
+        @inbounds for j in axes(raw_data, 2)
+            if mask[j]
+                @views @simd for i in axes(raw_data, 1)
+                    data_array[i, out_col] = raw_data[i, j] * unit
+                end
+                out_col += 1
+            end
+        end
+    end
+
+    return data_array
+
+end
+
+"""
     findRealStars(path::String)::Vector{Bool}
 
 Find which stellar particles are real stars and not wind particles.
@@ -463,11 +545,9 @@ function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
             $(block) is missing, and I need it to compute the temperature"))
         end
 
-        mmap = getBlockSize(group, blocks) > memoryThreshold()
-
         units = internalUnits.(blocks, file_path)
 
-        if mmap
+        if getBlockSize(group, blocks) > memoryThreshold()
 
             u  = readBlock(group, "U   "; unit=units[1], mmap=true)
             ne = readBlock(group, "NE  "; unit=units[2], mmap=true)
@@ -1569,6 +1649,10 @@ function readGoupCatBlocks(
 
     output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
+    # Decide if we need to use memory-mapping based on the size of the requested data
+    # and the available free physical memory
+    mmap = getRequestSize(file_path, request) > memoryThreshold()
+
     h5open(file_path, "r") do gc_file
 
         # Read from the request only the group catalog types
@@ -1607,7 +1691,7 @@ function readGoupCatBlocks(
 
                         if isBlockPresent(block, hdf5_group)
 
-                            qty_data[block] = read(hdf5_group, QUANTITIES[block].hdf5_name) .* unit
+                            qty_data[block] = readBlock(hdf5_group, block; unit, mmap)
 
                         else
 
