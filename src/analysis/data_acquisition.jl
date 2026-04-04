@@ -353,6 +353,44 @@ function readBlock(
 end
 
 """
+    findRealStars(group::HDF5.Group)::Vector{Bool}
+
+Find which stellar particles are real stars and not wind particles.
+
+# Arguments
+
+  - `group::HDF5.Group`: The HDF5 group containing the stellar particle data.
+
+# Returns
+
+  - A boolean vector with true for stars and false for wind particles.
+"""
+function findRealStars(group::HDF5.Group)::Vector{Bool}
+
+    if isBlockPresent("GAGE", group)
+
+        time_of_birth = readBlock(group, "GAGE")
+
+        return map(isPositive, time_of_birth)
+
+    elseif haskey(snapshot, "Header")
+
+        # If there is no age data, we assume all the stars reported in the header are real
+        # stars (i.e. no wind particles)
+        num_part_total = read_attribute(snapshot["Header"], "NumPart_Total")
+        num_stars = num_part_total[PARTICLE_INDEX[:stellar] + 1]
+
+        return fill(true, num_stars)
+
+    else
+
+        return Bool[]
+
+    end
+
+end
+
+"""
     findRealStars(path::String)::Vector{Bool}
 
 Find which stellar particles are real stars and not wind particles.
@@ -391,26 +429,7 @@ function findRealStars(path::String)::Vector{Bool}
 
             group = snapshot[PARTICLE_CODE_NAME[:stellar]]
 
-            if isBlockPresent("GAGE", group)
-
-                time_of_birth = readBlock(group, "GAGE")
-
-                return map(isPositive, time_of_birth)
-
-            elseif haskey(snapshot, "Header")
-
-                # If there is no age data, we assume all the stars reported in the header are real
-                # stars (i.e. no wind particles)
-                num_part_total = read_attribute(snapshot["Header"], "NumPart_Total")
-                num_stars = num_part_total[PARTICLE_INDEX[:stellar] + 1]
-
-                return fill(true, num_stars)
-
-            else
-
-                return Bool[]
-
-            end
+            return findRealStars(group)
 
         end
 
@@ -501,6 +520,72 @@ function readTime(path::String)::Float64
     end
 
     return time
+
+end
+
+"""
+    readTemperature(
+        group::HDF5.Group,
+        file_path::String;
+        <keyword arguments>
+    )::Vector{<:Unitful.Temperature}
+
+Compute the temperature of the gas cells in a snapshot.
+
+# Arguments
+
+  - `group::HDF5.Group`: The HDF5 group containing the gas particle data.
+  - `file_path::String`: Path to the snapshot file.
+  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data blocks.
+
+# Returns
+
+  - The temperature of the gas cells.
+"""
+function readTemperature(
+    group::HDF5.Group,
+    file_path::String;
+    mmap::Bool=false,
+)::Vector{<:Unitful.Temperature}
+
+    if isfile(file_path)
+
+        (
+            HDF5.ishdf5(file_path) ||
+            throw(ArgumentError("readTemperature: The file $(file_path) is not in the \
+            HDF5 format, I don't know how to read it"))
+        )
+
+    else
+
+        throw(ArgumentError("readTemperature: $(file_path) does not exists as a file"))
+
+    end
+
+    # List of blocks needed to compute the temperature
+    blocks = ["U   ", "NE  "]
+
+    for block in blocks
+        isBlockPresent(block, group) || throw(ArgumentError("readTemperature: The block \
+        $(block) is missing, and I need it to compute the temperature"))
+    end
+
+    units = internalUnits.(blocks, file_path)
+
+    if mmap
+
+        u  = readBlock(group, "U   "; unit=units[1], mmap=true)
+        ne = readBlock(group, "NE  "; unit=units[2], mmap=true)
+
+        return computeTemperature(u, ne)
+
+    else
+
+        data = (read(group, QUANTITIES[b].hdf5_name) .* u for (b, u) in zip(blocks, units))
+
+        return computeTemperature(data...)
+
+    end
 
 end
 
@@ -879,7 +964,7 @@ function isSnapSFM(path::String)::Bool
             snapshot sub-files in the HDF5 format"))
         )
 
-        file_path = minimum(sub_files)
+        file_path = first(sub_files)
 
     else
 
@@ -887,15 +972,21 @@ function isSnapSFM(path::String)::Bool
 
     end
 
-    sfm = h5open(file_path, "r") do snapshot
+    h5open(file_path, "r") do snapshot
 
-        group = snapshot[PARTICLE_CODE_NAME[:gas]]
+        gas_key = PARTICLE_CODE_NAME[:gas]
 
-        isBlockPresent("FRAC", group) && !isempty(read(group, QUANTITIES["FRAC"].hdf5_name))
+        haskey(snapshot, gas_key) || return false
+
+        group = snapshot[gas_key]
+
+        isBlockPresent("FRAC", group) || return false
+
+        dataset = group[QUANTITIES["FRAC"].hdf5_name]
+
+        return !isempty(dataset)
 
     end
-
-    return sfm
 
 end
 
@@ -1740,7 +1831,7 @@ end
     readSnapBlocks(
         file_path::String,
         request::Dict{Symbol,Vector{String}},
-    )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
+    )::Dict{Symbol,Dict{String,Any}}
 
 Read the specified blocks from a snapshot file.
 
@@ -1756,7 +1847,7 @@ Read the specified blocks from a snapshot file.
 function readSnapBlocks(
     file_path::String,
     request::Dict{Symbol,Vector{String}},
-)::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
+)::Dict{Symbol,Dict{String,Any}}
 
     if isfile(file_path)
 
@@ -1772,10 +1863,14 @@ function readSnapBlocks(
 
     end
 
-    output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
+    output = Dict{Symbol, Dict{String, Any}}()
 
     # Read the header
     header = readSnapHeader(file_path)
+
+    # Decide if we need to use memory-mapping based on the size of the requested data
+    # and the available free physical memory
+    mmap = getRequestSize(file_path, request) > memoryThreshold()
 
     h5open(file_path, "r") do snapshot
 
@@ -1784,92 +1879,11 @@ function readSnapBlocks(
 
             blocks = request[component]
 
-            qty_data = Dict{String,VecOrMat{<:Number}}()
+            qty_data = Dict{String,Any}()
 
-            if haskey(snapshot, PARTICLE_CODE_NAME[component])
+            group_name = PARTICLE_CODE_NAME[component]
 
-                # Read the HDF5 group
-                hdf5_group = snapshot[PARTICLE_CODE_NAME[component]]
-
-                if isempty(hdf5_group)
-
-                    (
-                        logging[] &&
-                        @warn("readSnapBlocks: The cell/particle type :$(component) in \
-                        $(file_path) is empty")
-                    )
-
-                    # Return an empty array for every missing block
-                    for block in blocks
-                        unit = internalUnits(block, snapshot_path)
-                        qty_data[block] = typeof(1.0 * unit)[]
-                    end
-
-                else
-
-                    # For the stars, exclude wind particles
-                    if component == :stellar
-                        idxs = findRealStars(file_path)
-                    else
-                        idxs = (:)
-                    end
-
-                    for block in blocks
-
-                        unit = internalUnits(block, file_path)
-
-                        if block == "TEMP"
-
-                            (
-                                component == :gas ||
-                                throw(ArgumentError("readSnapBlocks: I can't compute the \
-                                temperature for cells/particles of type :$(component), \
-                                only for :gas"))
-                            )
-
-                            qty_data["TEMP"] = readTemperature(file_path)
-
-                        elseif block == "MASS"
-
-                            # Read the mass table from the header
-                            mass_table = header.mass_table[PARTICLE_INDEX[component] + 1]
-
-                            if iszero(mass_table)
-
-                                raw = read(hdf5_group, QUANTITIES["MASS"].hdf5_name)
-                                qty_data["MASS"] = selectdim(raw, ndims(raw), idxs) .* unit
-
-                            else
-
-                                # All cells/particles have the same mass
-                                cp_number = header.num_part[PARTICLE_INDEX[component] + 1]
-                                qty_data["MASS"] = fill(mass_table, cp_number) .* unit
-
-                            end
-
-                        elseif isBlockPresent(block, hdf5_group)
-
-                            raw = read(hdf5_group, QUANTITIES[block].hdf5_name)
-                            qty_data[block] = selectdim(raw, ndims(raw), idxs) .* unit
-
-                        else
-
-                            (
-                                logging[] &&
-                                @warn("readSnapBlocks: The block $(block) for the \
-                                cell/particle type :$(component) in $(file_path) is missing")
-                            )
-
-                            # Return an empty array for every missing block
-                            qty_data[block] = typeof(1.0 * unit)[]
-
-                        end
-
-                    end
-
-                end
-
-            else
+            if !haskey(snapshot, group_name)
 
                 (
                     logging[] &&
@@ -1880,6 +1894,107 @@ function readSnapBlocks(
                 for block in blocks
                     unit = internalUnits(block, file_path)
                     qty_data[block] = typeof(1.0 * unit)[]
+                end
+
+                continue
+
+            end
+
+            # Read the HDF5 group
+            hdf5_group = snapshot[group_name]
+
+            if isempty(hdf5_group)
+
+                (
+                    logging[] &&
+                    @warn("readSnapBlocks: The cell/particle type :$(component) in $(file_path) is \
+                    empty")
+                )
+
+                # Return an empty array for every missing block
+                for block in blocks
+                    unit = internalUnits(block, snapshot_path)
+                    qty_data[block] = typeof(1.0 * unit)[]
+                end
+
+                continue
+
+            end
+
+            # For the stars, exclude wind particles
+            mask = if component == :stellar
+                findRealStars(hdf5_group)
+            else
+                (:)
+            end
+
+            for block in blocks
+
+                unit = internalUnits(block, file_path)
+
+                if block == "TEMP"
+
+                    (
+                        component == :gas ||
+                        throw(ArgumentError("readSnapBlocks: I can't compute the \
+                        temperature for cells/particles of type :$(component), \
+                        only for :gas"))
+                    )
+
+                    qty_data["TEMP"] = readTemperature(hdf5_group, file_path; mmap)
+
+                elseif block == "MASS"
+
+                    # Read the mass table from the header
+                    mass_in_header = header.mass_table[PARTICLE_INDEX[component] + 1]
+
+                    if iszero(mass_in_header)
+
+                        if isBlockPresent(block, hdf5_group)
+
+                            qty_data["MASS"] = readBlock(hdf5_group, "MASS", mask; unit, mmap)
+
+                        else
+
+                            (
+                                logging[] &&
+                                @warn("readSnapBlocks: The block MASS for the cell/particle type \
+                                :$(component) in $(file_path) is missing, and I can't compute it \
+                                from the header")
+                            )
+
+                            # Return an empty array for the missing block
+                            qty_data["MASS"] = typeof(1.0 * unit)[]
+
+                        end
+
+                    else
+
+                        # All cells/particles have the same mass
+                        # For stellar particles this value already consideres only real stars,
+                        # because we edited the header to exclude wind particles in `readSnapHeader`
+                        n_part = header.num_part[PARTICLE_INDEX[component] + 1]
+
+                        mass_array       = allocateArray(typeof(1.0 * unit), (n_part,); mmap)
+                        qty_data["MASS"] = fill!(mass_array, mass_val * unit)
+
+                    end
+
+                elseif isBlockPresent(block, hdf5_group)
+
+                    qty_data[block] = readBlock(hdf5_group, block, mask; unit, mmap)
+
+                else
+
+                    (
+                        logging[] &&
+                        @warn("readSnapBlocks: The block $(block) for the \
+                        cell/particle type :$(component) in $(file_path) is missing")
+                    )
+
+                    # Return an empty array for every missing block
+                    qty_data[block] = typeof(1.0 * unit)[]
+
                 end
 
             end
@@ -1894,6 +2009,7 @@ function readSnapBlocks(
 
 end
 
+#TODO
 """
     readGroupCatalog(
         path::Union{String,Missing},
