@@ -1121,7 +1121,7 @@ function computePARotationMatrix(
     else
 
         throw(ArgumentError("computePARotationMatrix: `component` can only be :all or one of the \
-        keys of `PARTICLE_INDEX` present within `data_dict`, but I got :$(z_axis)"))
+        keys of `PARTICLE_INDEX` present within `data_dict`, but I got :$(component)"))
 
     end
 
