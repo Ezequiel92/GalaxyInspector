@@ -7904,7 +7904,7 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
         # Check if the simulation is cosmological
         cosmological = isSimCosmological(simulation_path)
 
-        # Read the runtime from the cpu.txt file
+        # cpu.txt file path
         cpu_txt_path = joinpath(simulation_path, CPU_REL_PATH)
 
         ############################################################################################
@@ -7965,16 +7965,6 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
 
             end
 
-            if isfile(cpu_txt_path)
-                cpu_txt_data = readCpuFile(cpu_txt_path, ["total"])["total"]
-                run_time     = cpu_txt_data[end, 5]
-                println(file, "Run time:       $(formatSeconds(run_time))")
-            else
-                println(file, "Run time:       Missing cpu.txt file!")
-            end
-
-            println(file)
-
         else
 
             t = round(ustrip(u"Gyr", simulation_table[1, :physical_times]), digits=2)
@@ -7992,9 +7982,18 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
 
             end
 
-            println(file)
-
         end
+
+        # Read the run time from the cpu.txt file
+        if isfile(cpu_txt_path)
+            cpu_txt_data = readCpuFile(cpu_txt_path, ["total"])["total"]
+            run_time     = cpu_txt_data[end, 5]
+            println(file, "Run time:       $(formatSeconds(run_time))")
+        else
+            println(file, "Run time:       Missing cpu.txt file!")
+        end
+
+        println(file)
 
         ############################################################################################
         # Print the first instance of stars and subhalos
@@ -8046,7 +8045,6 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
                 s_pos      = gc_data[:subhalo]["S_Pos"][:, 1]
                 s_len_type = gc_data[:subhalo]["S_LenType"][:, 1]
 
-                separation = sqrt(sum((s_cm - s_pos) .^ 2))
                 str_scm    = round.(ustrip.(u"Mpc", s_cm), sigdigits=4)
                 str_spos   = round.(ustrip.(u"Mpc", s_pos), sigdigits=4)
 
@@ -8096,14 +8094,9 @@ function simulationReport(simulation_paths::Vector{String}; output_path::String=
                         "\tPosition of the particle with the minimum gravitational potential energy: \
                         \n\n\t\t$(str_spos) $(u"Mpc")\n",
                     )
-                    println(
-                        file,
-                        "\tSeparation between the minimum potential and the center of mass: \
-                        \n\n\t\t$(round(separation, sigdigits=6))\n",
-                    )
 
                     println(file, "\t", "#"^62)
-                    println(file, "\tNOTE: The number of stellar particles includes wind particles")
+                    println(file, "\tNOTE: The number of stellar particles includes wind particles.")
                     println(file, "\t", "#"^62)
 
                     println(file, "\n\tCell/particle number:\n")
@@ -8535,39 +8528,35 @@ function snapshotReport(
             # Print the ODEs parameters for the gas that has formed stars
             ##############################################################
 
-            sfm_blocks = [get(SFM_KEYS, sfm_quantity, nothing) for sfm_quantity in sfm_quantities]
+            println(file, "\tProperties of the gas that has formed stars ($(box_string)):\n")
 
-            qty_present = isBlockPresent.(:stellar, sfm_blocks, snapshot_path)
+            iterator = zip(sfm_quantities, sfm_labels, sfm_units)
 
-            if any(qty_present)
+            for (quantity, label, unit) in collect(iterator)[qty_present]
 
-                println(file, "\tProperties of the gas that has formed stars ($(box_string)):\n")
+                qty_symbol = Symbol(:ode_stellar_, quantity)
 
-                iterator = zip(sfm_quantities, sfm_labels, sfm_units)
+                values = filter(!isnan, ustrip.(unit, scatterQty(dd, qty_symbol; icGen)))
 
-                for (quantity, label, unit) in collect(iterator)[qty_present]
+                println(file, "\t\t$(label):\n")
 
-                    qty_symbol = Symbol(:ode_stellar_, quantity)
-
-                    values = filter(!isnan, ustrip.(unit, scatterQty(dd, qty_symbol; icGen)))
-
-                    isempty(values) && continue
-
-                    if quantity == :parameter_metallicity
-                        values = values ./ SOLAR_METALLICITY
-                        unit = "Z⊙"
-                    end
-
-                    qty_p50 = round(median(values), sigdigits=4)
-                    qty_min = round(minimum(values), sigdigits=4)
-                    qty_max = round(maximum(values), sigdigits=4)
-
-                    println(file, "\t\t$(label):\n")
-                    println(file, "\t\t\tMedian:  $(qty_p50) $(unit)")
-                    println(file, "\t\t\tMinimum: $(qty_min) $(unit)")
-                    println(file, "\t\t\tMaximum: $(qty_max) $(unit)\n")
-
+                if isempty(values)
+                    println(file, "\t\t\tNot present!\n")
+                    continue
                 end
+
+                if quantity == :parameter_metallicity
+                    values = values ./ SOLAR_METALLICITY
+                    unit = "Z⊙"
+                end
+
+                qty_p50 = round(median(values), sigdigits=4)
+                qty_min = round(minimum(values), sigdigits=4)
+                qty_max = round(maximum(values), sigdigits=4)
+
+                println(file, "\t\t\tMedian:  $(qty_p50) $(unit)")
+                println(file, "\t\t\tMinimum: $(qty_min) $(unit)")
+                println(file, "\t\t\tMaximum: $(qty_max) $(unit)\n")
 
             end
 
@@ -8577,37 +8566,35 @@ function snapshotReport(
 
             gas_sfm_idxs = 1:11
 
-            qty_present = isBlockPresent.(:gas, sfm_blocks[gas_sfm_idxs], snapshot_path)
+            println(file, "\tODE parameters for the gas cells ($(box_string)):\n")
 
-            if any(qty_present)
+            iterator = zip(sfm_quantities, sfm_labels, sfm_units)
 
-                println(file, "\tODE parameters for the gas cells ($(box_string)):\n")
+            for (quantity, label, unit) in collect(iterator)[gas_sfm_idxs][qty_present]
 
-                iterator = zip(sfm_quantities, sfm_labels, sfm_units)
+                qty_symbol = Symbol(:ode_gas_, quantity)
 
-                for (quantity, label, unit) in collect(iterator)[gas_sfm_idxs][qty_present]
+                values = filter(!isnan, ustrip.(unit, scatterQty(dd, qty_symbol; icGen)))
 
-                    qty_symbol = Symbol(:ode_gas_, quantity)
+                println(file, "\t\t$(label):\n")
 
-                    values = filter(!isnan, ustrip.(unit, scatterQty(dd, qty_symbol; icGen)))
-
-                    isempty(values) && continue
-
-                    if quantity == :parameter_metallicity
-                        values = values ./ SOLAR_METALLICITY
-                        unit = "Z⊙"
-                    end
-
-                    qty_p50 = round(median(values), sigdigits=4)
-                    qty_min = round(minimum(values), sigdigits=4)
-                    qty_max = round(maximum(values), sigdigits=4)
-
-                    println(file, "\t\t$(label):\n")
-                    println(file, "\t\t\tMedian:  $(qty_p50) $(unit)")
-                    println(file, "\t\t\tMinimum: $(qty_min) $(unit)")
-                    println(file, "\t\t\tMaximum: $(qty_max) $(unit)\n")
-
+                if isempty(values)
+                    println(file, "\t\t\tNot present!\n")
+                    continue
                 end
+
+                if quantity == :parameter_metallicity
+                    values = values ./ SOLAR_METALLICITY
+                    unit = "Z⊙"
+                end
+
+                qty_p50 = round(median(values), sigdigits=4)
+                qty_min = round(minimum(values), sigdigits=4)
+                qty_max = round(maximum(values), sigdigits=4)
+
+                println(file, "\t\t\tMedian:  $(qty_p50) $(unit)")
+                println(file, "\t\t\tMinimum: $(qty_min) $(unit)")
+                println(file, "\t\t\tMaximum: $(qty_max) $(unit)\n")
 
             end
 
