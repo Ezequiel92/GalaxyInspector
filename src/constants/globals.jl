@@ -24,7 +24,7 @@ const MMAP_TEMP_DIR = mkpath(joinpath(@__DIR__, "../../tmp_mmap"))
 """
 Maximum fraction of the free physical memory that an array can occupy before we start using memory mapping.
 """
-const MMAP_MEMORY_FRACTION = 0.25
+const MMAP_MEMORY_FRACTION = 0.2
 
 ########################
 # Characteristic scales
