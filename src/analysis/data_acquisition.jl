@@ -29,85 +29,20 @@ function isBlockPresent(block::String, group::HDF5.Group)::Bool
 end
 
 """
-    isBlockPresent(component::Symbol, block::String, path::String)::Bool
-
-Checks if a given block exists in a snapshot.
-
-!!! note
-
-    If each snapshot is made of multiple files, this method will only check the first one.
-
-# Arguments
-
-  - `component::Symbol`: The cell/particle type of the target block. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
-  - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
-  - `path::String`: Path to the snapshot file or folder.
-
-# Returns
-
-  - If `block` exists in the snapshot.
-"""
-function isBlockPresent(component::Symbol, block::String, path::String)::Bool
-
-    if isfile(path)
-
-        (
-            HDF5.ishdf5(path) ||
-            throw(ArgumentError("isBlockPresent: The file $(path) is not in the HDF5 format, \
-            I don't know how to read it"))
-        )
-
-        file_path = path
-
-    elseif isdir(path)
-
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
-
-        (
-            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
-            throw(ArgumentError("isBlockPresent: The directory $(path) does not contain \
-            snapshot sub-files in the HDF5 format"))
-        )
-
-        file_path = first(sub_files)
-
-    else
-
-        throw(ArgumentError("isBlockPresent: $(path) does not exists as a file or folder"))
-
-    end
-
-    response = h5open(file_path, "r") do snapshot
-
-        type_str = PARTICLE_CODE_NAME[component]
-
-        if haskey(snapshot, type_str)
-            isBlockPresent(block, snapshot[type_str])
-        else
-            false
-        end
-
-    end
-
-    return response
-
-end
-
-"""
-    getBlockSize(group::HDF5.Group, block::String)::Int
+    getBlockSize(block::String, group::HDF5.Group)::Int
 
 Compute the total size in bytes of a given data block in an HDF5 group.
 
 # Arguments
 
+  - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `group::HDF5.Group`: The HDF5 group containing the data block.
-  - `block::String`: The name of the target data block.
 
 # Returns
 
   - The total size in bytes of the data block.
 """
-function getBlockSize(group::HDF5.Group, block::String)::Int
+function getBlockSize(block::String, group::HDF5.Group)::Int
 
     if !isBlockPresent(block, group)
 
@@ -125,97 +60,178 @@ function getBlockSize(group::HDF5.Group, block::String)::Int
 end
 
 """
-    getBlockSize(group::HDF5.Group, blocks::Vector{String})::Int
+    getBlockSize(blocks::Vector{String}, group::HDF5.Group)::Int
 
 Compute the total size in bytes of a set of data blocks in an HDF5 group.
 
 # Arguments
 
+  - `blocks::Vector{String}`: A vector of the target data blocks. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `group::HDF5.Group`: The HDF5 group containing the data blocks.
-  - `blocks::Vector{String}`: A vector of the target data blocks.
 
 # Returns
 
   - The total size in bytes of the data blocks.
 """
-function getBlockSize(group::HDF5.Group, blocks::Vector{String})::Int
+function getBlockSize(blocks::Vector{String}, group::HDF5.Group)::Int
 
-    return sum(b->getBlockSize(group, b), blocks)
+    return sum(b->getBlockSize(b, group), blocks)
 
 end
 
 """
-    getRequestSize(file_path::String, request::Dict{Symbol,Vector{String}})::Int
+    getRequestSize(request::Dict{Symbol,Vector{String}}, path::String)::Int
 
 Compute the total size in bytes of the data blocks specified in a request dictionary.
 
 # Arguments
 
-  - `file_path::String`: Path to the snapshot or group catalog file.
   - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), :group, and :subhalo, and the possible blocks are the keys of [`QUANTITIES`](@ref).
+  - `path::String`: Path to the snapshot or group catalog file or folder.
 
 # Returns
 
   - The total size in bytes of the data blocks specified in the request.
 """
-function getRequestSize(file_path::String, request::Dict{Symbol,Vector{String}})::Int
+function getRequestSize(request::Dict{Symbol,Vector{String}}, path::String)::Int
 
-    if isfile(file_path)
+    if isfile(path)
 
         (
-            HDF5.ishdf5(file_path) ||
-            throw(ArgumentError("getRequestSize: The file $(file_path) is not in the HDF5 format, \
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("getRequestSize: The file $(path) is not in the HDF5 format, \
             I don't know how to read it"))
         )
 
-    else
+        total_size = h5open(path, "r") do hdf5_file
 
-        throw(ArgumentError("getRequestSize: $(file_path) does not exists as a file"))
+            ts = 0
 
-    end
+            for component in keys(request)
 
-    h5open(file_path, "r") do hdf5_file
+                if (
+                    haskey(PARTICLE_CODE_NAME, component) &&
+                    haskey(hdf5_file, PARTICLE_CODE_NAME[component])
+                )
 
-        total_size = 0
+                    group = hdf5_file[PARTICLE_CODE_NAME[component]]
 
-        for component in keys(request)
+                    blocks = request[component]
 
-            if haskey(PARTICLE_CODE_NAME, component) && haskey(hdf5_file, PARTICLE_CODE_NAME[component])
+                    ts += getBlockSize(blocks, group)
 
-                group = hdf5_file[PARTICLE_CODE_NAME[component]]
+                elseif haskey(hdf5_file, titlecase(string(component)))
 
-                blocks = request[component]
+                    group = hdf5_file[titlecase(string(component))]
 
-                total_size += getBlockSize(group, blocks)
+                    blocks = request[component]
 
-            elseif haskey(hdf5_file, titlecase(string(component)))
+                    ts += getBlockSize(blocks, group)
 
-                group = hdf5_file[titlecase(string(component))]
-
-                blocks = request[component]
-
-                total_size += getBlockSize(group, blocks)
+                end
 
             end
 
+            (
+                iszero(ts) && logging[] &&
+                @warn("getRequestSize: The requested blocks: \n\n$(request)\n\n for $(path) \
+                are all missing, so the total size is zero")
+            )
+
+            ts
+
         end
 
+        return total_size
+
+    elseif isdir(path)
+
+        snap_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        group_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
+
+        sub_files = vcat(snap_files, group_files)
+
         (
-            iszero(total_size) && logging[] &&
-            @warn("getRequestSize: The requested blocks: \n\n$(request)\n\n for $(file_path) are all
-            missing, so the total size is zero")
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("getRequestSize: The directory $(path) does not contain \
+            snapshot or group catalog sub-files in the HDF5 format"))
         )
 
-        return total_size
+        return sum(sub_file->getRequestSize(request, sub_file), sub_files)
+
+    else
+
+        throw(ArgumentError("getRequestSize: $(path) does not exists as a file or folder"))
 
     end
 
 end
 
 """
+    getBlockDims(block::String, group::HDF5.Group)::Tuple
+
+Get the dimensions of a given data block in an HDF5 group.
+
+# Arguments
+
+  - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
+  - `group::HDF5.Group`: HDF5 group.
+
+# Returns
+
+  - The dimensions of the data block as a tuple.
+"""
+function getBlockDims(block::String, group::HDF5.Group)::Tuple
+
+    if isBlockPresent(block, group)
+
+        dataset = group[QUANTITIES[block].hdf5_name]
+
+        return size(dataset)
+
+    else
+
+        logging[] && @warn("getBlockDims: The block $(block) is missing from the HDF5 group")
+
+        return (0,)
+
+    end
+
+end
+
+"""
+    getBlockType(block::String, group::HDF5.Group)::Type
+
+Get the number type of a given data block in an HDF5 group.
+
+# Arguments
+
+  - `block::String`: Target block. The possibilities are the keys of [`QUANTITIES`](@ref).
+  - `group::HDF5.Group`: HDF5 group.
+
+# Returns
+
+  - The data type of the block.
+"""
+function getBlockType(block::String, group::HDF5.Group)::Type
+
+    if isBlockPresent(block, group)
+
+        return eltype(group[QUANTITIES[block].hdf5_name])
+
+    else
+
+        logging[] && @warn("getBlockType: The block $(block) is missing from the HDF5 file")
+
+        return Float64
+
+    end
+end
+
+"""
     readBlock(
-        group::HDF5.Group,
-        block::String;
+        block::String,
+        group::HDF5.Group;
         <keyword arguments>
     )::VecOrMat{<:Number}
 
@@ -223,18 +239,18 @@ Read a given data block from an HDF5 group, applying the correct units.
 
 # Arguments
 
+  - `block::String`: The name of the target data block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `group::HDF5.Group`: The HDF5 group containing the data block.
-  - `block::String`: The name of the target data block.
   - `unit::Union{Unitful.Quantity,Unitful.Units}=Unitful.NoUnits`: The unit of the data block according to [`internalUnits`](@ref).
-  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data block. If false, the method will decide based on the size of the data block and the available free physical memory.
+  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data block.
 
 # Returns
 
   - The data block as an array, with the correct units applied.
 """
 function readBlock(
-    group::HDF5.Group,
-    block::String;
+    block::String,
+    group::HDF5.Group;
     unit::Union{Unitful.Quantity,Unitful.Units}=Unitful.NoUnits,
     mmap::Bool=false,
 )::VecOrMat{<:Number}
@@ -246,34 +262,45 @@ function readBlock(
 
     dataset = group[QUANTITIES[block].hdf5_name]
 
-    if unit == Unitful.NoUnits
+    # Bulk read the entire dataset into RAM
+    raw_data = read(dataset)
 
-        data_array = allocateArray(eltype(dataset), size(dataset); mmap)
+    if mmap
 
-        # Directly copy the HDF5 dataset to the preallocated buffer
-        copyto!(data_array, dataset)
+        if unit == Unitful.NoUnits
+
+            data_array = allocateArray(eltype(dataset), size(dataset); mmap=true)
+
+            # Directly copy the HDF5 dataset to the preallocated buffer
+            data_array .= raw_data
+
+            return data_array
+
+        end
+
+        data_type  = typeof(one(eltype(dataset)) * unit)
+        data_array = allocateArray(data_type, size(dataset); mmap=true)
+
+        data_array .= raw_data .* unit
 
         return data_array
 
+    else
+
+        if unit == Unitful.NoUnits
+            return raw_data
+        end
+
+        return raw_data .* unit
+
     end
-
-    data_type  = typeof(one(eltype(dataset)) * unit)
-    data_array = allocateArray(data_type, size(dataset); mmap)
-
-    raw_data = read(dataset)
-
-    @inbounds @simd for i in eachindex(raw_data)
-        data_array[i] = raw_data[i] * unit
-    end
-
-    return data_array
 
 end
 
 """
     readBlock(
-        group::HDF5.Group,
         block::String,
+        group::HDF5.Group,
         mask::Union{Vector{Bool},Colon};
         <keyword arguments>
     )::VecOrMat{<:Number}
@@ -282,26 +309,26 @@ Read a given data block from an HDF5 group, applying the correct units.
 
 # Arguments
 
+  - `block::String`: The name of the target data block. The possibilities are the keys of [`QUANTITIES`](@ref).
   - `group::HDF5.Group`: The HDF5 group containing the data block.
-  - `block::String`: The name of the target data block.
   - `mask::Union{Vector{Bool},Colon}`: A boolean vector to select only a subset of the data along its last dimension. It must have the same length as the last dimension of the data block. If `mask` is `(:)`, the whole data block will be read.
   - `unit::Union{Unitful.Quantity,Unitful.Units}=Unitful.NoUnits`: The unit of the data block according to [`internalUnits`](@ref).
-  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data block. If false, the method will decide based on the size of the data block and the available free physical memory.
+  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data block.
 
 # Returns
 
   - The data block as an array, with the correct units applied.
 """
 function readBlock(
-    group::HDF5.Group,
     block::String,
+    group::HDF5.Group,
     mask::Union{Vector{Bool},Colon};
     unit::Union{Unitful.Quantity,Unitful.Units}=Unitful.NoUnits,
     mmap::Bool=false,
 )::VecOrMat{<:Number}
 
     if mask isa Colon
-        return readBlock(group, block; unit, mmap)
+        return readBlock(block, group; unit, mmap)
     end
 
     (
@@ -309,80 +336,118 @@ function readBlock(
         throw(ArgumentError("readBlock: The block $(block) is missing from the HDF5 group"))
     )
 
-    dataset   = group[QUANTITIES[block].hdf5_name]
-    data_type = typeof(one(eltype(dataset)) * unit)
-    dims      = size(dataset)
-    nd        = length(dims)
+    dataset = group[QUANTITIES[block].hdf5_name]
+    dims    = size(dataset)
+    nd      = length(dims)
 
     last_dim_size = dims[end]
     (
         length(mask) == last_dim_size ||
         throw(DimensionMismatch("readBlock: mask has length $(length(mask)) but the last dimension \
-        of the data in the HDF5 file has length $(size(dataset, nd))"))
+        of the data in the HDF5 file has length $(last_dim_size)"))
     )
-
-    num_selected = count(mask)
-    outdims = nd == 1 ? (num_selected,) : (dims[1], num_selected)
-
-    data_array = allocateArray(data_type, outdims; mmap)
 
     # Bulk read the entire dataset into RAM
     raw_data = read(dataset)
 
-    out_col = 1
-    if nd == 1
-        @inbounds for i in eachindex(mask)
-            if mask[i]
-                data_array[out_col] = raw_data[i] * unit
-                out_col += 1
-            end
-        end
-    else
-        @inbounds for j in axes(raw_data, 2)
-            if mask[j]
-                @views @simd for i in axes(raw_data, 1)
-                    data_array[i, out_col] = raw_data[i, j] * unit
-                end
-                out_col += 1
-            end
-        end
-    end
+    if mmap
 
-    return data_array
+        num_selected = count(mask)
+        outdims = nd == 1 ? (num_selected,) : (dims[1], num_selected)
+
+        if unit == Unitful.NoUnits
+
+            data_array = allocateArray(eltype(dataset), outdims; mmap=true)
+
+            mask_idxs = nd == 1 ? (mask,) : (:, mask)
+
+            data_array .= getindex(raw_data, mask_idxs...)
+
+            return data_array
+
+        end
+
+        data_type  = typeof(one(eltype(dataset)) * unit)
+        data_array = allocateArray(data_type, outdims; mmap=true)
+
+        data_array .= selectdim(raw_data, nd, mask) .* unit
+
+        return data_array
+
+    else
+
+        if unit == Unitful.NoUnits
+
+            mask_idxs = nd == 1 ? (mask,) : (:, mask)
+
+            return getindex(raw_data, mask_idxs...)
+
+        end
+
+        return selectdim(raw_data, nd, mask) .* unit
+
+    end
 
 end
 
 """
-    findRealStars(group::HDF5.Group)::Vector{Bool}
+    findRealStars(snapshot::HDF5.File)::Vector{Bool}
 
 Find which stellar particles are real stars and not wind particles.
 
 # Arguments
 
-  - `group::HDF5.Group`: The HDF5 group containing the stellar particle data.
+  - `snapshot::HDF5.File`: The HDF5 file, as returned by `h5open` (see [HDF5](https://juliaio.github.io/HDF5.jl/stable/)).
 
 # Returns
 
   - A boolean vector with true for stars and false for wind particles.
 """
-function findRealStars(group::HDF5.Group)::Vector{Bool}
+function findRealStars(snapshot::HDF5.File)::Vector{Bool}
 
-    if isBlockPresent("GAGE", group)
+    if haskey(snapshot, PARTICLE_CODE_NAME[:stellar])
 
-        time_of_birth = readBlock(group, "GAGE")
+        group = snapshot[PARTICLE_CODE_NAME[:stellar]]
 
-        return map(isPositive, time_of_birth)
+        if isBlockPresent("GAGE", group)
 
-    elseif haskey(snapshot, "Header")
+            time_of_birth = readBlock("GAGE", group)
 
-        # If there is no age data, we assume all the stars reported in the header are real
-        # stars (i.e. no wind particles)
-        num_part_total = read_attribute(snapshot["Header"], "NumPart_Total")
-        num_stars = num_part_total[PARTICLE_INDEX[:stellar] + 1]
+            return map(isPositive, time_of_birth)
 
-        return fill(true, num_stars)
+        elseif haskey(snapshot, "Header")
+
+            # If there is no age data, we assume all the stars reported in the header are real
+            # stars (i.e. no wind particles)
+            num_part_total = read_attribute(snapshot["Header"], "NumPart_Total")
+            num_stars = num_part_total[PARTICLE_INDEX[:stellar] + 1]
+
+            (
+                logging[] &&
+                @warn("findRealStars: The snapshot $(snapshot) does not have age data, I will \
+                assume that all stars are real")
+            )
+
+            return fill(true, num_stars)
+
+        else
+
+            (
+                logging[] &&
+                @warn("findRealStars: The snapshot $(snapshot) does not have age data, nor a \
+                header, I will assume that no stars are real")
+            )
+
+            return Bool[]
+
+        end
 
     else
+
+        (
+            logging[] &&
+            @warn("findRealStars: The snapshot $(snapshot) does not have stellar particles")
+        )
 
         return Bool[]
 
@@ -413,25 +478,13 @@ function findRealStars(path::String)::Vector{Bool}
             I don't know how to read it"))
         )
 
-        h5open(path, "r") do snapshot
+        stellar_mask = h5open(path, "r") do snapshot
 
-            if !haskey(snapshot, PARTICLE_CODE_NAME[:stellar])
-
-                (
-                    logging[] &&
-                    @warn("findRealStars: The snapshot $(path) does not contain a group for \
-                    stellar particles")
-                )
-
-                return Bool[]
-
-            end
-
-            group = snapshot[PARTICLE_CODE_NAME[:stellar]]
-
-            return findRealStars(group)
+            findRealStars(snapshot)
 
         end
+
+        return stellar_mask
 
     elseif isdir(path)
 
@@ -507,7 +560,7 @@ function readTime(path::String)::Float64
             snapshot sub-files in the HDF5 format"))
         )
 
-        file_path = minimum(sub_files)
+        file_path = first(sub_files)
 
     else
 
@@ -572,81 +625,10 @@ function readTemperature(
 
     units = internalUnits.(blocks, file_path)
 
-    if mmap
+    u  = readBlock("U   ", group; unit=units[1], mmap)
+    ne = readBlock("NE  ", group; unit=units[2], mmap)
 
-        u  = readBlock(group, "U   "; unit=units[1], mmap=true)
-        ne = readBlock(group, "NE  "; unit=units[2], mmap=true)
-
-        return computeTemperature(u, ne)
-
-    else
-
-        data = (read(group, QUANTITIES[b].hdf5_name) .* u for (b, u) in zip(blocks, units))
-
-        return computeTemperature(data...)
-
-    end
-
-end
-
-"""
-    readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
-
-Compute the temperature of the gas cells in a snapshot.
-
-# Arguments
-
-  - `file_path::String`: Path to the snapshot file.
-
-# Returns
-
-  - The temperature of the gas cells.
-"""
-function readTemperature(file_path::String)::Vector{<:Unitful.Temperature}
-
-    if isfile(file_path)
-
-        (
-            HDF5.ishdf5(file_path) ||
-            throw(ArgumentError("readTemperature: The file $(file_path) is not in the \
-            HDF5 format, I don't know how to read it"))
-        )
-
-    else
-
-        throw(ArgumentError("readTemperature: $(file_path) does not exists as a file"))
-
-    end
-
-    # List of blocks needed to compute the temperature
-    blocks = ["U   ", "NE  "]
-
-    h5open(file_path, "r") do snapshot
-
-        group = snapshot[PARTICLE_CODE_NAME[:gas]]
-
-        for block in blocks
-            isBlockPresent(block, group) || throw(ArgumentError("readTemperature: The block \
-            $(block) is missing, and I need it to compute the temperature"))
-        end
-
-        units = internalUnits.(blocks, file_path)
-
-        if getBlockSize(group, blocks) > memoryThreshold()
-
-            u  = readBlock(group, "U   "; unit=units[1], mmap=true)
-            ne = readBlock(group, "NE  "; unit=units[2], mmap=true)
-
-            return computeTemperature(u, ne)
-
-        else
-
-            data = (read(group, QUANTITIES[b].hdf5_name) .* u for (b, u) in zip(blocks, units))
-
-            return computeTemperature(data...)
-
-        end
-    end
+    return computeTemperature(u, ne)
 
 end
 
@@ -690,11 +672,15 @@ function countSnapshot(simulation_path::String)::Int
 
     end
 
-    if readSnapHeader(first(path_list)).num_files > 1
-        # If there are multiple files per snapshot, get the path to the snapshot directory
-        map!(dirname, path_list)
-        # Delete duplicates
-        unique!(path_list)
+    h5open(first(path_list), "r") do snap_file
+
+        if read_attribute(snap_file["Header"], "NumFilesPerSnapshot") > 1
+            # If there are multiple files per snapshot, get the path to the snapshot directory
+            map!(dirname, path_list)
+            # Delete duplicates
+            unique!(path_list)
+        end
+
     end
 
     return length(path_list)
@@ -784,7 +770,7 @@ function isSubfindActive(path::String)::Bool
             group catalog sub-files in the HDF5 format"))
         )
 
-        file_path = minimum(sub_files)
+        file_path = first(sub_files)
 
     else
 
@@ -854,7 +840,7 @@ function isSnapCosmological(path::String)::Bool
             snapshot sub-files in the HDF5 format"))
         )
 
-        file_path = minimum(sub_files)
+        file_path = first(sub_files)
 
     else
 
@@ -917,7 +903,7 @@ function isSimCosmological(simulation_path::String)::Bool
             within $(simulation_path), or any of its subfolders")
         )
 
-        return 0
+        return false
 
     end
 
@@ -972,7 +958,7 @@ function isSnapSFM(path::String)::Bool
 
     end
 
-    h5open(file_path, "r") do snapshot
+    sfm_flag = h5open(file_path, "r") do snapshot
 
         gas_key = PARTICLE_CODE_NAME[:gas]
 
@@ -984,9 +970,11 @@ function isSnapSFM(path::String)::Bool
 
         dataset = group[QUANTITIES["FRAC"].hdf5_name]
 
-        return !isempty(dataset)
+        !isempty(dataset)
 
     end
+
+    return sfm_flag
 
 end
 
@@ -1026,7 +1014,7 @@ function isSimSFM(simulation_path::String)::Bool
             within $(simulation_path), or any of its subfolders")
         )
 
-        return 0
+        return false
 
     end
 
@@ -1088,7 +1076,7 @@ function snapshotTypes(path::String)::Vector{Symbol}
             snapshot sub-files in the HDF5 format"))
         )
 
-        file_path = minimum(sub_files)
+        file_path = first(sub_files)
 
     else
 
@@ -1122,15 +1110,15 @@ groupCatTypes(data_dict::Dict)::Vector{Symbol} = [:group, :subhalo] ∩ keys(dat
 """
     groupCatTypes(path::String)::Vector{Symbol}
 
-Find which group catalog data types are part of the snapshot in `path`.
+Find which group catalog data types are part of the group catalog files in `path`.
 
 !!! note
 
-    If each snapshot is made of multiple files, the function will only check the first file.
+    If each group catalog is made of multiple files, the function will only check the first file.
 
 # Arguments
 
-  - `path::String`: Path to the snapshot file or folder.
+  - `path::String`: Path to the group catalog file or folder.
 
 # Returns
 
@@ -1150,15 +1138,15 @@ function groupCatTypes(path::String)::Vector{Symbol}
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
             throw(ArgumentError("groupCatTypes: The directory $(path) does not contain \
-            snapshot sub-files in the HDF5 format"))
+            group catalog sub-files in the HDF5 format"))
         )
 
-        file_path = minimum(sub_files)
+        file_path = first(sub_files)
 
     else
 
@@ -1166,8 +1154,8 @@ function groupCatTypes(path::String)::Vector{Symbol}
 
     end
 
-    groupcat_types = h5open(file_path, "r") do snapshot
-        [:group, :subhalo] ∩ keys(snapshot)
+    groupcat_types = h5open(file_path, "r") do gc_file
+        [:group, :subhalo] ∩ keys(gc_file)
     end
 
     return groupcat_types
@@ -1306,9 +1294,22 @@ function readSnapHeader(path::String)::SnapshotHeader
 
         file_path = path
 
+        num_files = h5open(file_path, "r") do snap_file
+            read_attribute(snap_file["Header"], "NumFilesPerSnapshot")
+        end
+
         # Count the number of stellar particles, ignoring wind particles
-        num_part_stars = countStars(file_path)
-        num_total_stars = num_part_stars
+        if num_files > 1
+
+            num_part_stars = countStars(file_path)
+            num_total_stars = countStars(dirname(file_path))
+
+        else
+
+            num_part_stars = countStars(file_path)
+            num_total_stars = num_part_stars
+
+        end
 
     elseif isdir(path)
 
@@ -1320,7 +1321,7 @@ function readSnapHeader(path::String)::SnapshotHeader
             snapshot sub-files in the HDF5 format"))
         )
 
-        # The header should be in each subfile, so we can read it from the first one
+        # The header should be in each sub-file, so we can read it from the first one
         file_path = first(sub_files)
 
         # Count the number of stellar particles, ignoring wind particles
@@ -1411,6 +1412,127 @@ function readSnapHeader(path::String)::SnapshotHeader
 end
 
 """
+    readSnapReducedHeader(path::String)::SnapshotHeader
+
+Read the header of a snapshot file in the HDF5 format.
+
+!!! note
+
+    This method does not read the number of cell/particles of each type, which is an expensive operation that uses [`countStars`](@ref). Use it when that info is not needed.
+
+!!! note
+
+    If each snapshot is made of multiple files, this method will read the header of the first one.
+
+# Arguments
+
+  - `path::String`: Path to the snapshot file or folder.
+
+# Returns
+
+  - A [`SnapshotHeader`](@ref) structure.
+"""
+function readSnapReducedHeader(path::String)::SnapshotHeader
+
+    if isfile(path)
+
+        (
+            HDF5.ishdf5(path) ||
+            throw(ArgumentError("readSnapReducedHeader: The file $(path) is not in the HDF5 \
+            format, I don't know how to read it"))
+        )
+
+        file_path = path
+
+    elseif isdir(path)
+
+        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+
+        (
+            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
+            throw(ArgumentError("readSnapReducedHeader: The directory $(path) does not contain \
+            snapshot sub-files in the HDF5 format"))
+        )
+
+        # The header should be in each sub-file, so we can read it from the first one
+        file_path = first(sub_files)
+
+    else
+
+        throw(ArgumentError("readSnapReducedHeader: $(path) does not exists as a file or folder"))
+
+    end
+
+    header = h5open(file_path, "r") do snap_file
+
+        head = snap_file["Header"]
+
+        attrs_present = keys(HDF5.attrs(head))
+
+        missing_attrs = setdiff(
+            [
+                "BoxSize",
+                "HubbleParam",
+                "MassTable",
+                "NumFilesPerSnapshot",
+                "Omega0",
+                "OmegaLambda",
+                "Redshift",
+                "Time",
+            ],
+            attrs_present,
+        )
+
+        (
+            isempty(missing_attrs) ||
+            throw(ArgumentError("readSnapReducedHeader: The attributes $(missing_attrs) are \
+            missing from the header"))
+        )
+
+        # Check if the internal length unit is in the header, otherwise use the default value
+        if "UnitLength_in_cm" ∈ attrs_present
+            l_unit = read_attribute(head, "UnitLength_in_cm") * u"cm"
+        else
+            l_unit = DEFAULT_L_UNIT[]
+        end
+
+        # Check if the internal mass unit is in the header, otherwise use the default value
+        if "UnitMass_in_g" ∈ attrs_present
+            m_unit = read_attribute(head, "UnitMass_in_g") * u"g"
+        else
+            m_unit = DEFAULT_M_UNIT[]
+        end
+
+        # Check if the internal velocity unit is in the header, otherwise use the default value
+        if "UnitVelocity_in_cm_per_s" ∈ attrs_present
+            v_unit = read_attribute(head, "UnitVelocity_in_cm_per_s") * u"cm * s^-1"
+        else
+            v_unit = DEFAULT_V_UNIT[]
+        end
+
+        SnapshotHeader(
+            box_size   = read_attribute(head, "BoxSize"),
+            h          = read_attribute(head, "HubbleParam"),
+            mass_table = read_attribute(head, "MassTable"),
+            num_files  = read_attribute(head, "NumFilesPerSnapshot"),
+            num_part   = [0],
+            num_total  = [0],
+            omega_0    = read_attribute(head, "Omega0"),
+            omega_l    = read_attribute(head, "OmegaLambda"),
+            redshift   = read_attribute(head, "Redshift"),
+            time       = read_attribute(head, "Time"),
+            l_unit     = l_unit,
+            m_unit     = m_unit,
+            v_unit     = v_unit,
+        )
+
+    end
+
+    return header
+
+end
+
+"""
     readSfrFile(
         file_path::String,
         snap_path::String,
@@ -1450,7 +1572,7 @@ function readSfrFile(file_path::String, snap_path::String)::DataFrame
     )
 
     (
-        !(logging[] && n_cols < 6) ||
+        logging[] && n_cols < 6 &&
         @warn("readSfrFile: I could only find $(n_cols) columns \
         in $(file_path). I was expecting 6")
     )
@@ -1628,12 +1750,16 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     reg = Regex("(?<=$(SNAP_BASENAME)_).*?(?=(?:\\.)|\$)")
     number_list = map(x -> match(reg, x).match, path_list)
 
-    if readSnapHeader(first(path_list)).num_files > 1
-        # If there are multiple files per snapshot, get the path to the snapshot directory
-        map!(dirname, path_list)
-        # Delete duplicates
-        unique!(path_list)
-        unique!(number_list)
+    h5open(first(path_list), "r") do snap_file
+
+        if read_attribute(snap_file["Header"], "NumFilesPerSnapshot") > 1
+            # If there are multiple files per snapshot, get the path to the snapshot directory
+            map!(dirname, path_list)
+            # Delete duplicates
+            unique!(path_list)
+            unique!(number_list)
+        end
+
     end
 
     return Dict(:numbers => number_list, :paths => sort(normpath.(path_list)))
@@ -1700,10 +1826,11 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
 end
 
 """
-    readGoupCatBlocks(
+    readGroupCatBlocks(
         file_path::String,
         snapshot_path::String,
-        request::Dict{Symbol,Vector{String}},
+        request::Dict{Symbol,Vector{String}};
+        <keyword arguments>
     )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
 Read the specified blocks from a group catalog file.
@@ -1713,36 +1840,34 @@ Read the specified blocks from a group catalog file.
   - `file_path::String`: Path to the group catalog file.
   - `snapshot_path::String`: Path to the corresponding snapshot file or folder. This is needed for unit conversion.
   - `request::Dict{Symbol,Vector{String}}`: The blocks to be read. It must have the shape `group type` -> [`block`, `block`, `block`], where the possible types are :group and :subhalo, and the possible blocks are the keys of [`QUANTITIES`](@ref).
+  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data blocks.
 
 # Returns
 
   - A dictionary with the following shape: `group type` -> (`block` -> data).
 """
-function readGoupCatBlocks(
+function readGroupCatBlocks(
     file_path::String,
     snapshot_path::String,
-    request::Dict{Symbol,Vector{String}},
+    request::Dict{Symbol,Vector{String}};
+    mmap::Bool=false,
 )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
     if isfile(file_path)
 
         (
             HDF5.ishdf5(file_path) ||
-            throw(ArgumentError("readGoupCatBlocks: The file $(file_path) is not in the \
+            throw(ArgumentError("readGroupCatBlocks: The file $(file_path) is not in the \
             HDF5 format, I don't know how to read it"))
         )
 
     else
 
-        throw(ArgumentError("readGoupCatBlocks: $(file_path) does not exists as a file"))
+        throw(ArgumentError("readGroupCatBlocks: $(file_path) does not exists as a file"))
 
     end
 
     output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
-
-    # Decide if we need to use memory-mapping based on the size of the requested data
-    # and the available free physical memory
-    mmap = getRequestSize(file_path, request) > memoryThreshold()
 
     h5open(file_path, "r") do gc_file
 
@@ -1764,7 +1889,7 @@ function readGoupCatBlocks(
 
                     (
                         logging[] &&
-                        @warn("readGoupCatBlocks: The group catalog type :$(component) \
+                        @warn("readGroupCatBlocks: The group catalog type :$(component) \
                         in $(file_path) is empty")
                     )
 
@@ -1782,13 +1907,13 @@ function readGoupCatBlocks(
 
                         if isBlockPresent(block, hdf5_group)
 
-                            qty_data[block] = readBlock(hdf5_group, block; unit, mmap)
+                            qty_data[block] = readBlock(block, hdf5_group; unit, mmap)
 
                         else
 
                             (
                                 logging[] &&
-                                @warn("readGoupCatBlocks: The block $(block) for the group \
+                                @warn("readGroupCatBlocks: The block $(block) for the group \
                                 catalog type :$(component) in $(file_path) is missing")
                             )
 
@@ -1805,7 +1930,7 @@ function readGoupCatBlocks(
 
                 (
                     logging[] &&
-                    @warn("readGoupCatBlocks: The group catalog type :$(component) in $(file_path) \
+                    @warn("readGroupCatBlocks: The group catalog type :$(component) in $(file_path) \
                     is missing")
                 )
 
@@ -1828,10 +1953,173 @@ function readGoupCatBlocks(
 end
 
 """
+    readGroupCatBlocks(
+        file_paths::Vector{String},
+        snapshot_path::String,
+        request::Dict{Symbol,Vector{String}};
+        <keyword arguments>
+    )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
+
+Read the specified blocks from several group catalog files.
+
+# Arguments
+
+  - `file_paths::Vector{String},`: Path to the group catalog files.
+  - `snapshot_path::String`: Path to the corresponding snapshot file or folder. This is needed for unit conversion.
+  - `request::Dict{Symbol,Vector{String}}`: The blocks to be read. It must have the shape `group type` -> [`block`, `block`, `block`], where the possible types are :group and :subhalo, and the possible blocks are the keys of [`QUANTITIES`](@ref).
+  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data blocks.
+
+# Returns
+
+  - A dictionary with the following shape: `group type` -> (`block` -> data).
+"""
+function readGroupCatBlocks(
+    file_paths::Vector{String},
+    snapshot_path::String,
+    request::Dict{Symbol,Vector{String}};
+    mmap::Bool=false,
+)::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
+
+    output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
+
+    # Read all the headers to compute total offsets
+    headers = readGroupCatHeader.(file_paths)
+
+    first_file = file_paths[1]
+
+    for component in groupCatTypes(request)
+
+        # Flag for empty components
+        empty_component = false
+
+        blocks = request[component]
+        qty_data = Dict{String,VecOrMat{<:Number}}()
+
+        # Compute the total number of groups/subhalos for this component across all files
+        if component == :group
+            total_cp = headers[1].n_groups_total
+        else
+            total_cp = headers[1].n_subgroups_total
+        end
+
+        if total_cp == 0
+
+            logging[] && @warn("readGroupCatBlocks: There are 0 :$(component) in $(first_file)")
+
+            for block in blocks
+                unit = internalUnits(block, first_file)
+                qty_data[block] = typeof(1.0 * unit)[]
+            end
+
+            output[component] = qty_data
+
+            continue
+
+        end
+
+        # Pre-allocate buffers for each block in this component
+        h5open(first_file, "r") do gc_file
+
+            type_str = titlecase(string(component))
+
+            if haskey(gc_file, type_str)
+
+                # Read the HDF5 group
+                hdf5_group = gc_file[type_str]
+
+                for block in blocks
+
+                    unit = internalUnits(block, snapshot_path)
+
+                    if isBlockPresent(block, hdf5_group)
+
+                        block_type = getBlockType(block, hdf5_group)
+                        data_type  = typeof(one(block_type) * unit)
+
+                        block_dim = getBlockDims(block, hdf5_group)
+                        out_dims  = length(block_dim) == 1 ? (total_cp,) : (block_dim[1], total_cp)
+
+                        qty_data[block] = allocateArray(data_type, out_dims; mmap)
+
+                    else
+
+                        qty_data[block] = typeof(1.0 * unit)[]
+
+                    end
+
+                end
+
+            else
+
+                (
+                    logging[] &&
+                    @warn("readGroupCatBlocks: The group catalog type :$(component) in $(file_path) \
+                    is missing")
+                )
+
+                for block in blocks
+                    unit = internalUnits(block, first_file)
+                    qty_data[block] = typeof(1.0 * unit)[]
+                end
+
+                output[component] = qty_data
+
+                empty_component = true
+
+            end
+
+        end
+
+        empty_component && continue
+
+        if component == :group
+            num_parts = getfield.(headers, :n_groups_part)
+        else
+            num_parts = getfield.(headers, :n_subgroups_part)
+        end
+
+        # Fill the buffers file by file
+        current_offset = 1
+        for (i, fp) in enumerate(file_paths)
+
+            n_part = num_parts[i]
+
+            # Skip files with no cells/particles of this type
+            n_part == 0 && continue
+
+            # Read this file's chunk
+            file_data = readGroupCatBlocks(fp, snapshot_path, Dict(component => blocks); mmap)
+
+            for block in blocks
+                chunk = file_data[component][block]
+
+                isempty(chunk) && continue
+
+                if ndims(chunk) == 1
+                    qty_data[block][current_offset:(current_offset + n_part - 1)] .= chunk
+                else
+                    qty_data[block][:, current_offset:(current_offset + n_part - 1)] .= chunk
+                end
+            end
+
+            current_offset += n_part
+
+        end
+
+        output[component] = qty_data
+
+    end
+
+    return output
+
+end
+
+"""
     readSnapBlocks(
         file_path::String,
-        request::Dict{Symbol,Vector{String}},
-    )::Dict{Symbol,Dict{String,Any}}
+        request::Dict{Symbol,Vector{String}};
+        <keyword arguments>
+    )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
 Read the specified blocks from a snapshot file.
 
@@ -1839,6 +2127,8 @@ Read the specified blocks from a snapshot file.
 
   - `file_path::String`: Path to the snapshot file.
   - `request::Dict{Symbol,Vector{String}}`: The blocks to be read. It must have the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible blocks are the keys of [`QUANTITIES`](@ref).
+  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data blocks.
+  - `header::Union{SnapshotHeader,Nothing}=nothing`: The header can be provided to avoid expensive recalculations of the number of particles.
 
 # Returns
 
@@ -1846,8 +2136,10 @@ Read the specified blocks from a snapshot file.
 """
 function readSnapBlocks(
     file_path::String,
-    request::Dict{Symbol,Vector{String}},
-)::Dict{Symbol,Dict{String,Any}}
+    request::Dict{Symbol,Vector{String}};
+    mmap::Bool=false,
+    header::Union{SnapshotHeader,Nothing}=nothing,
+)::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
     if isfile(file_path)
 
@@ -1863,14 +2155,12 @@ function readSnapBlocks(
 
     end
 
-    output = Dict{Symbol, Dict{String, Any}}()
+    output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
     # Read the header
-    header = readSnapHeader(file_path)
-
-    # Decide if we need to use memory-mapping based on the size of the requested data
-    # and the available free physical memory
-    mmap = getRequestSize(file_path, request) > memoryThreshold()
+    if isnothing(header)
+        header = readSnapHeader(file_path)
+    end
 
     h5open(file_path, "r") do snapshot
 
@@ -1879,7 +2169,7 @@ function readSnapBlocks(
 
             blocks = request[component]
 
-            qty_data = Dict{String,Any}()
+            qty_data = Dict{String,VecOrMat{<:Number}}()
 
             group_name = PARTICLE_CODE_NAME[component]
 
@@ -1895,6 +2185,8 @@ function readSnapBlocks(
                     unit = internalUnits(block, file_path)
                     qty_data[block] = typeof(1.0 * unit)[]
                 end
+
+                output[component] = qty_data
 
                 continue
 
@@ -1913,9 +2205,11 @@ function readSnapBlocks(
 
                 # Return an empty array for every missing block
                 for block in blocks
-                    unit = internalUnits(block, snapshot_path)
+                    unit = internalUnits(block, file_path)
                     qty_data[block] = typeof(1.0 * unit)[]
                 end
+
+                output[component] = qty_data
 
                 continue
 
@@ -1923,7 +2217,7 @@ function readSnapBlocks(
 
             # For the stars, exclude wind particles
             mask = if component == :stellar
-                findRealStars(hdf5_group)
+                findRealStars(snapshot)
             else
                 (:)
             end
@@ -1952,7 +2246,7 @@ function readSnapBlocks(
 
                         if isBlockPresent(block, hdf5_group)
 
-                            qty_data["MASS"] = readBlock(hdf5_group, "MASS", mask; unit, mmap)
+                            qty_data["MASS"] = readBlock("MASS", hdf5_group, mask; unit, mmap)
 
                         else
 
@@ -1973,16 +2267,16 @@ function readSnapBlocks(
                         # All cells/particles have the same mass
                         # For stellar particles this value already consideres only real stars,
                         # because we edited the header to exclude wind particles in `readSnapHeader`
-                        n_part = header.num_part[PARTICLE_INDEX[component] + 1]
+                        n_part = Int64(header.num_part[PARTICLE_INDEX[component] + 1])
 
                         mass_array       = allocateArray(typeof(1.0 * unit), (n_part,); mmap)
-                        qty_data["MASS"] = fill!(mass_array, mass_val * unit)
+                        qty_data["MASS"] = fill!(mass_array, mass_in_header * unit)
 
                     end
 
                 elseif isBlockPresent(block, hdf5_group)
 
-                    qty_data[block] = readBlock(hdf5_group, block, mask; unit, mmap)
+                    qty_data[block] = readBlock(block, hdf5_group, mask; unit, mmap)
 
                 else
 
@@ -2009,7 +2303,161 @@ function readSnapBlocks(
 
 end
 
-#TODO
+"""
+    readSnapBlocks(
+        file_paths::Vector{String},
+        request::Dict{Symbol,Vector{String}};
+        <keyword arguments>
+    )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
+
+Read the specified blocks from several snapshot files.
+
+# Arguments
+
+  - `file_paths::Vector{String}`: Paths to the snapshot files.
+  - `request::Dict{Symbol,Vector{String}}`: The blocks to be read. It must have the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible blocks are the keys of [`QUANTITIES`](@ref).
+  - `mmap::Bool=false`: Whether to use memory-mapping for reading the data blocks.
+
+# Returns
+
+  - A dictionary with the following shape: `cell/particle type` -> (`block` -> data).
+"""
+function readSnapBlocks(
+    file_paths::Vector{String},
+    request::Dict{Symbol,Vector{String}};
+    mmap::Bool=false,
+)::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
+
+    output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
+
+    # Read all the headers to compute total offsets
+    headers = readSnapHeader.(file_paths)
+
+    first_file = file_paths[1]
+
+    for component in snapshotTypes(request)
+
+        # Flag for empty components
+        empty_component = false
+
+        blocks = request[component]
+        qty_data = Dict{String,VecOrMat{<:Number}}()
+
+        c_idx = PARTICLE_INDEX[component] + 1
+
+        # Compute the total number of cells/particles for this component across all files
+        total_cp = Int64(headers[1].num_total[c_idx])
+
+        if total_cp == 0
+
+            logging[] && @warn("readSnapBlocks: There are 0 cells/particles of type :$(component) \
+            in $(first_file)")
+
+            for block in blocks
+                unit = internalUnits(block, first_file)
+                qty_data[block] = typeof(1.0 * unit)[]
+            end
+
+            output[component] = qty_data
+
+            continue
+
+        end
+
+        # Pre-allocate buffers for each block in this component
+        h5open(first_file, "r") do snapshot
+
+            group_name = PARTICLE_CODE_NAME[component]
+
+            if haskey(snapshot, group_name)
+
+                hdf5_group = snapshot[group_name]
+
+                for block in blocks
+
+                    unit = internalUnits(block, first_file)
+
+                    if isBlockPresent(block, hdf5_group)
+
+                        block_type = getBlockType(block, hdf5_group)
+                        data_type  = typeof(one(block_type) * unit)
+
+                        block_dim = getBlockDims(block, hdf5_group)
+
+                        out_dims = length(block_dim) == 1 ? (total_cp,) : (block_dim[1], total_cp)
+
+                        qty_data[block] = allocateArray(data_type, out_dims; mmap)
+
+                    else
+
+                        qty_data[block] = typeof(1.0 * unit)[]
+
+                    end
+
+                end
+
+            else
+
+                (
+                    logging[] &&
+                    @warn("readSnapBlocks: The snapshot type :$(component) in $(first_file) \
+                    is missing")
+                )
+
+                for block in blocks
+                    unit = internalUnits(block, first_file)
+                    qty_data[block] = typeof(1.0 * unit)[]
+                end
+
+                output[component] = qty_data
+
+                empty_component = true
+
+            end
+
+        end
+
+        empty_component && continue
+
+        # Fill the buffers file by file
+        current_offset = 1
+        for (i, (fp, header)) in enumerate(zip(file_paths, headers))
+
+            n_part = Int64(headers[i].num_part[c_idx])
+
+            # Skip files with no cells/particles of this type
+            n_part == 0 && continue
+
+            # Read this file's chunk
+            file_data = readSnapBlocks(fp, Dict(component => blocks); mmap, header)
+
+            for block in blocks
+
+                chunk = file_data[component][block]
+
+                isempty(chunk) && continue
+
+                if ndims(chunk) == 1
+                    qty_data[block][current_offset:(current_offset + n_part - 1)] .= chunk
+                else
+                    qty_data[block][:, current_offset:(current_offset + n_part - 1)] .= chunk
+                end
+
+
+            end
+
+            current_offset += n_part
+
+        end
+
+        output[component] = qty_data
+
+    end
+
+    return output
+
+end
+
 """
     readGroupCatalog(
         path::Union{String,Missing},
@@ -2035,6 +2483,10 @@ function readGroupCatalog(
     request::Dict{Symbol,Vector{String}},
 )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
+    # Decide if we need to use memory-mapping based on the size of the requested data
+    # and the available free physical memory
+    mmap = getRequestSize(request, path) > memoryThreshold()
+
     if ismissing(path)
 
         logging[] && @warn("readGroupCatalog: The group catalog file or folder is missing")
@@ -2049,7 +2501,7 @@ function readGroupCatalog(
             I don't know how to read it"))
         )
 
-        return readGoupCatBlocks(path, snapshot_path, request)
+        return readGroupCatBlocks(path, snapshot_path, request; mmap)
 
     elseif isdir(path)
 
@@ -2064,31 +2516,7 @@ function readGroupCatalog(
         # Sort the sub files to concatenate the data in them correctly
         sort!(sub_files)
 
-        # Read the data in each sub file
-        data_in_files = [readGoupCatBlocks(file, snapshot_path, request) for file in sub_files]
-
-        output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
-
-        for (component, data_blocks) in first(data_in_files)
-
-            qty_data = Dict{String,VecOrMat{<:Number}}()
-
-            for block in keys(data_blocks)
-
-                raw = [
-                    data_in_file[component][block] for
-                    data_in_file in data_in_files if !isempty(data_in_file[component][block])
-                ]
-
-                qty_data[block] = cat(raw...; dims=ndims(first(raw)))
-
-            end
-
-            output[component] = qty_data
-
-        end
-
-        return output
+        return readGroupCatBlocks(sub_files, snapshot_path, request; mmap)
 
     else
 
@@ -2120,6 +2548,10 @@ function readSnapshot(
     request::Dict{Symbol,Vector{String}},
 )::Dict{Symbol,Dict{String,VecOrMat{<:Number}}}
 
+    # Decide if we need to use memory-mapping based on the size of the requested data
+    # and the available free physical memory
+    mmap = getRequestSize(request, path) > memoryThreshold()
+
     if ismissing(path)
 
         throw(ArgumentError("readSnapshot: The snapshot file or folder is missing"))
@@ -2132,7 +2564,7 @@ function readSnapshot(
             I don't know how to read it"))
         )
 
-        return readSnapBlocks(path, request)
+        return readSnapBlocks(path, request; mmap)
 
     elseif isdir(path)
 
@@ -2147,35 +2579,7 @@ function readSnapshot(
         # Sort the sub files to concatenate the data in them correctly
         sort!(sub_files)
 
-        # Read the data in each sub file
-        data_in_files = [readSnapBlocks(file, request) for file in sub_files]
-
-        output = Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
-
-        for (component, data_blocks) in first(data_in_files)
-
-            qty_data = Dict{String,VecOrMat{<:Number}}()
-
-            for block in keys(data_blocks)
-
-                raw = [
-                    data_in_file[component][block] for
-                    data_in_file in data_in_files if !isempty(data_in_file[component][block])
-                ]
-
-                if isempty(raw)
-                    qty_data[block] = Number[]
-                else
-                    qty_data[block] = cat(raw...; dims=ndims(first(raw)))
-                end
-
-            end
-
-            output[component] = qty_data
-
-        end
-
-        return output
+        return readSnapBlocks(sub_files, request; mmap)
 
     else
 
@@ -2635,7 +3039,7 @@ function findQtyExtrema(
 
     end
 
-    snapshot_paths = filter!(!ismissing, snapshot_row[!, :snapshot_paths])
+    snapshot_paths = filter!(!ismissing, simulation_table[!, :snapshot_paths])
 
     (
         !isempty(snapshot_paths) ||
@@ -2652,6 +3056,10 @@ end
     internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,Unitful.Units}
 
 Get the factor to convert a plain number into a [Unitful](https://github.com/PainterQubits/Unitful.jl) quantity, using the correct internal code units.
+
+!!! note
+
+    For non cosmological simulations PHYSICAL_UNITS[] will be set to true, regardless of its original value in ./constants/globals.jl.
 
 # Arguments
 
@@ -2670,7 +3078,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
         `QUANTITIES` but I got $(quantity), see the options in `./src/constants/globals.jl`"))
     )
 
-    header = readSnapHeader(path)
+    header = readSnapReducedHeader(path)
     cosmological = isSnapCosmological(path)
 
     a = cosmological ? header.time : 1.0
@@ -2702,7 +3110,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
             end
 
             # From internal units to kpc
-            if !PHYSICAL_UNITS[] && cosmological
+            if !PHYSICAL_UNITS[]
                 return IU.x_comoving
             else
                 return IU.x_cosmo

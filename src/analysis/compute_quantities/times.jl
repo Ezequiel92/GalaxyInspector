@@ -165,7 +165,7 @@ function computeTimeStamps(
         # For cosmological simulations, the time field in the Header of the snapshot is the scale factor
         scale_factors  = [readTime(path) for path in snapshot_paths]
         redshifts      = @. (1.0 / scale_factors) - 1.0
-        physical_times = computeTime(scale_factors, readSnapHeader(first_snapshot))
+        physical_times = computeTime(scale_factors, readSnapReducedHeader(first_snapshot))
         lookback_times = maximum(physical_times) .- physical_times
 
     else
@@ -248,11 +248,11 @@ function getTimeTicks(
 
         elseif time_quantity == :physical_time
 
-            time_ticks = computeTime(scale_factors, readSnapHeader(first_snapshot))
+            time_ticks = computeTime(scale_factors, readSnapReducedHeader(first_snapshot))
 
         elseif time_quantity == :lookback_time
 
-            physical_times = computeTime(scale_factors, readSnapHeader(first_snapshot))
+            physical_times = computeTime(scale_factors, readSnapReducedHeader(first_snapshot))
             time_ticks     = maximum(physical_times) .- physical_times
 
         end

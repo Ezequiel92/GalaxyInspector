@@ -8532,7 +8532,7 @@ function snapshotReport(
 
             iterator = zip(sfm_quantities, sfm_labels, sfm_units)
 
-            for (quantity, label, unit) in collect(iterator)[qty_present]
+            for (quantity, label, unit) in collect(iterator)
 
                 qty_symbol = Symbol(:ode_stellar_, quantity)
 
@@ -8570,7 +8570,7 @@ function snapshotReport(
 
             iterator = zip(sfm_quantities, sfm_labels, sfm_units)
 
-            for (quantity, label, unit) in collect(iterator)[gas_sfm_idxs][qty_present]
+            for (quantity, label, unit) in collect(iterator)[gas_sfm_idxs]
 
                 qty_symbol = Symbol(:ode_gas_, quantity)
 

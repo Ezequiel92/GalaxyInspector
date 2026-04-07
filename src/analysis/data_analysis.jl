@@ -2760,7 +2760,7 @@ function daSFRtxt(
     snapshot_path = snapshot_paths[idx]
 
     # Read its header
-    header = readSnapHeader(snapshot_path)
+    header = readSnapReducedHeader(snapshot_path)
 
     # Read the data in the `sfr.txt` file
     sfr_txt_data = readSfrFile(joinpath(sim_data.path, SFR_REL_PATH), snapshot_path)
@@ -2910,7 +2910,7 @@ function daCPUtxt(
     snapshot_path = snapshot_paths[idx]
 
     # Read its header
-    header = readSnapHeader(snapshot_path)
+    header = readSnapReducedHeader(snapshot_path)
 
     # Read the data in the `sfr.txt` file
     cpu_txt_data = readCpuFile(joinpath(sim_data.path, CPU_REL_PATH), [target])[target]
