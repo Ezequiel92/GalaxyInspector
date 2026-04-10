@@ -111,6 +111,32 @@ const QUANTITIES = Dict(
     # Parent velocity (at the moment of star formation), for stellar particles
     "GVEL" => Qty("ODE_GasVelocity", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
 
+    ######################
+    # YA_SFR quantities
+    ######################
+
+    # The width of the log-normal PDF, for gas cells and stellar particles
+    "YASS" => Qty("YA_sigma_s", Unitful.NoDims, Unitful.NoUnits),
+    # Bonnor-Ebert mass at the mean density, for gas cells and stellar particles
+    "YAMB" => Qty("YA_MBE0", Unitful.𝐌, u"Msun"),
+    # Alfvén velocity, for gas cells and stellar particles
+    "YAVA" => Qty("YA_vA", Unitful.𝐋 * Unitful.𝐓^-1, u"cm * s^-1"),
+    # Effective sound speed including magnetic support, for gas cells and stellar particles
+    "YACE" => Qty("YA_cs_eff", Unitful.𝐋 * Unitful.𝐓^-1, u"cm * s^-1"),
+    # Sonic Mach number, for gas cells and stellar particles
+    "YAMS" => Qty("YA_M_sonic", Unitful.NoDims, Unitful.NoUnits),
+    # Thermal-to-magnetic pressure ratio, for gas cells and stellar particles
+    "YAB " => Qty("YA_beta", Unitful.NoDims, Unitful.NoUnits),
+    # Status: 0 -> success, -> 1 the cell is gravitationally stable,
+    # 2 -> the iteration limit is reached without convergence, for gas cells and stellar particles
+    "YAS " => Qty("YA_status", Unitful.NoDims, Unitful.NoUnits),
+    # The critical log-density, for gas cells and stellar particles
+    "YASC" => Qty("YA_sc", Unitful.NoDims, Unitful.NoUnits),
+    # The star-forming excess mass, for gas cells and stellar particles
+    "YAMF" => Qty("YA_Mfe", Unitful.𝐌, u"Msun"),
+    # Free-fall time at the critical density, for gas cells and stellar particles
+    "YATF" => Qty("YA_tff", Unitful.𝐓, u"yr"),
+
     ##############################
     # Halo (FoF group) quantities
     ##############################
