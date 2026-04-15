@@ -7071,6 +7071,7 @@ f_\mathrm{H_2} = \frac{M_\mathrm{H_2}}{M_\mathrm{H_2} + M_\star} \, ,
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `icGen::Vector{<:Function}=[initialConditionFunction]`: Functions (one per simulation) that generates a initial condition function for each of the :ode components. Each must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
+  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `extra_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Extra request dictionary (maybe useful for the different `icGen` functions).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -7088,6 +7089,7 @@ function molecularFractionEvolution(
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     icGen::Vector{<:Function}=[initialConditionFunction],
+    smooth::Int=0,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     extra_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     theme::Attributes=Theme(),
@@ -7103,7 +7105,7 @@ function molecularFractionEvolution(
     y_plot_params = plotParams(:molecular_stellar_fraction)
 
     xlabel = LaTeXString(L"\log_{10} \, " * getLabel(x_plot_params.var_name, 0, x_plot_params.unit))
-    ylabel = LaTeXString(L"\log_{10} \, " * getLabel(y_plot_params.var_name, 0, y_plot_params.unit))
+    ylabel = L"\log_{10} \, M_\mathrm{H2} / (M_\mathrm{H2} + M_\star)"
 
     current_theme = merge(
         theme,
@@ -7151,6 +7153,7 @@ function molecularFractionEvolution(
                         ff_request=extra_request,
                         y_log=y_plot_params.unit,
                         icGen=ring(icGen, i),
+                        smooth,
                     ),
                 ],
                 x_unit=x_plot_params.unit,
@@ -7253,6 +7256,7 @@ function molecularFractionEvolution(
                     ff_request=extra_request,
                     y_log=y_plot_params.unit,
                     icGen=ring(icGen, i),
+                    smooth,
                 ) for i in 1:n_sims
             ],
             x_unit=x_plot_params.unit,

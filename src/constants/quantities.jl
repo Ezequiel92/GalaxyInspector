@@ -34,6 +34,7 @@ const QUANTITIES = Dict(
     "VEL " => Qty("Velocities", Unitful.𝐋 * Unitful.𝐓^-1, :internal),
     "TSTP" => Qty("TimeStep", Unitful.𝐓, :internal),
     "POT " => Qty("Potential", Unitful.𝐋^2 * Unitful.𝐓^-2, :pot),
+    "MACH" => Qty("Machnumber", Unitful.NoDims, Unitful.NoUnits),
     "GDCM" => Qty("GFM_DustCapMass", Unitful.𝐌, :internal),
     "TAGR" => Qty("GFM_DustTauGrowth", Unitful.𝐓, u"Gyr"),
     "GDZ " => Qty("GFM_DustMetallicity", Unitful.NoDims, Unitful.NoUnits),
@@ -115,27 +116,46 @@ const QUANTITIES = Dict(
     # YA_SFR quantities
     ######################
 
-    # The width of the log-normal PDF, for gas cells and stellar particles
-    "YASS" => Qty("YA_sigma_s", Unitful.NoDims, Unitful.NoUnits),
-    # Bonnor-Ebert mass at the mean density, for gas cells and stellar particles
-    "YAMB" => Qty("YA_MBE0", Unitful.𝐌, u"Msun"),
-    # Alfvén velocity, for gas cells and stellar particles
+    # Isothermal sound speed [cm * s^(-1)]
+    "YACC" => Qty("YA_cs_cell", Unitful.𝐋 * Unitful.𝐓^-1, u"cm * s^-1"),
+    # Mach number [dimensionless]
+    "YAMS" => Qty("YA_Mach_cell", Unitful.NoDims, Unitful.NoUnits),
+    # Magnetic field [g^(1/2) * cm^(-1/2) * s^(-1)]
+    "YABC" => Qty("YA_B_cell", Unitful.𝐌^(1/2) * Unitful.𝐋^(-1/2) * Unitful.𝐓^-1, u"g^(1/2) * cm^(-1/2) * s^-1"),
+    # Alfvén velocity [cm * s^(-1)]
     "YAVA" => Qty("YA_vA", Unitful.𝐋 * Unitful.𝐓^-1, u"cm * s^-1"),
-    # Effective sound speed including magnetic support, for gas cells and stellar particles
-    "YACE" => Qty("YA_cs_eff", Unitful.𝐋 * Unitful.𝐓^-1, u"cm * s^-1"),
-    # Sonic Mach number, for gas cells and stellar particles
-    "YAMS" => Qty("YA_M_sonic", Unitful.NoDims, Unitful.NoUnits),
-    # Thermal-to-magnetic pressure ratio, for gas cells and stellar particles
+    # Velocity dispersion [cm * s^(-1)]
+    "YASV" => Qty("YA_sigma_v", Unitful.𝐋 * Unitful.𝐓^-1, u"cm * s^-1"),
+    # Alfvén Mach [dimensionless]
+    "YAMA" => Qty("YA_MA", Unitful.NoDims, Unitful.NoUnits),
+    # Magnetic pressure [g * cm^(-1) * s^(-2)]
+    "YAPM" => Qty("YA_P_mag", Unitful.𝐌 * Unitful.𝐋^-1 * Unitful.𝐓^-2, u"g * cm^-1 * s^-2"),
+    # Thermal-to-magnetic pressure ratio [dimensionless]
     "YAB " => Qty("YA_beta", Unitful.NoDims, Unitful.NoUnits),
-    # Status: 0 -> success, -> 1 the cell is gravitationally stable,
-    # 2 -> the iteration limit is reached without convergence, for gas cells and stellar particles
-    "YAS " => Qty("YA_status", Unitful.NoDims, Unitful.NoUnits),
-    # The critical log-density, for gas cells and stellar particles
-    "YASC" => Qty("YA_sc", Unitful.NoDims, Unitful.NoUnits),
-    # The star-forming excess mass, for gas cells and stellar particles
+    # Standard deviation for the logarithmic density PDF [dimensionless]
+    "YASS" => Qty("YA_sigma_s", Unitful.NoDims, Unitful.NoUnits),
+    # Mean logarithmic density [dimensionless]
+    "YAS0" => Qty("YA_s0", Unitful.NoDims, Unitful.NoUnits),
+    # Effective sound speed [cm * s^(-1)]
+    "YACE" => Qty("YA_cs_eff", Unitful.𝐋 * Unitful.𝐓^-1, u"cm * s^-1"),
+    # Bonnor-Ebert mass for the mean density (s = 0) [M☉]
+    "YAMB" => Qty("YA_MBE0", Unitful.𝐌, u"Msun"),
+    # First root of Mex'(s) [dimensionless]
+    "YASR" => Qty("YA_sr_m", Unitful.NoDims, Unitful.NoUnits),
+    # Maximum excess mass [M☉]
     "YAMF" => Qty("YA_Mfe", Unitful.𝐌, u"Msun"),
-    # Free-fall time at the critical density, for gas cells and stellar particles
+    # Critical logarithmic density [dimensionless]
+    "YASC" => Qty("YA_sc", Unitful.NoDims, Unitful.NoUnits),
+    # Free fall time [yr]
     "YATF" => Qty("YA_tff", Unitful.𝐓, u"yr"),
+    # status = 0 -> Success
+    # status = 1 -> Failed to compute the Mach number
+    # status = 2 -> We are in the sub-Alfvénic regime (MA < 2)
+    # status = 3 -> There are no real roots. The cell is stable
+    # status = 4 -> No roots exist for Mex(s). The cell is stable
+    # status = 5 -> Could not find the root. The root is not within [s_left, sr_m]
+    # status = 6 -> Could not find the root. Max iterations reached with no convergence
+    "YAS " => Qty("YA_status", Unitful.NoDims, Unitful.NoUnits),
 
     ##############################
     # Halo (FoF group) quantities
