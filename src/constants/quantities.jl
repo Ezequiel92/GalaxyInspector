@@ -118,6 +118,10 @@ const QUANTITIES = Dict(
 
     # Isothermal sound speed [cm * s^(-1)]
     "YACC" => Qty("YA_cs_cell", Unitful.𝐋 * Unitful.𝐓^-1, u"cm * s^-1"),
+    # Length scale of the gas cell [cm]
+    "YALC" => Qty("YA_l_cell", Unitful.𝐋, u"cm"),
+    # Specific energy (turbulent) dissipation rate [cm^2 * s^(-3)]
+    "YAEP" => Qty("YA_epsilon", Unitful.𝐋^2 * Unitful.𝐓^-3, u"cm^2 * s^-3"),
     # Mach number [dimensionless]
     "YAMS" => Qty("YA_Mach_cell", Unitful.NoDims, Unitful.NoUnits),
     # Magnetic field [g^(1/2) * cm^(-1/2) * s^(-1)]
