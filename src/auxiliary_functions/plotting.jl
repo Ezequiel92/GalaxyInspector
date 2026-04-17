@@ -277,6 +277,45 @@ function getLabel(
 end
 
 """
+    getLabel(quantity::Symbol; <keyword arguments>)::AbstractString
+
+Construct an axis label for a given quantity.
+
+# Arguments
+
+  - `quantity::Symbol`: Target quantity.
+  - `log::Bool=false`: If true adds ``\\log_{10}`` to the label.
+  - `latex::Bool=true`: If the output will be a `LaTeXString` or a plain `String`.
+
+# Returns
+
+  - The label for `quantity`, according to [`plotParams`](@ref).
+"""
+function getLabel(quantity::Symbol; log::Bool=false, latex::Bool=true)::AbstractString
+
+    plot_params = plotParams(quantity)
+
+    base_label = getLabel(plot_params.var_name, plot_params.exp_factor, plot_params.unit; latex)
+
+    if latex && log
+
+        label = LaTeXString(L"\log_{10} \," * base_label)
+
+    elseif !latex && log
+
+        label = "log10 " * base_label
+
+    else
+
+        label = base_label
+
+    end
+
+    return label
+
+end
+
+"""
     barPlotLabelFormater(x::Number)::LaTeXString
 
 Format a number to be a barplot label.

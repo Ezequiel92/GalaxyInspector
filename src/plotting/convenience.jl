@@ -25,8 +25,8 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -46,7 +46,7 @@ function scatterPlot(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -102,7 +102,7 @@ function scatterPlot(
             filter_function,
             da_functions=[daScatterGalaxy],
             da_args=[(x_quantity, y_quantity)],
-            da_kwargs=[(; x_log, y_log, icGen, filter_function=da_ff)],
+            da_kwargs=[(; x_log, y_log, icGen, filter_function=extra_filter)],
             x_unit,
             y_unit,
             x_exp_factor,
@@ -147,8 +147,8 @@ Plot two quantities as a density scatter plot (2D histogram).
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterDensity`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daScatterDensity`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -172,7 +172,7 @@ function scatterDensityMap(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     colorbar::Bool=false,
     title::Union{Symbol,<:AbstractString}="",
@@ -228,7 +228,7 @@ function scatterDensityMap(
             filter_function,
             da_functions=[daScatterDensity],
             da_args=[(x_quantity, y_quantity)],
-            da_kwargs=[(; x_range, y_range, x_log, y_log, icGen, n_bins, filter_function=da_ff)],
+            da_kwargs=[(; x_range, y_range, x_log, y_log, icGen, n_bins, filter_function=extra_filter)],
             x_unit,
             y_unit,
             x_exp_factor,
@@ -277,8 +277,8 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daScatterWeightedDensity`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daScatterWeightedDensity`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -304,7 +304,7 @@ function scatterDensityMap(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     colorbar::Bool=false,
     title::Union{Symbol,<:AbstractString}="",
@@ -372,7 +372,7 @@ function scatterDensityMap(
             da_functions=[daScatterWeightedDensity],
             da_args=[(x_quantity, y_quantity, z_quantity)],
             da_kwargs=[
-                (; x_range, y_range, x_log, y_log, icGen, total, n_bins, filter_function=da_ff),
+                (; x_range, y_range, x_log, y_log, icGen, total, n_bins, filter_function=extra_filter),
             ],
             x_unit,
             y_unit,
@@ -417,8 +417,8 @@ Write files in the VTK format with the ``\\log_{10}`` of a given `quantity` at e
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if `quantity` is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`quantity3DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`quantity3DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
 """
 function vtkFiles(
     simulation_paths::Vector{String},
@@ -433,7 +433,7 @@ function vtkFiles(
     icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
 )::Nothing
 
@@ -476,7 +476,7 @@ function vtkFiles(
             (;
                 density=density ? l_unit : nothing,
                 icGen,
-                filter_function=da_ff,
+                filter_function=extra_filter,
             ),
         ],
         save_figures=false,
@@ -546,8 +546,8 @@ Plot a radial profile.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -574,7 +574,7 @@ function radialProfile(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     title::Union{Symbol,<:AbstractString}="",
@@ -647,7 +647,7 @@ function radialProfile(
         filter_function,
         da_functions=[daProfile],
         da_args=[(quantity, grid)],
-        da_kwargs=[(; norm, y_log, icGen, flat, total, cumulative, density, filter_function=da_ff)],
+        da_kwargs=[(; norm, y_log, icGen, flat, total, cumulative, density, filter_function=extra_filter)],
         x_unit=u"kpc",
         y_unit = ylog ? Unitful.NoUnits : yunit,
         yaxis_label,
@@ -702,8 +702,8 @@ Plot a density profile.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -730,7 +730,7 @@ function radialProfile(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -797,7 +797,7 @@ function radialProfile(
             da_functions=[daProfile],
             da_args=[(quantity, grid) for quantity in quantities],
             da_kwargs=[
-                (; norm, y_log, icGen, flat, total, cumulative, density, filter_function=da_ff),
+                (; norm, y_log, icGen, flat, total, cumulative, density, filter_function=extra_filter),
             ],
             x_unit=u"kpc",
             y_unit = ylog ? Unitful.NoUnits : yunit,
@@ -846,8 +846,8 @@ Plot the evolution of a given stellar `quantity` using the stellar ages at a giv
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daStellarHistory`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daStellarHistory`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
@@ -860,7 +860,7 @@ function stellarHistory(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -907,7 +907,7 @@ function stellarHistory(
         rotation,
         filter_function,
         da_functions=[daStellarHistory],
-        da_kwargs=[(; quantity, n_bins, ylog, filter_function=da_ff)],
+        da_kwargs=[(; quantity, n_bins, ylog, filter_function=extra_filter)],
         x_unit=x_plot_params.unit,
         y_unit,
         x_exp_factor=x_plot_params.exp_factor,
@@ -956,8 +956,8 @@ Plot a histogram of `quantity`.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daHistogram`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daHistogram`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.ç
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -980,7 +980,7 @@ function histogram(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     title::Union{Symbol,<:AbstractString}="",
@@ -1037,7 +1037,7 @@ function histogram(
         filter_function,
         da_functions=[daHistogram],
         da_args,
-        da_kwargs=[(; log=xlog, icGen, filter_function=da_ff, norm)],
+        da_kwargs=[(; log=xlog, icGen, filter_function=extra_filter, norm)],
         x_unit,
         x_exp_factor,
         xaxis_label,
@@ -1069,8 +1069,8 @@ Plot the rotation curve of several simulations.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daRotationCurve`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daRotationCurve`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -1087,7 +1087,7 @@ function rotationCurve(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     title::Union{Symbol,<:AbstractString}="",
@@ -1123,7 +1123,7 @@ function rotationCurve(
         rotation,
         filter_function,
         da_functions=[daRotationCurve],
-        da_kwargs=[(; R, filter_function=da_ff)],
+        da_kwargs=[(; R, filter_function=extra_filter)],
         smooth,
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
@@ -1167,8 +1167,8 @@ Plot a bar plot of the gas fractions, where the bins are a given gas `quantity`.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daBarGasFractions`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daBarGasFractions`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1188,7 +1188,7 @@ function gasBarPlot(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -1268,7 +1268,7 @@ function gasBarPlot(
             filter_function,
             da_functions=[daBarGasFractions],
             da_args=[(quantity, LinearGrid(edges; log=ylog))],
-            da_kwargs=[(; components, icGen, filter_function=da_ff)],
+            da_kwargs=[(; components, icGen, filter_function=extra_filter)],
             post_processing=ppBarPlotLabels,
             pp_args=(reverse(components),),
             pp_kwargs=(; colors=reverse(colors)),
@@ -1318,8 +1318,8 @@ Plot a profile with the corresponding experimental values of the Milky Way from 
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daMolla2015`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daMolla2015`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
@@ -1337,7 +1337,7 @@ function compareMolla2015(
     icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -1415,7 +1415,7 @@ function compareMolla2015(
         filter_function,
         da_functions=[daMolla2015],
         da_args=[(grid, quantity)],
-        da_kwargs=[(; y_unit=plot_params.unit, icGen, filter_function=da_ff)],
+        da_kwargs=[(; y_unit=plot_params.unit, icGen, filter_function=extra_filter)],
         post_processing=ppMolla2015!,
         pp_args=(quantity,),
         pp_kwargs=(; y_unit=plot_params.unit),
@@ -1457,8 +1457,8 @@ Plot a stellar density profile with the corresponding experimental values of the
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
@@ -1477,7 +1477,7 @@ function compareAgertz2021(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -1522,7 +1522,7 @@ function compareAgertz2021(
         filter_function,
         da_functions=[daProfile],
         da_args=[(:stellar_mass, grid)],
-        da_kwargs=[(; y_log, density=true, filter_function=da_ff)],
+        da_kwargs=[(; y_log, density=true, filter_function=extra_filter)],
         post_processing=ppAgertz2021!,
         pp_kwargs=(;
             galaxies=[:all, "MW"],
@@ -1578,8 +1578,8 @@ Plot a 2D projection of the `component` mass density.
   -`icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1606,7 +1606,7 @@ function densityMap(
     icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
@@ -1679,7 +1679,7 @@ function densityMap(
                             icGen,
                             m_unit,
                             l_unit,
-                            filter_function=da_ff,
+                            filter_function=extra_filter,
                         ),
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
@@ -1738,8 +1738,8 @@ Plot a 2D projection of the mass density of `component`, with the velocity field
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) and [`daVelocityField`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) and [`daVelocityField`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1767,7 +1767,7 @@ function densityMapVelField(
   icGen::Function=initialConditionFunction,
   trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
   filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-  da_ff::Function=filterNothing,
+  extra_filter::Function=filterNothing,
   ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
   title::Union{Symbol,<:AbstractString}="",
   annotation::AbstractString="",
@@ -1843,9 +1843,9 @@ function densityMapVelField(
                             icGen,
                             m_unit,
                             l_unit,
-                            filter_function=da_ff,
+                            filter_function=extra_filter,
                         ),
-                        (; projection_plane, v_unit, filter_function=da_ff)
+                        (; projection_plane, v_unit, filter_function=extra_filter)
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
                     pp_args=(annotation,),
@@ -1900,8 +1900,8 @@ Plot a 2D projection of the gas SFR.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daGasSFR2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daGasSFR2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1926,7 +1926,7 @@ function gasSFRMap(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
@@ -1992,7 +1992,7 @@ function gasSFRMap(
                         reduce_factor,
                         m_unit,
                         t_unit,
-                        filter_function=da_ff,
+                        filter_function=extra_filter,
                     ),
                 ],
                 post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
@@ -2050,8 +2050,8 @@ Plot a 2D projection of the metallicity.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daMetallicity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daMetallicity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -2076,7 +2076,7 @@ function metallicityMap(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
@@ -2161,7 +2161,7 @@ function metallicityMap(
                             element,
                             projection_plane,
                             reduce_factor,
-                            filter_function=da_ff,
+                            filter_function=extra_filter,
                         ),
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
@@ -2219,8 +2219,8 @@ Plot a time series.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -2240,7 +2240,7 @@ function timeSeries(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     smooth::Int=0,
     backup_results::Bool=false,
@@ -2266,7 +2266,7 @@ function timeSeries(
         output_path,
         trans_mode,
         filter_mode,
-        da_ff,
+        extra_filter,
         ff_request,
         smooth,
         backup_results,
@@ -2309,8 +2309,8 @@ Plot a time series.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -2329,7 +2329,7 @@ function timeSeries(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     smooth::Int=0,
     backup_results::Bool=false,
@@ -2383,7 +2383,7 @@ function timeSeries(
             (;
                 trans_mode,
                 filter_mode,
-                extra_filter=da_ff,
+                extra_filter,
                 ff_request,
                 x_log,
                 y_log,
@@ -2437,8 +2437,8 @@ Plot a time series of the statistics of `y_quantity` (25th, 50th, 75th percentai
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -2455,7 +2455,7 @@ function statisticsEvolution(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     smooth::Int=0,
     backup_results::Bool=false,
@@ -2483,7 +2483,7 @@ function statisticsEvolution(
         output_path,
         trans_mode,
         filter_mode,
-        da_ff,
+        extra_filter,
         ff_request,
         smooth,
         backup_results,
@@ -2530,8 +2530,8 @@ Plot a time series of the statistics of the results of `scatter_function` (25th,
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -2549,7 +2549,7 @@ function statisticsEvolution(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     smooth::Int=0,
     backup_results::Bool=false,
@@ -2620,7 +2620,7 @@ function statisticsEvolution(
                 (;
                     trans_mode,
                     filter_mode,
-                    extra_filter=da_ff,
+                    extra_filter,
                     ff_request,
                     x_log,
                     smooth,
@@ -2678,8 +2678,8 @@ Plot a time series of the gas components. Either their masses or their fractions
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
@@ -2693,7 +2693,7 @@ function gasEvolution(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     smooth::Int=0,
     icGen::Function=initialConditionFunction,
@@ -2748,7 +2748,7 @@ function gasEvolution(
             da_functions=[daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
             da_kwargs=[
-                (; trans_mode, filter_mode, extra_filter=da_ff, ff_request, y_log, smooth, icGen),
+                (; trans_mode, filter_mode, extra_filter, ff_request, y_log, smooth, icGen),
             ],
             x_unit=x_plot_params.unit,
             y_unit,
@@ -2797,6 +2797,8 @@ Plot time evolution of the masses and fractions of the gas components, in two pa
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target simulations use our star formation model, see [`isSimSFM`](@ref).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function gasFractionsEvolution(
@@ -2809,6 +2811,8 @@ function gasFractionsEvolution(
     icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -2840,8 +2844,8 @@ function gasFractionsEvolution(
             da_kwargs=[(;
                 trans_mode,
                 filter_mode,
-                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
-                ff_request=Dict(:gas => ["POS "]),
+                extra_filter,
+                ff_request,
                 icGen,
             )],
             x_unit=x_plot_params.unit,
@@ -2874,8 +2878,8 @@ function gasFractionsEvolution(
             da_kwargs=[(;
                 trans_mode,
                 filter_mode,
-                extra_filter=dd -> filterBySphere(dd, 0.0u"kpc", r_gas, :zero),
-                ff_request=Dict(:gas => ["POS "]),
+                extra_filter,
+                ff_request,
                 icGen,
             )],
             x_unit=x_plot_params.unit,
@@ -4466,8 +4470,8 @@ Plot a mass profile.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter,::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter,`.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -4488,7 +4492,7 @@ function massProfile(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_filter::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -4554,7 +4558,7 @@ function massProfile(
             filter_function,
             da_functions=[daProfile],
             da_args=[(Symbol(component, :_mass), grid) for component in components],
-            da_kwargs=[(; y_log, icGen, cumulative, filter_function=da_filter)],
+            da_kwargs=[(; y_log, icGen, cumulative, filter_function=extra_filter)],
             x_unit=u"kpc",
             y_unit,
             y_exp_factor,
@@ -4605,8 +4609,8 @@ Plot a velocity profile.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter,::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter,`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -4625,7 +4629,7 @@ function velocityProfile(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_filter::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     title::Union{Symbol,<:AbstractString}="",
@@ -4659,7 +4663,7 @@ function velocityProfile(
         filter_function,
         da_functions=[daProfile],
         da_args=[(velocity, grid)],
-        da_kwargs=[(; total=false, filter_function=da_filter)],
+        da_kwargs=[(; total=false, filter_function=extra_filter)],
         x_unit=u"kpc",
         y_unit=plot_params.unit,
         y_exp_factor=plot_params.exp_factor,
@@ -4721,8 +4725,8 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target simulations use our star formation model, see [`isSimSFM`](@ref).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
@@ -4742,7 +4746,7 @@ function compareFeldmann2020(
     icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -4894,7 +4898,7 @@ function compareFeldmann2020(
         slice,
         da_functions=[daEvolution],
         da_args=[(x_qty, y_qty) for (x_qty, y_qty) in zip(x_quantities, y_quantities)],
-        da_kwargs=[(; trans_mode, filter_mode, extra_filter=da_ff, ff_request, x_log, y_log, icGen)],
+        da_kwargs=[(; trans_mode, filter_mode, extra_filter, ff_request, x_log, y_log, icGen)],
         post_processing=ppFeldmann2020!,
         pp_args=(x_component, y_component),
         pp_kwargs=(; scatter, xlog, ylog),
@@ -4948,8 +4952,8 @@ Plot the resolved mass-metallicity relation. This method plots the M-Z relation 
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function massMetallicityRelation(
@@ -6277,8 +6281,8 @@ Plot the clumping factor of `component` for different volume scales.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daClumpingFactor`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daClumpingFactor`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -6301,7 +6305,7 @@ function clumpingFactor(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
@@ -6359,7 +6363,7 @@ function clumpingFactor(
         filter_function,
         da_functions=[daClumpingFactor],
         da_args=[(component,)],
-        da_kwargs=[(; n_neighbors, icGen, filter_function=da_ff, x_log, y_log)],
+        da_kwargs=[(; n_neighbors, icGen, filter_function=extra_filter, x_log, y_log)],
         smooth,
         x_unit,
         y_unit,
@@ -6420,7 +6424,7 @@ function circularityHistogram(
     R_out_label = string(round(Int, ustrip(l_unit, R_out))) * "\\, \\mathrm{$(l_unit)}"
     R_in_label  = string(round(Int, ustrip(l_unit, R_in))) * "\\, \\mathrm{$(l_unit)}"
 
-    da_ff = [
+    extra_filter = [
         dd -> filterBySphere(dd, 0.0 * l_unit, R_out, :zero),
         dd -> filterBySphere(dd, 0.0 * l_unit, R_in, :zero),
         dd -> filterBySphere(dd, R_in, R_out, :zero),
@@ -6442,9 +6446,9 @@ function circularityHistogram(
             da_functions=[daHistogram],
             da_args=[(:stellar_circularity, grid)],
             da_kwargs=[
-                (; norm=1, filter_function=da_ff[1]),
-                (; norm=1, filter_function=da_ff[2]),
-                (; norm=1, filter_function=da_ff[3]),
+                (; norm=1, filter_function=extra_filter[1]),
+                (; norm=1, filter_function=extra_filter[2]),
+                (; norm=1, filter_function=extra_filter[3]),
             ],
             save_figures=false,
             backup_results=true,
@@ -6633,8 +6637,8 @@ Plot the stellar density maps for the xy and xz projections, in two panels.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function stellarDensityMaps(
@@ -6645,7 +6649,7 @@ function stellarDensityMaps(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     theme::Attributes=Theme(),
 )::Nothing
@@ -6715,7 +6719,7 @@ function stellarDensityMaps(
                         projection_plane,
                         m_unit,
                         l_unit,
-                        filter_function=da_ff,
+                        filter_function=extra_filter,
                     ),
                 ],
                 x_unit=l_unit,
@@ -6822,8 +6826,8 @@ Plot the density map of five gas components for the xy and xz projections, in se
   - `density_range::NTuple{2,Float64}=(NaN,NaN)`: Area density range in ``\\log_{10} \\mathrm{[M_\\odot \\, kpc^{-2}]``. If set to NaN a value is chosen automatically.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function gasDensityMaps(
@@ -6835,7 +6839,7 @@ function gasDensityMaps(
     density_range::NTuple{2,Float64}=(NaN,NaN),
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     theme::Attributes=Theme(),
 )::Nothing
@@ -6919,7 +6923,7 @@ function gasDensityMaps(
                             icGen,
                             m_unit,
                             l_unit,
-                            filter_function=da_ff,
+                            filter_function=extra_filter,
                         ),
                     ],
                     x_unit=l_unit,
@@ -7070,6 +7074,8 @@ f_\mathrm{H_2} = \frac{M_\mathrm{H_2}}{M_\mathrm{H_2} + M_\star} \, ,
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `icGen::Vector{<:Function}=[initialConditionFunction]`: Functions (one per simulation) that generates a initial condition function for each of the :ode components. Each must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
@@ -7088,10 +7094,11 @@ function molecularFractionEvolution(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     icGen::Vector{<:Function}=[initialConditionFunction],
     smooth::Int=0,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
-    extra_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -7150,7 +7157,8 @@ function molecularFractionEvolution(
                     (;
                         trans_mode,
                         filter_mode,
-                        ff_request=extra_request,
+                        extra_filter,
+                        ff_request,
                         y_log=y_plot_params.unit,
                         icGen=ring(icGen, i),
                         smooth,
@@ -7173,7 +7181,8 @@ function molecularFractionEvolution(
                         x_quantity,
                         trans_mode,
                         filter_mode,
-                        ff_request=extra_request,
+                        extra_filter,
+                        ff_request,
                         log=true,
                     ),
                 ],
@@ -7253,7 +7262,8 @@ function molecularFractionEvolution(
                 (;
                     trans_mode,
                     filter_mode,
-                    ff_request=extra_request,
+                    extra_filter,
+                    ff_request,
                     y_log=y_plot_params.unit,
                     icGen=ring(icGen, i),
                     smooth,
@@ -7294,8 +7304,8 @@ Make a video of how the projected density (xy and xz planes) evolves through tim
   - `framerate::Int64=20`: Video framerate.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `show_progress::Bool=true`: If a progress bar will be shown.
   - `save_data::Bool=false`: If the density maps data will be saved in JLD2 files.
@@ -7312,7 +7322,7 @@ function evolutionVideo(
     framerate::Int64=20,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     theme::Attributes=Theme(),
     show_progress::Bool=true,
@@ -7430,7 +7440,7 @@ function evolutionVideo(
                             icGen,
                             m_unit,
                             l_unit,
-                            filter_function=da_ff,
+                            filter_function=extra_filter,
                         ),
                     ],
                     x_unit=l_unit,
@@ -7696,8 +7706,8 @@ Make a mockup image emulating an SDSS observation.
       + `:dust`    -> Dust mass extinction.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `da_ff::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `da_ff`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
@@ -7717,7 +7727,7 @@ function SDSSMockup(
     extinction::Union{Symbol,Nothing}=nothing,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    da_ff::Function=filterNothing,
+    extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     theme::Attributes=Theme(),
     show_progress::Bool=true,
@@ -7782,7 +7792,7 @@ function SDSSMockup(
                 smooth,
                 icGen,
                 extinction,
-                filter_function=da_ff,
+                filter_function=extra_filter,
             ),
         ],
         save_figures=false,
