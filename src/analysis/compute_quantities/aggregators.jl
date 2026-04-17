@@ -204,6 +204,31 @@ function scatterQty(
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
 
+            if iszero(Δt)
+                if present_idx - 2 > 0
+
+                    (
+                        logging[] &&
+                        @warn("scatterQty: The target snapshot and the one before it have the same \
+                        time coordinate, I will shift the target snapshot by one")
+                    )
+
+                    Δt = times[present_idx - 1] - times[present_idx - 2]
+
+                    (
+                        iszero(Δt) &&
+                        throw(ArgumentError("scatterQty: All snapshots seem to have the same time \
+                        coordinate!!!"))
+                    )
+
+                else
+
+                    throw(ArgumentError("scatterQty: There is only one snapshot before the target \
+                    one, and its has the same time coordinate (Δt = 0)"))
+
+                end
+            end
+
             # For stellar particles younger than Δt, the SFR is its mass divided by Δt
             # For older particles it is 0
             scatter_qty = computeSFR(data_dict; age_limit=Δt)
@@ -226,6 +251,31 @@ function scatterQty(
 
             # Compute the time between snapshots
             Δt = times[present_idx] - times[present_idx - 1]
+
+            if iszero(Δt)
+                if present_idx - 2 > 0
+
+                    (
+                        logging[] &&
+                        @warn("scatterQty: The target snapshot and the one before it have the same \
+                        time coordinate, I will shift the target snapshot by one")
+                    )
+
+                    Δt = times[present_idx - 1] - times[present_idx - 2]
+
+                    (
+                        iszero(Δt) &&
+                        throw(ArgumentError("scatterQty: All snapshots seem to have the same time \
+                        coordinate!!!"))
+                    )
+
+                else
+
+                    throw(ArgumentError("scatterQty: There is only one snapshot before the target \
+                    one, and its has the same time coordinate (Δt = 0)"))
+
+                end
+            end
 
             scatter_qty = computeSSFR(data_dict; age_limit=Δt)
 

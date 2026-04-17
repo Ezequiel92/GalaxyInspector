@@ -139,7 +139,7 @@ function plotSnapshot(
     yaxis_label::AbstractString="auto_label",
     xaxis_var_name::AbstractString="x",
     yaxis_var_name::AbstractString="y",
-    # Plotting options
+    # Plotting optionsplotSnapshot
     save_figures::Bool=true,
     backup_results::Bool=false,
     backup_raw_results::Bool=false,
