@@ -102,7 +102,7 @@ function computeTemperature(
 
     # yHe := number_of_helium_atoms / number_of_hydrogen_atoms
     # Take the mass fraction of metals as negligible
-    yHe = @. (1.0 - xH) / (4.0 * xH)
+    yHe = (1.0 - xH) / (4.0 * xH)
 
     # electron_fraction := number_of_electrons / number_of_hydrogen_atoms
     # μ := total_mass / (total_number_of_particles * proton_mass)
@@ -112,7 +112,7 @@ function computeTemperature(
 
     # T = (adiabatic_index - 1) * internal_energy_per_unit_mass *
     #     (total_mass / total_number_of_particles) / boltzmann_constant
-    return @. 0.6667 * internal_energy * μ * Unitful.mp / Unitful.k
+    return @. GAMMA_MINUS1 * internal_energy * μ * Unitful.mp / Unitful.k
 
 end
 
