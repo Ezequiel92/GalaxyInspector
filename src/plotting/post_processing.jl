@@ -1672,6 +1672,7 @@ Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015)
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Target unit for `quantity`.
   - `color::ColorType=WONG_RED`: Color of the line.
   - `linestyle::LineStyleType=:solid`: Style of the line.
+  - `marker::Symbol=:utriangle`: Marker for the points.
   - `error_bars::Bool=true`: If the error bars will be plotted.
 
 # Returns
@@ -1691,6 +1692,7 @@ function ppMolla2015!(
     y_unit::Unitful.Units=Unitful.NoUnits,
     color::ColorType=WONG_RED,
     linestyle::LineStyleType=:solid,
+    marker::Symbol=:utriangle,
     error_bars::Bool=true,
 )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
 
@@ -1805,7 +1807,7 @@ function ppMolla2015!(
         y_values;
         color,
         linestyle,
-        marker=:utriangle,
+        marker,
     )
 
     translate!(Accum, slp, 0, 0, -10)
@@ -1816,7 +1818,7 @@ function ppMolla2015!(
         translate!(Accum, ep, 0, 0, -10)
     end
 
-    return [MarkerElement(; color, marker=:utriangle)], ["Mollá et al. (2015)"]
+    return [MarkerElement(; color, marker)], ["Mollá et al. (2015)"]
 
 end
 

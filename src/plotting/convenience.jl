@@ -1403,6 +1403,24 @@ function compareMolla2015(
         base_filename = "$(quantity)_profile_Molla2015"
     end
 
+    current_theme = merge(
+        theme,
+        Theme(
+            size=(1400, 880),
+            figure_padding=(10, 15, 5, 15),
+            palette=(linestyle=[:solid],),
+            Axis=(aspect=nothing,),
+            Legend=(halign=:left, nbanks=1),
+        ),
+        DEFAULT_THEME,
+        theme_latexfonts(),
+    )
+
+    # Set the style for ppMolla2015! according to the current theme and the number of simulations
+    color     = ring(current_theme[:palette][:color][], length(simulation_paths) + 1)
+    linestyle = ring(current_theme[:palette][:linestyle][], length(simulation_paths) + 1)
+    marker    = ring(current_theme[:palette][:marker][], length(simulation_paths) + 1)
+
     plotSnapshot(
         simulation_paths,
         request,
@@ -1419,21 +1437,12 @@ function compareMolla2015(
         da_kwargs=[(; y_unit=plot_params.unit, icGen, filter_function=extra_filter)],
         post_processing=ppMolla2015!,
         pp_args=(quantity,),
-        pp_kwargs=(; y_unit=plot_params.unit),
+        pp_kwargs=(; y_unit=plot_params.unit, color, linestyle, marker),
         x_unit=u"kpc",
         yaxis_label,
         xaxis_var_name=L"r",
         yaxis_var_name=plot_params.var_name,
-        theme=merge(
-            theme,
-            Theme(
-                size=(1400, 880),
-                figure_padding=(10, 15, 5, 15),
-                palette=(linestyle=[:solid],),
-                Axis=(aspect=nothing,),
-                Legend=(halign=:left, nbanks=1),
-            ),
-        ),
+        theme=current_theme,
         sim_labels,
     )
 
