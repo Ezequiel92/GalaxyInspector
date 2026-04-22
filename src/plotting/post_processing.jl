@@ -1747,6 +1747,16 @@ function ppMolla2015!(
         factor = log10(ustrip(y_unit, 1.0u"Msun * pc^-2 * Gyr^-1"))
         y_data = (raw[!, "logΣsfr"] .± raw[!, "logΣsfr error"]) .+ factor
 
+    elseif quantity == :mu_mol
+
+        # M⊙ pc^-2
+        logΣH2 = log10.(raw[!, "ΣH2"] .± raw[!, "ΣH2 error"])
+
+        # M⊙ pc^-2
+        logΣs = raw[!, "logΣ*"] .± raw[!, "logΣ* error"]
+
+        y_data = logΣH2 .- logΣs
+
     else
 
         _, component = QUANTITY_SPLITS[quantity]

@@ -118,6 +118,8 @@ const QUANTITIES = Dict(
 
     # Isothermal sound speed [cm * s^(-1)]
     "YACC" => Qty("YA_cs_cell", Unitful.𝐋 * Unitful.𝐓^-1, u"cm * s^-1"),
+    # Gas temperature [K]
+    "YATC" => Qty("YA_T_cell", Unitful.𝚯, u"K"),
     # Length scale of the gas cell [cm]
     "YALC" => Qty("YA_l_cell", Unitful.𝐋, u"cm"),
     # Specific energy (turbulent) dissipation rate [cm^2 * s^(-3)]

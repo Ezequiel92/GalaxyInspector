@@ -880,6 +880,7 @@ Compute a profile of `quantity`, using an 1D histogram.
   - `quantity::Vector{<:Number}`: The profile will be of this quantity.
   - `grid::LinearGrid`: Linear grid.
   - `norm::Vector{<:Number}=Number[]`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`.
+  - `norm_positions::Matrix{<:Unitful.Length}=Matrix{Unitful.Length}(undef, 0, 0)`: Positions of the values of `norm`. Each column is a cell/particle and each row a dimension. If empty, the positions of `quantity` will be used.
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
   - `cumulative::Bool=false`: If the profile will be accumulated.
@@ -895,6 +896,7 @@ function computeProfile(
     quantity::Vector{<:Number},
     grid::LinearGrid;
     norm::Vector{<:Number}=Number[],
+    norm_positions::Matrix{<:Unitful.Length}=Matrix{Unitful.Length}(undef, 0, 0),
     flat::Bool=true,
     total::Bool=true,
     cumulative::Bool=false,
@@ -910,22 +912,35 @@ function computeProfile(
         return fill(NaN, grid.n_bins)
     end
 
-    # Compute the distances of the cells/particles to the origin of the grid
-    if flat
-        distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
-    else
-        distances = colwise(Euclidean(), positions, grid.origin)
-    end
-
     # Compute the histogram of `quantity`
     if isempty(norm)
+
+        # Compute the distances of the cells/particles to the origin of the grid
+        if flat
+            distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
+        else
+            distances = colwise(Euclidean(), positions, grid.origin)
+        end
 
         profile = histogram1D(distances, quantity, grid; total, empty_nan)
 
     else
 
+        if isempty(norm_positions)
+            norm_positions = positions
+        end
+
+        # Compute the distances of the cells/particles to the origin of the grid
+        if flat
+            distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
+            norm_distances = colwise(Euclidean(), norm_positions[1:2, :], grid.origin[1:2])
+        else
+            distances = colwise(Euclidean(), positions, grid.origin)
+            norm_distances = colwise(Euclidean(), norm_positions[1:2, :], grid.origin[1:2])
+        end
+
         quantity_histogram = histogram1D(distances, quantity, grid; total, empty_nan)
-        norm_histogram = histogram1D(distances, norm, grid; total, empty_nan=false)
+        norm_histogram = histogram1D(norm_distances, norm, grid; total, empty_nan=false)
 
         replace!(x -> iszero(x) ? oneunit(x) : x, norm_histogram)
 

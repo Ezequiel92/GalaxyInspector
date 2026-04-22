@@ -1314,6 +1314,7 @@ Plot a profile with the corresponding experimental values of the Milky Way from 
       + `:O_stellar_abundance`                -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
       + `:N_stellar_abundance`                -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`                -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
+      + `:mu_mol`                             -> Molecular gas fraction, as ``\\mu_\\mathrm{mol} = \\Sigma_\\mathrm{H2} / \\Sigma_\\star``.
   - `output_path::String="."`: Path to the output folder.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -1359,7 +1360,7 @@ function compareMolla2015(
     filter_function, request = selectFilter(filter_mode, trans_request)
 
     # Select the correct grid acording to the available data from M. Mollá et al. (2015)
-    if quantity == :stellar_area_density
+    if quantity ∈ [:stellar_area_density, :mu_mol]
 
         grid = LinearGrid(2.5u"kpc", 16.5u"kpc", 14)
 

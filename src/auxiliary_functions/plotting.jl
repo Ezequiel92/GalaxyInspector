@@ -2091,6 +2091,16 @@ function plotParams(quantity::Symbol)::PlotParams
             cp_type  = :gas,
         )
 
+    elseif quantity == :mu_mol
+
+        plot_params = PlotParams(;
+            request  = Dict(
+                :stellar => ["MASS", "POS ", "RHO "],
+                :gas => ["MASS", "FRAC", "POS ", "RHO "],
+            ),
+            var_name = L"\mu_\mathrm{mol}",
+        )
+
     ##################
     # Time quantities
     ##################

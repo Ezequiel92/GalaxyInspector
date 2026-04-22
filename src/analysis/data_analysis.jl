@@ -1215,6 +1215,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `:O_stellar_abundance`                -> Stellar abundance of oxygen, as ``12 + \\log_{10}(\\mathrm{O \\, / \\, H})``.
       + `:N_stellar_abundance`                -> Stellar abundance of nitrogen, as ``12 + \\log_{10}(\\mathrm{N \\, / \\, H})``.
       + `:C_stellar_abundance`                -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
+      + `:mu_mol`                             -> Molecular gas fraction, as ``\\mu_\\mathrm{mol} = \\Sigma_\\mathrm{H2} / \\Sigma_\\star``.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Unit for `quantity`.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g., :ode_atomic_area_density).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1253,18 +1254,33 @@ function daMolla2015(
 
     if quantity ∈ STELLAR_ABUNDANCE
 
-        element   = Symbol(replace(string(quantity), "_stellar_abundance" => ""))
+        element = Symbol(replace(string(quantity), "_stellar_abundance" => ""))
 
         positions = filtered_dd[:stellar]["POS "]
-        masses    = computeElementMass(filtered_dd, :stellar, element) ./ ATOMIC_WEIGHTS[element]
-        norm      = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
-        scaling   = x -> ABUNDANCE_SHIFT[element] .+ log10.(ustrip.(y_unit, x))
-        density   = false
+        norm_positions = positions
+        masses = computeElementMass(filtered_dd, :stellar, element) ./ ATOMIC_WEIGHTS[element]
+        norm = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
+        scaling = x -> ABUNDANCE_SHIFT[element] .+ log10.(ustrip.(y_unit, x))
+        density = false
+
+    elseif quantity == :mu_mol
+
+        if isSnapSFM(filtered_dd[:snap_data].path)
+            masses = computeMass(filtered_dd, :ode_molecular_stellar; icGen)
+        else
+            masses = computeMass(filtered_dd, :br_molecular; icGen)
+        end
+
+        norm = computeMass(filtered_dd, :stellar; icGen)
+        positions = filtered_dd[:gas]["POS "]
+        norm_positions = filtered_dd[:stellar]["POS "]
+        scaling = x -> log10.(ustrip.(y_unit, x))
+        density = false
 
     else
 
         plot_params = plotParams(quantity)
-        component   = Symbol(replace(string(quantity), "_area_density" => ""))
+        component = Symbol(replace(string(quantity), "_area_density" => ""))
 
         if component == :sfr
             masses = scatterQty(filtered_dd, :observational_sfr)
@@ -1273,9 +1289,10 @@ function daMolla2015(
         end
 
         positions = filtered_dd[plot_params.cp_type]["POS "]
-        norm      = Number[]
-        scaling   = x -> log10.(ustrip.(y_unit, x))
-        density   = true
+        norm_positions = positions
+        norm = Number[]
+        scaling = x -> log10.(ustrip.(y_unit, x))
+        density = true
 
     end
 
@@ -1287,7 +1304,7 @@ function daMolla2015(
 
     end
 
-    density_profile = scaling(computeProfile(positions, masses, grid; norm, density))
+    density_profile = scaling(computeProfile(positions, masses, grid; norm, norm_positions,density))
 
     return grid.x_axis, density_profile
 
