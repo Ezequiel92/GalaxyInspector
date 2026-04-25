@@ -11,7 +11,7 @@ push!(LOAD_PATH, "../src/")
 using GalaxyInspector
 
 const BASE_OUT_PATH    = "./test_plots"
-const BASE_SRC_PATH    = "F:/simulations/current/"
+const BASE_SRC_PATH    = "/run/media/elozano/DISK4T/simulations/"
 const SIMULATIONS      = ["SFM_06"]
 const LABELS           = ["SFM_06"]
 const SNAP_N           = 128
