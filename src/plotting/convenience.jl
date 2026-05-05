@@ -5144,7 +5144,7 @@ Create a HDF5 file with the position, gas mass, velocity, and velocity dispersio
 
 The metadata for each snapshot in the HDF5 file includes the physical time in Gyr, the scale factor, and the redshift of that snapshot.
 
-By default, the grid is centered at coordinates (0, 0, 0), has 300x300x300 voxels, and has a side length of [`BOX_L[]`](@ref). There are as many rows as there are voxels (27000000 by default).
+By default, the grid is centered at coordinates (0, 0, 0), has 300x300x300 voxels, and has a side length of [`BOX_L`](@ref). There are as many rows as there are voxels (27000000 by default).
 
 The quantities in the HDF5 file for each voxel are:
 
@@ -5545,7 +5545,7 @@ Create a HDF5 file with the position, stellar mass, velocity, and velocity dispe
 
 The metadata for each snapshot in the HDF5 file includes the physical time in Gyr, the scale factor, and the redshift of that snapshot.
 
-By default, the grid is centered at coordinates (0, 0, 0), has 100x100x100 voxels, and has a side length of [`BOX_L[]`](@ref). There are as many rows as there are voxels (1000000 by default).
+By default, the grid is centered at coordinates (0, 0, 0), has 100x100x100 voxels, and has a side length of [`BOX_L`](@ref). There are as many rows as there are voxels (1000000 by default).
 
 The quantities in the HDF5 file for each voxel are:
 
