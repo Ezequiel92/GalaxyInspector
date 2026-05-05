@@ -1,4 +1,4 @@
 docs/build/
 tests/
 !tests/tests.jl
-mmap
+mmap/*

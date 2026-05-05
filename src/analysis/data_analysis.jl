@@ -1284,7 +1284,6 @@ Project a 3D mass density field into a given plane.
       + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
       + `:log_circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
-  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the mass of `component` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
@@ -1306,7 +1305,6 @@ function daDensity2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
-    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"pc",
@@ -1322,7 +1320,6 @@ function daDensity2DProjection(
         field_type;
         empty_nan=false,
         log=false,
-        mask,
         icGen,
         filter_function,
     )
@@ -1439,7 +1436,6 @@ Project the 3D gas SFR field into a given plane.
       + `:circular` -> The sfr distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
       + `:log_circular` -> The sfr distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the sfr projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
-  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the SFR for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Time unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1459,7 +1455,6 @@ function daGasSFR2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
-    mask::Union{Function,Nothing}=nothing,
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
     filter_function::Function=filterNothing,
@@ -1472,7 +1467,6 @@ function daGasSFR2DProjection(
         field_type;
         empty_nan=false,
         log=false,
-        mask,
         filter_function,
     )
 
@@ -1579,7 +1573,6 @@ Project the 3D metallicity field to a given plane.
       + `:circular` -> The metallicity distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
       + `:log_circular` -> The metallicity distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the metallicity projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
-  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the metallicity of `component` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1599,7 +1592,6 @@ function daMetallicity2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
-    mask::Union{Function,Nothing}=nothing,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
@@ -1630,7 +1622,6 @@ function daMetallicity2DProjection(
         field_type;
         empty_nan=false,
         log=false,
-        mask,
         return_idxs=true,
         filter_function,
     )
@@ -1642,7 +1633,6 @@ function daMetallicity2DProjection(
         nn_idxs;
         empty_nan=false,
         log=false,
-        mask,
         return_idxs=false,
         filter_function,
     )
@@ -1862,7 +1852,6 @@ Compute a mockup image emulating an SDSS observation.
   - `grid::CubicGrid`: Cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
-  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the stellar mass for the particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `extinction::Union{Symbol,Nothing}=nothing`: Type of extinction. The options are:
 
@@ -1880,7 +1869,6 @@ function daSDSSMockup(
     grid::CubicGrid;
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
-    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     extinction::Union{Symbol,Nothing}=nothing,
     filter_function::Function=filterNothing,
@@ -2000,7 +1988,6 @@ function daSDSSMockup(
             :cells;
             empty_nan=false,
             log=false,
-            mask,
             icGen,
         )
 
@@ -2091,7 +2078,6 @@ Compute the gas density and the SFR density, used in the volumetric star formati
   - `age_limit::Unitful.Time=AGE_RESOLUTION[]`: Age limit for the SFR.
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. See the required signature and examples in `./src/analysis/filters.jl`.
   - `gas_ff::Function=filterNothing`: Filter function for the gas. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the mass of `component` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `m_unit::Unitful.Units=u"Msun"`: Target mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Target time unit.
@@ -2115,7 +2101,6 @@ function daVSFLaw(
     age_limit::Unitful.Time=AGE_RESOLUTION[],
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
-    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
@@ -2140,7 +2125,6 @@ function daVSFLaw(
         scale_by_volume=true,
         density=l_gas_unit,
         log=false,
-        mask,
         icGen,
         filter_function=gas_ff,
     )
@@ -2155,7 +2139,6 @@ function daVSFLaw(
         scale_by_volume=true,
         density=l_stellar_unit,
         log=false,
-        mask,
         filter_function=stellar_ff,
     )
 

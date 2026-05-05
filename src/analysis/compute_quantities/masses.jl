@@ -1951,7 +1951,6 @@ Project a `quantity` field into a given 3D grid.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
   - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
-  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the value of `quantity` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1972,13 +1971,10 @@ function quantity3DProjection(
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
-    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
-
-    filterData!(data_dict; filter_function)
 
     if field_type == :cells
 
@@ -2078,9 +2074,9 @@ function quantity3DProjection(
         empty_nan,
         density,
         log,
-        mask,
         icGen,
         return_idxs,
+        filter_function,
     )
 
 end
@@ -2110,10 +2106,9 @@ Project a `quantity` field into a given 3D grid.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
   - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
-  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the value of `quantity` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
-  - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `filter_function::Function=filterNothing`: Set to 0 the value of `quantity` for the cells/particles that do not pass the `filter_function`. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
 
@@ -2131,13 +2126,10 @@ function quantity3DProjection(
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
-    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
-
-    filtered_dd = filterData!(data_dict; filter_function)
 
     # Get the cell/particle type
     cp_type = plotParams(quantity).cp_type
@@ -2151,10 +2143,11 @@ function quantity3DProjection(
     qty_unit = plotParams(quantity).unit
 
     # Compute the values of the target quantity
-    qty_values = ustrip.(qty_unit, scatterQty(filtered_dd, quantity; icGen))
+    qty_values = ustrip.(qty_unit, scatterQty(data_dict, quantity; icGen))
 
-    if !isnothing(mask)
-        qty_values .*= Float64.(mask(filtered_dd)[cp_type])
+    # Set to 0 the value of `quantity` for all cells/particles that do not pass the filter
+    if filter_function != filterNothing
+        qty_values .*= Float64.(filter_function(data_dict)[cp_type])
     end
 
     if isempty(qty_values)
@@ -2190,7 +2183,7 @@ function quantity3DProjection(
         if scale_by_volume
 
             # Compute the volume of each cell
-            cell_volumes = filtered_dd[cp_type]["MASS"] ./ filtered_dd[cp_type]["RHO "]
+            cell_volumes = data_dict[cp_type]["MASS"] ./ data_dict[cp_type]["RHO "]
 
             volume_factor = ustrip.(Unitful.NoUnits, grid.bin_size_3D ./ cell_volumes)
 
@@ -2211,7 +2204,7 @@ function quantity3DProjection(
     else
 
         # Load the cell/particle positions
-        positions = filtered_dd[cp_type]["POS "]
+        positions = data_dict[cp_type]["POS "]
 
         if isempty(positions)
 
@@ -2272,8 +2265,8 @@ function quantity3DProjection(
 
         @info(
             "\nQuantity range - $(title) \
-            \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
-            \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
+            \n  Simulation: $(basename(data_dict[:sim_data].path)) \
+            \n  Snapshot:   $(data_dict[:snap_data].global_index) \
             \n  Field type: $(field_type) \
             \n  Min - Max:  $(nanextrema(voxel_values)) \
             \n  Mean:       $(nanmean(voxel_values)) \
