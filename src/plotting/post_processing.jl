@@ -55,7 +55,7 @@ function ppVerticalFlags!(
     if isempty(positions)
 
         # Don't draw anything if all the flags are outside the original plot window
-        logging[] && @warn("ppVerticalFlags!: All vertical lines lie outside the plot range")
+        LOGGING[] && @warn("ppVerticalFlags!: All vertical lines lie outside the plot range")
 
         return nothing
 
@@ -125,7 +125,7 @@ function ppHorizontalFlags!(
     if isempty(positions)
 
         # Don't draw anything if all the flags are outside the original plot window
-        logging[] && @warn("ppHorizontalFlags!: All horizontal lines lie outside the plot range")
+        LOGGING[] && @warn("ppHorizontalFlags!: All horizontal lines lie outside the plot range")
 
         return nothing
 
@@ -201,7 +201,7 @@ function ppCross!(
 
     else
 
-        logging[] && @warn("ppCross!: The vertical line lies outside the plot range")
+        LOGGING[] && @warn("ppCross!: The vertical line lies outside the plot range")
 
     end
 
@@ -214,7 +214,7 @@ function ppCross!(
 
     else
 
-        logging[] && @warn("ppCross!: The horizontal line lies outside the plot range")
+        LOGGING[] && @warn("ppCross!: The horizontal line lies outside the plot range")
 
     end
 
@@ -260,7 +260,7 @@ function ppABFlags!(
 
         if min(y_low, y_high) > y_limits[2] || max(y_low, y_high) < y_limits[1]
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("ppABFlags!: The line y = $(slope) * x + $(intercept) lies outside the plot \
                 range")
             )
@@ -315,7 +315,7 @@ function ppFillBelowLine!(
     points = pointData(figure)
 
     if isempty(points)
-        logging[] && @warn("ppFillBelowLine!: There are no points in the figure")
+        LOGGING[] && @warn("ppFillBelowLine!: There are no points in the figure")
         return nothing
     end
 
@@ -496,7 +496,7 @@ function ppFitLine!(
 
     if isempty(points)
 
-        logging[] && @warn("ppFitLine!: There are no points in the figure")
+        LOGGING[] && @warn("ppFitLine!: There are no points in the figure")
 
         return nothing
 
@@ -681,7 +681,7 @@ function ppKennicutt1998!(
     points = pointData(figure)
 
     if isempty(points)
-        logging[] && @warn("ppKennicutt1998!: There are no points in the figure")
+        LOGGING[] && @warn("ppKennicutt1998!: There are no points in the figure")
         return nothing
     end
 
@@ -843,7 +843,7 @@ function ppBigiel2008!(
     points = pointData(figure)
 
     if isempty(points)
-        logging[] && @warn("ppBigiel2008!: There are no points in the figure")
+        LOGGING[] && @warn("ppBigiel2008!: There are no points in the figure")
         return nothing
     end
 
@@ -1731,17 +1731,17 @@ function ppMolla2015!(
     if quantity == :O_stellar_abundance
 
         # Dimensionless
-        y_data = @. (raw[!, "O/H"] - 12.0 + ABUNDANCE_SHIFT[:O]) ± raw[!, "ΔO/H"]
+        y_data = @. (raw[!, "O/H"] - 12.0 + ABUNDANCE_SHIFT[][:O]) ± raw[!, "ΔO/H"]
 
     elseif quantity == :N_stellar_abundance
 
         # Dimensionless
-        y_data = @. (raw[!, "N/H"] - 12.0 + ABUNDANCE_SHIFT[:N]) ± raw[!, "ΔN/H"]
+        y_data = @. (raw[!, "N/H"] - 12.0 + ABUNDANCE_SHIFT[][:N]) ± raw[!, "ΔN/H"]
 
     elseif quantity == :C_stellar_abundance
 
         # Dimensionless
-        y_data = @. (raw[!, "C/H"] - 12.0 + ABUNDANCE_SHIFT[:C]) ± raw[!, "ΔC/H"]
+        y_data = @. (raw[!, "C/H"] - 12.0 + ABUNDANCE_SHIFT[][:C]) ± raw[!, "ΔC/H"]
 
     elseif quantity == :sfr_area_density
 

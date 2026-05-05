@@ -2,51 +2,6 @@
 # Constants and data structures for Arepo simulations
 ####################################################################################################
 
-#################
-# Code constants
-#################
-
-"""
-Base name of the snapshot files, set in the code variable `SnapshotFileBase`.
-"""
-const SNAP_BASENAME = "snap"
-
-"""
-Base name of the group catalog files.
-"""
-const GC_BASENAME = "fof_subhalo_tab"
-
-"""
-Mass fraction of hydrogen.
-"""
-const HYDROGEN_MASSFRAC = 0.76
-
-"""
-Adiabatic index.
-"""
-const GAMMA = 5.0 / 3.0
-
-"""
-Adiabatic index minus one.
-"""
-const GAMMA_MINUS1 = GAMMA - 1.0
-
-"""
-Mass of the tracers in internal code units. Its value comes from `All.TargetGasMass = All.TargetGasMassFactor * All.ReferenceGasPartMass` in the code.
-
-It is only printed in the output files (`stdout_n`), as `All.TargetGasMass=3.65456e-06`
-"""
-const TRACER_MASS = 3.65456e-06
-
-"""
-Solar metallicity, as used in Arepo.
-
-# References
-
-M. Asplund et al. (2006). *The new solar abundances - Part I: the observations*. Communications in Asteroseismology, **147**. [doi:10.1553/cia147s76](https://doi.org/10.1553/cia147s76)
-"""
-const SOLAR_METALLICITY = 0.0127
-
 """
 Subhalo numbers for the MW and M31 in Hestia simulations.
 """
@@ -127,13 +82,6 @@ For a cosmological simulation at redshift 0 (`cf_a3inv` = 1), this result in a p
 """
 const THRESHOLD_DENSITY = 4.749326e6u"Msun*kpc^-3"
 
-@doc raw"""
-Hubble constant in $\mathrm{Gyr^{-1}}$.
-
-This value corresponds to $H_0 = 0.102201 \, \mathrm{Gyr}^{-1} = 100 \, \mathrm{km} \, \mathrm{s}^{-1} \, \mathrm{Mpc}^{-1}$.
-"""
-const HUBBLE_CONSTANT = 0.102201
-
 ######################
 # Output files paths
 ######################
@@ -147,25 +95,6 @@ const SFR_REL_PATH = "output/sfr.txt"
 Relative path, within the simulation directory, of `cpu.txt`.
 """
 const CPU_REL_PATH = "output/cpu.txt"
-
-################
-# Default units
-################
-
-"""
-Default internal unit of length. Change via: DEFAULT_L_UNIT[] = 1.0u"kpc"
-"""
-const DEFAULT_L_UNIT = Ref{Unitful.Length}(ILLUSTRIS_L_UNIT)
-
-"""
-Default internal unit of mass. Change via: DEFAULT_M_UNIT[] = 1.0u"Msun"
-"""
-const DEFAULT_M_UNIT = Ref{Unitful.Mass}(ILLUSTRIS_M_UNIT)
-
-"""
-Default internal unit of velocity. Change via: DEFAULT_V_UNIT[] = 1.0u"km/s"
-"""
-const DEFAULT_V_UNIT = Ref{Unitful.Velocity}(ILLUSTRIS_V_UNIT)
 
 ######################
 # Cell/particle types
@@ -230,6 +159,67 @@ const PARTICLE_INDEX = LONG_PARTICLE_INDEX
 Current human readable name of each cell/particle type in use.
 """
 const PARTICLE_NAMES = LONG_PARTICLE_NAMES
+
+"""
+Type of cell/particle corresponding to each code index.
+"""
+const INDEX_PARTICLE = Dict(n => symbol for (symbol, n) in PARTICLE_INDEX)
+
+"""
+Type of cell/particle corresponding to each internal code name (data group in the HDF5 output).
+"""
+const PARTICLE_TYPE = Dict("PartType$n" => symbol for (symbol, n) in PARTICLE_INDEX)
+
+"""
+Internal code name (data group in the HDF5 output) corresponding to each type of cell/particle.
+"""
+const PARTICLE_CODE_NAME = Dict(symbol => "PartType$n" for (symbol, n) in PARTICLE_INDEX)
+
+##############################
+# Default filter dictionaries
+##############################
+
+"""
+Filter dictionary that does not exclude any cell/particle.
+"""
+const PASS_ALL = Dict{Symbol,IndexType}(key => (:) for key in keys(PARTICLE_INDEX))
+
+"""
+Filter dictionary that excludes every cell/particle.
+"""
+const PASS_NONE = Dict{Symbol,IndexType}(key => Int[] for key in keys(PARTICLE_INDEX))
+
+##########################
+# Transformations presets
+##########################
+
+"""
+List of symbols for the transformation presets.
+
+The options have the form :{component}_{group} selecting which cells/particle to consider for the center of mass (new origin for the translation) and principal axis (new reference system for the rotation), where component can be:
+
+      + :all         -> Every component present in data_dict
+      + :{component} -> One of the keys of PARTICLE_INDEX
+
+    and group can be:
+      + :box     -> Whole simulation box
+      + :halo    -> Main halo
+      + :subhalo -> Main subhalo
+"""
+const TRANSFORM_LIST = [
+    Symbol(component, :_, group)
+    for component in push!(collect(keys(PARTICLE_INDEX)), :all)
+    for group in [:box, :halo, :subhalo]
+]
+
+"""
+Dictionary mapping each transformation to its component and group.
+"""
+const TRANSFORM_SPLITS = Dict(
+    Symbol(component, :_, group) => (component, group)
+    for component in push!(collect(keys(PARTICLE_INDEX)), :all)
+    for group in [:box, :halo, :subhalo]
+)
 
 ###################
 # Tracked elements

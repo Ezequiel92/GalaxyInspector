@@ -30,7 +30,7 @@ function computeKineticEnergy(
 
     if any(isempty, [masses, velocities])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeKineticEnergy: There is missing data, so I will return an \
             empty array")
         )
@@ -65,7 +65,7 @@ function computePotentialEnergy(
 
     if any(isempty, [potential, masses])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computePotentialEnergy: There is missing data, so I will return an empty array")
         )
         return Unitful.Energy[]
@@ -98,7 +98,7 @@ function computeTemperature(
 )::Vector{<:Unitful.Temperature}
 
     # xH := mass_fraction_of_hydrogen
-    xH = HYDROGEN_MASSFRAC
+    xH = HYDROGEN_MASSFRAC[]
 
     # yHe := number_of_helium_atoms / number_of_hydrogen_atoms
     # Take the mass fraction of metals as negligible
@@ -112,7 +112,7 @@ function computeTemperature(
 
     # T = (adiabatic_index - 1) * internal_energy_per_unit_mass *
     #     (total_mass / total_number_of_particles) / boltzmann_constant
-    return @. GAMMA_MINUS1 * internal_energy * μ * Unitful.mp / Unitful.k
+    return @. (GAMMA[] - 1.0) * internal_energy * μ * Unitful.mp / Unitful.k
 
 end
 
@@ -165,7 +165,7 @@ function computeKineticEnergy(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeKineticEnergy: `component` can only be one of the elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
@@ -228,7 +228,7 @@ function computePotentialEnergy(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computePotentialEnergy: `component` can only be one of the elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
@@ -295,7 +295,7 @@ function computeTotalEnergy(
 
     if any(isempty, [Ek, Ep])
 
-        logging[] && @warn("computeTotalEnergy: There is missing, so I will return an empty array")
+        LOGGING[] && @warn("computeTotalEnergy: There is missing, so I will return an empty array")
 
         return Unitful.Energy[]
 

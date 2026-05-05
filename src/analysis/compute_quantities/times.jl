@@ -41,7 +41,7 @@ function energyIntegrand(a::Real, header::SnapshotHeader)::Float64
     E = header.omega_0 / (a * a * a) + omega_K / (a * a) + header.omega_l
 
     # Compute the hubble constant in Gyr^-1
-    H = header.h * HUBBLE_CONSTANT * a
+    H = header.h * HUBBLE_CONSTANT[] * a
 
     # Return the integrand, in Gyr
     return 1.0 / (H * sqrt(E))
@@ -152,7 +152,7 @@ function computeTimeStamps(
 
     if isempty(snapshot_paths)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeTimeStamps: `paths` is empty or full of missing, so I will return NaNs")
         )
         return [NaN], [NaN], [NaN * u"s"], [NaN * u"s"]
@@ -316,7 +316,7 @@ function computeStellarBirthTime(data_dict::Dict)::Vector{<:Unitful.Time}
 
     if isempty(birth_ticks)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeStellarBirthTime: There is no data for the stellar birth times, \
             so I will return an empty array")
         )
@@ -355,7 +355,7 @@ function computeStellarAge(data_dict::Dict)::Vector{<:Unitful.Time}
 
     if isempty(birth_times)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeStellarAge: There is no data for the stellar ages, so I will return an \
             empty array")
         )
@@ -382,7 +382,7 @@ For stellar particles younger than `age_limit`, the SFR is its mass divided by `
     This function requires the following blocks to be present:
 
       + `:stellar` => ["MASS", "GAGE"]
-  - `age_limit::Unitful.Time=AGE_RESOLUTION`: Age limit for the SFR.
+  - `age_limit::Unitful.Time=AGE_RESOLUTION[]`: Age limit for the SFR.
 
 # Returns
 
@@ -390,7 +390,7 @@ For stellar particles younger than `age_limit`, the SFR is its mass divided by `
 """
 function computeSFR(
     data_dict::Dict;
-    age_limit::Unitful.Time=AGE_RESOLUTION,
+    age_limit::Unitful.Time=AGE_RESOLUTION[],
 )::Vector{<:Unitful.MassFlow}
 
     # Compute the stellar ages
@@ -398,7 +398,7 @@ function computeSFR(
 
     if isempty(ages)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeSFR: There is no data for the stellar ages, so I will return an \
             empty array")
         )
@@ -433,7 +433,7 @@ For stellar particles younger than `age_limit`, the sSFR is 1 / `age_limit`. For
     This function requires the following blocks to be present:
 
       + `:stellar` => ["MASS", "GAGE"]
-  - `age_limit::Unitful.Time=AGE_RESOLUTION`: Age limit for the SFR.
+  - `age_limit::Unitful.Time=AGE_RESOLUTION[]`: Age limit for the SFR.
 
 # Returns
 
@@ -441,7 +441,7 @@ For stellar particles younger than `age_limit`, the sSFR is 1 / `age_limit`. For
 """
 function computeSSFR(
     data_dict::Dict;
-    age_limit::Unitful.Time=AGE_RESOLUTION,
+    age_limit::Unitful.Time=AGE_RESOLUTION[],
 )::Vector{<:Unitful.MassFlow}
 
     # Compute the stellar ages
@@ -449,7 +449,7 @@ function computeSSFR(
 
     if isempty(ages)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeSSFR: There is no data for the stellar ages, so I will return an \
             empty array")
         )
@@ -498,7 +498,7 @@ function computeDepletionTime(
 
     if any(isempty, [masses, sfrs])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeDepletionTime: There is missing data, so I will return an empty array")
         )
         return Unitful.Time[]
@@ -553,7 +553,7 @@ function computeDepletionTime(
 
     if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeDepletionTime: `component` can only be one of the gas elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     masses = computeMass(data_dict, component; icGen)

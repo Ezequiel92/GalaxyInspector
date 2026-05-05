@@ -207,7 +207,7 @@ function parentToTracerMass(
     iszero(tracer_count) && return 0.0u"Msun"
 
     # Compute the mass of each tracer in physical units
-    tracer_mass = TRACER_MASS * internalUnits("MASS", data_dict[:snap_data].path)
+    tracer_mass = TRACER_MASS[] * internalUnits("MASS", data_dict[:snap_data].path)
 
     return tracer_count * tracer_mass
 
@@ -242,7 +242,7 @@ function idWithinR200(data_dict::Dict, component::Symbol; halo_idx::Int=1)::Vect
     if isempty(data_dict[:group]["G_R_Crit200"])
 
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("idWithinR200: There is missing group data in $(data_dict[:gc_data].path), \
             so I will return an empty ID list")
         )
@@ -257,7 +257,7 @@ function idWithinR200(data_dict::Dict, component::Symbol; halo_idx::Int=1)::Vect
     if iszero(r200)
 
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("idWithinR200: The virial radius of halo index $(halo_idx) is zero in \
             $(data_dict[:gc_data].path), so I will return an empty ID list")
         )

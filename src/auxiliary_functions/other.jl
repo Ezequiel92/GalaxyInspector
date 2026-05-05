@@ -191,22 +191,49 @@ function metaFormatter(level::LogLevel, _module, group, id, file, line)
 end
 
 """
-    setLogging!(log::Bool; <keyword arguments>)::Nothing
+    setLogging(log_file::String)::IO
 
 Set if logging messages will be printed out. By default no logs are printed.
 
 # Arguments
 
-  - `log::Bool`: If logs will be printed out using the default logger.
-  - `stream::IO=stdout`: Where to print the logs. It can be a file.
+  - `log_file::String`: The path to the log file.
+
+# Returns
+
+  - The IO stream to which the logger is writing.
 """
-function setLogging!(log::Bool; stream::IO=stdout)::Nothing
+function setLogging(log_file::String)::IO
 
-    logging[] = log
+    isempty(log_file) && throw(ArgumentError("parseLogging: `log_file` cannot be empty"))
 
-    log && global_logger(ConsoleLogger(stream; meta_formatter=metaFormatter))
+    directory = dirname(log_file)
 
-    return nothing
+    if isempty(directory)
+
+        # If the directory is empty, the log file will be created in the current working directory
+        stream = open(joinpath(pwd(), log_file), "w+")
+
+    else
+
+        # Create the directory for the log file if it does not exist
+        mkpath(directory)
+
+        # Open the log file for writing
+        stream = open(log_file, "w+")
+
+    end
+
+    # Set the global logger to a ConsoleLogger that writes to the log file with a custom formatter
+    global_logger(ConsoleLogger(stream; meta_formatter=metaFormatter))
+
+    # Set the global variable for the log stream, so that it can be used in other functions to write custom messages to the log file.
+    LOG_STREAM[] = stream
+
+    # Enable logging messages
+    LOGGING[] = true
+
+    return stream
 
 end
 
@@ -313,7 +340,7 @@ function safeSelect(vec::Vector, index::IndexType)
 
     (
         length(index_list) != length([index...]) &&
-        logging[] &&
+        LOGGING[] &&
         @info("safeSelect: There are out of bounds indices")
     )
 
@@ -381,7 +408,7 @@ function safeSlice(vec::Vector, slice::IndexType)::Vector
 
     (
         length(slice_list) != length(safe_slice ) &&
-        logging[] &&
+        LOGGING[] &&
         @info("safeSelect: There are out of bounds indices")
     )
 
@@ -642,7 +669,7 @@ function sanitizeData!(
     range_flag = rangeCut!(raw_values, range; keep_edges, min_left)
 
     (
-        !(isa(raw_values, Vector{<:Integer}) && !iszero(exp_factor) && logging[]) ||
+        !(isa(raw_values, Vector{<:Integer}) && !iszero(exp_factor) && LOGGING[]) ||
         @warn("sanitizeData!: Elements of `raw_values` are of type `Integer`, this may result \
         in errors or unwanted truncation when using `exp_factor` != 0")
     )
@@ -769,13 +796,13 @@ function sanitizeData!(
     y_range_flag = rangeCut!(y_data, x_data, range[2]; keep_edges=keep_edges[2], min_left)
 
     (
-        !(isa(x_data, Vector{<:Integer}) && !iszero(exp_factor[1]) && logging[]) ||
+        !(isa(x_data, Vector{<:Integer}) && !iszero(exp_factor[1]) && LOGGING[]) ||
         @warn("sanitizeData!: Elements of `x_data` are of type Integer, this may result \
         in errors or unwanted truncation when using `exp_factor[1]` != 0")
     )
 
     (
-        !(isa(y_data, Vector{<:Integer}) && !iszero(exp_factor[2]) && logging[]) ||
+        !(isa(y_data, Vector{<:Integer}) && !iszero(exp_factor[2]) && LOGGING[]) ||
         @warn("sanitizeData!: Elements of `y_data` are of type Integer, this may result \
         in errors or unwanted truncation when using `exp_factor[2]` != 0")
     )
@@ -1024,19 +1051,19 @@ end
 
 """
 
-    memoryThreshold(mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION)::Int
+    memoryThreshold(mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION[])::Int
 
 Compute the threshold for memory-mapping as a fraction of the free physical memory.
 
 # Arguments
 
-  - `mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION`: Fraction of the free physical memory that will be used as the threshold for memory-mapping. It has to be a number between 0 and 1.
+  - `mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION[]`: Fraction of the free physical memory that will be used as the threshold for memory-mapping. It has to be a number between 0 and 1.
 
 # Returns
 
   - The threshold for memory-mapping in bytes.
 """
-function memoryThreshold(mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION)::Int
+function memoryThreshold(mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION[])::Int
 
     (
         0.0 < mmap_memory_fraction < 1.0 ||
@@ -1049,7 +1076,7 @@ function memoryThreshold(mmap_memory_fraction::Float64=MMAP_MEMORY_FRACTION)::In
 end
 
 """
-    allocateArray(T::Type, dims::NTuple{N, Integer}; mmap::Bool=false) where {N}
+    allocateArray(T::Type, dims::NTuple{N, Integer}; <keyword arguments>) where {N}
 
 Allocate an array of type `T` and dimensions `dims`, using memory-mapping if the size exceeds a certain threshold.
 
@@ -1058,12 +1085,13 @@ Allocate an array of type `T` and dimensions `dims`, using memory-mapping if the
   - `T::Type`: The element type of the array.
   - `dims::NTuple{N, Integer}`: The dimensions of the array.
   - `mmap::Bool=false`: Whether to use memory-mapping. If `false`, the method will decide based on the size of the array and the available physical memory.
+  - `fill=nothing`: If not `nothing`, the value with which to fill the array after allocation.
 
 # Returns
 
   - An array of type `T` and dimensions `dims`, allocated in RAM or using memory-mapping depending on the size.
 """
-function allocateArray(T::Type, dims::NTuple{N, Integer}; mmap::Bool=false) where {N}
+function allocateArray(T::Type, dims::NTuple{N, Integer}; mmap::Bool=false, fill=nothing) where {N}
 
     # Compute the total number of bytes needed
     size_bytes = prod(dims) * sizeof(T)
@@ -1072,7 +1100,7 @@ function allocateArray(T::Type, dims::NTuple{N, Integer}; mmap::Bool=false) wher
     if mmap || size_bytes > memoryThreshold()
 
         # Create a temporary file for the memory-mapped array
-        filepath = tempname(MMAP_TEMP_DIR; cleanup=true, suffix=".bin")
+        filepath = tempname(MMAP_PATH; cleanup=true, suffix=".bin")
 
         io = open(filepath, "w+")
 
@@ -1081,13 +1109,145 @@ function allocateArray(T::Type, dims::NTuple{N, Integer}; mmap::Bool=false) wher
 
         close(io)
 
-        return A
-
     else
 
         # Standard RAM allocation
-        return Array{T, N}(undef, dims)
+        A = Array{T, N}(undef, dims)
 
     end
+
+    isnothing(fill) || fill!(A, fill)
+
+    return A
+
+end
+
+"""
+    copyArray(A::AbstractArray; <keyword arguments>)::AbstractArray
+
+Copy an array, using memory-mapping if the size exceeds a certain threshold.
+
+# Arguments
+
+  - `A::AbstractArray`: The array to be copied.
+  - `mmap::Bool=false`: Whether to use memory-mapping. If `false`, the method will decide based on the size of the array and the available physical memory.
+
+# Returns
+
+    - A copy of `A`, allocated in RAM or using memory-mapping depending on the size.
+"""
+function copyArray(A::AbstractArray; mmap::Bool=false)::AbstractArray
+
+    copy = allocateArray(eltype(A), size(A); mmap)
+
+    copy .= A
+
+    return copy
+
+end
+
+"""
+    copyDataDict(data_dict::Dict)::Dict
+
+Copy a data dictionary.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary to be copied (see [`makeDataDict`](@ref) for the canonical description).
+
+# Returns
+
+  - The copied dictionary.
+"""
+function copyDataDict(data_dict::Dict)::Dict
+
+    # Compute the threshold for using memory mapping
+    threshold = memoryThreshold(MMAP_MEMORY_FRACTION[])
+
+    dd_size = Base.summarysize(data_dict)
+
+    if dd_size > threshold
+        mmap = true
+    else
+        mmap = false
+    end
+
+    dd_copy = Dict()
+
+    for (k, v) in data_dict
+
+        if k ∈ [:sim_data, :snap_data, :gc_data]
+            # For the metadata dictionaries, we can just do a deepcopy,
+            # since they are small and do not contain arrays
+            dd_copy[k] = deepcopy(v)
+        else
+            # For the component dictionaries, we need to copy the arrays,
+            # and we can use memory mapping if the size of the data dictionary is larger than the threshold
+            dd_copy[k] = Dict()
+            for (block, values) in pairs(v)
+                dd_copy[k][block] = isempty(values) ? copy(values) : copyArray(values; mmap)
+            end
+        end
+
+    end
+
+    return dd_copy
+
+end
+
+"""
+    loadConfig!(path::Union{Nothing,String}=nothing)::Nothing
+
+Load a TOML configuration file and apply the resulting runtime settings.
+
+# Arguments
+
+  - `path::Union{Nothing,String}=nothing`: The path to the TOML configuration file. If `nothing`, the file is assumed to be `config.toml` in the current working directory.
+"""
+function loadConfig!(path::Union{Nothing,String}=nothing)::Nothing
+
+    config_path = isnothing(path) ? joinpath(pwd(), "config.toml") : abspath(path)
+
+    if !isfile(config_path)
+        (
+            LOGGING[] && !isnothing(path) &&
+            @warn("loadConfig!: no config file found at `$(config_path)`, using all defaults")
+        )
+        return nothing
+    end
+
+    overrides = TOML.parsefile(config_path)
+
+    # Warn about unrecognised sections
+    known_sections = Set(first(split(k, ".")) for k in keys(CONFIG_SCHEMA))
+    for section in keys(overrides)
+        if section ∉ known_sections
+            (
+                LOGGING[] &&
+                @warn("loadConfig!: unknown config section `[$(section)]` in `$config_path`. \
+                I will ignore it")
+            )
+        end
+    end
+
+    # Apply overrides
+    for (dotkey, (ref, parser)) in CONFIG_SCHEMA
+        parts = split(dotkey, ".")
+
+        value = if length(parts) == 1
+            # Pass the entire sub-dict to the parser
+            get(overrides, parts[1], nothing)
+        else
+            # Drill into section and then the key
+            get(get(overrides, parts[1], Dict()), parts[2], nothing)
+        end
+
+        # If the value is not specified, skip it and keep the default
+        isnothing(value) && continue
+
+        ref[] = parser(value)
+    end
+
+    return nothing
 
 end

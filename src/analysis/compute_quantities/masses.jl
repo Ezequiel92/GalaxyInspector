@@ -27,7 +27,7 @@ function computeClumpingFactor(density::Vector{<:Number})::Float64
 
     if isempty(density)
 
-        logging[] && @warn("computeClumpingFactor: `density` is empty, so I will return NaN")
+        LOGGING[] && @warn("computeClumpingFactor: `density` is empty, so I will return NaN")
 
         return NaN
 
@@ -65,7 +65,7 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
 
 !!! note
 
-    For densities below the star formation threshold (see `THRESHOLD_DENSITY` in `./src/constants/globals.jl`), I will return NaN, since the star formation rate is not well defined in those cases.
+    For densities below the star formation threshold (see `THRESHOLD_DENSITY` in `./src/globals/globals.jl`), I will return NaN, since the star formation rate is not well defined in those cases.
 
 # Arguments
 
@@ -90,7 +90,7 @@ function computeEfficiencyFF(
     if any(isempty, [densities, masses, sfrs])
 
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeEfficiencyFF: There is missing data, so I will return an empty array")
         )
 
@@ -166,7 +166,7 @@ function computeMassRadius(
     # Check for missing data
     if any(isempty, [positions, masses])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeMassRadius: `positions` or `masses` are empty, so I will return 0s")
         )
         return zero(typeof(1.0u"kpc"))
@@ -231,7 +231,7 @@ function computeMassHeight(
     # Check for missing data
     if any(isempty, [positions, masses])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeMassHeight: `positions` or `masses` are empty, so I will return 0s")
         )
         return zero(typeof(1.0u"kpc"))
@@ -292,7 +292,7 @@ function computeMassQty(
     # Check for missing data
     if any(isempty, [quantity, masses])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeMassQty: `quantity` or `masses` are empty, so I will return 0s")
         )
         return zero(runtimeType(quantity))
@@ -343,7 +343,7 @@ function computeFractionWithin(
     # Check for missing data
     if any(isempty, [quantity, masses])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeFractionWithin: `quantity` or `masses` are empty, so I will return 0")
         )
         return 0.0
@@ -516,7 +516,7 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
     else
 
         throw(ArgumentError("computeFraction: `component` can only be one of the elements of \
-        `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
 
     end
 
@@ -624,7 +624,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         if isempty(Z)
 
-            logging[] && @warn("_compute_fraction: I could not compute the stellar metallicity")
+            LOGGING[] && @warn("_compute_fraction: I could not compute the stellar metallicity")
 
             fractions = Float64[]
 
@@ -644,7 +644,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
     # If there is no gas, return an empty array
     if isempty(mass)
 
-        logging[] && @warn("_compute_fraction: There is no data for the gas cells!")
+        LOGGING[] && @warn("_compute_fraction: There is no data for the gas cells!")
 
         return Float64[]
 
@@ -667,7 +667,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     elseif component == :hydrogen
 
-        fractions = fill(HYDROGEN_MASSFRAC, n_cells)
+        fractions = fill(HYDROGEN_MASSFRAC[], n_cells)
 
     #########
     # Helium
@@ -675,7 +675,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     elseif component == :helium
 
-        fractions = fill(1.0 - HYDROGEN_MASSFRAC, n_cells)
+        fractions = fill(1.0 - HYDROGEN_MASSFRAC[], n_cells)
 
     ##################
     # Gas metallicity
@@ -688,7 +688,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if isempty(Z)
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("_compute_fraction: I could not compute the gas metallicity. \
                 The block 'GZ  ' is empty")
             )
@@ -713,7 +713,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if isempty(nhp)
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("_compute_fraction: I could not compute the neutral fraction. \
                 The block 'NHP ' is empty")
             )
@@ -742,7 +742,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if isempty(nh)
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("_compute_fraction: I could not compute the neutral fraction. \
                 The block 'NH  ' is empty")
             )
@@ -772,7 +772,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if any(isempty, [nh, P])
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("_compute_fraction: I could not compute the BR atomic fraction. \
                 The blocks 'NH  ' and/or 'P   ' are empty")
             )
@@ -811,7 +811,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         if any(isempty, [nh, P])
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("_compute_fraction: I could not compute the BR molecular fraction. \
                 The blocks 'NH  ' and/or 'P   ' are empty")
             )
@@ -841,7 +841,7 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         throw(ArgumentError("_compute_fraction: `component` can only be one of the non :ode \
         elements of `COMPONENTS` (except :stellar, :dark_matter, and :black_hole, see \
-        `./src/constants/globals.jl`), but I got :$(component)"))
+        `./src/globals/globals.jl`), but I got :$(component)"))
 
     end
 
@@ -887,7 +887,7 @@ function _compute_fraction(
     # If there is no gas, return an empty array
     if isempty(mass)
 
-        logging[] && @warn("_compute_fraction: There is no data for the gas cells!")
+        LOGGING[] && @warn("_compute_fraction: There is no data for the gas cells!")
 
         return Float64[]
 
@@ -902,7 +902,7 @@ function _compute_fraction(
     if any(isempty, [frac, ρc])
 
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("_compute_fraction: I could not compute the $(component) fraction. \
             The blocks 'FRAC' and/or 'RHO ' are empty")
         )
@@ -1034,7 +1034,7 @@ function _compute_fraction(
         else
 
             throw(ArgumentError("_compute_fraction: `component` can only be one of the :ode \
-            elements of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+            elements of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
 
         end
 
@@ -1093,7 +1093,7 @@ function computeClumpingFactor(
 
     if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     ρ = computeMassDensity(data_dict, component; icGen)
@@ -1128,7 +1128,7 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
 
 !!! note
 
-    For densities below the star formation threshold (see `THRESHOLD_DENSITY` in `./src/constants/globals.jl`), I will return NaN, since the star formation rate is not well defined in those cases.
+    For densities below the star formation threshold (see `THRESHOLD_DENSITY` in `./src/globals/globals.jl`), I will return NaN, since the star formation rate is not well defined in those cases.
 
 # Arguments
 
@@ -1168,7 +1168,7 @@ function computeEfficiencyFF(
 
     if component ∉ COMPONENTS || component ∈ [:dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
-        of `COMPONENTS` or :stellar (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` or :stellar (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component == :stellar
@@ -1241,7 +1241,7 @@ function computeMass(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeMass: `component` can only be one of the elements of \
-        `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:gas, :stellar, :dark_matter, :black_hole]
@@ -1272,7 +1272,7 @@ function computeMass(
 
     if isempty(masses)
 
-        logging[] && @warn("computeMass: I could not compute the masses of :$(component)")
+        LOGGING[] && @warn("computeMass: I could not compute the masses of :$(component)")
 
         return Unitful.Mass[]
 
@@ -1327,7 +1327,7 @@ function computeMassDensity(
 
     if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component == :gas
@@ -1353,7 +1353,7 @@ function computeMassDensity(
     if isempty(ρ)
 
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeMassDensity: I could not compute the mass densities of :$(component)")
         )
 
@@ -1437,7 +1437,7 @@ function computeNumberDensity(
     if isempty(n)
 
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeNumberDensity: I could not compute the number densities of :$(component)")
         )
 
@@ -1502,7 +1502,7 @@ function computeNumber(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeNumber: `component` can only be one of the elements of \
-        `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
@@ -1545,7 +1545,7 @@ function computeNumber(
 
     if isempty(N)
 
-        logging[] && @warn("computeNumber: I could not compute the numbers of :$(component)")
+        LOGGING[] && @warn("computeNumber: I could not compute the numbers of :$(component)")
 
         return Int64[]
 
@@ -1679,7 +1679,7 @@ Compute the inflow, outflow, or net gain of mass for a given galactic disk, betw
       + `:black_hole`  -> Black holes.
       + `:gas`         -> Gas.
       + `:stellar`     -> Stars.
-  - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
+  - `max_r::Unitful.Length=DISK_R[]`: Radius of the disk.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
   - `tracers::Bool=false`: Whether to compute the accretion using tracer particles (true) or the actual component particles (false).
 
@@ -1695,7 +1695,7 @@ function computeDiskAccretion(
     present_dd::Dict,
     past_dd::Dict,
     component::Symbol;
-    max_r::Unitful.Length=DISK_R,
+    max_r::Unitful.Length=DISK_R[],
     max_z::Unitful.Length=5.0u"kpc",
     tracers::Bool=false,
 )::NTuple{3,Unitful.Mass}
@@ -1773,7 +1773,7 @@ function computeElementMass(
     (
         haskey(ELEMENT_INDEX, element) ||
         throw(ArgumentError("computeElementMass: :$(element) is not a tracked element, \
-        the options are the keys of `ELEMENT_INDEX`, see `./src/constants/arepo.jl`"))
+        the options are the keys of `ELEMENT_INDEX`, see `./src/globals/arepo.jl`"))
     )
 
     if type == :gas
@@ -1797,7 +1797,7 @@ function computeElementMass(
     if any(isempty, [Z, M])
 
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeElementMass: I could not compute the masses of :$(element). \
             The metallicities or masses are empty")
         )
@@ -1855,7 +1855,7 @@ function computeAbundance(
 
     if any(isempty, [element_mass, hydrogen_mass])
 
-        logging[] && @warn("computeAbundance: I could not compute the abundance of :$(element)")
+        LOGGING[] && @warn("computeAbundance: I could not compute the abundance of :$(element)")
 
         return Float64[]
 
@@ -1951,6 +1951,7 @@ Project a `quantity` field into a given 3D grid.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
   - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
+  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the value of `quantity` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1971,14 +1972,15 @@ function quantity3DProjection(
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
+    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
 
-    if field_type == :cells
+    filterData!(data_dict; filter_function)
 
-        filtered_dd = filterData(data_dict; filter_function)
+    if field_type == :cells
 
         # Get the cell/particle type
         cp_type = plotParams(quantity).cp_type
@@ -1989,11 +1991,11 @@ function quantity3DProjection(
         end
 
         # Load the cell/particle positions
-        positions = filtered_dd[cp_type]["POS "]
+        positions = data_dict[cp_type]["POS "]
 
         if isempty(positions)
 
-            logging[] && @warn("quantity3DProjection: The positions are missing")
+            LOGGING[] && @warn("quantity3DProjection: The positions are missing")
 
             if return_idxs
                 if empty_nan
@@ -2023,12 +2025,14 @@ function quantity3DProjection(
         # Allocate the array for the indices of the nearest neighbors
         nn_idxs = allocateArray(Int, (grid.n_voxels,))
 
-        # Compute the threshold for batching the nearest neighbor search, as a fraction of the free physical memory
+        # Compute the threshold for batching the nearest neighbor search,
+        # as a 1% of the free physical memory
         threshold = memoryThreshold(0.01)
 
         # Find the nearest cell to each voxel
         if sizeof(nn_idxs) > threshold
 
+            # batch_size = floor(Int, threshold / sizeof(Int))
             batch_size = floor(Int, threshold / sizeof(Int))
 
             # Batched computation
@@ -2074,9 +2078,9 @@ function quantity3DProjection(
         empty_nan,
         density,
         log,
+        mask,
         icGen,
         return_idxs,
-        filter_function,
     )
 
 end
@@ -2106,6 +2110,7 @@ Project a `quantity` field into a given 3D grid.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
   - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
+  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the value of `quantity` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -2126,12 +2131,13 @@ function quantity3DProjection(
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
+    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
 
-    filtered_dd = filterData(data_dict; filter_function)
+    filtered_dd = filterData!(data_dict; filter_function)
 
     # Get the cell/particle type
     cp_type = plotParams(quantity).cp_type
@@ -2147,9 +2153,13 @@ function quantity3DProjection(
     # Compute the values of the target quantity
     qty_values = ustrip.(qty_unit, scatterQty(filtered_dd, quantity; icGen))
 
+    if !isnothing(mask)
+        qty_values .*= Float64.(mask(filtered_dd)[cp_type])
+    end
+
     if isempty(qty_values)
 
-        logging[] && @warn("quantity3DProjection: The data for $(quantity) is missing")
+        LOGGING[] && @warn("quantity3DProjection: The data for $(quantity) is missing")
 
         if return_idxs
             if empty_nan
@@ -2188,7 +2198,7 @@ function quantity3DProjection(
 
         end
 
-        voxel_values = zeros(grid.n_bins)
+        voxel_values = allocateArray(Float64, grid.n_bins; fill=0.0)
         Threads.@threads for i in eachindex(voxel_values)
             voxel_values[i] = qty_values[nn_idxs[i]]
         end
@@ -2205,7 +2215,7 @@ function quantity3DProjection(
 
         if isempty(positions)
 
-            logging[] && @warn("quantity3DProjection: The positions are missing")
+            LOGGING[] && @warn("quantity3DProjection: The positions are missing")
 
             if return_idxs
                 if empty_nan
@@ -2246,27 +2256,13 @@ function quantity3DProjection(
     end
 
     # Apply log10 to enhance the contrast
-    log && (voxel_values = log10.(voxel_values))
+    if log
+        voxel_values .= log10.(voxel_values)
+    end
 
-    if logging[]
+    if LOGGING[]
 
-        clean_vv = filter(!isnan, voxel_values)
-
-        if isempty(clean_vv)
-
-            min_max_z = (NaN, NaN)
-            mean_z    = NaN
-            median_z  = NaN
-            mode_z    = NaN
-
-        else
-
-            min_max_z = extrema(clean_vv)
-            mean_z    = mean(clean_vv)
-            median_z  = median(clean_vv)
-            mode_z    = mode(clean_vv)
-
-        end
+        vv = copyArray(voxel_values)
 
         if log
             title = "log₁₀($(quantity) [$(qty_unit)]) "
@@ -2279,23 +2275,18 @@ function quantity3DProjection(
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Field type: $(field_type) \
-            \n  Min - Max:  $(min_max_z) \
-            \n  Mean:       $(mean_z) \
-            \n  Median:     $(median_z) \
-            \n  Mode:       $(mode_z)"
+            \n  Min - Max:  $(nanextrema(voxel_values)) \
+            \n  Mean:       $(nanmean(voxel_values)) \
+            \n  Median:     $(nanmedian!(vv))"
         )
 
     end
 
     if return_idxs
-
         return voxel_values, nn_idxs
-
-    else
-
-        return voxel_values
-
     end
+
+    return voxel_values
 
 end
 

@@ -23,7 +23,53 @@ A Julia module for the data analysis of galaxy simulations.
 ## ⚙️ Characteristics
 
 - Works only with snapshots in [HDF5](https://www.hdfgroup.org/solutions/hdf5/) format (option `SnapFormat = 3` in P-Gadget3 and Arepo).
-- This is a collection of scripts inside a module, not a package. Global constants and data structures are defined in `./src/constants/globals.jl`.
+- This is a collection of scripts inside a module, not a package. Global constants and data structures are defined in `./src/globals/globals.jl`.
+
+## Configuration
+
+User-tunable defaults can be overridden with a `config.toml` file. The module looks for that file in the current working directory.
+
+Example:
+
+```toml
+[general]
+physical_units = false
+
+[mmap]
+memory_fraction = 0.2
+
+[galaxy]
+disk_r         = "40.0 kpc"
+disk_height    = "5.0 kpc"
+box_l          = "65.0 kpc"
+age_resolution = "200.0 Myr"
+
+[abundances]
+H     = 0.0
+He    = 0.0
+C     = 0.0
+N     = 0.0
+O     = 12.0
+Ne    = 0.0
+Mg    = 0.0
+Si    = 0.0
+Fe    = 0.0
+Other = 0.0
+
+[arepo]
+snap_basename     = "snap"
+gc_basename       = "fof_subhalo_tab"
+hydrogen_massfrac = 0.76
+gamma             = 1.666
+tracer_mass       = 3.65456e-06
+solar_metallicity = 0.0127
+hubble_constant   = 0.102201
+internal_l_unit   = "3.085678e21 cm"
+internal_m_unit   = "1.989e43 g"
+internal_v_unit   = "1.0e5 cm*s^-1"
+```
+
+The default value of each parameter can be found in `./src/globals/globals.jl`.
 
 ## 🔗 Links
 

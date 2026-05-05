@@ -21,7 +21,7 @@ function isBlockPresent(block::String, group::HDF5.Group)::Bool
     (
         haskey(QUANTITIES, block) ||
         throw(ArgumentError("isBlockPresent: `block` should be a key of `QUANTITIES`, \
-        but I got $(block), see the options in `./src/constants/arepo.jl`"))
+        but I got $(block), see the options in `./src/globals/arepo.jl`"))
     )
 
     return haskey(group, QUANTITIES[block].hdf5_name)
@@ -46,7 +46,7 @@ function getBlockSize(block::String, group::HDF5.Group)::Int
 
     if !isBlockPresent(block, group)
 
-        logging[] && @warn("getBlockSize: The block $(block) is missing from the HDF5 group")
+        LOGGING[] && @warn("getBlockSize: The block $(block) is missing from the HDF5 group")
 
         return 0
 
@@ -80,20 +80,22 @@ function getBlockSize(blocks::Vector{String}, group::HDF5.Group)::Int
 end
 
 """
-    getRequestSize(request::Dict{Symbol,Vector{String}}, path::String)::Int
+    getRequestSize(request::Dict{Symbol,Vector{String}}, path::Union{String,Missing})::Int
 
 Compute the total size in bytes of the data blocks specified in a request dictionary.
 
 # Arguments
 
   - `request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), :group, and :subhalo, and the possible blocks are the keys of [`QUANTITIES`](@ref).
-  - `path::String`: Path to the snapshot or group catalog file or folder.
+  - `path::Union{String,Missing}`: Path to the snapshot or group catalog file or folder.
 
 # Returns
 
   - The total size in bytes of the data blocks specified in the request.
 """
-function getRequestSize(request::Dict{Symbol,Vector{String}}, path::String)::Int
+function getRequestSize(request::Dict{Symbol,Vector{String}}, path::Union{String,Missing})::Int
+
+    ismissing(path) && return 0
 
     if isfile(path)
 
@@ -133,7 +135,7 @@ function getRequestSize(request::Dict{Symbol,Vector{String}}, path::String)::Int
             end
 
             (
-                iszero(ts) && logging[] &&
+                iszero(ts) && LOGGING[] &&
                 @warn("getRequestSize: The requested blocks: \n\n$(request)\n\n for $(path) \
                 are all missing, so the total size is zero")
             )
@@ -146,8 +148,8 @@ function getRequestSize(request::Dict{Symbol,Vector{String}}, path::String)::Int
 
     elseif isdir(path)
 
-        snap_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
-        group_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
+        snap_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
+        group_files = findFiles(path, "$(GC_BASENAME[])_*.*.hdf5")
 
         sub_files = vcat(snap_files, group_files)
 
@@ -191,7 +193,7 @@ function getBlockDims(block::String, group::HDF5.Group)::Tuple
 
     else
 
-        logging[] && @warn("getBlockDims: The block $(block) is missing from the HDF5 group")
+        LOGGING[] && @warn("getBlockDims: The block $(block) is missing from the HDF5 group")
 
         return (0,)
 
@@ -221,7 +223,7 @@ function getBlockType(block::String, group::HDF5.Group)::Type
 
     else
 
-        logging[] && @warn("getBlockType: The block $(block) is missing from the HDF5 file")
+        LOGGING[] && @warn("getBlockType: The block $(block) is missing from the HDF5 file")
 
         return Float64
 
@@ -423,7 +425,7 @@ function findRealStars(snapshot::HDF5.File)::Vector{Bool}
             num_stars = num_part_total[PARTICLE_INDEX[:stellar] + 1]
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("findRealStars: The snapshot $(snapshot) does not have age data, I will \
                 assume that all stars are real")
             )
@@ -433,7 +435,7 @@ function findRealStars(snapshot::HDF5.File)::Vector{Bool}
         else
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("findRealStars: The snapshot $(snapshot) does not have age data, nor a \
                 header, I will assume that no stars are real")
             )
@@ -445,7 +447,7 @@ function findRealStars(snapshot::HDF5.File)::Vector{Bool}
     else
 
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("findRealStars: The snapshot $(snapshot) does not have stellar particles")
         )
 
@@ -488,7 +490,7 @@ function findRealStars(path::String)::Vector{Bool}
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -552,7 +554,7 @@ function readTime(path::String)::Float64
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -657,14 +659,14 @@ function countSnapshot(simulation_path::String)::Int
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME)_*.hdf5")
+    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME[])_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
 
         (
-            logging[] &&
-            @warn("countSnapshot: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
+            LOGGING[] &&
+            @warn("countSnapshot: I could not find any file named $(SNAP_BASENAME[])_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )
 
@@ -762,7 +764,7 @@ function isSubfindActive(path::String)::Bool
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(GC_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -832,7 +834,7 @@ function isSnapCosmological(path::String)::Bool
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -892,14 +894,14 @@ function isSimCosmological(simulation_path::String)::Bool
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME)_*.hdf5")
+    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME[])_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
 
         (
-            logging[] &&
-            @warn("isSimCosmological: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
+            LOGGING[] &&
+            @warn("isSimCosmological: I could not find any file named $(SNAP_BASENAME[])_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )
 
@@ -942,7 +944,7 @@ function isSnapSFM(path::String)::Bool
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1003,14 +1005,14 @@ function isSimSFM(simulation_path::String)::Bool
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME)_*.hdf5")
+    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME[])_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
 
         (
-            logging[] &&
-            @warn("isSimSFM: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
+            LOGGING[] &&
+            @warn("isSimSFM: I could not find any file named $(SNAP_BASENAME[])_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )
 
@@ -1068,7 +1070,7 @@ function snapshotTypes(path::String)::Vector{Symbol}
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1138,7 +1140,7 @@ function groupCatTypes(path::String)::Vector{Symbol}
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(GC_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1183,7 +1185,7 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     if ismissing(path)
 
-        logging[] && @warn("readGroupCatHeader: The group catalog file or folder is missing")
+        LOGGING[] && @warn("readGroupCatHeader: The group catalog file or folder is missing")
 
         return GroupCatHeader()
 
@@ -1199,7 +1201,7 @@ function readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(GC_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1313,7 +1315,7 @@ function readSnapHeader(path::String)::SnapshotHeader
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1372,21 +1374,21 @@ function readSnapHeader(path::String)::SnapshotHeader
         if "UnitLength_in_cm" ∈ attrs_present
             l_unit = read_attribute(head, "UnitLength_in_cm") * u"cm"
         else
-            l_unit = DEFAULT_L_UNIT[]
+            l_unit = INTERNAL_L_UNIT[]
         end
 
         # Check if the internal mass unit is in the header, otherwise use the default value
         if "UnitMass_in_g" ∈ attrs_present
             m_unit = read_attribute(head, "UnitMass_in_g") * u"g"
         else
-            m_unit = DEFAULT_M_UNIT[]
+            m_unit = INTERNAL_M_UNIT[]
         end
 
         # Check if the internal velocity unit is in the header, otherwise use the default value
         if "UnitVelocity_in_cm_per_s" ∈ attrs_present
             v_unit = read_attribute(head, "UnitVelocity_in_cm_per_s") * u"cm * s^-1"
         else
-            v_unit = DEFAULT_V_UNIT[]
+            v_unit = INTERNAL_V_UNIT[]
         end
 
         SnapshotHeader(
@@ -1446,7 +1448,7 @@ function readSnapReducedHeader(path::String)::SnapshotHeader
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -1493,21 +1495,21 @@ function readSnapReducedHeader(path::String)::SnapshotHeader
         if "UnitLength_in_cm" ∈ attrs_present
             l_unit = read_attribute(head, "UnitLength_in_cm") * u"cm"
         else
-            l_unit = DEFAULT_L_UNIT[]
+            l_unit = INTERNAL_L_UNIT[]
         end
 
         # Check if the internal mass unit is in the header, otherwise use the default value
         if "UnitMass_in_g" ∈ attrs_present
             m_unit = read_attribute(head, "UnitMass_in_g") * u"g"
         else
-            m_unit = DEFAULT_M_UNIT[]
+            m_unit = INTERNAL_M_UNIT[]
         end
 
         # Check if the internal velocity unit is in the header, otherwise use the default value
         if "UnitVelocity_in_cm_per_s" ∈ attrs_present
             v_unit = read_attribute(head, "UnitVelocity_in_cm_per_s") * u"cm * s^-1"
         else
-            v_unit = DEFAULT_V_UNIT[]
+            v_unit = INTERNAL_V_UNIT[]
         end
 
         SnapshotHeader(
@@ -1572,7 +1574,7 @@ function readSfrFile(file_path::String, snap_path::String)::DataFrame
     )
 
     (
-        logging[] && n_cols < 6 &&
+        LOGGING[] && n_cols < 6 &&
         @warn("readSfrFile: I could only find $(n_cols) columns \
         in $(file_path). I was expecting 6")
     )
@@ -1672,7 +1674,7 @@ function readCpuFile(
     end
 
     (
-        !(logging[] && any(isempty, values(data_aux))) ||
+        !(LOGGING[] && any(isempty, values(data_aux))) ||
         @warn("readCpuFile: I could not find some of the target rows in $(file_path)")
     )
 
@@ -1691,7 +1693,7 @@ function readCpuFile(
         else
             data_out[target] = vcat(values...)
             (
-                !(logging[] && step > l_e) ||
+                !(LOGGING[] && step > l_e) ||
                 @warn("readCpuFile: `step` = $(step) is bigger than the number \
                 of time steps in $(file_path)")
             )
@@ -1731,14 +1733,14 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     )
 
     # Get the full list of paths to every snapshot in `simulation_path`
-    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME)_*.hdf5")
+    path_list = findFiles(simulation_path, "**/$(SNAP_BASENAME[])_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
 
         (
-            logging[] &&
-            @warn("getSnapshotPaths: I could not find any file named $(SNAP_BASENAME)_*.hdf5 \
+            LOGGING[] &&
+            @warn("getSnapshotPaths: I could not find any file named $(SNAP_BASENAME[])_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )
 
@@ -1747,7 +1749,7 @@ function getSnapshotPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     end
 
     # Get the numbers that characterize each snapshot
-    reg = Regex("(?<=$(SNAP_BASENAME)_).*?(?=(?:\\.)|\$)")
+    reg = Regex("(?<=$(SNAP_BASENAME[])_).*?(?=(?:\\.)|\$)")
     number_list = map(x -> match(reg, x).match, path_list)
 
     h5open(first(path_list), "r") do snap_file
@@ -1794,14 +1796,14 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     )
 
     # Get the full list of paths to every group catalog in `simulation_path`
-    path_list = findFiles(simulation_path, "**/$(GC_BASENAME)_*.hdf5")
+    path_list = findFiles(simulation_path, "**/$(GC_BASENAME[])_*.hdf5")
 
     # Check for an empty folder
     if isempty(path_list)
 
         (
-            logging[] &&
-            @warn("getGroupCatPaths: I could not find any file named $(GC_BASENAME)_*.hdf5 \
+            LOGGING[] &&
+            @warn("getGroupCatPaths: I could not find any file named $(GC_BASENAME[])_*.hdf5 \
             within $(simulation_path), or any of its subfolders")
         )
 
@@ -1810,7 +1812,7 @@ function getGroupCatPaths(simulation_path::String)::Dict{Symbol,Vector{String}}
     end
 
     # Get the numbers that characterize each group catalog
-    reg = Regex("(?<=$(GC_BASENAME)_).*?(?=(?:\\.)|\$)")
+    reg = Regex("(?<=$(GC_BASENAME[])_).*?(?=(?:\\.)|\$)")
     number_list = map(x -> match(reg, x).match, path_list)
 
     if readGroupCatHeader(first(path_list)).num_files > 1
@@ -1888,7 +1890,7 @@ function readGroupCatBlocks(
                 if isempty(hdf5_group)
 
                     (
-                        logging[] &&
+                        LOGGING[] &&
                         @warn("readGroupCatBlocks: The group catalog type :$(component) \
                         in $(file_path) is empty")
                     )
@@ -1912,7 +1914,7 @@ function readGroupCatBlocks(
                         else
 
                             (
-                                logging[] &&
+                                LOGGING[] &&
                                 @warn("readGroupCatBlocks: The block $(block) for the group \
                                 catalog type :$(component) in $(file_path) is missing")
                             )
@@ -1929,7 +1931,7 @@ function readGroupCatBlocks(
             else
 
                 (
-                    logging[] &&
+                    LOGGING[] &&
                     @warn("readGroupCatBlocks: The group catalog type :$(component) in $(file_path) \
                     is missing")
                 )
@@ -2004,7 +2006,7 @@ function readGroupCatBlocks(
 
         if total_cp == 0
 
-            logging[] && @warn("readGroupCatBlocks: There are 0 :$(component) in $(first_file)")
+            LOGGING[] && @warn("readGroupCatBlocks: There are 0 :$(component) in $(first_file)")
 
             for block in blocks
                 unit = internalUnits(block, first_file)
@@ -2052,7 +2054,7 @@ function readGroupCatBlocks(
             else
 
                 (
-                    logging[] &&
+                    LOGGING[] &&
                     @warn("readGroupCatBlocks: The group catalog type :$(component) in $(file_path) \
                     is missing")
                 )
@@ -2176,7 +2178,7 @@ function readSnapBlocks(
             if !haskey(snapshot, group_name)
 
                 (
-                    logging[] &&
+                    LOGGING[] &&
                     @warn("readSnapBlocks: The cell/particle type :$(component) in $(file_path) is \
                     missing")
                 )
@@ -2198,7 +2200,7 @@ function readSnapBlocks(
             if isempty(hdf5_group)
 
                 (
-                    logging[] &&
+                    LOGGING[] &&
                     @warn("readSnapBlocks: The cell/particle type :$(component) in $(file_path) is \
                     empty")
                 )
@@ -2251,7 +2253,7 @@ function readSnapBlocks(
                         else
 
                             (
-                                logging[] &&
+                                LOGGING[] &&
                                 @warn("readSnapBlocks: The block MASS for the cell/particle type \
                                 :$(component) in $(file_path) is missing, and I can't compute it \
                                 from the header")
@@ -2281,7 +2283,7 @@ function readSnapBlocks(
                 else
 
                     (
-                        logging[] &&
+                        LOGGING[] &&
                         @warn("readSnapBlocks: The block $(block) for the \
                         cell/particle type :$(component) in $(file_path) is missing")
                     )
@@ -2350,7 +2352,7 @@ function readSnapBlocks(
 
         if total_cp == 0
 
-            logging[] && @warn("readSnapBlocks: There are 0 cells/particles of type :$(component) \
+            LOGGING[] && @warn("readSnapBlocks: There are 0 cells/particles of type :$(component) \
             in $(first_file)")
 
             for block in blocks
@@ -2399,7 +2401,7 @@ function readSnapBlocks(
             else
 
                 (
-                    logging[] &&
+                    LOGGING[] &&
                     @warn("readSnapBlocks: The snapshot type :$(component) in $(first_file) \
                     is missing")
                 )
@@ -2489,7 +2491,7 @@ function readGroupCatalog(
 
     if ismissing(path)
 
-        logging[] && @warn("readGroupCatalog: The group catalog file or folder is missing")
+        LOGGING[] && @warn("readGroupCatalog: The group catalog file or folder is missing")
 
         return Dict{Symbol,Dict{String,VecOrMat{<:Number}}}()
 
@@ -2505,7 +2507,7 @@ function readGroupCatalog(
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(GC_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(GC_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -2568,7 +2570,7 @@ function readSnapshot(
 
     elseif isdir(path)
 
-        sub_files = findFiles(path, "$(SNAP_BASENAME)_*.*.hdf5")
+        sub_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
 
         (
             !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
@@ -3059,7 +3061,7 @@ Get the factor to convert a plain number into a [Unitful](https://github.com/Pai
 
 !!! note
 
-    For non cosmological simulations PHYSICAL_UNITS[] will be set to true, regardless of its original value in ./constants/globals.jl.
+    For non cosmological simulations PHYSICAL_UNITS[] will be set to true, regardless of its original value in ./globals/globals.jl.
 
 # Arguments
 
@@ -3075,7 +3077,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
     (
         haskey(QUANTITIES, quantity) ||
         throw(ArgumentError("internalUnits: `quantity` should be one of the keys of \
-        `QUANTITIES` but I got $(quantity), see the options in `./src/constants/globals.jl`"))
+        `QUANTITIES` but I got $(quantity), see the options in `./src/globals/globals.jl`"))
     )
 
     header = readSnapReducedHeader(path)
@@ -3103,7 +3105,7 @@ function internalUnits(quantity::String, path::String)::Union{Unitful.Quantity,U
                     "internalUnits: You have set the unit system to use comoving lengths \
                     (`PHYSICAL_UNITS` = $(PHYSICAL_UNITS[])), but the simulation is not \
                     cosmological. internalUnits will default to physical lengths \
-                    (`PHYSICAL_UNITS` = true). Check `PHYSICAL_UNITS` in `constants/globals.jl`",
+                    (`PHYSICAL_UNITS` = true). Check `PHYSICAL_UNITS` in `globals/globals.jl`",
                     maxlog = 1,
                 )
                 PHYSICAL_UNITS[] = true

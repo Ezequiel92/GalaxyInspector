@@ -34,12 +34,14 @@ using AstroImages,
     Logging,
     Measurements,
     Mmap,
+    NaNStatistics,
     NearestNeighbors,
     ProgressMeter,
     QuadGK,
     Rotations,
     Statistics,
     StatsBase,
+    TOML,
     Unitful,
     UnitfulAstro,
     WriteVTK
@@ -54,7 +56,7 @@ using AstroImages,
 # Submodules
 ####################################################################################################
 
-include("constants/globals.jl")
+include("globals/globals.jl")
 
 include("auxiliary_functions/grid.jl")
 include("auxiliary_functions/histograms.jl")
@@ -136,5 +138,16 @@ export SDSSMockup
 export snapshotReport
 export simulationReport
 export quantityReport
+
+function __init__()
+
+    loadConfig!()
+
+    # Delete any existing memory-mapped files in the MMAP_PATH directory
+    rm.(readdir(MMAP_PATH; join=true); force=true, recursive=true)
+
+    return nothing
+
+end
 
 end

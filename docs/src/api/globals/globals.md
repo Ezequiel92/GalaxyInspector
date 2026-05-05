@@ -8,5 +8,5 @@ None of these are exported.
 
 ```@autodocs
 Modules = [GalaxyInspector]
-Pages   = ["constants/globals.jl"]
+Pages   = ["globals/globals.jl"]
 ```

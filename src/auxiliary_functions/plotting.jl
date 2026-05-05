@@ -909,7 +909,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         else
             throw(ArgumentError("derivedQtyPlotParams: `component` for magnitude \
             :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/constants/globals.jl`), but I got :$(component)"))
+            (see `./src/globals/globals.jl`), but I got :$(component)"))
         end
 
         if isempty(c_label)
@@ -942,7 +942,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         else
             throw(ArgumentError("derivedQtyPlotParams: `component` for magnitude \
             :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/constants/globals.jl`), but I got :$(component)"))
+            (see `./src/globals/globals.jl`), but I got :$(component)"))
         end
 
         if isempty(c_label)
@@ -1057,7 +1057,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         else
             throw(ArgumentError("derivedQtyPlotParams: `component` for the magnitude \
             :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/constants/globals.jl`) or :Z_stellar, but I got :$(component)"))
+            (see `./src/globals/globals.jl`) or :Z_stellar, but I got :$(component)"))
         end
 
         if isempty(c_label)
@@ -1095,7 +1095,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         else
             throw(ArgumentError("derivedQtyPlotParams: `component` for magnitude \
             :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/constants/globals.jl`), but I got :$(component)"))
+            (see `./src/globals/globals.jl`), but I got :$(component)"))
         end
 
         if isempty(c_label)
@@ -1128,7 +1128,7 @@ function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
         else
             throw(ArgumentError("derivedQtyPlotParams: `component` for magnitude \
             :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/constants/globals.jl`), but I got :$(component)"))
+            (see `./src/globals/globals.jl`), but I got :$(component)"))
         end
 
         if isempty(c_label)
@@ -1694,7 +1694,7 @@ function sfmQtyPlotParams(quantity::Symbol)::PlotParams
     else
 
         throw(ArgumentError("sfmQtyPlotParams: I don't recognize the magnitude :$(magnitude), \
-        see the keys of SFM_KEYS in ./src/constants/globals.jl for options"))
+        see the keys of SFM_KEYS in ./src/globals/globals.jl for options"))
 
     end
 
@@ -1827,7 +1827,7 @@ function derivedSFMQtyPlotParams(quantity::Symbol)::PlotParams
     else
 
         throw(ArgumentError("derivedSFMQtyPlotParams: I don't recognize the magnitude \
-        :$(magnitude), see the keys of SFM_DERIVED_MAGNITUDES in ./src/constants/globals.jl \
+        :$(magnitude), see the keys of SFM_DERIVED_MAGNITUDES in ./src/globals/globals.jl \
         for options"))
 
     end
@@ -1856,7 +1856,7 @@ function haloQtyPlotParams(quantity::Symbol)::PlotParams
     (
         magnitude ∉ HALO_QTY &&
         throw(ArgumentError("haloQtyPlotParams: I don't recognize the magnitude :$(magnitude), \
-        the options are the elements of HALO_QTY (see `./src/constants/quantities.jl`)"))
+        the options are the elements of HALO_QTY (see `./src/globals/quantities.jl`)"))
     )
 
     if magnitude == :halo_mass
@@ -1890,7 +1890,7 @@ function haloQtyPlotParams(quantity::Symbol)::PlotParams
     else
 
         throw(ArgumentError("haloQtyPlotParams: I don't recognize the magnitude :$(magnitude), \
-        the options are the keys of `HALO_KEYS` (see `./src/constants/quantities.jl`)"))
+        the options are the keys of `HALO_KEYS` (see `./src/globals/quantities.jl`)"))
 
     end
 
@@ -1909,7 +1909,7 @@ Return the plotting parameters for a given `quantity`.
 
 # Arguments
 
-  - `quantity::Symbol`: Target quantity. See `./src/constants/quantities.jl` for options.
+  - `quantity::Symbol`: Target quantity. See `./src/globals/quantities.jl` for options.
 
 # Returns
 
@@ -2205,10 +2205,10 @@ function plotParams(quantity::Symbol)::PlotParams
         # See computeAbundance() in ./src/analysis/compute_quantities/masses.jl
         element = GAS_ABUNDANCE_SPLITS[quantity]
 
-        if iszero(ABUNDANCE_SHIFT[element])
+        if iszero(ABUNDANCE_SHIFT[][element])
             axis_label = L"\log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
         else
-            axis_label = L"%$(Int(ABUNDANCE_SHIFT[element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
+            axis_label = L"%$(Int(ABUNDANCE_SHIFT[][element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
         end
 
         plot_params = PlotParams(;
@@ -2222,10 +2222,10 @@ function plotParams(quantity::Symbol)::PlotParams
         # See computeAbundance() in ./src/analysis/compute_quantities/masses.jl
         element = STELLAR_ABUNDANCE_SPLITS[quantity]
 
-        if iszero(ABUNDANCE_SHIFT[element])
+        if iszero(ABUNDANCE_SHIFT[][element])
             axis_label = L"\log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
         else
-            axis_label = L"%$(Int(ABUNDANCE_SHIFT[element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
+            axis_label = L"%$(Int(ABUNDANCE_SHIFT[][element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
         end
 
         plot_params = PlotParams(;

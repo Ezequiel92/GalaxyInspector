@@ -1,3 +1,4 @@
 docs/build/
-tests/test_plots
-tmp_mmap
+tests/
+!tests/tests.jl
+mmap

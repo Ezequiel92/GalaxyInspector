@@ -22,8 +22,7 @@ const SIMULATION_PATHS = joinpath.(BASE_SRC_PATH, SIMULATIONS)
 # Create the output folder if it doesn't exist
 mkpath(BASE_OUT_PATH)
 
-log_file = open(joinpath(BASE_OUT_PATH, "logs.txt"), "w+")
-GalaxyInspector.setLogging!(true; stream=log_file)
+log_file = GalaxyInspector.setLogging(joinpath(BASE_OUT_PATH, "logs.txt"))
 
 scatterPlot(
     SIMULATION_PATHS,
@@ -142,7 +141,7 @@ histogram(
 rotationCurve(
     SIMULATION_PATHS,
     SNAP_N;
-    R=GalaxyInspector.DISK_R,
+    R=GalaxyInspector.DISK_R[],
     output_path=joinpath(BASE_OUT_PATH, "rotationCurve"),
     trans_mode=TRANS_MODE,
     filter_mode=FILTER_MODE,
@@ -184,7 +183,7 @@ densityMap(
     components=[:gas, :stellar],
     field_types=[:cells, :particles],
     projection_planes=[:xy, :xz, :yz],
-    pixel_length=GalaxyInspector.BOX_L/300.0,
+    pixel_length=GalaxyInspector.BOX_L[]/300.0,
     m_unit=u"Msun",
     l_unit=u"kpc",
     output_path=joinpath(BASE_OUT_PATH, "densityMap"),
@@ -198,7 +197,7 @@ densityMapVelField(
     components=[:gas, :stellar],
     field_types=[:cells, :particles],
     projection_planes=[:xy, :xz, :yz],
-    pixel_length=GalaxyInspector.BOX_L/300.0,
+    pixel_length=GalaxyInspector.BOX_L[]/300.0,
     output_path=joinpath(BASE_OUT_PATH, "densityMapVelField"),
     trans_mode=TRANS_MODE,
     filter_mode=FILTER_MODE,
@@ -209,7 +208,7 @@ gasSFRMap(
     SNAP_N;
     field_type=:cells,
     projection_planes=[:xy, :xz, :yz],
-    pixel_length=GalaxyInspector.BOX_L/300.0,
+    pixel_length=GalaxyInspector.BOX_L[]/300.0,
     output_path=joinpath(BASE_OUT_PATH, "gasSFRMap"),
     trans_mode=TRANS_MODE,
     filter_mode=FILTER_MODE,
@@ -222,7 +221,7 @@ metallicityMap(
     field_types=[:cells, :particles],
     element=:all,
     projection_planes=[:xy, :xz, :yz],
-    pixel_length=GalaxyInspector.BOX_L/300.0,
+    pixel_length=GalaxyInspector.BOX_L[]/300.0,
     output_path=joinpath(BASE_OUT_PATH, "metallicityMap"),
     trans_mode=TRANS_MODE,
     filter_mode=FILTER_MODE,

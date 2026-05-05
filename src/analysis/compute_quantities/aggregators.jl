@@ -70,7 +70,7 @@ function scatterQty(
         elseif magnitude == :circularity
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @info("scatterQty: The circularity depends on the positions and velocities of \
                 all cells/particles. So, after filtering, the result for a given cell/particle \
                 will change")
@@ -81,7 +81,7 @@ function scatterQty(
         elseif magnitude == :circular_velocity
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @info("scatterQty: The circular velocity depends on the positions and velocities \
                 of all cells/particles. So, after filtering, the result for a cell/particle \
                 will change")
@@ -208,7 +208,7 @@ function scatterQty(
                 if present_idx - 2 > 0
 
                     (
-                        logging[] &&
+                        LOGGING[] &&
                         @warn("scatterQty: The target snapshot and the one before it have the same \
                         time coordinate, I will shift the target snapshot by one")
                     )
@@ -256,7 +256,7 @@ function scatterQty(
                 if present_idx - 2 > 0
 
                     (
-                        logging[] &&
+                        LOGGING[] &&
                         @warn("scatterQty: The target snapshot and the one before it have the same \
                         time coordinate, I will shift the target snapshot by one")
                     )
@@ -283,11 +283,11 @@ function scatterQty(
 
     elseif quantity == :observational_sfr
 
-        scatter_qty = computeSFR(data_dict; age_limit=AGE_RESOLUTION)
+        scatter_qty = computeSFR(data_dict; age_limit=AGE_RESOLUTION[])
 
     elseif quantity == :observational_ssfr
 
-        scatter_qty = computeSSFR(data_dict; age_limit=AGE_RESOLUTION)
+        scatter_qty = computeSSFR(data_dict; age_limit=AGE_RESOLUTION[])
 
     elseif quantity == :stellar_age
 
@@ -307,15 +307,15 @@ function scatterQty(
 
     elseif quantity == :gas_metallicity
 
-        scatter_qty = computeFraction(data_dict, :Z_gas) ./ SOLAR_METALLICITY
+        scatter_qty = computeFraction(data_dict, :Z_gas) ./ SOLAR_METALLICITY[]
 
     elseif quantity == :stellar_metallicity
 
-        scatter_qty = computeFraction(data_dict, :Z_stellar) ./ SOLAR_METALLICITY
+        scatter_qty = computeFraction(data_dict, :Z_stellar) ./ SOLAR_METALLICITY[]
 
     elseif quantity == :ode_metallicity
 
-        scatter_qty = computeFraction(data_dict, :ode_metals; icGen) ./ SOLAR_METALLICITY
+        scatter_qty = computeFraction(data_dict, :ode_metals; icGen) ./ SOLAR_METALLICITY[]
 
     elseif quantity ∈ GAS_METALS_MASS
 
@@ -335,7 +335,7 @@ function scatterQty(
 
         abundances = computeAbundance(data_dict, :gas, element; solar=false)
 
-        scatter_qty = ABUNDANCE_SHIFT[element] .+ log10.(abundances)
+        scatter_qty = ABUNDANCE_SHIFT[][element] .+ log10.(abundances)
 
         replace!(x -> isinf(x) ? NaN : x, scatter_qty)
 
@@ -345,7 +345,7 @@ function scatterQty(
 
         abundances = computeAbundance(data_dict, :stellar, element; solar=false)
 
-        scatter_qty = ABUNDANCE_SHIFT[element] .+ log10.(abundances)
+        scatter_qty = ABUNDANCE_SHIFT[][element] .+ log10.(abundances)
 
         replace!(x -> isinf(x) ? NaN : x, scatter_qty)
 
@@ -454,7 +454,7 @@ function integrateQty(
 
             elseif magnitude == :spin_parameter
 
-                integrated_qty = computeSpinParameter(data_dict, component; R=DISK_R)
+                integrated_qty = computeSpinParameter(data_dict, component; R=DISK_R[])
 
             elseif magnitude == :potential_energy
 
@@ -536,7 +536,7 @@ function integrateQty(
                 if iszero(Mg)
                     integrated_qty = NaN
                 else
-                    integrated_qty = (MZ / Mg) / SOLAR_METALLICITY
+                    integrated_qty = (MZ / Mg) / SOLAR_METALLICITY[]
                 end
 
             elseif magnitude == :gas_mass
@@ -625,7 +625,7 @@ function integrateQty(
 
         elseif quantity == :observational_ssfr
 
-            integrated_qty = 1.0 / AGE_RESOLUTION
+            integrated_qty = 1.0 / AGE_RESOLUTION[]
 
         elseif quantity == :molecular_stellar_fraction
 
@@ -680,7 +680,7 @@ function integrateQty(
             if iszero(Mg)
                 integrated_qty = NaN
             else
-                integrated_qty = (Mz / Mg) / SOLAR_METALLICITY
+                integrated_qty = (Mz / Mg) / SOLAR_METALLICITY[]
             end
 
         elseif quantity == :stellar_metallicity
@@ -691,7 +691,7 @@ function integrateQty(
             if iszero(Ms)
                 integrated_qty = NaN
             else
-                integrated_qty = (Mz / Ms) / SOLAR_METALLICITY
+                integrated_qty = (Mz / Ms) / SOLAR_METALLICITY[]
             end
 
         elseif quantity == :ode_metallicity
@@ -702,7 +702,7 @@ function integrateQty(
             if iszero(Mg)
                 integrated_qty = NaN
             else
-                integrated_qty = (Mz / Mg) / SOLAR_METALLICITY
+                integrated_qty = (Mz / Mg) / SOLAR_METALLICITY[]
             end
 
         elseif quantity ∈ GAS_METALS_MASS
@@ -726,7 +726,7 @@ function integrateQty(
             if iszero(abundance)
                 integrated_qty = NaN
             else
-                integrated_qty = ABUNDANCE_SHIFT[element] + log10(abundance)
+                integrated_qty = ABUNDANCE_SHIFT[][element] + log10(abundance)
             end
 
         elseif quantity ∈ STELLAR_ABUNDANCE
@@ -738,7 +738,7 @@ function integrateQty(
             if iszero(abundances)
                 integrated_qty = NaN
             else
-                integrated_qty = ABUNDANCE_SHIFT[element] + log10(abundances)
+                integrated_qty = ABUNDANCE_SHIFT[][element] + log10(abundances)
             end
 
         else
@@ -755,7 +755,7 @@ function integrateQty(
 
             if isempty(scatter_qty)
 
-                logging[] && @warn("integrateQty: :$(quantity) is empty, so I will return NaN")
+                LOGGING[] && @warn("integrateQty: :$(quantity) is empty, so I will return NaN")
 
                 unit = plotParams(quantity).unit
 

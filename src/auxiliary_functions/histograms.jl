@@ -906,7 +906,7 @@ function computeProfile(
 
     if isempty(quantity)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeProfile: `quantity` is empty. The profile will be filled with NaNs")
         )
         return fill(NaN, grid.n_bins)
@@ -1006,7 +1006,7 @@ function computeBandProfile(
 
     if isempty(quantity)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeBandProfile: `quantity` is empty. The profile will be filled with NaNs")
         )
         return fill(NaN, grid.n_bins)

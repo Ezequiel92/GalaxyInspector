@@ -80,7 +80,7 @@ function daScatterGalaxy(
 
     if any(isempty, [x_values, y_values])
 
-        logging[] && @warn("daScatterGalaxy: The results of scatterQty() are empty")
+        LOGGING[] && @warn("daScatterGalaxy: The results of scatterQty() are empty")
 
         return Float64[], Float64[]
 
@@ -195,7 +195,7 @@ function daScatterDensity(
 
     if any(isempty, [x_values, y_values])
 
-        logging[] && @warn("daScatterDensity: The results of scatterQty() are empty")
+        LOGGING[] && @warn("daScatterDensity: The results of scatterQty() are empty")
 
         return collect(1:n_bins), collect(1:n_bins), fill(NaN, (n_bins, n_bins))
 
@@ -221,43 +221,26 @@ function daScatterDensity(
     )
 
     # Apply log10 to enhance the contrast
-    values = log10.(counts)
+    counts .= log10.(counts)
 
-    if logging[]
+    if LOGGING[]
 
-        clean_vals = filter(!isnan, values)
-
-        if isempty(clean_vals)
-
-            min_max_vals = (NaN, NaN)
-            mean_val     = NaN
-            median_val   = NaN
-            mode_val     = NaN
-
-        else
-
-            min_max_vals = extrema(clean_vals)
-            mean_val     = mean(clean_vals)
-            median_val   = median(clean_vals)
-            mode_val     = mode(clean_vals)
-
-        end
+        v = copyArray(counts)
 
         @info(
             "\nlog₁₀(Counts) \
             \n  Simulation: $(basename(data_dict[:sim_data].path)) \
             \n  Snapshot:   $(data_dict[:snap_data].global_index) \
-            \n  Min - Max:  $(min_max_vals) \
-            \n  Mean:       $(mean_val) \
-            \n  Median:     $(median_val) \
-            \n  Mode:       $(mode_val)"
+            \n  Min - Max:  $(nanextrema(counts)) \
+            \n  Mean:       $(nanmean(counts)) \
+            \n  Median:     $(nanmedian!(v))"
         )
 
     end
 
     # The transpose and reverse operation are used to conform to the way heatmap! expect the matrix
     # to be structured
-    z_axis = reverse!(transpose(values), dims=2)
+    z_axis = reverse!(transpose(counts), dims=2)
 
     return x_axis, y_axis, z_axis
 
@@ -335,7 +318,7 @@ function daScatterWeightedDensity(
 
     if any(isempty, [x_values, y_values, z_values])
 
-        logging[] && @warn("daScatterWeightedDensity: The results of scatterQty() are empty")
+        LOGGING[] && @warn("daScatterWeightedDensity: The results of scatterQty() are empty")
 
         return collect(1:n_bins), collect(1:n_bins), fill(NaN, (n_bins, n_bins))
 
@@ -368,43 +351,26 @@ function daScatterWeightedDensity(
     z_unit = plotParams(z_quantity).unit
 
     # Apply log10 to enhance the contrast
-    values = log10.(ustrip.(z_unit, histogram))
+    log_hist = log10.(ustrip.(z_unit, histogram))
 
-    if logging[]
+    if LOGGING[]
 
-        clean_vals = filter(!isnan, values)
-
-        if isempty(clean_vals)
-
-            min_max_vals = (NaN, NaN)
-            mean_val     = NaN
-            median_val   = NaN
-            mode_val     = NaN
-
-        else
-
-            min_max_vals = extrema(clean_vals)
-            mean_val     = mean(clean_vals)
-            median_val   = median(clean_vals)
-            mode_val     = mode(clean_vals)
-
-        end
+        v = copyArray(log_hist)
 
         @info(
             "\nlog₁₀($(z_quantity) [$(z_unit)]) \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
-            \n  Min - Max:  $(min_max_vals) \
-            \n  Mean:       $(mean_val) \
-            \n  Median:     $(median_val) \
-            \n  Mode:       $(mode_val)"
+            \n  Min - Max:  $(nanextrema(log_hist)) \
+            \n  Mean:       $(nanmean(log_hist)) \
+            \n  Median:     $(nanmedian!(v))"
         )
 
     end
 
     # The transpose and reverse operation are used to conform to the way heatmap! expect the matrix
     # to be structured
-    z_axis = reverse!(transpose(values), dims=2)
+    z_axis = reverse!(transpose(log_hist), dims=2)
 
     return x_axis, y_axis, z_axis
 
@@ -477,7 +443,7 @@ function daProfile(
 
     if any(isempty, [values, positions])
 
-        logging[] && @warn("daProfile: The results of scatterQty() and/or the positions are empty")
+        LOGGING[] && @warn("daProfile: The results of scatterQty() and/or the positions are empty")
 
         return nothing
 
@@ -594,7 +560,7 @@ function daBandProfile(
 
     if any(isempty, [values, positions])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("daBandProfile: The results of scatterQty() and/or the positions are empty")
         )
         return nothing
@@ -609,7 +575,7 @@ function daBandProfile(
 
         if any(isempty, [values, positions])
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("daBandProfile: After removing zeros and infinities, \
                 the results of scatterQty() are empty")
             )
@@ -627,7 +593,7 @@ function daBandProfile(
 
         if any(isempty, [values, positions])
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("daBandProfile: After removing infinities, \
                 the results of scatterQty() are empty")
             )
@@ -690,7 +656,7 @@ function daStellarHistory(
     # Return `nothing` if there are less than 3 stars
     if any(x -> length(x) <= 2, [birth_ticks, masses])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("daStellarHistory: The are less than 3 stars in snapshot \
             $(filtered_dd[:snap_data].path)")
         )
@@ -737,7 +703,7 @@ function daStellarHistory(
 
         if isempty(metal_mass)
 
-            logging[] && @warn("daStellarHistory: The metal mass data is missing")
+            LOGGING[] && @warn("daStellarHistory: The metal mass data is missing")
 
             return nothing
 
@@ -746,7 +712,7 @@ function daStellarHistory(
         stellar_metallicities = histogram1D(birth_times, metal_mass, grid; empty_nan=false)
 
         Z = cumsum(stellar_metallicities) ./ cumsum(stellar_masses)
-        y_axis = Z ./ SOLAR_METALLICITY
+        y_axis = Z ./ SOLAR_METALLICITY[]
 
     else
 
@@ -818,7 +784,7 @@ function daHistogram(
 
     if isempty(scatter_qty)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("daHistogram: The results of scatterQty() for :$(quantity) are empty")
         )
         return nothing
@@ -843,7 +809,7 @@ function daHistogram(
 
     if isempty(values)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("daHistogram: After filtering, there is no data left for :$(quantity)")
         )
         return nothing
@@ -852,28 +818,11 @@ function daHistogram(
     # Compute the histogram
     counts = histogram1D(values, grid; empty_nan=false)
 
-    # Normalize the counts
-    y_axis = isPositive(norm) ? counts ./ norm : counts ./ maximum(counts)
+    if LOGGING[]
 
-    if logging[]
+        copy_vals = copyArray(values)
 
-        clean_vals = filter(x -> !isnan(x) && !isinf(x), values)
-
-        if isempty(clean_vals)
-
-            min_max_v = (NaN, NaN)
-            mean_v    = NaN
-            median_v  = NaN
-            mode_v    = NaN
-
-        else
-
-            min_max_v = extrema(clean_vals)
-            mean_v    = mean(clean_vals)
-            median_v  = median(clean_vals)
-            mode_v    = mode(clean_vals)
-
-        end
+        filter!(x -> !isinf(x), copy_vals)
 
         @info(
             "\nCounts \
@@ -883,12 +832,19 @@ function daHistogram(
             \n  Type:        $(cp_type) \
             \n  Largest bin: $(grid.x_axis[argmax(counts)]) \
             \n  Max count:   $(maximum(counts)) \
-            \n  Min - Max:   $(min_max_v) \
-            \n  Mean:        $(mean_v) \
-            \n  Median:      $(median_v) \
-            \n  Mode:        $(mode_v)"
+            \n  Min - Max:   $(nanextrema(copy_vals)) \
+            \n  Mean:        $(nanmean(copy_vals)) \
+            \n  Median:      $(nanmedian!(copy_vals))"
         )
 
+    end
+
+    # Normalize the counts
+    if isPositive(norm)
+        counts .= counts ./ norm
+    else
+        max_count = maximum(counts)
+        counts .= counts ./ max_count
     end
 
     if log
@@ -897,7 +853,7 @@ function daHistogram(
         x_axis = copy(grid.x_axis)
     end
 
-    return x_axis, y_axis
+    return x_axis, counts
 
 end
 
@@ -946,7 +902,7 @@ function daHistogram(
 
     if isempty(scatter_qty)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("daHistogram: The results of scatterQty() for :$(quantity) are empty")
         )
         return nothing
@@ -974,7 +930,7 @@ function daHistogram(
 
     if isempty(values)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("daHistogram: After filtering, there is no data left for :$(quantity)")
         )
         return nothing
@@ -985,28 +941,11 @@ function daHistogram(
     # Compute the histogram
     counts = histogram1D(values, grid; empty_nan=false)
 
-    # Normalize the counts
-    y_axis = isPositive(norm) ? counts ./ norm : counts ./ maximum(counts)
+    if LOGGING[]
 
-    if logging[]
+        copy_vals = copyArray(values)
 
-        clean_vals = filter(x -> !isnan(x) && !isinf(x), values)
-
-        if isempty(clean_vals)
-
-            min_max_v = (NaN, NaN)
-            mean_v    = NaN
-            median_v  = NaN
-            mode_v    = NaN
-
-        else
-
-            min_max_v = extrema(clean_vals)
-            mean_v    = mean(clean_vals)
-            median_v  = median(clean_vals)
-            mode_v    = mode(clean_vals)
-
-        end
+        filter!(x -> !isinf(x), copy_vals)
 
         @info(
             "\nCounts \
@@ -1016,12 +955,19 @@ function daHistogram(
             \n  Type:        $(cp_type) \
             \n  Largest bin: $(grid.x_axis[argmax(counts)]) \
             \n  Max count:   $(maximum(counts)) \
-            \n  Min - Max:   $(min_max_v) \
-            \n  Mean:        $(mean_v) \
-            \n  Median:      $(median_v) \
-            \n  Mode:        $(mode_v)"
+            \n  Min - Max:   $(nanextrema(copy_vals)) \
+            \n  Mean:        $(nanmean(copy_vals)) \
+            \n  Median:      $(nanmedian!(copy_vals))"
         )
 
+    end
+
+    # Normalize the counts
+    if isPositive(norm)
+        counts .= counts ./ norm
+    else
+        max_count = maximum(counts)
+        counts .= counts ./ max_count
     end
 
     if log
@@ -1030,7 +976,7 @@ function daHistogram(
         x_axis = copy(grid.x_axis)
     end
 
-    return x_axis, y_axis
+    return x_axis, counts
 
 end
 
@@ -1045,7 +991,7 @@ Compute a rotation curve.
 # Arguments
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `R::Unitful.Length=DISK_R`: Maximum radial distance for the rotation curve.
+  - `R::Unitful.Length=DISK_R[]`: Maximum radial distance for the rotation curve.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1057,7 +1003,7 @@ Compute a rotation curve.
 """
 function daRotationCurve(
     data_dict::Dict;
-    R::Unitful.Length=DISK_R,
+    R::Unitful.Length=DISK_R[],
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
@@ -1132,7 +1078,7 @@ function daBarGasFractions(
 
     if isempty(gas_qty)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("daBarGasFractions: The results of scatterQty() for :$(quantity) are empty")
         )
         return nothing
@@ -1143,7 +1089,7 @@ function daBarGasFractions(
 
     if any(isempty, masses)
 
-        logging[] && @warn("daBarGasFractions: The data for the mass of the components is missing")
+        LOGGING[] && @warn("daBarGasFractions: The data for the mass of the components is missing")
 
         return nothing
 
@@ -1260,7 +1206,7 @@ function daMolla2015(
         norm_positions = positions
         masses = computeElementMass(filtered_dd, :stellar, element) ./ ATOMIC_WEIGHTS[element]
         norm = computeElementMass(filtered_dd, :stellar, :H) ./ ATOMIC_WEIGHTS[:H]
-        scaling = x -> ABUNDANCE_SHIFT[element] .+ log10.(ustrip.(y_unit, x))
+        scaling = x -> ABUNDANCE_SHIFT[][element] .+ log10.(ustrip.(y_unit, x))
         density = false
 
     elseif quantity == :mu_mol
@@ -1298,7 +1244,7 @@ function daMolla2015(
 
     if any(isempty, [positions, masses])
 
-        logging[] && @warn("daMolla2015: The data for the mass and/or the positions is missing")
+        LOGGING[] && @warn("daMolla2015: The data for the mass and/or the positions is missing")
 
         return nothing
 
@@ -1338,6 +1284,7 @@ Project a 3D mass density field into a given plane.
       + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
       + `:log_circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the mass of `component` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
@@ -1359,6 +1306,7 @@ function daDensity2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
+    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"pc",
@@ -1374,6 +1322,7 @@ function daDensity2DProjection(
         field_type;
         empty_nan=false,
         log=false,
+        mask,
         icGen,
         filter_function,
     )
@@ -1440,27 +1389,11 @@ function daDensity2DProjection(
     replace!(x -> iszero(x) ? NaN : x, density)
 
     # Apply log10 to enhance the contrast
-    z_axis = log10.(density)
+    density .= log10.(density)
 
-    if logging[]
+    if LOGGING[]
 
-        log_z_axis = filter(!isnan, z_axis)
-
-        if isempty(log_z_axis)
-
-            min_max_z = (NaN, NaN)
-            mean_z    = NaN
-            median_z  = NaN
-            mode_z    = NaN
-
-        else
-
-            min_max_z = extrema(log_z_axis)
-            mean_z    = mean(log_z_axis)
-            median_z  = median(log_z_axis)
-            mode_z    = mode(log_z_axis)
-
-        end
+        z = copyArray(density)
 
         @info(
             "\nMass density range - log₁₀(Σ [$(m_unit * l_unit^-2)]) \
@@ -1469,15 +1402,14 @@ function daDensity2DProjection(
             \n  Component:  $(component) \
             \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane) \
-            \n  Min - Max:  $(min_max_z) \
-            \n  Mean:       $(mean_z) \
-            \n  Median:     $(median_z) \
-            \n  Mode:       $(mode_z)"
+            \n  Min - Max:  $(nanextrema(density)) \
+            \n  Mean:       $(nanmean(density)) \
+            \n  Median:     $(nanmedian!(z))"
         )
 
     end
 
-    return x_axis, y_axis, z_axis
+    return x_axis, y_axis, density
 
 end
 
@@ -1507,6 +1439,7 @@ Project the 3D gas SFR field into a given plane.
       + `:circular` -> The sfr distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
       + `:log_circular` -> The sfr distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the sfr projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the SFR for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Time unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1526,6 +1459,7 @@ function daGasSFR2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
+    mask::Union{Function,Nothing}=nothing,
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
     filter_function::Function=filterNothing,
@@ -1538,6 +1472,7 @@ function daGasSFR2DProjection(
         field_type;
         empty_nan=false,
         log=false,
+        mask,
         filter_function,
     )
 
@@ -1592,44 +1527,26 @@ function daGasSFR2DProjection(
     replace!(x -> (iszero(x) || isinf(x)) ? NaN : x, sfr)
 
     # Apply log10 to enhance the contrast
-    z_axis = log10.(sfr)
+    sfr .= log10.(sfr)
 
-    if logging[]
+    if LOGGING[]
 
-        log_z_axis = filter(!isnan, z_axis)
+        z = copyArray(sfr)
 
-        if isempty(log_z_axis)
-
-            min_max_z = (NaN, NaN)
-            mean_z    = NaN
-            median_z  = NaN
-            mode_z    = NaN
-
-        else
-
-            min_max_z = extrema(log_z_axis)
-            mean_z    = mean(log_z_axis)
-            median_z  = median(log_z_axis)
-            mode_z    = mode(log_z_axis)
-
-        end
-
-        # Print the SFR range
         @info(
             "\nGas SFR range - log₁₀(SFR [$(m_unit * t_unit^-1)]) \
             \n  Simulation: $(basename(filtered_dd[:sim_data].path)) \
             \n  Snapshot:   $(filtered_dd[:snap_data].global_index) \
             \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane) \
-            \n  Min - Max:  $(min_max_z) \
-            \n  Mean:       $(mean_z) \
-            \n  Median:     $(median_z) \
-            \n  Mode:       $(mode_z)"
+            \n  Min - Max:  $(nanextrema(sfr)) \
+            \n  Mean:       $(nanmean(sfr)) \
+            \n  Median:     $(nanmedian!(z))"
         )
 
     end
 
-    return x_axis, y_axis, z_axis
+    return x_axis, y_axis, sfr
 
 end
 
@@ -1662,6 +1579,7 @@ Project the 3D metallicity field to a given plane.
       + `:circular` -> The metallicity distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
       + `:log_circular` -> The metallicity distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the metallicity projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
+  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the metallicity of `component` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1681,6 +1599,7 @@ function daMetallicity2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
+    mask::Union{Function,Nothing}=nothing,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
@@ -1699,7 +1618,7 @@ function daMetallicity2DProjection(
     else
 
         throw(ArgumentError("daMetallicity2DProjection: The argument `element` can only be :all \
-        or one of the keys of `ELEMENT_INDEX` (see `./src/constants/globals.jl`), \
+        or one of the keys of `ELEMENT_INDEX` (see `./src/globals/globals.jl`), \
         but I got :$(element)"))
 
     end
@@ -1711,6 +1630,7 @@ function daMetallicity2DProjection(
         field_type;
         empty_nan=false,
         log=false,
+        mask,
         return_idxs=true,
         filter_function,
     )
@@ -1722,6 +1642,7 @@ function daMetallicity2DProjection(
         nn_idxs;
         empty_nan=false,
         log=false,
+        mask,
         return_idxs=false,
         filter_function,
     )
@@ -1803,38 +1724,22 @@ function daMetallicity2DProjection(
 
     # Apply log10 to enhance the contrast
     if element == :all
-        z_axis = log10.(metallicity ./ SOLAR_METALLICITY)
+        metallicity .= log10.(metallicity ./ SOLAR_METALLICITY[])
     else
-        z_axis = ABUNDANCE_SHIFT[element] .+ log10.(metallicity)
+        metallicity .= ABUNDANCE_SHIFT[][element] .+ log10.(metallicity)
     end
 
-    if logging[]
+    if LOGGING[]
 
-        clean_z_axis = filter(!isnan, z_axis)
-
-        if isempty(clean_z_axis)
-
-            min_max_z = (NaN, NaN)
-            mean_z    = NaN
-            median_z  = NaN
-            mode_z    = NaN
-
-        else
-
-            min_max_z = extrema(clean_z_axis)
-            mean_z    = mean(clean_z_axis)
-            median_z  = median(clean_z_axis)
-            mode_z    = mode(clean_z_axis)
-
-        end
+        z = copyArray(metallicity)
 
         title = if element == :all
             "log₁₀(Z [Z⊙])"
         else
-            if iszero(ABUNDANCE_SHIFT[element])
+            if iszero(ABUNDANCE_SHIFT[][element])
                 "log₁₀($(element) / H)"
             else
-                "$(ABUNDANCE_SHIFT[element]) + log₁₀($(element) / H)"
+                "$(ABUNDANCE_SHIFT[][element]) + log₁₀($(element) / H)"
             end
         end
 
@@ -1845,15 +1750,14 @@ function daMetallicity2DProjection(
             \n  Component:  $(component) \
             \n  Field type: $(field_type) \
             \n  Plane:      $(projection_plane)\
-            \n  Min - Max:  $(min_max_z) \
-            \n  Mean:       $(mean_z) \
-            \n  Median:     $(median_z) \
-            \n  Mode:       $(mode_z)"
+            \n  Min - Max:  $(nanextrema(metallicity)) \
+            \n  Mean:       $(nanmean(metallicity)) \
+            \n  Median:     $(nanmedian!(z))"
         )
 
     end
 
-    return x_axis, y_axis, z_axis
+    return x_axis, y_axis, metallicity
 
 end
 
@@ -1907,7 +1811,7 @@ function daVelocityField(
 
     if any(isempty, [positions, velocities])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("daVelocityField: The data for the positions and/or the velocities is missing")
         )
         return grid.x_axis, grid.y_axis, zeros(grid.n_bins[1]), zeros(grid.n_bins[2])
@@ -1958,6 +1862,7 @@ Compute a mockup image emulating an SDSS observation.
   - `grid::CubicGrid`: Cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
+  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the stellar mass for the particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `extinction::Union{Symbol,Nothing}=nothing`: Type of extinction. The options are:
 
@@ -1975,6 +1880,7 @@ function daSDSSMockup(
     grid::CubicGrid;
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
+    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     extinction::Union{Symbol,Nothing}=nothing,
     filter_function::Function=filterNothing,
@@ -2094,6 +2000,7 @@ function daSDSSMockup(
             :cells;
             empty_nan=false,
             log=false,
+            mask,
             icGen,
         )
 
@@ -2181,9 +2088,10 @@ Compute the gas density and the SFR density, used in the volumetric star formati
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `field_type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
-  - `age_limit::Unitful.Time=AGE_RESOLUTION`: Age limit for the SFR.
+  - `age_limit::Unitful.Time=AGE_RESOLUTION[]`: Age limit for the SFR.
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. See the required signature and examples in `./src/analysis/filters.jl`.
   - `gas_ff::Function=filterNothing`: Filter function for the gas. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `mask::Union{Function,Nothing}=nothing`: Set to 0 the mass of `component` for the cells/particles that do not pass the filter function `mask`. If set to nothing, no mask is applied.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `m_unit::Unitful.Units=u"Msun"`: Target mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Target time unit.
@@ -2204,9 +2112,10 @@ function daVSFLaw(
     grid::CubicGrid,
     component::Symbol;
     field_type::Symbol=:cells,
-    age_limit::Unitful.Time=AGE_RESOLUTION,
+    age_limit::Unitful.Time=AGE_RESOLUTION[],
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
+    mask::Union{Function,Nothing}=nothing,
     icGen::Function=initialConditionFunction,
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
@@ -2216,7 +2125,7 @@ function daVSFLaw(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("daVSFLaw: `component` can only be one of the elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     # Factor to go from stellar density to SFR density
@@ -2231,6 +2140,7 @@ function daVSFLaw(
         scale_by_volume=true,
         density=l_gas_unit,
         log=false,
+        mask,
         icGen,
         filter_function=gas_ff,
     )
@@ -2245,6 +2155,7 @@ function daVSFLaw(
         scale_by_volume=true,
         density=l_stellar_unit,
         log=false,
+        mask,
         filter_function=stellar_ff,
     )
 
@@ -2264,7 +2175,7 @@ function daVSFLaw(
 
     if any(isempty, [x_axis, y_axis])
 
-        logging[] && @warn("daVSFLaw: The results of `quantity3DProjection` are empty")
+        LOGGING[] && @warn("daVSFLaw: The results of `quantity3DProjection` are empty")
 
         return nothing
 
@@ -2316,7 +2227,7 @@ function daClumpingFactor(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("daClumpingFactor: `component` can only be one of the elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     filtered_dd = filterData(data_dict; filter_function)
@@ -2332,7 +2243,7 @@ function daClumpingFactor(
 
     if any(isempty, [positions, cell_volumes, number_densities])
 
-        logging[] && @warn("daClumpingFactor: The positions, volumes or number densities are empty")
+        LOGGING[] && @warn("daClumpingFactor: The positions, volumes or number densities are empty")
 
         return Float64[], Unitful.Volume[]
 
@@ -2368,7 +2279,7 @@ function daClumpingFactor(
 
     if any(isempty, [V, Cρ])
 
-        logging[] && @warn("daClumpingFactor: The volumes and/or clumping factors are empty")
+        LOGGING[] && @warn("daClumpingFactor: The volumes and/or clumping factors are empty")
 
         return Float64[], Float64[]
 
@@ -2420,7 +2331,7 @@ function daClumpingFactorProfile(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("daClumpingFactorProfile: `component` can only be one of the elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     filtered_dd = filterData(data_dict; filter_function)
@@ -2454,7 +2365,7 @@ end
 ####################################################################################################
 #
 # A data analysis functions targeting plotTimeSeries() must take a Simulation struct (see
-# ./src/constants/globals.jl for the canonical description), and return two vectors.
+# ./src/globals/globals.jl for the canonical description), and return two vectors.
 # It should return `nothing` if the input data has some problem that prevents computation
 # (e.g. is empty).
 #
@@ -2636,7 +2547,7 @@ function daEvolution(
         # Skip missing snapshots
         if ismissing(sim_table_row[:snapshot_paths])
 
-            logging[] && @warn("daEvolution: The snapshot $(sim_table_row[:row_id]) is missing")
+            LOGGING[] && @warn("daEvolution: The snapshot $(sim_table_row[:row_id]) is missing")
 
             next!(prog_bar)
 
@@ -2707,7 +2618,7 @@ function daEvolution(
 
     if any(isempty, [x_values, y_values])
 
-        logging[] && @warn("daEvolution: The results of `integration_functions` are empty")
+        LOGGING[] && @warn("daEvolution: The results of `integration_functions` are empty")
 
         return Float64[], Float64[]
 
@@ -2789,7 +2700,7 @@ function daSFRtxt(
 
         (
             !sim_data.cosmological &&
-            logging[] &&
+            LOGGING[] &&
             @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
             :physical_time")
         )
@@ -2805,7 +2716,7 @@ function daSFRtxt(
         else
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("daSFRtxt: For non-cosmological simulations `x_quantity` can only be \
                 :physical_time")
             )
@@ -3007,7 +2918,7 @@ function daCPUtxt(
 
     if any(isempty, [x_axis, y_values])
 
-        logging[] && @warn("daCPUtxt: The results of `cpu.txt` are empty")
+        LOGGING[] && @warn("daCPUtxt: The results of `cpu.txt` are empty")
 
         return Float64[], Float64[]
 
@@ -3266,7 +3177,7 @@ function daVirialAccretion(
 
     if any(isempty, [x_axis, y_values])
 
-        logging[] && @warn("daVirialAccretion: The results of `computeVirialAccretion` are empty")
+        LOGGING[] && @warn("daVirialAccretion: The results of `computeVirialAccretion` are empty")
 
         return Float64[], Float64[]
 
@@ -3305,7 +3216,7 @@ Compute the evolution of the accreted mass into a given galactic disc.
       + `:net`     -> Net accreted mass.
       + `:inflow`  -> Inflow mass only.
       + `:outflow` -> Outflow mass only.
-  - `max_r::Unitful.Length=DISK_R`: Radius of the disk.
+  - `max_r::Unitful.Length=DISK_R[]`: Radius of the disk.
   - `max_z::Unitful.Length=5.0u"kpc"`: Half height of the disk.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `trace::Symbol=:automatic`: How to trace the mass. The option are:
@@ -3328,7 +3239,7 @@ function daDiskAccretion(
     sim_data::Simulation,
     component::Symbol;
     flux_direction::Symbol=:net,
-    max_r::Unitful.Length=DISK_R,
+    max_r::Unitful.Length=DISK_R[],
     max_z::Unitful.Length=5.0u"kpc",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     trace::Symbol=:automatic,
@@ -3547,7 +3458,7 @@ function daDiskAccretion(
 
     if any(isempty, [x_axis, y_values])
 
-        logging[] && @warn("computeDiskAccretion: The results of `computeVirialAccretion` are empty")
+        LOGGING[] && @warn("computeDiskAccretion: The results of `computeVirialAccretion` are empty")
 
         return Float64[], Float64[]
 
@@ -3753,7 +3664,7 @@ function daScoville2016(
         # Skip missing snapshots
         if ismissing(sim_table_row[:snapshot_paths])
 
-            logging[] && @warn("daScoville2016: The snapshot $(sim_table_row[:row_id]) is missing")
+            LOGGING[] && @warn("daScoville2016: The snapshot $(sim_table_row[:row_id]) is missing")
 
             next!(prog_bar)
 
@@ -3814,7 +3725,7 @@ function daScoville2016(
 
     if any(isempty, [x_values, y_values])
 
-        logging[] && @warn("daScoville2016: The results of `scoville2016fH2` are empty")
+        LOGGING[] && @warn("daScoville2016: The results of `scoville2016fH2` are empty")
 
         return Float64[], Measurement{Float64}[]
 

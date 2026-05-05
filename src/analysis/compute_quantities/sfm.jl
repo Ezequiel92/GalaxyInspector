@@ -235,7 +235,7 @@ function computeDerivedSFMQty(data_dict::Dict, quantity::Symbol)::Vector{<:Numbe
         h = dd["PARH"]
 
         N  = @. (fa + fm) * ρ * h / Unitful.mp
-        Zs = @. Z / SOLAR_METALLICITY
+        Zs = @. Z / SOLAR_METALLICITY[]
 
         derived_qty = @. exp(-σd * Zs * N)
 

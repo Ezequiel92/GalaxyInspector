@@ -31,7 +31,7 @@ function computeCenterOfMass(
     # Check for missing data
     if any(isempty, [positions, masses])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeCenterOfMass: `positions` and/or `masses` are empty, so I will return \
             the origin")
         )
@@ -76,7 +76,7 @@ function computeAMRotationMatrix(
     # Check for missing data
     if size(positions, 2) < 2
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeAMRotationMatrix: I got less than two valid positions. I cannot compute \
             the angular momentum, so I will return the identity matrix")
         )
@@ -126,7 +126,7 @@ function computePARotationMatrix(
     # Check for missing data
     if N < 2
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computePARotationMatrix: I got less than two valid positions. I cannot compute \
             the principal axis, so I will return the identity matrix")
         )
@@ -227,7 +227,7 @@ function computeCenterOfMass(data_dict::Dict, component::Symbol)::Vector{<:Unitf
         masses    = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
         (
-            logging[] &&
+            LOGGING[] &&
             @info("computeCenterOfMass: The center of mass will be computed using $(snap_types)")
         )
 
@@ -245,7 +245,7 @@ function computeCenterOfMass(data_dict::Dict, component::Symbol)::Vector{<:Unitf
 
     if any(isempty, [positions, masses])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeCenterOfMass: `positions` and/or `masses` are empty, so I will return \
             the origin")
         )
@@ -288,7 +288,7 @@ function computeCenter(
     # If there are no subfind data, return the origin
     if !isSubfindActive(data_dict[:gc_data].path)
 
-        logging[] && @warn("computeCenter: There is no subfind data, so I will return the origin")
+        LOGGING[] && @warn("computeCenter: There is no subfind data, so I will return the origin")
 
         return zeros(typeof(1.0u"kpc"), 3)
 
@@ -304,7 +304,7 @@ function computeCenter(
 
     if iszero(n_halos) || any(isempty, [n_subhalos_in_halo, g_pos, s_pos])
         (
-            logging[] &&
+            LOGGING[] &&
             @info("computeCenter: There are no halos in $(data_dict[:gc_data].path), \
             so I will return the origin")
         )
@@ -326,7 +326,7 @@ function computeCenter(
     if iszero(n_subfinds)
 
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeCenter: There are 0 subhalos in the FoF group $(halo_idx) from \
             $(data_dict[:gc_data].path), so the center will be the halo potential minimum")
         )
@@ -379,7 +379,7 @@ function computeCenter(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.
     # If there are no subfind data, return the origin
     if !isSubfindActive(data_dict[:gc_data].path)
 
-        logging[] && @warn("computeCenter: There is no subfind data, so I will return the origin")
+        LOGGING[] && @warn("computeCenter: There is no subfind data, so I will return the origin")
 
         return zeros(typeof(1.0u"kpc"), 3)
 
@@ -458,7 +458,7 @@ function computeXYDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeXYDistance: `component` can only be one of the elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
@@ -473,7 +473,7 @@ function computeXYDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful
 
     if isempty(positions)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeXYDistance: The `positions` of $(type) are empty, so I will return an \
             empty array")
         )
@@ -505,7 +505,7 @@ function computeRadialDistance(data_dict::Dict, component::Symbol)::Vector{<:Uni
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeRadialDistance: `component` can only be one of the elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
@@ -520,7 +520,7 @@ function computeRadialDistance(data_dict::Dict, component::Symbol)::Vector{<:Uni
 
     if isempty(positions)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeRadialDistance: The `positions` of $(type) are empty, so I will return \
             an empty array")
         )
@@ -650,7 +650,7 @@ function findStellarHaloSubhalo(
 
     if isempty(n_subhalos_in_halo)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("findStellarHaloSubhalo: There are no subhalos in $(data_dict[:gc_data].path)")
         )
         return findStellarHalo(data_dict, star_idxs, real_stars_idxs), fill(-1, length(star_idxs))
@@ -823,7 +823,7 @@ function locateStellarBirthPlace(data_dict::Dict)::NTuple{2,Vector{Int}}
 
     if isempty(birth_times)
         (
-            logging[] &&
+            LOGGING[] &&
             @info("locateStellarBirthPlace: The birth times of the stars in snapshot $(snapshot_n) \
             of simulation $(basename(simulation_path)) are missing. Returning empty arrays")
         )
@@ -1009,7 +1009,7 @@ function computeAMRotationMatrix(
         masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
         (
-            logging[] &&
+            LOGGING[] &&
             @info("computeAMRotationMatrix: The angular momentum will be computed using \
             $(components)")
         )
@@ -1028,7 +1028,7 @@ function computeAMRotationMatrix(
 
         if any(isempty, [positions, velocities, masses])
             (
-                logging[] &&
+                LOGGING[] &&
                 @info("computeAMRotationMatrix: The positions, masses or velocities for component \
                 :$(component) are missing. I will return the identity matrix")
             )
@@ -1089,14 +1089,14 @@ function computePARotationMatrix(
         masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
         (
-            logging[] &&
+            LOGGING[] &&
             @info("computePARotationMatrix: The angular momentum will be computed using \
             $(snap_types)")
         )
 
         if any(isempty, [positions, velocities, masses])
             (
-                logging[] &&
+                LOGGING[] &&
                 @info("computePARotationMatrix: The positions, masses or velocities are empty. \
                 I will return the identity matrix")
             )
@@ -1111,7 +1111,7 @@ function computePARotationMatrix(
 
         if any(isempty, [positions, velocities, masses])
             (
-                logging[] &&
+                LOGGING[] &&
                 @info("computePARotationMatrix: The positions, masses or velocities for component \
                 :$(component) are empty. I will return the identity matrix")
             )

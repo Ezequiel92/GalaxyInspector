@@ -44,7 +44,7 @@ Some of the features are:
 ### plotSnapshot configuration
 
   - `output_path::String="."`: Path to the output folder.
-  - `base_filename::String="plot"`: Every file will be named `base_filename`_$(SNAP_BASENAME)_XXX`output_format` where XXX is the snapshot number.
+  - `base_filename::String="plot"`: Every file will be named `base_filename`_$(SNAP_BASENAME[])_XXX`output_format` where XXX is the snapshot number.
   - `output_format::String=".png"`: File format for the figure. All formats supported by [Makie](https://docs.makie.org/stable/) can be used, namely `.pdf`, `.svg`, and `.png`.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
@@ -223,7 +223,7 @@ function plotSnapshot(
 
         (
             n_frames < framerate &&
-            logging[] &&
+            LOGGING[] &&
             @warn("plotSnapshot: With `framerate` = $framerate and `slice` = $slice, \
             the animation is less than one second long")
         )
@@ -290,8 +290,8 @@ function plotSnapshot(
             # Skip if this snapshot does not exists for the current simulation
             if isempty(snapshot_row)
                 (
-                    logging[] &&
-                    @warn("plotSnapshot: The snapshot $(SNAP_BASENAME)_$(snapshot_number).hdf5 \
+                    LOGGING[] &&
+                    @warn("plotSnapshot: The snapshot $(SNAP_BASENAME[])_$(snapshot_number).hdf5 \
                     is missing in simulation $(simulation_path)")
                 )
                 continue
@@ -310,8 +310,8 @@ function plotSnapshot(
             # Skip the simulation if the snapshot is missing
             if ismissing(snapshot_path)
                 (
-                    logging[] &&
-                    @warn("plotSnapshot: The snapshot $(SNAP_BASENAME)_$(snapshot_number).hdf5 \
+                    LOGGING[] &&
+                    @warn("plotSnapshot: The snapshot $(SNAP_BASENAME[])_$(snapshot_number).hdf5 \
                     is missing in simulation $(simulation_path)")
                 )
                 continue
@@ -386,10 +386,10 @@ function plotSnapshot(
             if isnothing(da_output)
 
                 (
-                    logging[] &&
+                    LOGGING[] &&
                     @warn("plotSnapshot: The data analysis function $(data_analysis) returned \
                     `nothing` for simulation $(simulation_path) and snapshot \
-                    $(SNAP_BASENAME)_$(snapshot_number).hdf5")
+                    $(SNAP_BASENAME[])_$(snapshot_number).hdf5")
                 )
 
                 continue
@@ -413,7 +413,7 @@ function plotSnapshot(
                 end
 
                 jldopen(joinpath(output_path, base_filename * "_raw.jld2"), "a+") do f
-                    address = "$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                    address = "$(SNAP_BASENAME[])_$(snapshot_number)/$(sim_name)"
                     f[address] = da_output
                 end
 
@@ -519,7 +519,7 @@ function plotSnapshot(
                 end
 
                 jldopen(joinpath(output_path, base_filename * ".jld2"), "a+") do f
-                    address = "$(SNAP_BASENAME)_$(snapshot_number)/$(sim_name)"
+                    address = "$(SNAP_BASENAME[])_$(snapshot_number)/$(sim_name)"
                     f[address] = axis_data
                 end
 
@@ -532,9 +532,9 @@ function plotSnapshot(
         if skipper
 
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("plotSnapshot: The data analysis function $(data_analysis) returned \
-                `nothing` for snapshot $(SNAP_BASENAME)_$(snapshot_number).hdf5 in every \
+                `nothing` for snapshot $(SNAP_BASENAME[])_$(snapshot_number).hdf5 in every \
                 simulation")
             )
 
@@ -563,9 +563,9 @@ function plotSnapshot(
             if isa(title, Symbol) && isempty(time_row)
 
                 (
-                    logging[] &&
+                    LOGGING[] &&
                     @warn("plotSnapshot: I cound not find the time data for the snapshot \
-                    $(SNAP_BASENAME)_$(snapshot_number).hdf5 in the longest running simulation. \
+                    $(SNAP_BASENAME[])_$(snapshot_number).hdf5 in the longest running simulation. \
                     I will print no title.")
                 )
 
@@ -694,7 +694,7 @@ function plotSnapshot(
 
         if save_figures
 
-            output_filename = "$(base_filename)_$(SNAP_BASENAME)_$(snapshot_number)$(output_format)"
+            output_filename = "$(base_filename)_$(SNAP_BASENAME[])_$(snapshot_number)$(output_format)"
 
             save(joinpath(output_path, output_filename), figure)
 
@@ -714,7 +714,7 @@ function plotSnapshot(
     end
 
     (
-        logging[] && !plot_something &&
+        LOGGING[] && !plot_something &&
         @warn("plotSnapshot: Nothing could be plotted because there was a problem for every \
         snapshot")
     )
@@ -946,7 +946,7 @@ function plotTimeSeries(
 
         if isnothing(da_output)
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("plotTimeSeries: The data analysis function $(data_analysis) returned \
                 `nothing` for simulation $(simulation_path)")
             )
@@ -1028,7 +1028,7 @@ function plotTimeSeries(
     end
 
     (
-        logging[] && !plot_something &&
+        LOGGING[] && !plot_something &&
         @warn("plotTimeSeries: Nothing could be plotted because there was a problem for every \
         snapshot")
     )

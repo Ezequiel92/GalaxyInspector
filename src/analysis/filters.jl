@@ -7,7 +7,7 @@
 #################
 
 """
-    filterData!(data_dict::Dict; <keyword arguments>)::Nothing
+    filterData!(data_dict::Dict; <keyword arguments>)::Dict
 
 Filter `data_dict` using the indices provided by `filter_function`.
 
@@ -15,8 +15,16 @@ Filter `data_dict` using the indices provided by `filter_function`.
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `filter_function::Function=filterNothing`: Filter function. See the required signature and examples in `./src/analysis/filters.jl`.
+
+# Returns
+
+  - The filtered data. Note that `data_dict` is modified in-place, so the returned dictionary is just a reference to the same object.
 """
-function filterData!(data_dict::Dict; filter_function::Function=filterNothing)::Nothing
+function filterData!(data_dict::Dict; filter_function::Function=filterNothing)::Dict
+
+    if filter_function == filterNothing
+        return data_dict
+    end
 
     # Compute the filter dictionary
     filter_dict = filter_function(data_dict)
@@ -37,7 +45,7 @@ function filterData!(data_dict::Dict; filter_function::Function=filterNothing)::
 
     end
 
-    return nothing
+    return data_dict
 
 end
 
@@ -57,7 +65,7 @@ Return a filtered copy of `data_dict` using the indices provided by `filter_func
 """
 function filterData(data_dict::Dict; filter_function::Function=filterNothing)::Dict
 
-    dd_copy = deepcopy(data_dict)
+    dd_copy = copyDataDict(data_dict)
 
     if filter_function == filterNothing
         return dd_copy
@@ -362,7 +370,7 @@ function filterBySubhalo(
     # If there are no subfind data, filter out every cell/particle
     if !isSubfindActive(data_dict[:gc_data].path)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("filterBySubhalo: There is no subfind data in $(data_dict[:gc_data].path), \
             so every particle will be filtered out")
         )
@@ -379,7 +387,7 @@ function filterBySubhalo(
 
     if iszero(n_groups_total) || any(isempty, [g_n_subs, g_len_type, s_len_type])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("filterBySubhalo: There is missing subfind data in $(data_dict[:gc_data].path), \
             so every particle will be filtered out")
         )
@@ -407,7 +415,7 @@ function filterBySubhalo(
 
     if iszero(n_subfinds)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("filterBySubhalo: There are 0 subhalos in the FoF group $(halo_idx) from
             $(data_dict[:gc_data].path), so every particle will be filtered out")
         )
@@ -514,7 +522,7 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
     # If there are no subfind data, filter out every cell/particle
     if !isSubfindActive(data_dict[:gc_data].path)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("filterBySubhalo: There is no subfind data in $(data_dict[:gc_data].path), \
             so every particle will be filtered out")
         )
@@ -529,7 +537,7 @@ function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,Ind
 
     if iszero(n_subgroups_total) || isempty(s_len_type)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("filterBySubhalo: There is missing subfind data in $(data_dict[:gc_data].path), \
             so every particle will be filtered out")
         )
@@ -602,7 +610,6 @@ end
     filterByQuantity(
         data_dict::Dict,
         quantity::Symbol,
-        component::Symbol,
         min::Number,
         max::Number,
         <keyword arguments>
@@ -614,7 +621,6 @@ Select particles/cells with a value of `quantity` within [`min`, `max`].
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `quantity::Symbol`: Target quantity. For the possibilities see the documentation of [`scatterQty`](@ref).
-  - `component::Symbol`: Type of particle/cell. The possibilities are the keys of [`PARTICLE_INDEX`](@ref).
   - `min::Number`: Minimum value of `quantity`.
   - `max::Number`: Maximum value of `quantity`.
   - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
@@ -626,7 +632,6 @@ Select particles/cells with a value of `quantity` within [`min`, `max`].
 function filterByQuantity(
     data_dict::Dict,
     quantity::Symbol,
-    component::Symbol,
     min::Number,
     max::Number;
     icGen::Function=initialConditionFunction,
@@ -643,10 +648,18 @@ function filterByQuantity(
     # Compute the `quantity`
     values = scatterQty(data_dict, quantity; icGen)
 
+    cp_type = plotParams(quantity).cp_type
+
+    (
+        isnothing(cp_type) &&
+        throw(ArgumentError("filterByQuantity: The quantity $(quantity) is not associated with any \
+        cell/particle type, so it cannot be used for filtering"))
+    )
+
     if isempty(values)
-        filter_dict[component] = Int[]
+        filter_dict[cp_type] = Int[]
     else
-        filter_dict[component] = map(x -> min <= x <= max, values)
+        filter_dict[cp_type] = map(x -> min <= x <= max, values)
     end
 
     return filter_dict
@@ -694,7 +707,7 @@ Select stars with an age within [`min_age`, `max_age`].
 
   - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
   - `min_age::Unitful.Time=0.0u"Gyr"`: Minimum age.
-  - `max_age::Unitful.Time=AGE_RESOLUTION`: Maximum age.
+  - `max_age::Unitful.Time=AGE_RESOLUTION[]`: Maximum age.
 
 # Returns
 
@@ -703,7 +716,7 @@ Select stars with an age within [`min_age`, `max_age`].
 function filterByStellarAge(
     data_dict::Dict;
     min_age::Unitful.Time=0.0u"Gyr",
-    max_age::Unitful.Time=AGE_RESOLUTION,
+    max_age::Unitful.Time=AGE_RESOLUTION[],
 )::Dict{Symbol,IndexType}
 
     (
@@ -870,8 +883,8 @@ Creates a request dictionary, using `base_request` as a base, adding what is nec
       + `:all`             -> Select every cell/particle within the simulation box.
       + `:halo`            -> Select the cells/particles that belong to the main halo.
       + `:subhalo`         -> Select the cells/particles that belong to the main subhalo.
-      + `:sphere`          -> Select the cells/particles inside a sphere centered at the origin with radius `DISK_R` (see `./src/constants/globals.jl`).
-      + `:cylinder`        -> Select the cells/particles inside a cylinder centered at the origin with radius `DISK_R` and half height `DISK_HEIGHT` (see `./src/constants/globals.jl`). The cylinder axis is aligned with the z axis.
+      + `:sphere`          -> Select the cells/particles inside a sphere centered at the origin with radius `DISK_R` (see `./src/globals/globals.jl`).
+      + `:cylinder`        -> Select the cells/particles inside a cylinder centered at the origin with radius `DISK_R` and half height `DISK_HEIGHT` (see `./src/globals/globals.jl`). The cylinder axis is aligned with the z axis.
   - `base_request::Dict{Symbol,Vector{String}}`: Base request dictionary.
 
 # Returns
@@ -916,7 +929,7 @@ function selectFilter(
     elseif filter_mode == :sphere
 
         # Select the cells/particles inside a sphere centered at the origin with radius `DISK_R`
-        filter_function = dd -> filterBySphere(dd, 0.0u"kpc", DISK_R, :zero)
+        filter_function = dd -> filterBySphere(dd, 0.0u"kpc", DISK_R[], :zero)
 
         new_request = mergeRequests(
             base_request,
@@ -927,7 +940,7 @@ function selectFilter(
 
         # Select the cells/particles inside a cylinder centered at the origin with radius `DISK_R`
         # and half height `DISK_HEIGHT`. The cylinder axis is aligned with the z axis
-        filter_function = dd -> filterByCylinder(dd, DISK_R, DISK_HEIGHT, :zero)
+        filter_function = dd -> filterByCylinder(dd, DISK_R[], DISK_HEIGHT[], :zero)
 
         new_request = mergeRequests(
             base_request,

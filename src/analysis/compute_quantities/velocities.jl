@@ -31,7 +31,7 @@ function computeVcm(
     # Check for missing data
     if any(isempty, [velocities, masses])
 
-        logging[] && @warn("computeVcm: The velocities or masses are empty, so I will return 0s")
+        LOGGING[] && @warn("computeVcm: The velocities or masses are empty, so I will return 0s")
 
         return zeros(typeof(1.0u"km * s^-1"), 3)
 
@@ -85,7 +85,7 @@ function computeVcirc(
     # Check for missing data
     if isempty(rs)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeVcirc: The radial distances are empty, so I will return empty arrays")
         )
         return rs, Unitful.Velocity[]
@@ -327,7 +327,7 @@ function computeTotalAngularMomentum(
     # Check for missing data
     if any(isempty, [positions, velocities, masses])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeTotalAngularMomentum: The angular momentum of an empty dataset is \
             not defined, so I will return the z axis, [0.0, 0.0, 1.0]")
         )
@@ -407,7 +407,7 @@ is the circular velocity.
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
-  - `R::Unitful.Length=DISK_R`: Characteristic radius.
+  - `R::Unitful.Length=DISK_R[]`: Characteristic radius.
 
 # Returns
 
@@ -425,7 +425,7 @@ function computeSpinParameter(
     positions::Matrix{<:Unitful.Length},
     velocities::Matrix{<:Unitful.Velocity},
     masses::Vector{<:Unitful.Mass};
-    R::Unitful.Length=DISK_R,
+    R::Unitful.Length=DISK_R[],
 )::Float64
 
     (
@@ -448,7 +448,7 @@ function computeSpinParameter(
 
     if iszero(M)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeSpinParameter: The total mass within radius $(R) is 0, so \
             the spin parameter will be NaN")
         )
@@ -568,7 +568,7 @@ function computeVcm(
     # If there are no subfind data, return 0s
     if !isSubfindActive(data_dict[:gc_data].path)
 
-        logging[] && @warn("computeVcm: There is no subfind data, so I will return 0s")
+        LOGGING[] && @warn("computeVcm: There is no subfind data, so I will return 0s")
 
         return zeros(typeof(1.0u"km * s^-1"), 3)
 
@@ -584,7 +584,7 @@ function computeVcm(
 
     if iszero(n_halos) || any(isempty, [n_subhalos_in_halo, g_vel, s_vel])
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeVcm: There are no halos in $(data_dict[:gc_data].path), \
             so I will return 0s")
         )
@@ -605,7 +605,7 @@ function computeVcm(
 
     if iszero(n_subfinds)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeVcm: There are 0 subhalos in the FoF group $(halo_idx) from \
             $(data_dict[:gc_data].path), so the velocity will be the halo velocity")
         )
@@ -656,7 +656,7 @@ function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Vel
     # If there are no subfind data, return 0s
     if !isSubfindActive(data_dict[:gc_data].path)
 
-        logging[] && @warn("computeVcm: There is no subfind data, so I will return 0s")
+        LOGGING[] && @warn("computeVcm: There is no subfind data, so I will return 0s")
 
         return zeros(typeof(1.0u"km * s^-1"), 3)
 
@@ -669,7 +669,7 @@ function computeVcm(data_dict::Dict, subhalo_abs_idx::Int)::Vector{<:Unitful.Vel
 
     if iszero(n_subgroups_total) || isempty(s_vel)
         (
-            logging[] &&
+            LOGGING[] &&
             @warn("computeVcm: There are no subhalos in $(data_dict[:gc_data].path), \
             so I will return 0s")
         )
@@ -736,7 +736,7 @@ function computeVcm(data_dict::Dict, cm_type::Symbol)::Vector{<:Unitful.Velocity
 
         if any(isempty, [velocities, masses])
             (
-                logging[] &&
+                LOGGING[] &&
                 @warn("computeVcm: The velocities or masses are empty, so I will return 0s")
             )
             return zeros(typeof(1.0u"km * s^-1"), 3)
@@ -793,7 +793,7 @@ function computeVcirc(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeVcirc: `component` can only be one of the elements of \
-        `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
@@ -827,7 +827,7 @@ function computeVcirc(
         append!(masses, mass_data)
     end
 
-    logging[] && @info("computeVcirc: The circular velocity will be computed using $(snap_types)")
+    LOGGING[] && @info("computeVcirc: The circular velocity will be computed using $(snap_types)")
 
     return computeVcirc(distances, masses, rs)
 
@@ -887,7 +887,7 @@ function computeVpolar(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeVpolar: `component` can only be one of the elements of \
-        `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
@@ -934,7 +934,7 @@ function computeSpecificAngularMomentum(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeSpecificAngularMomentum: `component` can only be one of the \
-        elements of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        elements of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
@@ -980,7 +980,7 @@ function computeAngularMomentum(
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeAngularMomentum: `component` can only be one of the elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
@@ -1032,7 +1032,7 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
     masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
     (
-        logging[] &&
+        LOGGING[] &&
         @info("computeGlobalAngularMomentum: The angular momentum will be computed using \
         $(components)")
     )
@@ -1042,7 +1042,11 @@ function computeGlobalAngularMomentum(data_dict::Dict; normal::Bool=true)::Vecto
 end
 
 @doc raw"""
-    computeSpinParameter(data_dict::Dict, component::Symbol; <keyword arguments>)::Float64
+    computeSpinParameter(
+        data_dict::Dict,
+        component::Symbol;
+        <keyword arguments>
+    )::Float64
 
 Compute the spin parameter of the given component, with respect to the origin
 
@@ -1081,7 +1085,7 @@ is the circular velocity.
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `R::Unitful.Length=DISK_R`: Characteristic radius.
+  - `R::Unitful.Length=DISK_R[]`: Characteristic radius.
 
 # Returns
 
@@ -1095,11 +1099,15 @@ J. S. Bullock et al. (2001). *A Universal Angular Momentum Profile for Galactic 
 
 J. Zjupa et al. (2017). *Angular momentum properties of haloes and their baryon content in the Illustris simulation*. Monthly Notices of the Royal Astronomical Society, **466(2)**, 1625–1647. [doi:10.1093/mnras/stw2945](https://doi.org/10.1093/mnras/stw2945)
 """
-function computeSpinParameter(data_dict::Dict, component::Symbol; R::Unitful.Length=DISK_R)::Float64
+function computeSpinParameter(
+    data_dict::Dict,
+    component::Symbol;
+    R::Unitful.Length=DISK_R[],
+)::Float64
 
     if component ∉ COMPONENTS
         throw(ArgumentError("computeSpinParameter: `component` can only be one of the elements \
-        of `COMPONENTS` (see `./src/constants/globals.jl`), but I got :$(component)"))
+        of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
@@ -1159,7 +1167,7 @@ is the circular velocity.
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `R::Unitful.Length=DISK_R`: Characteristic radius.
+  - `R::Unitful.Length=DISK_R[]`: Characteristic radius.
 
 # Returns
 
@@ -1173,7 +1181,7 @@ J. S. Bullock et al. (2001). *A Universal Angular Momentum Profile for Galactic 
 
 J. Zjupa et al. (2017). *Angular momentum properties of haloes and their baryon content in the Illustris simulation*. Monthly Notices of the Royal Astronomical Society, **466(2)**, 1625–1647. [doi:10.1093/mnras/stw2945](https://doi.org/10.1093/mnras/stw2945)
 """
-function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R)::Float64
+function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R[])::Float64
 
     snap_types = snapshotTypes(data_dict)
 
@@ -1185,7 +1193,7 @@ function computeGlobalSpinParameter(data_dict::Dict; R::Unitful.Length=DISK_R)::
     masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
     (
-        logging[] &&
+        LOGGING[] &&
         @info("computeGlobalSpinParameter: The spin parameter will be computed using $(snap_types)")
     )
 

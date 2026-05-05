@@ -1,6 +1,6 @@
 # Data analysis functions
 
-These functions are used internally and none are exported. 
+These functions are used internally and none are exported.
 
 They may depend on the particulars of the simulation code (e.g. internal units).
 
@@ -19,9 +19,9 @@ where:
 
 A data analysis functions for the [pipeline](https://ezequiel92.github.io/GalaxyInspector/dev/api/plotting/pipelines/) [`plotSnapshot`](@ref) must take a dictionary with the following shape:
 
-  + `:sim_data`          -> `::Simulation` (see [`Simulation`](https://ezequiel92.github.io/GalaxyInspector/dev/api/constants/globals/#GalaxyInspector.Simulation)).
-  + `:snap_data`         -> `::Snapshot` (see [`Snapshot`](https://ezequiel92.github.io/GalaxyInspector/dev/api/constants/globals/#GalaxyInspector.Snapshot)).
-  + `:gc_data`           -> `::GroupCatalog` (see [`GroupCatalog`](https://ezequiel92.github.io/GalaxyInspector/dev/api/constants/globals/#GalaxyInspector.GroupCatalog)).
+  + `:sim_data`          -> `::Simulation` (see [`Simulation`](https://ezequiel92.github.io/GalaxyInspector/dev/api/globals/globals/#GalaxyInspector.Simulation)).
+  + `:snap_data`         -> `::Snapshot` (see [`Snapshot`](https://ezequiel92.github.io/GalaxyInspector/dev/api/globals/globals/#GalaxyInspector.Snapshot)).
+  + `:gc_data`           -> `::GroupCatalog` (see [`GroupCatalog`](https://ezequiel92.github.io/GalaxyInspector/dev/api/globals/globals/#GalaxyInspector.GroupCatalog)).
   + `cell/particle type` -> (`block name` -> data for `block name`, `block name` -> data of `block name`, ...).
   + `cell/particle type` -> (`block name` -> data for `block name`, `block name` -> data of `block name`, ...).
   + `cell/particle type` -> (`block name` -> data for `block name`, `block name` -> data of `block name`, ...).
@@ -41,11 +41,11 @@ and return one or more vectors or matrices with the processed data (see [`plotSn
 
 where:
 
-  - `sim_data::Simulation`, see [`Simulation`](https://ezequiel92.github.io/GalaxyInspector/dev/api/constants/globals/#GalaxyInspector.Simulation)
+  - `sim_data::Simulation`, see [`Simulation`](https://ezequiel92.github.io/GalaxyInspector/dev/api/globals/globals/#GalaxyInspector.Simulation)
   - `processed_data_x::Vector{<:Number}`
   - `processed_data_y::Vector{<:Number}`
 
-A data analysis functions for the [pipeline](https://ezequiel92.github.io/GalaxyInspector/dev/api/plotting/pipelines/) [`plotTimeSeries`](@ref) must take a [`Simulation`](https://ezequiel92.github.io/GalaxyInspector/dev/api/constants/globals/#GalaxyInspector.Simulation) struct, and return two vectors. It should return `nothing` if the input data has some problem that prevents computation (e.g. is empty).
+A data analysis functions for the [pipeline](https://ezequiel92.github.io/GalaxyInspector/dev/api/plotting/pipelines/) [`plotTimeSeries`](@ref) must take a [`Simulation`](https://ezequiel92.github.io/GalaxyInspector/dev/api/globals/globals/#GalaxyInspector.Simulation) struct, and return two vectors. It should return `nothing` if the input data has some problem that prevents computation (e.g. is empty).
 
 ---
 
