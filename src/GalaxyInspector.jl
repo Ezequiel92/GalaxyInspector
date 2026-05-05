@@ -143,6 +143,9 @@ function __init__()
 
     loadConfig!()
 
+    # Create the folder for memory mapping if it does not exist already
+    mkpath(MMAP_PATH)
+
     # Delete any existing memory-mapped files in the MMAP_PATH directory
     rm.(readdir(MMAP_PATH; join=true); force=true, recursive=true)
 
