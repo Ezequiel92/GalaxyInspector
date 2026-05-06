@@ -20,7 +20,7 @@ const ILLUSTRIS_V_UNIT = 1.0e5u"cm * s^-1"
 @doc raw"""
 Solar abundances.
 
-They are defined as $12 + \log_{10}(N_\mathrm{X} / N_\mathrm{H})$, where $N_\mathrm{X}$ and $N_\mathrm{H}$ are the number densities of element $\mathrm{X}$ and hydrogen respectively.
+These are defined as $12 + \log_{10}(N_\mathrm{X} / N_\mathrm{H})$, where $N_\mathrm{X}$ and $N_\mathrm{H}$ are the number densities of element $\mathrm{X}$ and hydrogen respectively.
 
 # References
 
