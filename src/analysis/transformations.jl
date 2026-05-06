@@ -316,7 +316,8 @@ function selectTransformation(
     elseif group == :halo
 
         translation     = (1, 0)
-        filter_function = dd->filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=0)
+        # To align the bar with the x axis, we only consider a small fraction of component
+        filter_function = dd->filterBySphere(dd, 0.0u"kpc", ROTATION_R[], :zero)
         new_request     = mergeRequests(
             base_request,
             pa_request,
@@ -329,7 +330,8 @@ function selectTransformation(
     elseif group == :subhalo
 
         translation     = (1, 1)
-        filter_function = dd->filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
+        # To align the bar with the x axis, we only consider a small fraction of component
+        filter_function = dd->filterBySphere(dd, 0.0u"kpc", ROTATION_R[], :zero)
         new_request     = mergeRequests(
             base_request,
             pa_request,

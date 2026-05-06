@@ -125,31 +125,52 @@ function computePARotationMatrix(
 
     # Check for missing data
     if N < 2
-        (
-            LOGGING[] &&
-            @warn("computePARotationMatrix: I got less than two valid positions. I cannot compute \
-            the principal axis, so I will return the identity matrix")
-        )
+        LOGGING[] && @warn("computePARotationMatrix: Less than two valid positions. Returning I.")
         return I
     end
 
-    pos = ustrip(positions)
+    pos  = ustrip(positions)
+    mass = ustrip.(masses)
 
-    # Compute the mean vector μ = (1/N) Σ X_i
-    μ = mean(pos, dims=2)
+    M_tot = sum(mass)
 
-    # Compute the scatter matrix (X * X')
-    scatter_buf = Matrix{Float64}(undef, 3, 3)
-    mul!(scatter_buf, pos, pos')
-
-    # Compute the covariance matrix (principal axis operator)
-    R = (scatter_buf .- (N .* (μ * μ'))) ./ (N - 1)
+    # ==========================================================================
+    # Compute the mass-weighted covariance matrix (Inertia tensor)
+    # https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+    # ==========================================================================
+    # We compute the mass-weighted covariance matrix, which is physically
+    # equivalent to the moment of inertia tensor (up to a trace subtraction,
+    # though both share the same principal axes).
+    #
+    # Let X be the 3×N position matrix and M be a diagonal matrix of masses,
+    # we are calculating R = (X * M * X') / M_tot.
+    #
+    # Each element R[j,k] represents the mass-weighted covariance between
+    # dimension j and dimension k:
+    #
+    #   R_jk = [ Σ (M_i * X_ji * X_ki) ] / Σ M_i
+    #
+    # The eigenvectors of this matrix define the orthogonal coordinate system
+    # that aligns with the galaxy's morphology:
+    #   - The major axis (highest eigenvalue): The direction of maximum
+    #     elongation.
+    #   - The minor axis (lowest eigenvalue): The direction of maximum
+    #     compression. For disc galaxies, this is the symmetry axis.
+    # ==========================================================================
+    R = zeros(Float64, 3, 3)
+    @inbounds for i in 1:N
+        for row in 1:3, col in 1:3
+            R[row, col] += mass[i] * pos[row, i] * pos[col, i]
+        end
+    end
+    R ./= M_tot
 
     # Compute the eigenvectors of the covariance matrix
+    # eigen() returns ascending eigenvalues: E[:,1] is the minor axis, E[:,3] is the major axis
     E = eigen(R).vectors
 
     # Reverse the order of the eigenvectors, making the last column the eigenvector
-    # with the largest eigenvalue, which should correspond to the new z axis
+    # with the lowest eigenvalue, which should correspond to the new z axis
     pa = hcat(E[:, 3], E[:, 2], E[:, 1])
 
     # Compute the total angular momentum
@@ -158,23 +179,34 @@ function computePARotationMatrix(
     # 3rd principal axis ≡ new z axis
     pa_z = pa[:, 3]
 
-    # Because L and pa_z are both normalized, dot(L, pa_z) = cos(θ) directly
-    θ = acos(clamp(dot(L, pa_z), -1.0, 1.0))
+    # Align principal z-axis with the angular momentum
+    # L and pa_z are both normalized so dot(L, pa_z) = cos(θ)
+    cos_θ = dot(L, pa_z)
 
-    n_cross = cross(pa_z, L)
-    n_norm = norm(n_cross)
-
-    # We still must normalize n_cross because its length is sin(θ), not 1.
-    if n_norm < 1e-8
+    # Check for anti-parallel alignment
+    if cos_θ < -0.999999
+        # Flip the z-axis and y-axis to maintain right-handedness
+        pa[:, 3] = -pa[:, 3]
+        pa[:, 2] = -pa[:, 2]
         aligned_pa = pa
     else
-        n = n_cross / n_norm
-        aligned_pa = AngleAxis(θ, n...) * pa
+        θ = acos(clamp(cos_θ, -1.0, 1.0))
+        n_cross = cross(pa_z, L)
+        n_norm = norm(n_cross)
+
+        # We still must normalize n_cross because its length is sin(θ), not 1
+        if n_norm < 1e-8
+            aligned_pa = pa
+        else
+            n = n_cross ./ n_norm
+            aligned_pa = AngleAxis(θ, n...) * pa
+        end
     end
 
     # The rotation matrix has the principal axis as rows
     rotation_matrix = aligned_pa'
 
+    # Handedness check
     if det(rotation_matrix) < 0.0
         # If the determinant is < 0, that means that the chosen principal axis for the x and y
         # directions form a left-handed Cartesian reference system (x × y = -z). When applying

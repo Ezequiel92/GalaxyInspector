@@ -59,6 +59,11 @@ Characteristic stellar age for the SFR and sSFR.
 """
 const AGE_RESOLUTION = Ref(200.0u"Myr")
 
+"""
+Characteristic radius for rotations.
+"""
+const ROTATION_R = Ref(10.0u"kpc")
+
 #############
 # Abundances
 #############
@@ -261,6 +266,7 @@ const CONFIG_SCHEMA = Dict{String,Tuple{Any,Function}}(
     "galaxy.disk_height"      => (DISK_HEIGHT,          parseUnitful),
     "galaxy.box_l"            => (BOX_L,                parseUnitful),
     "galaxy.age_resolution"   => (AGE_RESOLUTION,       parseUnitful),
+    "galaxy.rotation_r"       => (ROTATION_R,           parseUnitful),
     "abundances"              => (ABUNDANCE_SHIFT,      parseAbundanceShift),
     "arepo.snap_basename"     => (SNAP_BASENAME,        string),
     "arepo.gc_basename"       => (GC_BASENAME,          string),
