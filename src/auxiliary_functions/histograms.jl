@@ -1,5 +1,183 @@
 ####################################################################################################
-# 1D histogram utilities
+# Profiles
+####################################################################################################
+
+"""
+    computeProfile(
+        positions::Matrix{<:Unitful.Length},
+        quantity::Vector{<:Number},
+        grid::LinearGrid;
+        <keyword arguments>
+    )::Vector{<:Number}
+
+Compute a profile of `quantity`, using an 1D histogram.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `quantity::Vector{<:Number}`: The profile will be of this quantity.
+  - `grid::LinearGrid`: Linear grid.
+  - `norm::Vector{<:Number}=Number[]`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`.
+  - `norm_positions::Matrix{<:Unitful.Length}=Matrix{Unitful.Length}(undef, 0, 0)`: Positions of the values of `norm`. Each column is a cell/particle and each row a dimension. If empty, the positions of `quantity` will be used.
+  - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
+  - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
+  - `cumulative::Bool=false`: If the profile will be accumulated.
+  - `density::Bool=false`: If the profile will be of the density of `quantity`.
+  - `empty_nan::Bool=true`: If empty bins will be set to NaN. 0 is used otherwise. Notice that if `empty_nan` = true and `cumulative` = true, every bin after the first NaN will be set to NaN.
+
+# Returns
+
+  - Vector with the values of the profile.
+"""
+function computeProfile(
+    positions::Matrix{<:Unitful.Length},
+    quantity::Vector{<:Number},
+    grid::LinearGrid;
+    norm::Vector{<:Number}=Number[],
+    norm_positions::Matrix{<:Unitful.Length}=Matrix{Unitful.Length}(undef, 0, 0),
+    flat::Bool=true,
+    total::Bool=true,
+    cumulative::Bool=false,
+    density::Bool=false,
+    empty_nan::Bool=true,
+)::Vector{<:Number}
+
+    if isempty(quantity)
+        (
+            LOGGING[] &&
+            @warn("computeProfile: `quantity` is empty. The profile will be filled with NaNs")
+        )
+        return fill(NaN, grid.n_bins)
+    end
+
+    # Compute the histogram of `quantity`
+    if isempty(norm)
+
+        # Compute the distances of the cells/particles to the origin of the grid
+        if flat
+            distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
+        else
+            distances = colwise(Euclidean(), positions, grid.origin)
+        end
+
+        profile = histogram1D(distances, quantity, grid; total, empty_nan)
+
+    else
+
+        if isempty(norm_positions)
+            norm_positions = positions
+        end
+
+        # Compute the distances of the cells/particles to the origin of the grid
+        if flat
+            distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
+            norm_distances = colwise(Euclidean(), norm_positions[1:2, :], grid.origin[1:2])
+        else
+            distances = colwise(Euclidean(), positions, grid.origin)
+            norm_distances = colwise(Euclidean(), norm_positions[1:2, :], grid.origin[1:2])
+        end
+
+        quantity_histogram = histogram1D(distances, quantity, grid; total, empty_nan)
+        norm_histogram = histogram1D(norm_distances, norm, grid; total, empty_nan=false)
+
+        replace!(x -> iszero(x) ? oneunit(x) : x, norm_histogram)
+
+        profile = quantity_histogram ./ norm_histogram
+
+    end
+
+    region = flat ? grid.bin_size_2D : grid.bin_size_3D
+
+    if cumulative
+        return density ? cumsum(profile) ./ cumsum(region) : cumsum(profile)
+    end
+
+    return density ? profile ./ region : profile
+
+end
+
+"""
+    computeBandProfile(
+        positions::Matrix{<:Unitful.Length},
+        quantity::Vector{<:Number},
+        grid::LinearGrid;
+        <keyword arguments>
+    )::NTuple{3,Vector{<:Number}}
+
+Compute a profile of `quantity`, using an 1D histogram and three given aggregator functions.
+
+Each aggregator functions with the signature:
+
+    `agg_func(::Vector{<:Number}) -> ::Number`
+
+will be used to accumulate the values of `quantity` within each bin.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `quantity::Vector{<:Number}`: The profile will be of this quantity.
+  - `grid::LinearGrid`: Linear grid.
+  - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
+  - `density::Bool=false`: If the profile will be of the density of `quantity`.
+  - `center_func::Function=x->quantile(x, 0.5)`: Aggregator function for the central value.
+  - `low_func::Function=x->quantile(x, 0.25)`: Aggregator function for the low value.
+  - `high_func::Function=x->quantile(x, 0.75)`: Aggregator function for the high value.
+
+# Returns
+
+  - A tuple with three elements:
+
+      + A vector with the central value for each bin.
+      + A vector with the low value for each bin.
+      + A vector with the high value for each bin.
+"""
+function computeBandProfile(
+    positions::Matrix{<:Unitful.Length},
+    quantity::Vector{<:Number},
+    grid::LinearGrid;
+    flat::Bool=true,
+    density::Bool=false,
+    center_func::Function=x->quantile(x, 0.5),
+    low_func::Function=x->quantile(x, 0.25),
+    high_func::Function=x->quantile(x, 0.75),
+)::NTuple{3,Vector{<:Number}}
+
+    if isempty(quantity)
+        (
+            LOGGING[] &&
+            @warn("computeBandProfile: `quantity` is empty. The profile will be filled with NaNs")
+        )
+        return fill(NaN, grid.n_bins)
+    end
+
+    # Compute the distances of the cells/particles to the origin of the grid
+    if flat
+        distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
+    else
+        distances = colwise(Euclidean(), positions, grid.origin)
+    end
+
+    # Compute the histogram of `quantity`
+    histogram = listHistogram1D(distances, quantity, grid)
+
+    region = flat ? grid.bin_size_2D : grid.bin_size_3D
+
+    if density
+        center = center_func.(histogram) ./ region
+        low    = low_func.(histogram) ./ region
+        high   = high_func.(histogram) ./ region
+    else
+        center = center_func.(histogram)
+        low    = low_func.(histogram)
+        high   = high_func.(histogram)
+    end
+
+    return center, low, high
+
+end
+
+####################################################################################################
+# 1D histograms
 ####################################################################################################
 
 """
@@ -302,7 +480,7 @@ function histogram1D(
 end
 
 ####################################################################################################
-# 2D histogram utilities
+# 2D histograms
 ####################################################################################################
 
 """
@@ -599,7 +777,7 @@ function findIn2DGrid(
 end
 
 ####################################################################################################
-# 3D histogram utilities
+# 3D histograms
 ####################################################################################################
 
 """
@@ -838,6 +1016,7 @@ function histogram3D(
     end
 
     if empty_nan
+        println("BIEN")
         # Set empty bins to NaN
         nan = NaN * unit(first(values))
         Threads.@threads for i in eachindex(histogram)
@@ -857,183 +1036,5 @@ function histogram3D(
     end
 
     return histogram
-
-end
-
-####################################################################################################
-# Histogram utilities
-####################################################################################################
-
-"""
-    computeProfile(
-        positions::Matrix{<:Unitful.Length},
-        quantity::Vector{<:Number},
-        grid::LinearGrid;
-        <keyword arguments>
-    )::Vector{<:Number}
-
-Compute a profile of `quantity`, using an 1D histogram.
-
-# Arguments
-
-  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `quantity::Vector{<:Number}`: The profile will be of this quantity.
-  - `grid::LinearGrid`: Linear grid.
-  - `norm::Vector{<:Number}=Number[]`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`.
-  - `norm_positions::Matrix{<:Unitful.Length}=Matrix{Unitful.Length}(undef, 0, 0)`: Positions of the values of `norm`. Each column is a cell/particle and each row a dimension. If empty, the positions of `quantity` will be used.
-  - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
-  - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin.
-  - `cumulative::Bool=false`: If the profile will be accumulated.
-  - `density::Bool=false`: If the profile will be of the density of `quantity`.
-  - `empty_nan::Bool=true`: If empty bins will be set to NaN. 0 is used otherwise. Notice that if `empty_nan` = true and `cumulative` = true, every bin after the first NaN will be set to NaN.
-
-# Returns
-
-  - Vector with the values of the profile.
-"""
-function computeProfile(
-    positions::Matrix{<:Unitful.Length},
-    quantity::Vector{<:Number},
-    grid::LinearGrid;
-    norm::Vector{<:Number}=Number[],
-    norm_positions::Matrix{<:Unitful.Length}=Matrix{Unitful.Length}(undef, 0, 0),
-    flat::Bool=true,
-    total::Bool=true,
-    cumulative::Bool=false,
-    density::Bool=false,
-    empty_nan::Bool=true,
-)::Vector{<:Number}
-
-    if isempty(quantity)
-        (
-            LOGGING[] &&
-            @warn("computeProfile: `quantity` is empty. The profile will be filled with NaNs")
-        )
-        return fill(NaN, grid.n_bins)
-    end
-
-    # Compute the histogram of `quantity`
-    if isempty(norm)
-
-        # Compute the distances of the cells/particles to the origin of the grid
-        if flat
-            distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
-        else
-            distances = colwise(Euclidean(), positions, grid.origin)
-        end
-
-        profile = histogram1D(distances, quantity, grid; total, empty_nan)
-
-    else
-
-        if isempty(norm_positions)
-            norm_positions = positions
-        end
-
-        # Compute the distances of the cells/particles to the origin of the grid
-        if flat
-            distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
-            norm_distances = colwise(Euclidean(), norm_positions[1:2, :], grid.origin[1:2])
-        else
-            distances = colwise(Euclidean(), positions, grid.origin)
-            norm_distances = colwise(Euclidean(), norm_positions[1:2, :], grid.origin[1:2])
-        end
-
-        quantity_histogram = histogram1D(distances, quantity, grid; total, empty_nan)
-        norm_histogram = histogram1D(norm_distances, norm, grid; total, empty_nan=false)
-
-        replace!(x -> iszero(x) ? oneunit(x) : x, norm_histogram)
-
-        profile = quantity_histogram ./ norm_histogram
-
-    end
-
-    region = flat ? grid.bin_size_2D : grid.bin_size_3D
-
-    if cumulative
-        return density ? cumsum(profile) ./ cumsum(region) : cumsum(profile)
-    end
-
-    return density ? profile ./ region : profile
-
-end
-
-"""
-    computeBandProfile(
-        positions::Matrix{<:Unitful.Length},
-        quantity::Vector{<:Number},
-        grid::LinearGrid;
-        <keyword arguments>
-    )::NTuple{3,Vector{<:Number}}
-
-Compute a profile of `quantity`, using an 1D histogram and three given aggregator functions.
-
-Each aggregator functions with the signature:
-
-    `agg_func(::Vector{<:Number}) -> ::Number`
-
-will be used to accumulate the values of `quantity` within each bin.
-
-# Arguments
-
-  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `quantity::Vector{<:Number}`: The profile will be of this quantity.
-  - `grid::LinearGrid`: Linear grid.
-  - `flat::Bool=true`: If the profile will be 2D, using rings, or 3D, using spherical shells.
-  - `density::Bool=false`: If the profile will be of the density of `quantity`.
-  - `center_func::Function=x->quantile(x, 0.5)`: Aggregator function for the central value.
-  - `low_func::Function=x->quantile(x, 0.25)`: Aggregator function for the low value.
-  - `high_func::Function=x->quantile(x, 0.75)`: Aggregator function for the high value.
-
-# Returns
-
-  - A tuple with three elements:
-
-      + A vector with the central value for each bin.
-      + A vector with the low value for each bin.
-      + A vector with the high value for each bin.
-"""
-function computeBandProfile(
-    positions::Matrix{<:Unitful.Length},
-    quantity::Vector{<:Number},
-    grid::LinearGrid;
-    flat::Bool=true,
-    density::Bool=false,
-    center_func::Function=x->quantile(x, 0.5),
-    low_func::Function=x->quantile(x, 0.25),
-    high_func::Function=x->quantile(x, 0.75),
-)::NTuple{3,Vector{<:Number}}
-
-    if isempty(quantity)
-        (
-            LOGGING[] &&
-            @warn("computeBandProfile: `quantity` is empty. The profile will be filled with NaNs")
-        )
-        return fill(NaN, grid.n_bins)
-    end
-
-    # Compute the distances of the cells/particles to the origin of the grid
-    if flat
-        distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
-    else
-        distances = colwise(Euclidean(), positions, grid.origin)
-    end
-
-    # Compute the histogram of `quantity`
-    histogram = listHistogram1D(distances, quantity, grid)
-
-    region = flat ? grid.bin_size_2D : grid.bin_size_3D
-
-    if density
-        center = center_func.(histogram) ./ region
-        low    = low_func.(histogram) ./ region
-        high   = high_func.(histogram) ./ region
-    else
-        center = center_func.(histogram)
-        low    = low_func.(histogram)
-        high   = high_func.(histogram)
-    end
-
-    return center, low, high
 
 end

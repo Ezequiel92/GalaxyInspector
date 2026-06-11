@@ -2,6 +2,10 @@
 # Auxiliary functions
 ####################################################################################################
 
+###################
+# Overload methods
+###################
+
 """
 Return a copy of `list` with every negative value set to 0.
 """
@@ -115,6 +119,10 @@ function Unitful.showrep(io::IO, x::Unitful.Unit{:AstronomicalUnit,Unitful.𝐋}
 
 end
 
+####################
+# Auxiliary methods
+####################
+
 """
 Area of a circle with radius `r`.
 """
@@ -159,85 +167,6 @@ Always returns an empty vector, for any type and number of arguments.
 getEmpty(x...; y...)::Vector = []
 
 """
-    metaFormatter(level::LogLevel, _module, group, id, file, line)
-
-Formatter for loggers.
-
-See the documentation of [ConsoleLogger](https://docs.julialang.org/en/v1/stdlib/Logging/#Base.CoreLogging.ConsoleLogger)
-"""
-function metaFormatter(level::LogLevel, _module, group, id, file, line)
-
-    @nospecialize
-
-    color = Logging.default_logcolor(level)
-    prefix = string(level == Warn ? "Warning" : string(level), " |")
-    suffix::String = ""
-
-    if file !== nothing
-        suffix *= contractuser(file)::String
-        if line !== nothing
-            suffix *= ":$(isa(line, UnitRange) ? "$(first(line))-$(last(line))" : line)"
-        end
-    end
-
-    if !isempty(suffix)
-        suffix = "@ " * suffix * "\n"
-    else
-        suffix *= "\n"
-    end
-
-    return color, prefix, suffix
-
-end
-
-"""
-    setLogging(log_file::String)::IO
-
-Set if logging messages will be printed out. By default no logs are printed.
-
-# Arguments
-
-  - `log_file::String`: The path to the log file.
-
-# Returns
-
-  - The IO stream to which the logger is writing.
-"""
-function setLogging(log_file::String)::IO
-
-    isempty(log_file) && throw(ArgumentError("parseLogging: `log_file` cannot be empty"))
-
-    directory = dirname(log_file)
-
-    if isempty(directory)
-
-        # If the directory is empty, the log file will be created in the current working directory
-        stream = open(joinpath(pwd(), log_file), "w+")
-
-    else
-
-        # Create the directory for the log file if it does not exist
-        mkpath(directory)
-
-        # Open the log file for writing
-        stream = open(log_file, "w+")
-
-    end
-
-    # Set the global logger to a ConsoleLogger that writes to the log file with a custom formatter
-    global_logger(ConsoleLogger(stream; meta_formatter=metaFormatter))
-
-    # Set the global variable for the log stream, so that it can be used in other functions to write custom messages to the log file.
-    LOG_STREAM[] = stream
-
-    # Enable logging messages
-    LOGGING[] = true
-
-    return stream
-
-end
-
-"""
     ring(vec::Vector, index::Integer)::Vector
 
 Make the indexing operation `vec[index]` work with modular arithmetic for the indices.
@@ -267,25 +196,43 @@ julia> ring([1, 2, 3], -5)
 ring(vec::Vector, index::Integer) = vec[mod1(index, length(vec))]
 
 """
-    parserWS(value::AbstractString)::Union{Float64,Missing}
+    parseString(s::AbstractString; <keyword arguments>)::Union{Float64,Missing}
 
-Parse a string as a Float64, ignoring white spaces. If the string is empty return missing.
+Parse a string as a Float64, ignoring white spaces.
 
 # Arguments
 
-  - `value::AbstractString`: String to be parsed.
+  - `s::AbstractString`: String to be parsed.
+  - `empty::Symbol=:missing`: Return value if the string is empty. It can be either :missing or :nan.
 
 # Returns
 
   - Number in the string as a Float64.
 """
-function parserWS(value::AbstractString)::Union{Float64,Missing}
+function parseString(s::AbstractString; empty::Symbol=:missing)::Union{Float64,Missing}
 
-    clean_value = strip(value)
+    tight_string = strip(s)
 
-    !isempty(clean_value) || return missing
+    if isempty(tight_string)
 
-    return parse(Float64, clean_value)
+        if empty == :missing
+
+            return missing
+
+        elseif empty == :nan
+
+            return NaN
+
+        else
+
+            throw(ArgumentError("parseString: `empty` should be either :missing or :nan, \
+            but I got :$(empty)"))
+
+        end
+
+    end
+
+    return parse(Float64, tight_string)
 
 end
 
@@ -417,6 +364,142 @@ function safeSlice(vec::Vector, slice::IndexType)::Vector
 end
 
 """
+    metaFormatter(level::LogLevel, _module, group, id, file, line)
+
+Formatter for loggers.
+
+See the documentation of [ConsoleLogger](https://docs.julialang.org/en/v1/stdlib/Logging/#Base.CoreLogging.ConsoleLogger)
+"""
+function metaFormatter(level::LogLevel, _module, group, id, file, line)
+
+    @nospecialize
+
+    color = Logging.default_logcolor(level)
+    prefix = string(level == Warn ? "Warning" : string(level), " |")
+    suffix::String = ""
+
+    if file !== nothing
+        suffix *= contractuser(file)::String
+        if line !== nothing
+            suffix *= ":$(isa(line, UnitRange) ? "$(first(line))-$(last(line))" : line)"
+        end
+    end
+
+    if !isempty(suffix)
+        suffix = "@ " * suffix * "\n"
+    else
+        suffix *= "\n"
+    end
+
+    return color, prefix, suffix
+
+end
+
+"""
+    setLogging(log_file::String)::IO
+
+Set if logging messages will be printed out. By default no logs are printed.
+
+# Arguments
+
+  - `log_file::String`: The path to the log file.
+
+# Returns
+
+  - The IO stream to which the logger is writing.
+"""
+function setLogging(log_file::String)::IO
+
+    isempty(log_file) && throw(ArgumentError("parseLogging: `log_file` cannot be empty"))
+
+    directory = dirname(log_file)
+
+    if isempty(directory)
+
+        # If the directory is empty, the log file will be created in the current working directory
+        stream = open(joinpath(pwd(), log_file), "w+")
+
+    else
+
+        # Create the directory for the log file if it does not exist
+        mkpath(directory)
+
+        # Open the log file for writing
+        stream = open(log_file, "w+")
+
+    end
+
+    # Set the global logger to a ConsoleLogger that writes to the log file with a custom formatter
+    global_logger(ConsoleLogger(stream; meta_formatter=metaFormatter))
+
+    # Set the global variable for the log stream, so that it can be used in other functions to write custom messages to the log file.
+    LOG_STREAM[] = stream
+
+    # Enable logging messages
+    LOGGING[] = true
+
+    return stream
+
+end
+
+"""
+    loadConfig!(path::Union{Nothing,String}=nothing)::Nothing
+
+Load a TOML configuration file and apply the resulting runtime settings.
+
+# Arguments
+
+  - `path::Union{Nothing,String}=nothing`: The path to the TOML configuration file. If `nothing`, the file is assumed to be `config.toml` in the current working directory.
+"""
+function loadConfig!(path::Union{Nothing,String}=nothing)::Nothing
+
+    config_path = isnothing(path) ? joinpath(pwd(), "config.toml") : abspath(path)
+
+    if !isfile(config_path)
+        (
+            LOGGING[] && !isnothing(path) &&
+            @warn("loadConfig!: no config file found at `$(config_path)`, using all defaults")
+        )
+        return nothing
+    end
+
+    overrides = TOML.parsefile(config_path)
+
+    # Warn about unrecognised sections
+    known_sections = Set(first(split(k, ".")) for k in keys(CONFIG_SCHEMA))
+    for section in keys(overrides)
+        if section ∉ known_sections
+            (
+                LOGGING[] &&
+                @warn("loadConfig!: unknown config section `[$(section)]` in `$config_path`. \
+                I will ignore it")
+            )
+        end
+    end
+
+    # Apply overrides
+    for (dotkey, (ref, parser)) in CONFIG_SCHEMA
+        parts = split(dotkey, ".")
+
+        value = if length(parts) == 1
+            # Pass the entire sub-dict to the parser
+            get(overrides, parts[1], nothing)
+        else
+            # Drill into section and then the key
+            get(get(overrides, parts[1], Dict()), parts[2], nothing)
+        end
+
+        # If the value is not specified, skip it and keep the default
+        isnothing(value) && continue
+
+        ref[] = parser(value)
+    end
+
+    return nothing
+
+end
+
+"""
     evaluateNormal(values::Vector{<:Number})::Vector{<:Number}
 
 Evaluate a normal distribution at `values`.
@@ -438,493 +521,6 @@ function evaluateNormal(values::Vector{<:Number})::Vector{<:Number}
     d2 = @. (values - μ)^2
 
     return @. (1.0 / sqrt(σ2 * π)) * exp(-d2 / σ2)
-
-end
-
-"""
-    hvcatImages(
-        blocks_per_row::Int,
-        paths::Vector{String};
-        <keyword arguments>
-    )::Nothing
-
-Join several images vertically and horizontally.
-
-The images in `paths` will fill the rows and columns starting at the top left, going from left to right and from top to bottom (row-major order).
-
-# Arguments
-
-  - `blocks_per_row::Int`: Number of columns.
-  - `paths::Vector{String}`: Paths to the images.
-  - `output_path::String="./joined_images.png"`: Path to the output image.
-"""
-function hvcatImages(
-    blocks_per_row::Int,
-    paths::Vector{String};
-    output_path::String="./joined_images.png",
-)::Nothing
-
-    isempty(paths) && throw(ArgumentError("hvcatImages: `paths` is empty"))
-
-    new_image = hvcat(blocks_per_row, [load(path) for path in paths]...)
-
-    save(output_path, new_image)
-
-    return nothing
-
-end
-
-"""
-    rangeCut!(
-        raw_values::Vector{<:Number},
-        range::Tuple{<:Number,<:Number};
-        <keyword arguments>
-    )::Bool
-
-Delete every element in `raw_values` that is outside the given `range`.
-
-# Arguments
-
-  - `raw_values::Vector{<:Number}`: Dataset that will be pruned.
-  - `range::Tuple{<:Number,<:Number}`: The range in question.
-  - `keep_edges::Bool=true`: If the edges of the range will be kept.
-  - `min_left::Int=1`: Minimum number of values that need to be left after pruning to proceed with the transformation.
-
-# Returns
-
-  - If a transformation was performed.
-"""
-function rangeCut!(
-    raw_values::Vector{<:Number},
-    range::Tuple{<:Number,<:Number};
-    keep_edges::Bool=true,
-    min_left::Int=1,
-)::Bool
-
-    # Shortcut computation for special cases
-    !(isempty(raw_values) || all(isinf.(range))) || return false
-
-    if keep_edges
-
-        # Check that after the transformation at least `min_left` elements will be left
-        count(x -> range[1] <= x <= range[2], raw_values) >= min_left || return false
-
-        # Delete elements outside of the provided range
-        filter!(x -> range[1] <= x <= range[2], raw_values)
-
-    else
-
-        # Check that after the transformation at least `min_left` elements will be left
-        count(x -> range[1] < x < range[2], raw_values) >= min_left || return false
-
-        # Delete elements outside of the provided range
-        filter!(x -> range[1] < x < range[2], raw_values)
-
-    end
-
-    return true
-
-end
-
-"""
-    rangeCut!(
-        m_data::Vector{<:Number},
-        s_data::Vector,
-        range::Tuple{<:Number,<:Number};
-        <keyword arguments>
-    )::Bool
-
-Delete every element in `m_data` that is outside the given `range`.
-
-Every corresponding element in `s_data` (i.e. with the same index) will be deleted too.
-
-# Arguments
-
-  - `m_data::Vector{<:Number}`: Master dataset that will be pruned.
-  - `s_data::Vector`: Slave dataset that will be pruned according to which values of `m_data` are outside `range`.
-  - `range::Tuple{<:Number,<:Number}`: The range in question.
-  - `keep_edges::Bool=true`: If the edges of the range will be kept.
-  - `min_left::Int=1`: Minimum number of values that need to be left in the master dataset after pruning to proceed with the transformation.
-
-# Returns
-
-  - If a transformation was performed.
-"""
-function rangeCut!(
-    m_data::Vector{<:Number},
-    s_data::Vector,
-    range::Tuple{<:Number,<:Number};
-    keep_edges::Bool=true,
-    min_left::Int=1,
-)::Bool
-
-    # Shortcut computation for special cases
-    !(isempty(m_data) || all(isinf.(range))) || return false
-
-    (
-        length(s_data) >= length(m_data) ||
-        throw(ArgumentError("rangeCut!: `s_data` must have at least as many elements as `m_data`, \
-        but I got length(`s_data`) = $(length(s_data)) < length(`m_data`) = $(length(m_data))"))
-    )
-
-    if keep_edges
-
-        # Find the elements outside of the provided range
-        idxs = map(x -> x < range[1] || x > range[2], m_data)
-
-        # Check that after the transformation at least `min_left` elements will be left
-        count(.!idxs) >= min_left || return false
-
-        # Delete elements outside of the provided range
-        deleteat!(m_data, idxs)
-        deleteat!(s_data, idxs)
-
-    else
-
-        # Find the elements outside of the provided range
-        idxs = map(x -> x <= range[1] || x >= range[2], m_data)
-
-        # Check that after the transformation at least `min_left` elements will be left
-        count(.!idxs) >= min_left || return false
-
-        # Delete elements outside of the provided range
-        deleteat!(m_data, idxs)
-        deleteat!(s_data, idxs)
-
-    end
-
-    return true
-
-end
-
-"""
-    sanitizeData!(
-        raw_values::Vector{<:Number};
-        <keyword arguments>
-    )::NTuple{2,Bool}
-
-Do the following transformations over `raw_values`, in order:
-
-  - Trim it to fit within the domain of the function `func_domain`.
-  - Trim it to fit within `range`.
-  - Scale it down by a factor of 10^`exp_factor`.
-
-By default, no transformation is done.
-
-# Arguments
-
-  - `raw_values::Vector{<:Number}`: Dataset to be sanitized.
-  - `func_domain::Function=identity`: `raw_values` will be trimmed to fit within the domain of the function `func_domain`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `range::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Every element in `raw_values` that falls outside of `range` will be deleted.
-  - `keep_edges::Bool=true`: If the edges of `range` will be kept.
-  - `min_left::Int=1`: Minimum number of values that need to be left after each transformation to proceed with it.
-  - `exp_factor::Int=0`: Every element in `raw_values` will be divided by 10^`exp_factor`.
-
-# Returns
-
-  - A tuple with two flags:
-
-      + If `raw_values` was mutated to fit within the domain of `func_domain`.
-      + If `raw_values` was mutated to fit within `range`.
-"""
-function sanitizeData!(
-    raw_values::Vector{<:Number};
-    func_domain::Function=identity,
-    range::Tuple{<:Number,<:Number}=(-Inf, Inf),
-    keep_edges::Bool=true,
-    min_left::Int=1,
-    exp_factor::Int=0,
-)::NTuple{2,Bool}
-
-    !isempty(raw_values) || return false, false
-
-    d_unit = unit(first(raw_values))
-
-    # Trim `raw_values` to fit within the domain of `func_domain`
-    if func_domain ∈ [identity, Makie.pseudolog10, Makie.Symlog10]
-
-        domain_flag = false
-
-    elseif func_domain == sqrt
-
-        domain_flag = rangeCut!(raw_values, (0.0, Inf) .* d_unit; keep_edges=true, min_left)
-
-    elseif func_domain == Makie.logit
-
-        domain_flag = rangeCut!(raw_values, (0.0, 1.0) .* d_unit; keep_edges=false, min_left)
-
-    elseif func_domain ∈ [log, log2, log10]
-
-        domain_flag = rangeCut!(raw_values, (0.0, Inf) .* d_unit; keep_edges=false, min_left)
-
-    else
-
-        throw(ArgumentError("sanitizeData!: The function $(func_domain) is not supported. See \
-        the list of supported scaling functions in the [Makie](https://docs.makie.org/stable/) \
-        documentation"))
-
-    end
-
-    # Trim `raw_values` to fit within `range`
-    range_flag = rangeCut!(raw_values, range; keep_edges, min_left)
-
-    (
-        !(isa(raw_values, Vector{<:Integer}) && !iszero(exp_factor) && LOGGING[]) ||
-        @warn("sanitizeData!: Elements of `raw_values` are of type `Integer`, this may result \
-        in errors or unwanted truncation when using `exp_factor` != 0")
-    )
-
-    # Scale `raw_values` down by a factor of 10^`exp_factor`
-    iszero(exp_factor) || (raw_values ./= exp10(exp_factor))
-
-    return domain_flag, range_flag
-
-end
-
-"""
-    sanitizeData!(
-        x_data::Vector{<:Number},
-        y_data::Vector{<:Number};
-        <keyword arguments>
-    )::NTuple{4,Bool}
-
-Do the following transformations over `x_data` and `y_data`, in order:
-
-  - Trim them to fit within the domain of the functions `func_domain[1]` and `func_domain[2]`, respectively.
-  - Trim them to fit within `range[1]` and `range[2]`, respectively.
-  - Scale them down by a factor 10^`exp_factor[1]` and 10^`exp_factor[2]`, respectively.
-
-By default, no transformation is done.
-
-!!! note
-
-    The datasets must have the same length, and any operation that deletes an element, will delete the corresponding element (i.e. with the same index) in the other dataset, so that the datasets will remain of equal length.
-
-# Arguments
-
-  - `x_data::Vector{<:Number}`: First dataset to be sanitized.
-  - `y_data::Vector{<:Number}`: Second dataset to be sanitized.
-  - `func_domain::NTuple{2,Function}=(identity, identity)`: `x_data` will be trimmed to fit within the domain of the function `func_domain[1]`, and `y_data` will be trimmed to fit within the domain of the function `func_domain[2]`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
-  - `range::Tuple{Tuple{<:Number,<:Number},Tuple{<:Number,<:Number}}=((-Inf, Inf), (-Inf, Inf))`: Every element in `x_data` that falls outside of `range[1]` will be deleted, and every element in `y_data` that falls outside of `range[2]` will be deleted.
-  - `keep_edges::NTuple{2,Bool}=(true, true)`: If the edges of each corresponding `range` will be kept.
-  - `min_left::Int=1`: Minimum number of values that need to be left in each dataset after any of the transformations to proceed with them.
-  - `exp_factor::NTuple{2,Int}=(0, 0)`: Every element in `x_data` will be divided by 10^`exp_factor[1]`, and every element in `y_data` will be divided by 10^`exp_factor[2]`.
-
-# Returns
-
-  - A tuple with four flags:
-
-      + If `x_data` was mutated to fit within the domain of `func_domain[1]`.
-      + If `y_data` was mutated to fit within the domain of `func_domain[2]`.
-      + If `x_data` was mutated to fit within `range[1]`.
-      + If `y_data` was mutated to fit within `range[2]`.
-"""
-function sanitizeData!(
-    x_data::Vector{<:Number},
-    y_data::Vector{<:Number};
-    func_domain::NTuple{2,Function}=(identity, identity),
-    range::Tuple{Tuple{<:Number,<:Number},Tuple{<:Number,<:Number}}=((-Inf, Inf), (-Inf, Inf)),
-    keep_edges::NTuple{2,Bool}=(true, true),
-    min_left::Int=1,
-    exp_factor::NTuple{2,Int}=(0, 0),
-)::NTuple{4,Bool}
-
-    (
-        length(x_data) == length(y_data) ||
-        throw(ArgumentError("sanitizeData!: `x_data` and `y_data` must have the same length, \
-        but I got length(x_data) = $(length(x_data)) != length(y_data) = $(length(y_data))"))
-    )
-
-    x_unit = isempty(x_data) ? Unitful.NoUnits : unit(first(x_data))
-
-    # Trim the data to fit within the domain of `func_domain[1]`
-    if func_domain[1] ∈ [identity, Makie.pseudolog10, Makie.Symlog10]
-
-        x_domain_flag = false
-
-    elseif func_domain[1] == sqrt
-
-        x_domain_flag = rangeCut!(x_data, y_data, (0.0, Inf) .* x_unit; keep_edges=true, min_left)
-
-    elseif func_domain[1] == Makie.logit
-
-        x_domain_flag = rangeCut!(x_data, y_data, (0.0, 1.0) .* x_unit; keep_edges=false, min_left)
-
-    elseif func_domain[1] ∈ [log, log2, log10]
-
-        x_domain_flag = rangeCut!(x_data, y_data, (0.0, Inf) .* x_unit; keep_edges=false, min_left)
-
-    else
-
-        throw(ArgumentError("sanitizeData!: The function $(func_domain[1]) is not supported. See \
-        the list of supported scaling functions in the [Makie](https://docs.makie.org/stable/) \
-        documentation"))
-
-    end
-
-    y_unit = isempty(y_data) ? Unitful.NoUnits : unit(first(y_data))
-
-    # Trim the data to fit within the domain of `func_domain[2]`
-    if func_domain[2] ∈ [identity, Makie.pseudolog10, Makie.Symlog10]
-
-        y_domain_flag = false
-
-    elseif func_domain[2] == sqrt
-
-        y_domain_flag = rangeCut!(y_data, x_data, (0.0, Inf) .* y_unit; keep_edges=true, min_left)
-
-    elseif func_domain[2] == Makie.logit
-
-        y_domain_flag = rangeCut!(y_data, x_data, (0.0, 1.0) .* y_unit; keep_edges=false, min_left)
-
-    elseif func_domain[2] ∈ [log, log2, log10]
-
-        y_domain_flag = rangeCut!(y_data, x_data, (0.0, Inf) .* y_unit; keep_edges=false, min_left)
-
-    else
-
-        throw(ArgumentError("sanitizeData!: The function $(func_domain[2]) is not supported. See \
-        the list of supported scaling functions in the [Makie](https://docs.makie.org/stable/) \
-        documentation"))
-
-    end
-
-    # Trim data to fit within `range[1]`
-    x_range_flag = rangeCut!(x_data, y_data, range[1]; keep_edges=keep_edges[1], min_left)
-
-    # Trim data to fit within `range[2]`
-    y_range_flag = rangeCut!(y_data, x_data, range[2]; keep_edges=keep_edges[2], min_left)
-
-    (
-        !(isa(x_data, Vector{<:Integer}) && !iszero(exp_factor[1]) && LOGGING[]) ||
-        @warn("sanitizeData!: Elements of `x_data` are of type Integer, this may result \
-        in errors or unwanted truncation when using `exp_factor[1]` != 0")
-    )
-
-    (
-        !(isa(y_data, Vector{<:Integer}) && !iszero(exp_factor[2]) && LOGGING[]) ||
-        @warn("sanitizeData!: Elements of `y_data` are of type Integer, this may result \
-        in errors or unwanted truncation when using `exp_factor[2]` != 0")
-    )
-
-    # Scale the data down by the factors `exp_factor`
-    iszero(exp_factor[1]) || (x_data ./= exp10(exp_factor[1]))
-    iszero(exp_factor[2]) || (y_data ./= exp10(exp_factor[2]))
-
-    return x_domain_flag, y_domain_flag, x_range_flag, y_range_flag
-
-end
-
-"""
-    smoothWindow(
-        x_data::Vector{<:Number},
-        y_data::Vector{<:Number},
-        n_bins::Int;
-        <keyword arguments>
-    )::NTuple{2,Vector{<:Number}}
-
-Separate the values of `x_data` in `n_bins` bins and compute the mean value of `x_data` and `y_data` within each one.
-
-# Arguments
-
-  - `x_data::Vector{<:Number}`: x-axis data.
-  - `y_data::Vector{<:Number}`: y-axis data.
-  - `n_bins::Int`: Number of bins.
-  - `scaling::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity. All the values of `x_data` must be in the domain of `scaling`.
-
-# Returns
-
-  - A tuple with two vectors, containing the smoothed-out x and y values.
-"""
-function smoothWindow(
-    x_data::Vector{<:Number},
-    y_data::Vector{<:Number},
-    n_bins::Int;
-    scaling::Function=identity,
-)::NTuple{2,Vector{<:Number}}
-
-    # Check that the input vectors have the same length
-    (
-        length(x_data) == length(y_data) ||
-        throw(DimensionMismatch("smoothWindow: `x_data` and `y_data` must have the same length, \
-        but I got length(`x_data`) = $(length(x_data)) != length(`y_data`) = $(length(y_data))"))
-    )
-
-    positions = scaling.(ustrip(x_data))
-    grid = LinearGrid(extrema(positions)..., n_bins)
-
-    smooth_x_data = histogram1D(positions, x_data, grid; total=false)
-    smooth_y_data = histogram1D(positions, y_data, grid; total=false)
-
-    # Remove empty bins
-    return filter!(!isnan, smooth_x_data), filter!(!isnan, smooth_y_data)
-
-end
-
-"""
-    ratio(qty_1::Symbol, qty_2::Symbol)::Symbol
-
-Returns the symbol for the ratio between two derived quantities.
-
-# Arguments
-
-  - `qty_1::Symbol`: Symbol for the numerator derived quantity.
-  - `qty_2::Symbol`: Symbol for the denominator derived quantity.
-
-# Returns
-
-  - The symbol for the ration between `qty_1` and `qty_2`.
-"""
-function ratio(qty_1::Symbol, qty_2::Symbol)::Symbol
-
-    (
-        qty_1 ∈ QTY_SINGLE_LIST ||
-        throw(ArgumentError("ratio: `qty_1` must be one of the quantities in QTY_SINGLE_LIST, \
-        but I got `qty_1` = :$(qty_1)"))
-    )
-
-    (
-        qty_2 ∈ QTY_SINGLE_LIST ||
-        throw(ArgumentError("ratio: `qty_2` must be one of the quantities in QTY_SINGLE_LIST, \
-        but I got `qty_2` = :$(qty_2)"))
-    )
-
-    return Symbol(qty_1, :_, qty_2, :_ratio)
-
-end
-
-"""
-    formatSeconds(sec::Float64)::String
-
-Format given number of seconds as "DDd-HHh:MM':SS''", where D is days, H is hours, M is minutes, and S is seconds.
-
-# Arguments
-
-  - `sec::Float64`: Number of seconds.
-
-# Returns
-
-  - String with the formatted time.
-"""
-function formatSeconds(sec::Float64)::String
-
-    days    = floor(sec / (24 * 3600))
-    rem1    = sec - days * (24 * 3600)
-    hours   = floor(rem1 / 3600)
-    rem2    = rem1 - hours * 3600
-    minutes = floor(rem2 / 60)
-    seconds = round(rem2 - minutes * 60)
-
-    return string(
-        Int(days),
-        "d ",
-        lpad(Int(hours), 2, "0"),
-        "hs ",
-        lpad(Int(minutes), 2, "0"),
-        "' ",
-        lpad(Int(seconds), 2, "0"),
-        "''",
-    )
 
 end
 
@@ -1000,11 +596,6 @@ function griMagnitudeInterpolation(path::String)::NTuple{3,Interpolations.Extrap
     return g_interp, r_interp, i_interp
 
 end
-
-"""
-Parse a string as a Float64.
-"""
-parseString(s::String) = isempty(strip(s)) ? NaN : parse(Float64, strip(s))
 
 """
     findFiles(base_path::String, pattern_string::AbstractString)::Vector{String}
@@ -1192,62 +783,5 @@ function copyDataDict(data_dict::Dict)::Dict
     end
 
     return dd_copy
-
-end
-
-"""
-    loadConfig!(path::Union{Nothing,String}=nothing)::Nothing
-
-Load a TOML configuration file and apply the resulting runtime settings.
-
-# Arguments
-
-  - `path::Union{Nothing,String}=nothing`: The path to the TOML configuration file. If `nothing`, the file is assumed to be `config.toml` in the current working directory.
-"""
-function loadConfig!(path::Union{Nothing,String}=nothing)::Nothing
-
-    config_path = isnothing(path) ? joinpath(pwd(), "config.toml") : abspath(path)
-
-    if !isfile(config_path)
-        (
-            LOGGING[] && !isnothing(path) &&
-            @warn("loadConfig!: no config file found at `$(config_path)`, using all defaults")
-        )
-        return nothing
-    end
-
-    overrides = TOML.parsefile(config_path)
-
-    # Warn about unrecognised sections
-    known_sections = Set(first(split(k, ".")) for k in keys(CONFIG_SCHEMA))
-    for section in keys(overrides)
-        if section ∉ known_sections
-            (
-                LOGGING[] &&
-                @warn("loadConfig!: unknown config section `[$(section)]` in `$config_path`. \
-                I will ignore it")
-            )
-        end
-    end
-
-    # Apply overrides
-    for (dotkey, (ref, parser)) in CONFIG_SCHEMA
-        parts = split(dotkey, ".")
-
-        value = if length(parts) == 1
-            # Pass the entire sub-dict to the parser
-            get(overrides, parts[1], nothing)
-        else
-            # Drill into section and then the key
-            get(get(overrides, parts[1], Dict()), parts[2], nothing)
-        end
-
-        # If the value is not specified, skip it and keep the default
-        isnothing(value) && continue
-
-        ref[] = parser(value)
-    end
-
-    return nothing
 
 end

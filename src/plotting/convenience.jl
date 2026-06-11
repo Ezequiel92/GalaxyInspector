@@ -21,7 +21,6 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
   - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the valid quantities of [`scatterQty`](@ref).
   - `xlog::Bool=false`: If true, sets the x axis to ``\\log_{10}``(`x_quantity`).
   - `ylog::Bool=false`: If true, sets the y axis to ``\\log_{10}``(`y_quantity`).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target quantities is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -42,7 +41,6 @@ function scatterPlot(
     y_quantity::Symbol;
     xlog::Bool=false,
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -52,39 +50,13 @@ function scatterPlot(
     theme::Attributes=Theme(),
 )::Nothing
 
-    x_plot_params = plotParams(x_quantity)
-    y_plot_params = plotParams(y_quantity)
+    x_plot_params = getLabelArgs(x_quantity; log=xlog)
+    y_plot_params = getLabelArgs(y_quantity; log=ylog)
 
     base_request = mergeRequests(x_plot_params.request, y_plot_params.request, ff_request)
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
-
-    # Set arguments for the x axis
-    if xlog
-        x_log        = x_plot_params.unit
-        x_unit       = Unitful.NoUnits
-        x_exp_factor = 0
-        xaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, x_plot_params.unit)
-    else
-        x_log        = nothing
-        x_unit       = x_plot_params.unit
-        x_exp_factor = x_plot_params.exp_factor
-        xaxis_label  = x_plot_params.axis_label
-    end
-
-    # Set arguments for the y axis
-    if ylog
-        y_log        = y_plot_params.unit
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-    else
-        y_log        = nothing
-        y_unit       = y_plot_params.unit
-        y_exp_factor = y_plot_params.exp_factor
-        yaxis_label  = y_plot_params.axis_label
-    end
 
     for simulation_path in simulation_paths
 
@@ -102,15 +74,21 @@ function scatterPlot(
             filter_function,
             da_functions=[daScatterGalaxy],
             da_args=[(x_quantity, y_quantity)],
-            da_kwargs=[(; x_log, y_log, icGen, filter_function=extra_filter)],
-            x_unit,
-            y_unit,
-            x_exp_factor,
-            y_exp_factor,
-            xaxis_label,
-            yaxis_label,
-            xaxis_var_name=x_plot_params.var_name,
-            yaxis_var_name=y_plot_params.var_name,
+            da_kwargs=[
+                (;
+                    x_log=x_plot_params.log_unit,
+                    y_log=y_plot_params.log_unit,
+                    filter_function=extra_filter,
+                ),
+            ],
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            xaxis_qty_label=x_plot_params.qty_label,
+            yaxis_qty_label=y_plot_params.qty_label,
+            xaxis_label=x_plot_params.label,
+            yaxis_label=y_plot_params.label,
             theme,
             title,
         )
@@ -125,8 +103,8 @@ end
     scatterDensityMap(
         simulation_paths::Vector{String},
         slice::IndexType,
-        x_quantity::Symbol,
-        y_quantity::Symbol;
+        x_quantity::Union{Symbol,AbstractPlotQuantity},
+        y_quantity::Union{Symbol,AbstractPlotQuantity};
         <keyword arguments>
     )::Nothing
 
@@ -136,13 +114,12 @@ Plot two quantities as a density scatter plot (2D histogram).
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the valid quantities of [`scatterQty`](@ref).
-  - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the valid quantities of [`scatterQty`](@ref).
+  - `x_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the x axis. It can be any of the valid quantities of [`scatterQty`](@ref).
+  - `y_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the y axis. It can be any of the valid quantities of [`scatterQty`](@ref).
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
   - `xlog::Bool=false`: If true, sets everything so the x axis is ``\\log_{10}``(`x_quantity`).
   - `ylog::Bool=false`: If true, sets everything so the y axis is ``\\log_{10}``(`y_quantity`).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target quantities is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `n_bins::Int=100`: Number of bins per side of the grid.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -161,13 +138,12 @@ Plot two quantities as a density scatter plot (2D histogram).
 function scatterDensityMap(
     simulation_paths::Vector{String},
     slice::IndexType,
-    x_quantity::Symbol,
-    y_quantity::Symbol;
+    x_quantity::Union{Symbol,AbstractPlotQuantity},
+    y_quantity::Union{Symbol,AbstractPlotQuantity};
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     xlog::Bool=false,
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     n_bins::Int=100,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -179,39 +155,16 @@ function scatterDensityMap(
     theme::Attributes=Theme(),
 )::Nothing
 
-    x_plot_params = plotParams(x_quantity)
-    y_plot_params = plotParams(y_quantity)
+    x_plot_params = getLabelArgs(x_quantity; log=xlog)
+    y_plot_params = getLabelArgs(y_quantity; log=ylog)
 
     base_request = mergeRequests(x_plot_params.request, y_plot_params.request, ff_request)
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    # Set arguments for the x axis
-    if xlog
-        x_log        = x_plot_params.unit
-        x_unit       = Unitful.NoUnits
-        x_exp_factor = 0
-        xaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, x_plot_params.unit)
-    else
-        x_log        = nothing
-        x_unit       = x_plot_params.unit
-        x_exp_factor = x_plot_params.exp_factor
-        xaxis_label  = x_plot_params.axis_label
-    end
-
-    # Set arguments for the y axis
-    if ylog
-        y_log        = y_plot_params.unit
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-    else
-        y_log        = nothing
-        y_unit       = y_plot_params.unit
-        y_exp_factor = y_plot_params.exp_factor
-        yaxis_label  = y_plot_params.axis_label
-    end
+    xname = getQuantityName(x_quantity)
+    yname = getQuantityName(y_quantity)
 
     for simulation_path in simulation_paths
 
@@ -220,7 +173,7 @@ function scatterDensityMap(
             request,
             [heatmap!];
             output_path,
-            base_filename="$(basename(simulation_path))_$(y_quantity)_vs_$(x_quantity)",
+            base_filename="$(basename(simulation_path))_$(yname)_vs_$(xname)",
             slice,
             transform_box=true,
             translation,
@@ -228,15 +181,24 @@ function scatterDensityMap(
             filter_function,
             da_functions=[daScatterDensity],
             da_args=[(x_quantity, y_quantity)],
-            da_kwargs=[(; x_range, y_range, x_log, y_log, icGen, n_bins, filter_function=extra_filter)],
-            x_unit,
-            y_unit,
-            x_exp_factor,
-            y_exp_factor,
-            xaxis_label,
-            yaxis_label,
-            xaxis_var_name=x_plot_params.var_name,
-            yaxis_var_name=y_plot_params.var_name,
+            da_kwargs=[
+                (;
+                    x_range,
+                    y_range,
+                    x_log=x_plot_params.log_unit,
+                    y_log=y_plot_params.log_unit,
+                    n_bins,
+                    filter_function=extra_filter,
+                ),
+            ],
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            xaxis_qty_label=x_plot_params.qty_label,
+            yaxis_qty_label=y_plot_params.qty_label,
+            xaxis_label=x_plot_params.label,
+            yaxis_label=y_plot_params.label,
             theme=merge(theme, Theme(size=(880, 720), Colorbar=(label=L"\log_{10} \, #",))),
             title,
             colorbar,
@@ -252,9 +214,9 @@ end
     scatterDensityMap(
         simulation_paths::Vector{String},
         slice::IndexType,
-        x_quantity::Symbol,
-        y_quantity::Symbol,
-        z_quantity::Symbol;
+        x_quantity::Union{Symbol,AbstractPlotQuantity},
+        y_quantity::Union{Symbol,AbstractPlotQuantity},
+        z_quantity::Union{Symbol,AbstractPlotQuantity};
         <keyword arguments>
     )::Nothing
 
@@ -264,14 +226,13 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the valid quantities of [`scatterQty`](@ref).
-  - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the valid quantities of [`scatterQty`](@ref).
-  - `z_quantity::Symbol`: Quantity for the weights. It can be any of the valid quantities of [`scatterQty`](@ref).
+  - `x_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the x axis. It can be any of the valid quantities of [`scatterQty`](@ref).
+  - `y_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the y axis. It can be any of the valid quantities of [`scatterQty`](@ref).
+  - `z_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the weights. It can be any of the valid quantities of [`scatterQty`](@ref).
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
   - `xlog::Bool=false`: If true, sets everything so the x axis is ``\\log_{10}``(`x_quantity`).
   - `ylog::Bool=false`: If true, sets everything so the y axis is ``\\log_{10}``(`y_quantity`).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target quantities is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `total::Bool=true`: If the sum (default) or the mean of `z_quantity` will be used as the value of each bin.
   - `n_bins::Int=100`: Number of bins per side of the grid.
   - `output_path::String="."`: Path to the output folder.
@@ -291,14 +252,13 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
 function scatterDensityMap(
     simulation_paths::Vector{String},
     slice::IndexType,
-    x_quantity::Symbol,
-    y_quantity::Symbol,
-    z_quantity::Symbol;
+    x_quantity::Union{Symbol,AbstractPlotQuantity},
+    y_quantity::Union{Symbol,AbstractPlotQuantity},
+    z_quantity::Union{Symbol,AbstractPlotQuantity};
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     xlog::Bool=false,
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     total::Bool=true,
     n_bins::Int=100,
     output_path::String=".",
@@ -311,9 +271,9 @@ function scatterDensityMap(
     theme::Attributes=Theme(),
 )::Nothing
 
-    x_plot_params = plotParams(x_quantity)
-    y_plot_params = plotParams(y_quantity)
-    z_plot_params = plotParams(z_quantity)
+    x_plot_params = getLabelArgs(x_quantity; log=xlog)
+    y_plot_params = getLabelArgs(y_quantity; log=ylog)
+    z_plot_params = getLabelArgs(z_quantity; log=true)
 
     base_request = mergeRequests(
         x_plot_params.request,
@@ -325,36 +285,8 @@ function scatterDensityMap(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    # Set arguments for the x axis
-    if xlog
-        x_log        = x_plot_params.unit
-        x_unit       = Unitful.NoUnits
-        x_exp_factor = 0
-        xaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, x_plot_params.unit)
-    else
-        x_log        = nothing
-        x_unit       = x_plot_params.unit
-        x_exp_factor = x_plot_params.exp_factor
-        xaxis_label  = x_plot_params.axis_label
-    end
-
-    # Set arguments for the y axis
-    if ylog
-        y_log        = y_plot_params.unit
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-    else
-        y_log        = nothing
-        y_unit       = y_plot_params.unit
-        y_exp_factor = y_plot_params.exp_factor
-        yaxis_label  = y_plot_params.axis_label
-    end
-
-    # Label for the colorbar
-    colorbar_label = LaTeXString(
-        L"\log_{10} \, " * getLabel(z_plot_params.var_name, 0, z_plot_params.unit)
-    )
+    xname = getQuantityName(x_quantity)
+    yname = getQuantityName(y_quantity)
 
     for simulation_path in simulation_paths
 
@@ -363,7 +295,7 @@ function scatterDensityMap(
             request,
             [heatmap!];
             output_path,
-            base_filename="$(basename(simulation_path))_$(y_quantity)_vs_$(x_quantity)",
+            base_filename="$(basename(simulation_path))_$(yname)_vs_$(xname)",
             slice,
             transform_box=true,
             translation,
@@ -372,17 +304,25 @@ function scatterDensityMap(
             da_functions=[daScatterWeightedDensity],
             da_args=[(x_quantity, y_quantity, z_quantity)],
             da_kwargs=[
-                (; x_range, y_range, x_log, y_log, icGen, total, n_bins, filter_function=extra_filter),
+                (;
+                    x_range,
+                    y_range,
+                    x_log=x_plot_params.log_unit,
+                    y_log=y_plot_params.log_unit,
+                    total,
+                    n_bins,
+                    filter_function=extra_filter,
+                ),
             ],
-            x_unit,
-            y_unit,
-            x_exp_factor,
-            y_exp_factor,
-            xaxis_label,
-            yaxis_label,
-            xaxis_var_name=x_plot_params.var_name,
-            yaxis_var_name=y_plot_params.var_name,
-            theme=merge(theme, Theme(size=(880, 720), Colorbar=(label=colorbar_label,))),
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            xaxis_qty_label=x_plot_params.qty_label,
+            yaxis_qty_label=y_plot_params.qty_label,
+            xaxis_label=x_plot_params.label,
+            yaxis_label=y_plot_params.label,
+            theme=merge(theme, Theme(size=(880, 720), Colorbar=(label=z_plot_params.label,))),
             title,
             colorbar,
         )
@@ -414,7 +354,6 @@ Write files in the VTK format with the ``\\log_{10}`` of a given `quantity` at e
   - `box_size::Unitful.Length=BOX_L[]`: Physical side length of the cubic grid
   - `resolution::Int=150`: Number of bins per side of the cubic grid.
   - `output_path::String="."`: Path to the output folder.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if `quantity` is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`quantity3DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -430,14 +369,13 @@ function vtkFiles(
     box_size::Unitful.Length=BOX_L[],
     resolution::Int=150,
     output_path::String=".",
-    icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
 )::Nothing
 
-    plot_params = plotParams(quantity)
+    plot_params = QTY_REGISTRY[quantity]
 
     if field_type == :cells
         extra_request = Dict(plot_params.cp_type => ["POS ", "RHO "])
@@ -472,13 +410,7 @@ function vtkFiles(
         filter_function,
         da_functions=[quantity3DProjection],
         da_args=[(grid, quantity, field_type)],
-        da_kwargs=[
-            (;
-                density=density ? l_unit : nothing,
-                icGen,
-                filter_function=extra_filter,
-            ),
-        ],
+        da_kwargs=[(; density=density ? l_unit : nothing, filter_function=extra_filter)],
         save_figures=false,
         backup_raw_results=true,
     )
@@ -538,7 +470,6 @@ Plot a radial profile.
   - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
   - `n_bins::Int=60`: Number of bins.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`) (after dividing by `norm`).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if `quantity` or `norm` is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin. This affects the values of `norm` too.
   - `cumulative::Bool=false`: If the profile will be accumulated (after dividing by `norm`).
@@ -566,7 +497,6 @@ function radialProfile(
     shift::Number=zero(radius),
     n_bins::Int=60,
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     flat::Bool=true,
     total::Bool=true,
     cumulative::Bool=false,
@@ -581,16 +511,16 @@ function radialProfile(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(quantity)
+    plot_params = QTY_REGISTRY[quantity]
 
     # Compute the unit and request of the norm
     if isnothing(norm)
-        var_name     = plot_params.var_name
+        qty_label     = plot_params.qty_label
         u_norm       = Unitful.NoUnits
         norm_request = Dict{Symbol,Vector{String}}()
     else
-        n_plot_params = plotParams(norm)
-        var_name      = LaTeXString(plot_params.var_name * L"\, / \," * n_plot_params.var_name)
+        n_plot_params = QTY_REGISTRY[norm]
+        qty_label     = LaTeXString(plot_params.qty_label * L"\, / \," * n_plot_params.qty_label)
         u_norm        = n_plot_params.unit
         norm_request  = n_plot_params.request
     end
@@ -606,7 +536,7 @@ function radialProfile(
     yunit = plot_params.unit / u_norm / u_bin
 
     # Compute the label of the y axis
-    ylabel = getLabel(var_name, 0, yunit)
+    ylabel = getLabel(qty_label, 0, yunit)
 
     if ylog
         yaxis_label  = L"\log_{10} \, " * ylabel
@@ -647,11 +577,11 @@ function radialProfile(
         filter_function,
         da_functions=[daProfile],
         da_args=[(quantity, grid)],
-        da_kwargs=[(; norm, y_log, icGen, flat, total, cumulative, density, filter_function=extra_filter)],
+        da_kwargs=[(; norm, y_log, flat, total, cumulative, density, filter_function=extra_filter)],
         x_unit=u"kpc",
-        y_unit = ylog ? Unitful.NoUnits : yunit,
+        y_unit=ylog ? Unitful.NoUnits : yunit,
         yaxis_label,
-        xaxis_var_name=L"r",
+        xaxis_qty_label=L"r",
         theme=merge(
             theme,
             Theme(
@@ -694,7 +624,6 @@ Plot a density profile.
   - `radius::Unitful.Length=DISK_R[]`: Radius of the profile.
   - `n_bins::Int=60`: Number of bins.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`) (after dividing by `norm`).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of `quantities` or `norm` is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin. This affects the values of `norm` too.
   - `cumulative::Bool=false`: If the profile will be accumulated (after dividing by `norm`).
@@ -716,13 +645,12 @@ function radialProfile(
     simulation_paths::Vector{String},
     slice::IndexType,
     quantities::Vector{Symbol},
-    q_var_name::AbstractString;
+    q_qty_label::AbstractString;
     q_unit::Unitful.Units=Unitful.NoUnits,
     norm::Union{Symbol,Nothing}=nothing,
     radius::Unitful.Length=DISK_R[],
     n_bins::Int=60,
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     flat::Bool=true,
     total::Bool=true,
     cumulative::Bool=false,
@@ -738,12 +666,12 @@ function radialProfile(
 
     # Compute the unit and request of the norm
     if isnothing(norm)
-        var_name     = q_var_name
+        qty_label    = q_qty_label
         u_norm       = Unitful.NoUnits
         norm_request = Dict{Symbol,Vector{String}}()
     else
-        n_plot_params = plotParams(norm)
-        var_name      = LaTeXString(q_var_name * L"\, / \," * n_plot_params.var_name)
+        n_plot_params = QTY_REGISTRY[norm]
+        qty_label     = LaTeXString(q_qty_label * L"\, / \," * n_plot_params.qty_label)
         u_norm        = n_plot_params.unit
         norm_request  = n_plot_params.request
     end
@@ -759,21 +687,21 @@ function radialProfile(
     yunit = q_unit / u_norm / u_bin
 
     # Compute the label of the y axis
-    ylabel = getLabel(var_name, 0, yunit)
+    ylabel = getLabel(qty_label, 0, yunit)
 
     if ylog
-        yaxis_label  = L"\log_{10} \, " * ylabel
-        y_log        = yunit
+        yaxis_label = L"\log_{10} \, " * ylabel
+        y_log       = yunit
     else
-        yaxis_label  = ylabel
-        y_log        = nothing
+        yaxis_label = ylabel
+        y_log       = nothing
     end
 
     base_request = mergeRequests(
         norm_request,
         ff_request,
-        Dict(plotParams(quantity).cp_type => ["POS "] for quantity in quantities),
-        [plotParams(quantity).request for quantity in quantities]...,
+        Dict(QTY_REGISTRY[quantity].cp_type => ["POS "] for quantity in quantities),
+        [QTY_REGISTRY[quantity].request for quantity in quantities]...,
     )
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
@@ -797,12 +725,12 @@ function radialProfile(
             da_functions=[daProfile],
             da_args=[(quantity, grid) for quantity in quantities],
             da_kwargs=[
-                (; norm, y_log, icGen, flat, total, cumulative, density, filter_function=extra_filter),
+                (; norm, y_log, flat, total, cumulative, density, filter_function=extra_filter),
             ],
             x_unit=u"kpc",
-            y_unit = ylog ? Unitful.NoUnits : yunit,
+            y_unit=ylog ? Unitful.NoUnits : yunit,
             yaxis_label,
-            xaxis_var_name=L"r",
+            xaxis_qty_label=L"r",
             theme=merge(
                 theme,
                 Theme(
@@ -866,8 +794,8 @@ function stellarHistory(
     theme::Attributes=Theme(),
 )::Nothing
 
-    x_plot_params = plotParams(:physical_time)
-    y_plot_params = plotParams(quantity)
+    x_plot_params = getLabelArgs(:physical_time; log=false)
+    y_plot_params = getLabelArgs(quantity; log=ylog)
 
     base_request = mergeRequests(
         Dict(:stellar => ["GAGE", "MASS"]),
@@ -877,17 +805,6 @@ function stellarHistory(
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
-
-    # Set arguments for the y axis
-    if ylog
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-    else
-        y_unit       = y_plot_params.unit
-        y_exp_factor = y_plot_params.exp_factor
-        yaxis_label  = y_plot_params.axis_label
-    end
 
     if isone(length(simulation_paths))
         base_filename = "$(basename(simulation_paths[1]))_$(quantity)_history"
@@ -909,13 +826,13 @@ function stellarHistory(
         da_functions=[daStellarHistory],
         da_kwargs=[(; quantity, n_bins, ylog, filter_function=extra_filter)],
         x_unit=x_plot_params.unit,
-        y_unit,
+        y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
-        y_exp_factor,
-        xaxis_label=x_plot_params.axis_label,
-        yaxis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
+        y_exp_factor=y_plot_params.exp_factor,
+        xaxis_qty_label=x_plot_params.qty_label,
+        yaxis_qty_label=y_plot_params.qty_label,
+        xaxis_label=x_plot_params.label,
+        yaxis_label=y_plot_params.label,
         theme=merge(
             theme,
             Theme(
@@ -952,7 +869,6 @@ Plot a histogram of `quantity`.
   - `norm::Int=0`: Number of count that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
   - `range::Union{NTuple{2,<:Number},Nothing}=nothing,`: Range of values for the histogram. If set to `nothing`, the extrema of the values will be used.
   - `xlog::Bool=false`: If the histogram bins will be logarithmic.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -976,7 +892,6 @@ function histogram(
     norm::Int=0,
     range::Union{NTuple{2,<:Number},Nothing}=nothing,
     xlog::Bool=false,
-    icGen::Function=initialConditionFunction,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -987,7 +902,7 @@ function histogram(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(quantity)
+    plot_params = getLabelArgs(quantity; log=xlog)
 
     base_request = mergeRequests(plot_params.request, ff_request)
 
@@ -1001,21 +916,10 @@ function histogram(
         da_args = [(quantity, grid)]
     end
 
-    # Set arguments for the x axis
-    if xlog
-        x_unit       = Unitful.NoUnits
-        x_exp_factor = 0
-        xaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, plot_params.unit)
-    else
-        x_unit       = plot_params.unit
-        x_exp_factor = plot_params.exp_factor
-        xaxis_label  = plot_params.axis_label
-    end
-
     if isPositive(norm)
-        yaxis_var_name = L"\mathrm{Counts \, / \, %$(norm)}"
+        yaxis_qty_label = L"\mathrm{Counts \, / \, %$(norm)}"
     else
-        yaxis_var_name = L"\mathrm{Counts \, / \, \max(Counts)}"
+        yaxis_qty_label = L"\mathrm{Counts \, / \, \max(Counts)}"
     end
 
     if isone(length(simulation_paths))
@@ -1037,12 +941,12 @@ function histogram(
         filter_function,
         da_functions=[daHistogram],
         da_args,
-        da_kwargs=[(; log=xlog, icGen, filter_function=extra_filter, norm)],
-        x_unit,
-        x_exp_factor,
-        xaxis_label,
-        xaxis_var_name=plot_params.var_name,
-        yaxis_var_name,
+        da_kwargs=[(; log=xlog, filter_function=extra_filter, norm)],
+        x_unit=plot_params.unit,
+        x_exp_factor=plot_params.exp_factor,
+        xaxis_qty_label=plot_params.qty_label,
+        yaxis_qty_label,
+        xaxis_label=plot_params.label,
         theme=merge(theme, Theme(Legend=(nbanks=1, valign=:top, margin=(0, 10, 0, 0)),)),
         sim_labels,
         title,
@@ -1094,8 +998,8 @@ function rotationCurve(
     theme::Attributes=Theme(),
 )::Nothing
 
-    x_plot_params = plotParams(:stellar_radial_distance)
-    y_plot_params = plotParams(:stellar_circular_velocity)
+    x_plot_params = QTY_REGISTRY[:stellar_radial_distance]
+    y_plot_params = QTY_REGISTRY[:stellar_circular_velocity]
 
     base_request = mergeRequests(x_plot_params.request, y_plot_params.request, ff_request)
 
@@ -1131,10 +1035,8 @@ function rotationCurve(
         y_exp_factor=y_plot_params.exp_factor,
         x_scale_func=identity,
         y_scale_func=identity,
-        xaxis_label=x_plot_params.axis_label,
-        yaxis_label=y_plot_params.axis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
+        xaxis_qty_label=x_plot_params.qty_label,
+        yaxis_qty_label=y_plot_params.qty_label,
         theme=merge(theme, Theme(size=(1200, 880), Axis=(aspect=nothing,))),
         sim_labels,
         title,
@@ -1163,7 +1065,6 @@ Plot a bar plot of the gas fractions, where the bins are a given gas `quantity`.
   - `edges::Vector{<:Number}`: A list of bin edges for `quantity`.
   - `components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_molecular_stellar]`: List of gas components to be considered. The fractions will be normalized to this list of components. See [`COMPONENTS`](@ref) for options.
   - `ylog::Bool=false`: If true, sets everything so the y axis is ``\\log_{10}``(`quantity`).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -1184,7 +1085,6 @@ function gasBarPlot(
     edges::Vector{<:Number};
     components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_molecular_stellar],
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -1194,9 +1094,9 @@ function gasBarPlot(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(quantity)
+    plot_params = getLabelArgs(quantity; log=ylog)
 
-    gas_requests = [plotParams(Symbol(component, :_mass)).request for component in components]
+    gas_requests = [QTY_REGISTRY[Symbol(component, :_mass)].request for component in components]
 
     base_request = mergeRequests(plot_params.request, ff_request, gas_requests...)
 
@@ -1204,17 +1104,8 @@ function gasBarPlot(
     filter_function, request = selectFilter(filter_mode, trans_request)
 
     # Set arguments for the y axis
-    if ylog
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, plot_params.unit)
-        y_ticks      = log10.(ustrip.(plot_params.unit, edges))
-    else
-        y_unit       = plot_params.unit
-        y_exp_factor = plot_params.exp_factor
-        yaxis_label  = plot_params.axis_label
-        y_ticks      = ustrip.(plot_params.unit, edges)
-    end
+    ticks = ustrip.(plot_params.unit, edges)
+    y_ticks = ylog ? log10.(ticks) : ticks
 
     # Compute the number of bins
     n_bins  = length(edges) - 1
@@ -1268,15 +1159,15 @@ function gasBarPlot(
             filter_function,
             da_functions=[daBarGasFractions],
             da_args=[(quantity, LinearGrid(edges; log=ylog))],
-            da_kwargs=[(; components, icGen, filter_function=extra_filter)],
+            da_kwargs=[(; components, filter_function=extra_filter)],
             post_processing=ppBarPlotLabels,
             pp_args=(reverse(components),),
             pp_kwargs=(; colors=reverse(colors)),
-            y_unit,
-            y_exp_factor,
-            yaxis_label,
+            y_unit=plot_params.unit,
+            y_exp_factor=plot_params.exp_factor,
+            yaxis_qty_label=plot_params.qty_label,
             xaxis_label=L"\text{Mass fraction} \,\, [%]",
-            yaxis_var_name=plot_params.var_name,
+            yaxis_label=plot_params.label,
             theme=current_theme,
             title,
         )
@@ -1316,7 +1207,6 @@ Plot a profile with the corresponding experimental values of the Milky Way from 
       + `:C_stellar_abundance`                -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
       + `:mu_mol`                             -> Molecular gas fraction, as ``\\mu_\\mathrm{mol} = \\Sigma_\\mathrm{H2} / \\Sigma_\\star``.
   - `output_path::String="."`: Path to the output folder.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daMolla2015`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1335,7 +1225,6 @@ function compareMolla2015(
     slice::IndexType,
     quantity::Symbol;
     output_path::String=".",
-    icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
@@ -1344,14 +1233,14 @@ function compareMolla2015(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(quantity)
-
-    if quantity ∈ STELLAR_ABUNDANCE
+    if quantity ∈ (:O_stellar_abundance, :N_stellar_abundance, :C_stellar_abundance)
         extra_request = Dict(:stellar => ["POS "])
-        yaxis_label = plot_params.axis_label
+        plot_params   = getLabelArgs(quantity; log=false)
+        y_unit        = plot_params.unit
     else
         extra_request = Dict{Symbol,Vector{String}}()
-        yaxis_label = L"\log_{10} \, " * getLabel("auto_label", 0, plot_params.unit)
+        plot_params   = getLabelArgs(quantity; log=true)
+        y_unit        = plot_params.log_unit
     end
 
     base_request = mergeRequests(plot_params.request, extra_request, ff_request)
@@ -1360,21 +1249,21 @@ function compareMolla2015(
     filter_function, request = selectFilter(filter_mode, trans_request)
 
     # Select the correct grid acording to the available data from M. Mollá et al. (2015)
-    if quantity ∈ [:stellar_area_density, :mu_mol]
+    if quantity ∈ (:stellar_area_density, :mu_mol)
 
         grid = LinearGrid(2.5u"kpc", 16.5u"kpc", 14)
 
-    elseif quantity ∈ [
+    elseif quantity ∈ (
         :ode_molecular_area_density,
         :ode_molecular_stellar_area_density,
         :br_molecular_area_density,
         :ode_cold_area_density,
         :sfr_area_density,
-    ]
+    )
 
         grid = LinearGrid(-0.5u"kpc", 19.5u"kpc", 20)
 
-    elseif quantity ∈ [:ode_atomic_area_density, :br_atomic_area_density]
+    elseif quantity ∈ (:ode_atomic_area_density, :br_atomic_area_density)
 
         grid = LinearGrid(-0.5u"kpc", 20.5u"kpc", 21)
 
@@ -1434,14 +1323,14 @@ function compareMolla2015(
         filter_function,
         da_functions=[daMolla2015],
         da_args=[(grid, quantity)],
-        da_kwargs=[(; y_unit=plot_params.unit, icGen, filter_function=extra_filter)],
+        da_kwargs=[(; y_unit, filter_function=extra_filter)],
         post_processing=ppMolla2015!,
         pp_args=(quantity,),
-        pp_kwargs=(; y_unit=plot_params.unit, color, linestyle, marker),
+        pp_kwargs=(; y_unit, color, linestyle, marker),
         x_unit=u"kpc",
-        yaxis_label,
-        xaxis_var_name=L"r",
-        yaxis_var_name=plot_params.var_name,
+        xaxis_qty_label=L"r",
+        yaxis_qty_label=plot_params.qty_label,
+        yaxis_label=plot_params.label,
         theme=current_theme,
         sim_labels,
     )
@@ -1493,23 +1382,12 @@ function compareAgertz2021(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(:stellar_area_density)
+    plot_params = getLabelArgs(:stellar_area_density; log=ylog)
 
     base_request = mergeRequests(plot_params.request, ff_request)
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
-
-    # Set arguments for the y axis
-    if ylog
-        y_unit      = Unitful.NoUnits
-        y_log       = plot_params.unit
-        yaxis_label = L"\log_{10} \, " * getLabel("auto_label", 0, plot_params.unit)
-    else
-        y_unit      = plot_params.unit
-        y_log       = nothing
-        yaxis_label = plot_params.axis_label
-    end
 
     grid = LinearGrid(0.0u"kpc", 25.0u"kpc", 25)
 
@@ -1532,19 +1410,19 @@ function compareAgertz2021(
         filter_function,
         da_functions=[daProfile],
         da_args=[(:stellar_mass, grid)],
-        da_kwargs=[(; y_log, density=true, filter_function=extra_filter)],
+        da_kwargs=[(; y_log=plot_params.log_unit, density=true, filter_function=extra_filter)],
         post_processing=ppAgertz2021!,
         pp_kwargs=(;
             galaxies=[:all, "MW"],
             colors=[WONG_PINK, WONG_BLUE],
             linestyle=:dash,
-            y_unit=plot_params.unit,
+            y_unit=ylog ? plot_params.log_unit : plot_params.unit,
         ),
         x_unit=u"kpc",
-        y_unit,
-        yaxis_label,
-        xaxis_var_name=L"r",
-        yaxis_var_name=plot_params.var_name,
+        y_unit=plot_params.unit,
+        xaxis_qty_label=L"r",
+        yaxis_qty_label=plot_params.qty_label,
+        yaxis_label=plot_params.label,
         theme=merge(
             theme,
             Theme(
@@ -1585,7 +1463,6 @@ Plot a 2D projection of the `component` mass density.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `output_path::String="."`: Path to the output folder.
-  -`icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1613,7 +1490,6 @@ function densityMap(
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"pc",
     output_path::String=".",
-    icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
@@ -1636,7 +1512,7 @@ function densityMap(
 
     for (i, component) in pairs(components)
 
-        plot_params = plotParams(Symbol(component, :_mass))
+        plot_params = QTY_REGISTRY[Symbol(component, :_mass)]
 
         field_type = ring(field_types, i)
 
@@ -1651,11 +1527,11 @@ function densityMap(
         translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
         filter_function, request = selectFilter(filter_mode, trans_request)
 
-        colorbar_pp = plotParams(Symbol(component, :_area_density))
+        colorbar_pp = QTY_REGISTRY[Symbol(component, :_area_density)]
 
         # Label for the colorbar
         colorbar_label = LaTeXString(
-            L"\log_{10} \, " * getLabel(colorbar_pp.var_name, 0, m_unit * l_unit^-2)
+            L"\log_{10} \," * getLabel(colorbar_pp.qty_label, 0, m_unit * l_unit^-2)
         )
 
         for simulation_path in simulation_paths
@@ -1686,7 +1562,6 @@ function densityMap(
                         (;
                             projection_plane,
                             reduce_factor,
-                            icGen,
                             m_unit,
                             l_unit,
                             filter_function=extra_filter,
@@ -1697,8 +1572,8 @@ function densityMap(
                     pp_kwargs=(; color=:white),
                     x_unit=u"kpc",
                     y_unit=u"kpc",
-                    xaxis_var_name=string(projection_plane)[1:1],
-                    yaxis_var_name=string(projection_plane)[2:2],
+                    xaxis_qty_label=string(projection_plane)[1:1],
+                    yaxis_qty_label=string(projection_plane)[2:2],
                     theme=merge(
                         theme,
                         Theme(
@@ -1745,7 +1620,6 @@ Plot a 2D projection of the mass density of `component`, with the velocity field
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `v_unit::Unitful.Units=u"km * s^-1",`: Velocity unit
   - `output_path::String="."`: Path to the output folder.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) and [`daVelocityField`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1774,7 +1648,6 @@ function densityMapVelField(
   l_unit::Unitful.Units=u"pc",
   v_unit::Unitful.Units=u"km * s^-1",
   output_path::String=".",
-  icGen::Function=initialConditionFunction,
   trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
   filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
   extra_filter::Function=filterNothing,
@@ -1800,7 +1673,7 @@ function densityMapVelField(
 
     for (i, component) in pairs(components)
 
-        plot_params = plotParams(Symbol(component, :_mass))
+        plot_params = QTY_REGISTRY[Symbol(component, :_mass)]
 
         field_type = ring(field_types, i)
 
@@ -1815,11 +1688,11 @@ function densityMapVelField(
         translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
         filter_function, request = selectFilter(filter_mode, trans_request)
 
-        colorbar_pp = plotParams(Symbol(component, :_area_density))
+        colorbar_pp = QTY_REGISTRY[Symbol(component, :_area_density)]
 
         # Label for the colorbar
         colorbar_label = LaTeXString(
-            L"\log_{10} \, " * getLabel(colorbar_pp.var_name, 0, m_unit * l_unit^-2)
+            L"\log_{10} \," * getLabel(colorbar_pp.qty_label, 0, m_unit * l_unit^-2)
         )
 
         for simulation_path in simulation_paths
@@ -1850,7 +1723,6 @@ function densityMapVelField(
                         (;
                             projection_plane,
                             reduce_factor,
-                            icGen,
                             m_unit,
                             l_unit,
                             filter_function=extra_filter,
@@ -1862,8 +1734,8 @@ function densityMapVelField(
                     pp_kwargs=(; color=:white),
                     x_unit=u"kpc",
                     y_unit=u"kpc",
-                    xaxis_var_name=string(projection_plane)[1:1],
-                    yaxis_var_name=string(projection_plane)[2:2],
+                    xaxis_qty_label=string(projection_plane)[1:1],
+                    yaxis_qty_label=string(projection_plane)[2:2],
                     theme=merge(
                         theme,
                         Theme(
@@ -1954,7 +1826,7 @@ function gasSFRMap(
     # Set up the grid
     grid = CubicGrid(box_size, resolution)
 
-    plot_params = plotParams(:gas_sfr)
+    plot_params = QTY_REGISTRY[:gas_sfr]
 
     if field_type == :cells
         extra_request = Dict(:gas => ["MASS", "RHO ", "POS "])
@@ -1969,7 +1841,7 @@ function gasSFRMap(
 
     # Label for the colorbar
     colorbar_label = LaTeXString(
-        L"\log_{10} \, " * getLabel(plot_params.var_name, 0, m_unit * t_unit^-1)
+        L"\log_{10} \," * getLabel(plot_params.qty_label, 0, m_unit * t_unit^-1)
     )
 
     for simulation_path in simulation_paths
@@ -2010,8 +1882,8 @@ function gasSFRMap(
                 pp_kwargs=(; color=:white),
                 x_unit=u"kpc",
                 y_unit=u"kpc",
-                xaxis_var_name=string(projection_plane)[1:1],
-                yaxis_var_name=string(projection_plane)[2:2],
+                xaxis_qty_label=string(projection_plane)[1:1],
+                yaxis_qty_label=string(projection_plane)[2:2],
                 theme=merge(
                     theme,
                     Theme(
@@ -2106,21 +1978,16 @@ function metallicityMap(
 
     for (i, component) in pairs(components)
 
+        # Label for the colorbar
         if element == :all
 
-            plot_params = plotParams(Symbol(component, :_metallicity))
-
-            # Label for the colorbar
-            colorbar_label = LaTeXString(
-                L"\log_{10} \, " * getLabel(plot_params.var_name, 0, Unitful.NoUnits)
-            )
+            quantity       = Symbol(component, :_metallicity)
+            colorbar_label = getLabel(quantity; log=true)
 
         elseif haskey(ELEMENT_INDEX, element)
 
-            plot_params = plotParams(Symbol(element, :_, component, :_abundance))
-
-            # Label for the colorbarç
-            colorbar_label = plot_params.axis_label
+            quantity       = Symbol(element, :_, component, :_abundance)
+            colorbar_label = getLabel(quantity)
 
         else
 
@@ -2137,7 +2004,7 @@ function metallicityMap(
             extra_request = Dict(component => ["POS ", "MASS"])
         end
 
-        base_request = mergeRequests(plot_params.request, extra_request, ff_request)
+        base_request = mergeRequests(QTY_REGISTRY[quantity].request, extra_request, ff_request)
 
         translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
         filter_function, request = selectFilter(filter_mode, trans_request)
@@ -2179,8 +2046,8 @@ function metallicityMap(
                     pp_kwargs=(; color=:white),
                     x_unit=u"kpc",
                     y_unit=u"kpc",
-                    xaxis_var_name=string(projection_plane)[1:1],
-                    yaxis_var_name=string(projection_plane)[2:2],
+                    xaxis_qty_label=string(projection_plane)[1:1],
+                    yaxis_qty_label=string(projection_plane)[2:2],
                     theme=merge(
                         theme,
                         Theme(
@@ -2224,7 +2091,6 @@ Plot a time series.
   - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
   - `x_agg_func::Union{Function,Symbol}=:default`: If `x_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `x_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `x_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
   - `y_agg_func::Union{Function,Symbol}=:default`: If `y_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `y_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `y_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -2245,7 +2111,6 @@ function timeSeries(
     ylog::Bool=false,
     x_agg_func::Union{Function,Symbol}=:default,
     y_agg_func::Union{Function,Symbol}=:default,
-    icGen::Function=initialConditionFunction,
     cumulative::Bool=false,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -2259,18 +2124,16 @@ function timeSeries(
 )::Nothing
 
     integration_functions = (
-        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func, icGen),
-        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func, icGen),
+        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func),
+        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func),
     )
 
     timeSeries(
         simulation_paths,
-        plotParams(x_quantity),
-        plotParams(y_quantity),
+        getLabelArgs(x_quantity; log=xlog),
+        getLabelArgs(y_quantity; log=ylog),
         integration_functions;
         slice,
-        xlog,
-        ylog,
         cumulative,
         file_name="$(y_quantity)_vs_$(x_quantity)",
         output_path,
@@ -2291,8 +2154,8 @@ end
 """
     timeSeries(
         simulation_paths::Vector{String},
-        x_plot_params::PlotParams,
-        y_plot_params::PlotParams,
+        x_plot_params::NamedTuple,
+        y_plot_params::NamedTuple,
         integration_functions::NTuple{2,Function};
         <keyword arguments>
     )::Nothing
@@ -2302,18 +2165,16 @@ Plot a time series.
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
-  - `x_plot_params::PlotParams`: Plot parameters for the x axis.
-  - `y_plot_params::PlotParams`: Plot parameters for the y axis.
+  - `x_plot_params::NamedTuple`: Plot parameters for the x axis, from [`getLabelArgs`](@ref).
+  - `y_plot_params::NamedTuple`: Plot parameters for the y axis, from [`getLabelArgs`](@ref).
   - `integration_functions::NTuple{2,Function}`: Functions to compute the integral value of the x and y quantities at a given time. The functions must have the signature:
 
     `integration_functions(data_dict::Dict)::Number`
 
     where
 
-      + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+      + `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
-  - `xlog::Bool=false`: If the x axis is will have a ``\\log_{10}`` scale.
-  - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `file_name::String="time_series"`: Name of the output file (without extension).
   - `output_path::String="."`: Path to the output folder.
@@ -2328,12 +2189,10 @@ Plot a time series.
 """
 function timeSeries(
     simulation_paths::Vector{String},
-    x_plot_params::PlotParams,
-    y_plot_params::PlotParams,
+    x_plot_params::NamedTuple,
+    y_plot_params::NamedTuple,
     integration_functions::NTuple{2,Function};
     slice::IndexType=(:),
-    xlog::Bool=false,
-    ylog::Bool=false,
     cumulative::Bool=false,
     file_name::String="time_series",
     output_path::String=".",
@@ -2348,32 +2207,6 @@ function timeSeries(
 )::Nothing
 
     qty_request = mergeRequests(x_plot_params.request, y_plot_params.request)
-
-    # Set arguments for the x axis
-    if xlog
-        x_log        = x_plot_params.unit
-        x_unit       = Unitful.NoUnits
-        x_exp_factor = 0
-        xaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, x_plot_params.unit)
-    else
-        x_log        = nothing
-        x_unit       = x_plot_params.unit
-        x_exp_factor = x_plot_params.exp_factor
-        xaxis_label  = x_plot_params.axis_label
-    end
-
-    # Set arguments for the y axis
-    if ylog
-        y_log        = y_plot_params.unit
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-    else
-        y_log        = nothing
-        y_unit       = y_plot_params.unit
-        y_exp_factor = y_plot_params.exp_factor
-        yaxis_label  = y_plot_params.axis_label
-    end
 
     if isone(length(simulation_paths))
         filename = "$(basename(simulation_paths[1]))_$(file_name)"
@@ -2395,20 +2228,20 @@ function timeSeries(
                 filter_mode,
                 extra_filter,
                 ff_request,
-                x_log,
-                y_log,
+                x_log=x_plot_params.log_unit,
+                y_log=y_plot_params.log_unit,
                 smooth,
                 cumulative,
             )
         ],
-        x_unit,
-        y_unit,
-        x_exp_factor,
-        y_exp_factor,
-        xaxis_label,
-        yaxis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
+        x_unit=x_plot_params.unit,
+        y_unit=y_plot_params.unit,
+        x_exp_factor=x_plot_params.exp_factor,
+        y_exp_factor=y_plot_params.exp_factor,
+        xaxis_qty_label=x_plot_params.qty_label,
+        yaxis_qty_label=y_plot_params.qty_label,
+        xaxis_label=x_plot_params.label,
+        yaxis_label=y_plot_params.label,
         save_figures=!backup_results,
         backup_results,
         theme,
@@ -2442,7 +2275,6 @@ Plot a time series of the statistics of `y_quantity` (25th, 50th, 75th percentai
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
   - `xlog::Bool=false`: If the x axis is will have a ``\\log_{10}`` scale.
   - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `y_quantity` is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -2460,7 +2292,6 @@ function statisticsEvolution(
     slice::IndexType=(:),
     xlog::Bool=false,
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     cumulative::Bool=false,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -2478,16 +2309,15 @@ function statisticsEvolution(
         :scale_factor, :redshift, :physical_time or :lookback_time, but I got :$(x_quantity)")
     )
 
-    y_plot_params = plotParams(y_quantity)
+    y_plot_params = getLabelArgs(y_quantity; log=ylog)
 
     statisticsEvolution(
         simulation_paths,
         x_quantity,
         y_plot_params,
-        dd->scatterQty(dd, y_quantity; icGen);
+        dd->scatterQty(dd, y_quantity);
         slice,
         xlog,
-        ylog,
         cumulative,
         file_name="$(y_quantity)_vs_$(x_quantity)",
         output_path,
@@ -2508,7 +2338,7 @@ end
     statisticsEvolution(
         simulation_paths::Vector{String},
         x_quantity::Symbol,
-        y_plot_params::PlotParams,
+        y_plot_params::NamedTuple,
         scatter_function::Function;
         <keyword arguments>
     )::Nothing
@@ -2524,17 +2354,16 @@ Plot a time series of the statistics of the results of `scatter_function` (25th,
       + `:lookback_time` -> Physical time left to reach the last snapshot.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
-  - `y_plot_params::PlotParams`: Plot parameters for the y axis.
+  - `y_plot_params::NamedTuple`: Plot parameters for the y axis, from [`getLabelArgs`](@ref).
   - `scatter_function::Function`: Function to compute the scattered values of the y quantity at a given time. The function must have the signature:
 
     `scatter_function(data_dict::Dict)::Vector{Number}`
 
     where
 
-      + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+      + `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
   - `xlog::Bool=false`: If the x axis is will have a ``\\log_{10}`` scale.
-  - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale (the ``\\log_{10}`` is applied before the aggregator function: `median`, `maximum`, `percentile`, etc).
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `file_name::String="statistics_time_series"`: Name of the output file (without extension).
   - `output_path::String="."`: Path to the output folder.
@@ -2549,11 +2378,10 @@ Plot a time series of the statistics of the results of `scatter_function` (25th,
 function statisticsEvolution(
     simulation_paths::Vector{String},
     x_quantity::Symbol,
-    y_plot_params::PlotParams,
+    y_plot_params::NamedTuple,
     scatter_function::Function;
     slice::IndexType=(:),
     xlog::Bool=false,
-    ylog::Bool=false,
     cumulative::Bool=false,
     file_name::String="statistics_time_series",
     output_path::String=".",
@@ -2572,34 +2400,7 @@ function statisticsEvolution(
         :scale_factor, :redshift, :physical_time or :lookback_time, but I got :$(x_quantity)")
     )
 
-    x_plot_params = plotParams(x_quantity)
-
-    # Set arguments for the x axis
-    if xlog
-        x_log        = x_plot_params.unit
-        x_unit       = Unitful.NoUnits
-        x_exp_factor = 0
-        xaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, x_plot_params.unit)
-    else
-        x_log        = nothing
-        x_unit       = x_plot_params.unit
-        x_exp_factor = x_plot_params.exp_factor
-        xaxis_label  = x_plot_params.axis_label
-    end
-
-    # Set arguments for the y axis
-    if ylog
-        y_log        = y_plot_params.unit
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-
-    else
-        y_log        = nothing
-        y_unit       = y_plot_params.unit
-        y_exp_factor = y_plot_params.exp_factor
-        yaxis_label  = y_plot_params.axis_label
-    end
+    x_plot_params = getLabelArgs(x_quantity; log=xlog)
 
     aggregators = [x->percentile(x, 25), median, x->percentile(x, 75), minimum, maximum]
     labels      = ["25th Percentile", "50th Percentile", "75th Percentile", "Minimum", "Maximum"]
@@ -2621,7 +2422,7 @@ function statisticsEvolution(
                     request,
                     (
                         dd->integrateQty(dd, x_quantity),
-                        dd->applyIntegrator(dd, scatter_function, aggregator, y_log),
+                        dd->applyIntegrator(dd, scatter_function, aggregator, y_plot_params.log_unit),
                     ),
                 )
                 for aggregator in aggregators
@@ -2632,19 +2433,19 @@ function statisticsEvolution(
                     filter_mode,
                     extra_filter,
                     ff_request,
-                    x_log,
+                    x_log=x_plot_params.log_unit,
                     smooth,
                     cumulative,
                 ),
             ],
-            x_unit,
-            y_unit,
-            x_exp_factor,
-            y_exp_factor,
-            xaxis_label,
-            yaxis_label,
-            xaxis_var_name=x_plot_params.var_name,
-            yaxis_var_name=y_plot_params.var_name,
+            x_unit=x_plot_params.unit,
+            y_unit=y_plot_params.unit,
+            x_exp_factor=x_plot_params.exp_factor,
+            y_exp_factor=y_plot_params.exp_factor,
+            xaxis_qty_label=x_plot_params.qty_label,
+            yaxis_qty_label=y_plot_params.qty_label,
+            xaxis_label=x_plot_params.label,
+            yaxis_label=y_plot_params.label,
             save_figures=!backup_results,
             backup_results,
             theme=merge(
@@ -2691,7 +2492,6 @@ Plot a time series of the gas components. Either their masses or their fractions
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
@@ -2706,19 +2506,14 @@ function gasEvolution(
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     smooth::Int=0,
-    icGen::Function=initialConditionFunction,
     backup_results::Bool=false,
     theme::Attributes=Theme(),
 )::Nothing
 
-    if fractions
-        quantity = :fraction
-    else
-        quantity = :mass
-    end
+    quantity = fractions ? :fraction : :mass
 
-    x_plot_params = plotParams(:physical_time)
-    y_plot_params = plotParams(quantity)
+    x_plot_params = getLabelArgs(:physical_time; log=false)
+    y_plot_params = getLabelArgs(Symbol(:generic, :_, quantity); log=ylog)
 
     quantities = Symbol.(
         [:ode_ionized, :ode_atomic, :ode_molecular_stellar, :ode_metals, :ode_dust],
@@ -2727,19 +2522,6 @@ function gasEvolution(
     )
 
     sim_labels = ["Ionized ", "Atomic ", "Molecular + stars ", "Metal ", "Dust "] .* string(quantity)
-
-    # Set arguments for the y axis
-    if ylog
-        y_log        = y_plot_params.unit
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-    else
-        y_log        = nothing
-        y_unit       = y_plot_params.unit
-        y_exp_factor = y_plot_params.exp_factor
-        yaxis_label  = y_plot_params.axis_label
-    end
 
     for simulation_path in simulation_paths
 
@@ -2758,16 +2540,23 @@ function gasEvolution(
             da_functions=[daEvolution],
             da_args=[(:physical_time, quantity) for quantity in quantities],
             da_kwargs=[
-                (; trans_mode, filter_mode, extra_filter, ff_request, y_log, smooth, icGen),
+                (;
+                    trans_mode,
+                    filter_mode,
+                    extra_filter,
+                    ff_request,
+                    y_log=y_plot_params.log_unit,
+                    smooth,
+                ),
             ],
             x_unit=x_plot_params.unit,
-            y_unit,
+            y_unit=y_plot_params.unit,
             x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor,
-            xaxis_label=x_plot_params.axis_label,
-            yaxis_label,
-            xaxis_var_name=x_plot_params.var_name,
-            yaxis_var_name=y_plot_params.var_name,
+            y_exp_factor=y_plot_params.exp_factor,
+            xaxis_qty_label=x_plot_params.qty_label,
+            yaxis_qty_label=y_plot_params.qty_label,
+            xaxis_label=x_plot_params.label,
+            yaxis_label=y_plot_params.label,
             save_figures=!backup_results,
             backup_results,
             theme=merge(
@@ -2800,11 +2589,9 @@ Plot time evolution of the masses and fractions of the gas components, in two pa
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
-  - `r_gas::Unitful.Length=DISK_R[]`: Radius of the gas sphere to consider.
   - `output_path::String="."`: Path to the output folder.
   - `mass_limits::NTuple{2,Float64}=(-4.2, 1.2)`: Limits for the masses, ``\\log_{10} M \\mathrm{[M_\\odot}``.
   - `fraction_limits::NTuple{2,Float64}=(-5.2, 0.2)`: Limits for fractions, ``\\log_{10} f``.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target simulations use our star formation model, see [`isSimSFM`](@ref).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -2814,11 +2601,9 @@ Plot time evolution of the masses and fractions of the gas components, in two pa
 function gasFractionsEvolution(
     simulation_paths::Vector{String};
     slice::IndexType=(:),
-    r_gas::Unitful.Length=DISK_R[],
     output_path::String=".",
-    mass_limits::NTuple{2,Float64}=(-4.2, 1.2),
+    mass_limits::NTuple{2,Float64}=(5.8, 11.2),
     fraction_limits::NTuple{2,Float64}=(-5.2, 0.2),
-    icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
@@ -2838,8 +2623,8 @@ function gasFractionsEvolution(
 
         colors = [WONG_BLUE, WONG_PINK, WONG_GREEN, WONG_CELESTE, WONG_RED]
 
-        x_plot_params = plotParams(:physical_time)
-        y_plot_params = plotParams(:fraction)
+        x_plot_params = QTY_REGISTRY[:physical_time]
+        y_plot_params = QTY_REGISTRY[:generic_fraction]
 
         temp_folder = joinpath(output_path, "_gas_evolution")
 
@@ -2851,31 +2636,19 @@ function gasFractionsEvolution(
             filename="fraction_evolution",
             da_functions=[daEvolution],
             da_args=[(:physical_time, Symbol(quantity, :_fraction)) for quantity in quantities],
-            da_kwargs=[(;
-                trans_mode,
-                filter_mode,
-                extra_filter,
-                ff_request,
-                icGen,
-            )],
+            da_kwargs=[(; trans_mode, filter_mode, extra_filter, ff_request)],
             x_unit=x_plot_params.unit,
             y_unit=y_plot_params.unit,
             x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
+            y_exp_factor=0,
             save_figures=false,
             backup_results=true,
             sim_labels=string.(quantities),
         )
 
-        fraction_label = LaTeXString(
-            L"\log_{10} \, " * getLabel(
-                y_plot_params.var_name,
-                y_plot_params.exp_factor,
-                y_plot_params.unit,
-            )
-        )
+        fraction_label = getLabel(:generic_fraction; log=true)
 
-        y_plot_params = plotParams(:mass)
+        y_plot_params = QTY_REGISTRY[:generic_mass]
 
         plotTimeSeries(
             fill(simulation_path, length(quantities)),
@@ -2885,29 +2658,17 @@ function gasFractionsEvolution(
             filename="mass_evolution",
             da_functions=[daEvolution],
             da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
-            da_kwargs=[(;
-                trans_mode,
-                filter_mode,
-                extra_filter,
-                ff_request,
-                icGen,
-            )],
+            da_kwargs=[(; trans_mode, filter_mode, extra_filter, ff_request)],
             x_unit=x_plot_params.unit,
             y_unit=y_plot_params.unit,
             x_exp_factor=x_plot_params.exp_factor,
-            y_exp_factor=y_plot_params.exp_factor,
+            y_exp_factor=0,
             save_figures=false,
             backup_results=true,
             sim_labels=string.(quantities),
         )
 
-        mass_label = LaTeXString(
-            L"\log_{10} \, " * getLabel(
-                y_plot_params.var_name,
-                y_plot_params.exp_factor,
-                y_plot_params.unit,
-            )
-        )
+        mass_label = getLabel(:generic_mass; log=true)
 
         jld2_paths = joinpath.(temp_folder, ["mass_evolution.jld2", "fraction_evolution.jld2"])
 
@@ -3022,8 +2783,8 @@ function sfrTXT(
     theme::Attributes=Theme(),
 )::Nothing
 
-    x_plot_params = plotParams(x_quantity)
-    y_plot_params = plotParams(y_quantity)
+    x_plot_params = QTY_REGISTRY[x_quantity]
+    y_plot_params = QTY_REGISTRY[y_quantity]
 
     if isone(length(simulation_paths))
         filename = "$(basename(simulation_paths[1]))_$(y_quantity)_vs_$(x_quantity)"
@@ -3043,10 +2804,8 @@ function sfrTXT(
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
         y_exp_factor=y_plot_params.exp_factor,
-        xaxis_label=x_plot_params.axis_label,
-        yaxis_label=y_plot_params.axis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
+        xaxis_qty_label=x_plot_params.qty_label,
+        yaxis_qty_label=y_plot_params.qty_label,
         theme=merge(
             theme,
             Theme(
@@ -3117,21 +2876,10 @@ function cpuTXT(
     theme::Attributes=Theme(),
 )::Nothing
 
-    x_plot_params = plotParams(x_quantity)
-    y_plot_params = plotParams(y_quantity)
+    x_plot_params = getLabelArgs(x_quantity; log=false)
+    y_plot_params = getLabelArgs(y_quantity; log=ylog)
 
     safe_str_target = replace(target, "/" => "-", "_" => "-")
-
-    # Set arguments for the y axis
-    if ylog
-        y_log        = y_plot_params.unit
-        y_unit       = Unitful.NoUnits
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-    else
-        y_log        = nothing
-        y_unit       = y_plot_params.unit
-        yaxis_label  = y_plot_params.axis_label
-    end
 
     if isone(length(simulation_paths))
         filename = "$(basename(simulation_paths[1]))_$(y_quantity)_vs_$(x_quantity)_for_$(safe_str_target)"
@@ -3146,15 +2894,15 @@ function cpuTXT(
         filename,
         da_functions=[daCPUtxt],
         da_args=[(target, x_quantity, y_quantity)],
-        da_kwargs=[(; y_log, smooth)],
+        da_kwargs=[(; y_log=y_plot_params.log_unit, smooth)],
         x_unit=x_plot_params.unit,
-        y_unit,
+        y_unit=y_plot_params.unit,
         x_trim,
         y_trim,
-        xaxis_label=x_plot_params.axis_label,
-        yaxis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name=y_plot_params.var_name,
+        xaxis_qty_label=x_plot_params.qty_label,
+        yaxis_qty_label=y_plot_params.qty_label,
+        xaxis_label=x_plot_params.label,
+        yaxis_label=y_plot_params.label,
         theme=merge(
             theme,
             Theme(
@@ -3211,9 +2959,9 @@ Plot the Kennicutt-Schmidt law.
       + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations. The number fo bins will be `grid_size` /  (2 * `bin_size`).
       + `:log_circular` ->  The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric logarithmic rings. The first bin starts at 1e-3 of the radius. The number fo bins will be `grid_size` /  (2 * `bin_size`).
   - `grid_size::Unitful.Length=BOX_L[]`: Physical side length of the cubic and square grids, if `reduce_grid` = :square, and diameter of the circular grid if `reduce_grid` = :circular. This limits which cells/particles will be consider. As a reference, Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
-  - `bin_size::Unitful.Length=BIGIEL_PX_SIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`.
+  - `bin_size::Unitful.Length=BIGIEL2008_PXSIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`.
   - `age_limit::Unitful.Time=AGE_RESOLUTION[]`: Maximum age of the stars to consider for the star formation area density.
-  - `plot_type::Symbol=:scatter`: If the plot will be a `:scatter` plot or a `:heatmap`. Heatmaps will not show legends or several simulations at once. Scatter plots show one mark per pixel, and heatmaps show a 2D histogram for the number of pixel in each bin.
+  - `plot_type::Symbol=:scatter`: If the plot will be a `:scatter` plot, a `:scatter_xwindow` plot or a `:heatmap`. Heatmaps will not show legends or several simulations at once. Scatter plots show one mark per pixel, `:scatter_xwindow` show the median and a measure of uncertanty for 10 binned windows of the x-axis, and heatmaps show a 2D histogram for the number of pixel in each bin.
   - `integrated::Bool=false`: If the integrated (one mark per galaxy) or resolved (several marks per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = `:scatter`.
   - `sfr_density::Bool=true`: If the quantity for the y axis will be the SFR area density or, if `sfr_density` = false, the stellar mass area density.
   - `gas_weights::Union{Symbol,Nothing}=nothing`: If `plot_type` = `:scatter`, each point (a bin in the 2D grid) can be weighted by a gas quantity. If `integrated` = true, this option is ignored. If `integrated` = false, each point will have a color given by the weight. The possible weights are:
@@ -3229,7 +2977,6 @@ Plot the Kennicutt-Schmidt law.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the heatmap grid. If set to `nothing`, the extrema of the y values will be used. Only relevant if `plot_type` = :heatmap.
   - `n_bins::Int=100`: Number of bins per side of the heatmap grid. Only relevant if `plot_type` = `:heatmap`.
   - `colorbar::Bool=false`: If a colorbar will be added.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}. See [`initialConditionFunction`](@ref) an example. This keyword argument is only relevant if the target component is one of the :ode components (e.g. :ode_atomic_fraction).
   - `output_file::String="./kennicutt_schmidt_law.png"`: Path to the output file.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -3251,7 +2998,7 @@ function kennicuttSchmidtLaw(
     gas_type::Symbol=:cells,
     reduce_grid::Symbol=:square,
     grid_size::Unitful.Length=BOX_L[],
-    bin_size::Unitful.Length=BIGIEL_PX_SIZE,
+    bin_size::Unitful.Length=BIGIEL2008_PXSIZE,
     age_limit::Unitful.Time=AGE_RESOLUTION[],
     plot_type::Symbol=:scatter,
     integrated::Bool=false,
@@ -3265,7 +3012,6 @@ function kennicuttSchmidtLaw(
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     n_bins::Int=100,
     colorbar::Bool=false,
-    icGen::Function=initialConditionFunction,
     output_file::String="./kennicutt_schmidt_law.png",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -3321,31 +3067,31 @@ function kennicuttSchmidtLaw(
     ################################################################################################
 
     (
-        quantity ∈ [:gas, :molecular, :atomic, :neutral] ||
+        quantity ∈ (:gas, :molecular, :atomic, :neutral) ||
         throw(ArgumentError("kennicuttSchmidtLaw: `quantity` can only be :gas, :molecular, \
         :atomic or :neutral, but I got :$(quantity)"))
     )
 
     (
-        plot_type ∈ [:scatter, :heatmap] ||
-        throw(ArgumentError("kennicuttSchmidtLaw: `plot_type` can only be :scatter or :heatmap, \
-        but I got :$(plot_type)"))
+        plot_type ∈ (:scatter, :scatter_xwindow, :heatmap) ||
+        throw(ArgumentError("kennicuttSchmidtLaw: `plot_type` can only be :scatter, \
+        :scatter_xwindow or :heatmap, but I got :$(plot_type)"))
     )
 
     (
-        reduce_grid ∈ [:square, :circular, :log_circular] ||
+        reduce_grid ∈ (:square, :circular, :log_circular) ||
         throw(ArgumentError("kennicuttSchmidtLaw: `reduce_grid` can only be :square, :circular or \
         :log_circular, but I got :$(reduce_grid)"))
     )
 
     if integrated
 
-        if plot_type == :heatmap
+        if plot_type ∈ (:scatter_xwindow, :heatmap)
 
             (
                 LOGGING[] &&
                 @warn("kennicuttSchmidtLaw: If `integrated` is set to true, `plot_type` = :heatmap \
-                will be ignored and default to :scatter")
+                or `plot_type` = :scatter_xwindow will be ignored and default to :scatter")
             )
 
             plot_type = :scatter
@@ -3420,10 +3166,10 @@ function kennicuttSchmidtLaw(
             LOGGING[] &&
             @warn("kennicuttSchmidtLaw: `bin_size` is set to a value larger than \
             `grid_size` / 2 = $(grid_size / 2.0). This makes no sense. `bin_size` \
-            will be ignored and default to `BIGIEL_PX_SIZE` = $(BIGIEL_PX_SIZE)")
+            will be ignored and default to `BIGIEL2008_PXSIZE` = $(BIGIEL2008_PXSIZE)")
         )
 
-        bin_size = BIGIEL_PX_SIZE
+        bin_size = BIGIEL2008_PXSIZE
 
     end
 
@@ -3441,14 +3187,14 @@ function kennicuttSchmidtLaw(
 
     end
 
-    if plot_type == :heatmap
+    if plot_type ∈ (:scatter_xwindow, :heatmap)
 
         if !isnothing(gas_weights)
 
             (
                 LOGGING[] &&
-                @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap, so `gas_weights` = \
-                :$(gas_weights) will be ignored and default to nothing")
+                @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap or :scatter_xwindow, \
+                so `gas_weights` = :$(gas_weights) will be ignored and default to nothing")
             )
 
             gas_weights = nothing
@@ -3459,13 +3205,17 @@ function kennicuttSchmidtLaw(
 
             (
                 LOGGING[] &&
-                @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap, so `fit` = true \
-                will be ignored and default to false")
+                @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap or :scatter_xwindow, \
+                so `fit` = true will be ignored and default to false")
             )
 
             fit = false
 
         end
+
+    end
+
+    if plot_type == :heatmap
 
         if ns > 1
 
@@ -3479,7 +3229,7 @@ function kennicuttSchmidtLaw(
 
         end
 
-        if reduce_grid ∈ [:circular, :log_circular] && LOGGING[]
+        if reduce_grid ∈ (:circular, :log_circular) && LOGGING[]
 
             @warn("kennicuttSchmidtLaw: `plot_type` is set to :heatmap and `reduce_grid` to \
             :circular or :log_circular. Are you sure you want this?")
@@ -3500,13 +3250,18 @@ function kennicuttSchmidtLaw(
 
     end
 
-    if colorbar && ((plot_type == :scatter && isnothing(gas_weights)) || integrated)
+    if colorbar && (
+        (plot_type == :scatter_xwindow) ||
+        (plot_type == :scatter && isnothing(gas_weights)) ||
+        integrated
+    )
 
         (
             LOGGING[] &&
             @warn("kennicuttSchmidtLaw: `colorbar` is set to true, but there is no color range in \
-            the plot (either `plot_type` = :scatter and `gas_weights` = nothing or `integrated` = \
-            true). `colorbar` = true will be ignored and default to false")
+            the plot: either `plot_type` = :scatter and `gas_weights` = nothing or `integrated` = \
+            true or `plot_type` = :scatter_xwindow. \
+            `colorbar` = true will be ignored and default to false")
         )
 
         colorbar = false
@@ -3521,6 +3276,9 @@ function kennicuttSchmidtLaw(
         ppSun2023!,
         ppdelosReyes2019!,
         ppLeroy2008!,
+        ppCologni2026!,
+        ppLin2019!,
+        ppQuerejeta2021!,
     ]
 
         (
@@ -3688,7 +3446,7 @@ function kennicuttSchmidtLaw(
 
     end
 
-    base_request = mergeRequests(plotParams(:mass).request, Dict(:gas => ["POS ", "RHO "]))
+    base_request = mergeRequests(QTY_REGISTRY[:generic_mass].request, Dict(:gas => ["POS ", "RHO "]))
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
@@ -3706,15 +3464,7 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args,
-        da_kwargs=[
-            (;
-                reduce_grid,
-                reduce_factor,
-                icGen,
-                m_unit=Σg_m_unit,
-                l_unit=Σg_l_unit,
-            ),
-        ],
+        da_kwargs=[(; reduce_grid, reduce_factor, m_unit=Σg_m_unit, l_unit=Σg_l_unit)],
         x_unit=u"kpc",
         y_unit=u"kpc",
         save_figures=false,
@@ -3734,7 +3484,7 @@ function kennicuttSchmidtLaw(
             m_unit      = Σg_m_unit
             l_unit      = Σg_l_unit
             c_unit      = Σg_unit
-            da_kwargs   = [(; reduce_grid, reduce_factor, icGen, m_unit, l_unit)]
+            da_kwargs   = [(; reduce_grid, reduce_factor, m_unit, l_unit)]
 
         elseif gas_weights == :gas_sfr
 
@@ -3760,11 +3510,10 @@ function kennicuttSchmidtLaw(
 
         end
 
-        c_var_name = plotParams(gas_weights).var_name
-        c_label    = LaTeXString(L"\log_{10} \, " * getLabel(c_var_name, 0, c_unit))
+        c_label = getLabel(gas_weights; log=true)
 
         base_request = mergeRequests(
-            plotParams(gas_weights).request,
+            QTY_REGISTRY[gas_weights].request,
             Dict(:gas => ["MASS", "POS ", "RHO "]),
         )
 
@@ -3799,7 +3548,7 @@ function kennicuttSchmidtLaw(
 
     if quantity == :gas
 
-        x_label = getLabel(plotParams(:gas_area_density).var_name, 0, Σg_unit)
+        x_label = getLabel(QTY_REGISTRY[:gas_area_density].qty_label, 0, Σg_unit)
 
     elseif quantity == :molecular
 
@@ -3811,17 +3560,17 @@ function kennicuttSchmidtLaw(
 
     elseif quantity == :neutral
 
-        x_label = getLabel(plotParams(:neutral_area_density).var_name, 0, Σg_unit)
+        x_label = getLabel(QTY_REGISTRY[:neutral_area_density].qty_label, 0, Σg_unit)
 
     end
 
     if sfr_density
 
-        y_label = getLabel(plotParams(:sfr_area_density).var_name, 0, Σs_unit)
+        y_label = getLabel(QTY_REGISTRY[:sfr_area_density].qty_label, 0, Σs_unit)
 
     else
 
-        y_label = getLabel(plotParams(:stellar_area_density).var_name, 0, Σs_unit)
+        y_label = getLabel(QTY_REGISTRY[:stellar_area_density].qty_label, 0, Σs_unit)
 
     end
 
@@ -3836,8 +3585,10 @@ function kennicuttSchmidtLaw(
     end
 
     # Set the plot theme
-    if integrated || reduce_grid ∈ [:circular, :log_circular]
+    if integrated || reduce_grid ∈ (:circular, :log_circular)
         markersize = 20
+    elseif plot_type == :scatter_xwindow
+        markersize = 18
     else
         markersize = 6
     end
@@ -4002,6 +3753,62 @@ function kennicuttSchmidtLaw(
 
                     scatter!(ax, x_data, y_data; color)
 
+                elseif plot_type == :scatter_xwindow
+
+                    edges = collect(range(extrema(x_data)...; length=11))
+
+                    x_lists = listHistogram1D(x_data, x_data, edges)
+                    y_lists = listHistogram1D(x_data, y_data, edges)
+
+                    for i in eachindex(x_lists)
+
+                        x_bin = x_lists[i]
+                        y_bin = y_lists[i]
+
+                        if length(x_bin) > 0
+
+                            x_median = median(x_bin)
+                            y_median = median(y_bin)
+
+                            x_16 = quantile(x_bin, 0.16)
+                            x_84 = quantile(x_bin, 0.84)
+
+                            y_16 = quantile(y_bin, 0.16)
+                            y_84 = quantile(y_bin, 0.84)
+
+                            color = ring(colors, sim_idx)
+
+                            scatter!(
+                                ax,
+                                [x_median],
+                                [y_median];
+                                color,
+                                marker=ring(markers, sim_idx),
+                            )
+
+                            errorbars!(
+                                ax,
+                                [x_median],
+                                [y_median],
+                                x_median - x_16,
+                                x_84 - x_median;
+                                color,
+                            )
+
+                            errorbars!(
+                                ax,
+                                [x_median],
+                                [y_median],
+                                y_median - y_16,
+                                y_84 - y_median;
+                                color,
+                                direction = :x,
+                            )
+
+                        end
+
+                    end
+
                 end
 
             end
@@ -4041,22 +3848,18 @@ function kennicuttSchmidtLaw(
                     collect(range(yrange[1], yrange[2]; length=n_bins + 1));
                 )
 
-                # The transpose and reverse operation are used to conform to the way heatmap!
-                # expect the matrix to be structured
-                z_axis = reverse!(transpose(values), dims=2)
-
-                heatmap!(ax, x_axis, y_axis, z_axis)
+                heatmap!(ax, x_axis, y_axis, values)
 
                 if LOGGING[]
 
-                    z = copyArray(z_axis)
+                    z = copyArray(values)
 
                     @info(
                         "\nCount range (KS Law) \
                         \n  Simulation: $(basename(simulation)) \
                         \n  Quantity:   $(quantity) \
-                        \n  Min - Max:  $(nanextrema(z_axis)) \
-                        \n  Mean:       $(nanmean(z_axis)) \
+                        \n  Min - Max:  $(nanextrema(values)) \
+                        \n  Mean:       $(nanmean(values)) \
                         \n  Median:     $(nanmedian!(z))"
                     )
 
@@ -4070,7 +3873,7 @@ function kennicuttSchmidtLaw(
         # Apply the post processing function
         ############################################################################################
 
-        scatter_legend = (!isnothing(sim_labels) && plot_type == :scatter)
+        scatter_legend = (!isnothing(sim_labels) && plot_type ∈ (:scatter, :scatter_x_window))
 
         if fit
             fit_legend = ppFitLine!(
@@ -4277,7 +4080,6 @@ Plot the atomic to molecular gas transition for a set of metallicity ranges.
       + `:heatmap` -> Heatmap. One figure per range will be produced.
       + `:scatter` -> Scatter plot. A single figure with every range will be produced.
   - `output_path::String="."`: Path to the output folder.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target simulations use our star formation model, see [`isSimSFM`](@ref).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -4295,7 +4097,6 @@ function atomicMolecularTransition(
     ranges::Vector{<:Tuple{<:Real,<:Real}};
     plot_type::Symbol=:heatmap,
     output_path::String=".",
-    icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     theme::Attributes=Theme(),
@@ -4318,8 +4119,8 @@ function atomicMolecularTransition(
 
         end
 
-        x_plot_params = plotParams(x_quantity)
-        y_plot_params = plotParams(y_quantity)
+        x_plot_params = getLabelArgs(x_quantity; log=true)
+        y_plot_params = getLabelArgs(y_quantity; log=true)
 
         base_request = mergeRequests(
             x_plot_params.request,
@@ -4329,9 +4130,6 @@ function atomicMolecularTransition(
 
         translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
         filter_function, request = selectFilter(filter_mode, trans_request)
-
-        xaxis_label = L"\log_{10} \, " * getLabel("auto_label", 0, x_plot_params.unit)
-        yaxis_label = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
 
         filename = "$(basename(simulation_path))_$(y_quantity)_vs_$(x_quantity)"
 
@@ -4354,22 +4152,20 @@ function atomicMolecularTransition(
                     da_args=[(x_quantity, y_quantity)],
                     da_kwargs=[
                         (;
-                            x_log=x_plot_params.unit,
-                            y_log=y_plot_params.unit,
-                            icGen,
+                            x_log=x_plot_params.log_unit,
+                            y_log=y_plot_params.log_unit,
                             filter_function=dd -> filterByQuantity(
                                 dd,
                                 :gas_metallicity,
                                 range[1],
-                                range[2];
-                                icGen,
+                                range[2],
                             )
                         )
                     ],
-                    xaxis_label,
-                    yaxis_label,
-                    xaxis_var_name=x_plot_params.var_name,
-                    yaxis_var_name=y_plot_params.var_name,
+                    xaxis_qty_label=x_plot_params.qty_label,
+                    yaxis_qty_label=y_plot_params.qty_label,
+                    xaxis_label=x_plot_params.label,
+                    yaxis_label=y_plot_params.label,
                     theme,
                     title=L"%$(range[1]) \, < \, Z_\mathrm{gas} \, [\mathrm{Z_\odot}] \, < \, %$(range[2])",
                 )
@@ -4394,22 +4190,20 @@ function atomicMolecularTransition(
                 da_args=[(x_quantity, y_quantity)],
                 da_kwargs = [
                     (;
-                        x_log=x_plot_params.unit,
-                        y_log=y_plot_params.unit,
-                        icGen,
+                        x_log=x_plot_params.log_unit,
+                        y_log=y_plot_params.log_unit,
                         filter_function=dd -> filterByQuantity(
                             dd,
                             :gas_metallicity,
                             range[1],
-                            range[2];
-                            icGen,
+                            range[2],
                         ),
                     ) for range in ranges
                 ],
-                xaxis_label,
-                yaxis_label,
-                xaxis_var_name=x_plot_params.var_name,
-                yaxis_var_name=y_plot_params.var_name,
+                xaxis_qty_label=x_plot_params.qty_label,
+                yaxis_qty_label=y_plot_params.qty_label,
+                xaxis_label=x_plot_params.label,
+                yaxis_label=y_plot_params.label,
                 theme=merge(
                     theme,
                     Theme(
@@ -4454,7 +4248,6 @@ Plot a mass profile.
   - `components::Vector{Symbol}`: Target components. It can only be one of the elements of [`COMPONENTS`](@ref). All the components will be plotted together.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target `components` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `radius::Unitful.Length=DISK_R[]`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
   - `output_path::String="."`: Path to the output folder.
@@ -4476,7 +4269,6 @@ function massProfile(
     components::Vector{Symbol};
     cumulative::Bool=false,
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     radius::Unitful.Length=DISK_R[],
     n_bins::Int=100,
     output_path::String=".",
@@ -4488,7 +4280,7 @@ function massProfile(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(:mass)
+    plot_params = getLabelArgs(:generic_mass; log=ylog)
     base_request = mergeRequests(
         plot_params.request,
         ff_request,
@@ -4501,19 +4293,6 @@ function massProfile(
     grid = LinearGrid(zero(radius), radius, n_bins)
 
     n_sims = length(simulation_paths)
-
-    # Set arguments for the y axis
-    if ylog
-        y_unit       = Unitful.NoUnits
-        y_log        = plot_params.unit
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, plot_params.unit)
-    else
-        y_unit       = plot_params.unit
-        y_log        = nothing
-        y_exp_factor = plot_params.exp_factor
-        yaxis_label  = plot_params.axis_label
-    end
 
     sim_labels = ["$(component)_mass" for component in components]
 
@@ -4548,13 +4327,13 @@ function massProfile(
             filter_function,
             da_functions=[daProfile],
             da_args=[(Symbol(component, :_mass), grid) for component in components],
-            da_kwargs=[(; y_log, icGen, cumulative, filter_function=extra_filter)],
+            da_kwargs=[(; y_log=plot_params.log_unit, cumulative, filter_function=extra_filter)],
             x_unit=u"kpc",
-            y_unit,
-            y_exp_factor,
-            yaxis_label,
-            xaxis_var_name=L"r",
-            yaxis_var_name=plot_params.var_name,
+            y_unit=plot_params.unit,
+            y_exp_factor=plot_params.exp_factor,
+            xaxis_qty_label=L"r",
+            yaxis_qty_label=plot_params.qty_label,
+            yaxis_label=plot_params.label,
             theme=merge(
                 theme,
                 Theme(
@@ -4626,7 +4405,7 @@ function velocityProfile(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(velocity)
+    plot_params = QTY_REGISTRY[velocity]
     base_request = mergeRequests(plot_params.request, ff_request)
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
@@ -4657,9 +4436,8 @@ function velocityProfile(
         x_unit=u"kpc",
         y_unit=plot_params.unit,
         y_exp_factor=plot_params.exp_factor,
-        yaxis_label=plot_params.axis_label,
-        xaxis_var_name=L"r",
-        yaxis_var_name=plot_params.var_name,
+        xaxis_qty_label=L"r",
+        yaxis_qty_label=plot_params.qty_label,
         theme=merge(
             theme,
             Theme(
@@ -4712,7 +4490,6 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
   - `xlog::Bool=true`: If true, sets the x axis to ``\\log_{10}``(`x_quantity`).
   - `ylog::Bool=true`: If true, sets the y axis to ``\\log_{10}``(`y_quantity`).
   - `output_path::String="."`: Path to the output folder.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target simulations use our star formation model, see [`isSimSFM`](@ref).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -4733,7 +4510,6 @@ function compareFeldmann2020(
     xlog::Bool=true,
     ylog::Bool=true,
     output_path::String=".",
-    icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
@@ -4746,19 +4522,15 @@ function compareFeldmann2020(
 
     if x_component == :sfr
 
-        x_quantities   = fill(:observational_sfr, n_sims)
-        x_plot_params  = plotParams(:observational_sfr)
-        xunit          = x_plot_params.unit
-        x_axis_label   = x_plot_params.axis_label
-        xaxis_var_name = x_plot_params.var_name
+        x_quantities  = fill(:observational_sfr, n_sims)
+        x_plot_params = getLabelArgs(:observational_sfr; log=xlog)
+        x_label       = x_plot_params.label
 
     elseif x_component == :stellar
 
-        x_quantities   = fill(:stellar_mass, n_sims)
-        x_plot_params  = plotParams(:stellar_mass)
-        xunit          = x_plot_params.unit
-        x_axis_label   = x_plot_params.axis_label
-        xaxis_var_name = x_plot_params.var_name
+        x_quantities  = fill(:stellar_mass, n_sims)
+        x_plot_params = getLabelArgs(:stellar_mass; log=xlog)
+        x_label       = x_plot_params.label
 
     elseif x_component  == :molecular
 
@@ -4772,10 +4544,8 @@ function compareFeldmann2020(
             end
         end
 
-        xunit          = u"Msun"
-        x_axis_label   = "auto_label"
-        c_label        = "\\text{H2}"
-        xaxis_var_name = L"M_%$(c_label)"
+        x_plot_params = getLabelArgs(:generic_mass; log=xlog)
+        x_label       = L"\log_{10} \, M_\mathrm{H2} \, [\mathrm{M_\odot}]"
 
     elseif x_component == :atomic
 
@@ -4789,10 +4559,8 @@ function compareFeldmann2020(
             end
         end
 
-        xunit          = u"Msun"
-        x_axis_label   = "auto_label"
-        c_label        = "\\text{HI}"
-        xaxis_var_name = L"M_%$(c_label)"
+        x_plot_params = getLabelArgs(:generic_mass; log=xlog)
+        x_label       = L"\log_{10} \, M_\mathrm{HI} \, [\mathrm{M_\odot}]"
 
     else
 
@@ -4803,19 +4571,15 @@ function compareFeldmann2020(
 
     if y_component == :sfr
 
-        y_quantities   = fill(:observational_sfr, n_sims)
-        y_plot_params  = plotParams(:observational_sfr)
-        yunit          = y_plot_params.unit
-        y_axis_label   = y_plot_params.axis_label
-        yaxis_var_name = y_plot_params.var_name
+        y_quantities  = fill(:observational_sfr, n_sims)
+        y_plot_params = getLabelArgs(:observational_sfr; log=ylog)
+        y_label       = y_plot_params.label
 
     elseif y_component == :stellar
 
-        y_quantities   = fill(:stellar_mass, n_sims)
-        y_plot_params  = plotParams(:stellar_mass)
-        yunit          = y_plot_params.unit
-        y_axis_label   = y_plot_params.axis_label
-        yaxis_var_name = y_plot_params.var_name
+        y_quantities  = fill(:stellar_mass, n_sims)
+        y_plot_params = getLabelArgs(:stellar_mass)
+        y_label       = y_plot_params.label
 
     elseif y_component  == :molecular
 
@@ -4829,10 +4593,8 @@ function compareFeldmann2020(
             end
         end
 
-        yunit          = u"Msun"
-        y_axis_label   = "auto_label"
-        c_label        = "\\text{H2}"
-        yaxis_var_name = L"M_%$(c_label)"
+        y_plot_params = getLabelArgs(:generic_mass; log=ylog)
+        y_label       = L"\log_{10} \, M_\mathrm{H2} \, [\mathrm{M_\odot}]"
 
     elseif y_component == :atomic
 
@@ -4846,32 +4608,14 @@ function compareFeldmann2020(
             end
         end
 
-        yunit          = u"Msun"
-        y_axis_label   = "auto_label"
-        c_label        = "\\text{HI}"
-        yaxis_var_name = L"M_%$(c_label)"
+        y_plot_params = getLabelArgs(:generic_mass; log=ylog)
+        y_label       = L"\log_{10} \, M_\mathrm{HI} \, [\mathrm{M_\odot}]"
 
     else
 
         throw(ArgumentError("compareFeldmann2020!: `y_component` can only be :stellar, \
         :molecular, :atomic or :sfr, but I got :$(y_component)"))
 
-    end
-
-    if xlog
-        x_log       = xunit
-        xaxis_label = L"\log_{10} \, " * getLabel("auto_label", 0, xunit)
-    else
-        x_log       = nothing
-        xaxis_label = x_axis_label
-    end
-
-    if ylog
-        y_log       = yunit
-        yaxis_label = L"\log_{10} \, " * getLabel("auto_label", 0, yunit)
-    else
-        y_log       = nothing
-        yaxis_label = y_axis_label
     end
 
     if isone(n_sims)
@@ -4888,16 +4632,23 @@ function compareFeldmann2020(
         slice,
         da_functions=[daEvolution],
         da_args=[(x_qty, y_qty) for (x_qty, y_qty) in zip(x_quantities, y_quantities)],
-        da_kwargs=[(; trans_mode, filter_mode, extra_filter, ff_request, x_log, y_log, icGen)],
+        da_kwargs=[
+            (;
+                trans_mode,
+                filter_mode,
+                extra_filter,
+                ff_request,
+                x_log=x_plot_params.log_unit,
+                y_log=y_plot_params.log_unit,
+            ),
+        ],
         post_processing=ppFeldmann2020!,
         pp_args=(x_component, y_component),
         pp_kwargs=(; scatter, xlog, ylog),
-        x_unit=xlog ? Unitful.NoUnits : xunit,
-        y_unit=ylog ? Unitful.NoUnits : yunit,
-        xaxis_label,
-        yaxis_label,
-        xaxis_var_name,
-        yaxis_var_name,
+        x_unit=x_plot_params.unit,
+        y_unit=y_plot_params.unit,
+        xaxis_label=x_label,
+        yaxis_label=y_label,
         theme=merge(
             theme,
             Theme(
@@ -4973,7 +4724,7 @@ function massMetallicityRelation(
     ################################################################################################
 
     base_request = mergeRequests(
-        plotParams(:stellar_mass).request,
+        QTY_REGISTRY[:stellar_mass].request,
         Dict(:stellar => ["GAGE", "POS "]),
     )
 
@@ -5007,9 +4758,9 @@ function massMetallicityRelation(
     ################################################################################################
 
     if element == :all
-        metal_request = plotParams(:Z_gas_mass).request
+        metal_request = QTY_REGISTRY[:Z_gas_mass].request
     else
-        metal_request = plotParams(Symbol(element, "_gas_abundance")).request
+        metal_request = QTY_REGISTRY[Symbol(element, "_gas_abundance")].request
     end
 
     base_request = mergeRequests(metal_request, Dict(:gas => ["RHO ", "POS "]))
@@ -5043,18 +4794,16 @@ function massMetallicityRelation(
 
     # Set the x label
     if mass
-        x_plot_param = plotParams(:stellar_area_density)
+        x_plot_param = getLabelArgs(:stellar_area_density; log=true)
     else
-        x_plot_param = plotParams(:sfr_area_density)
+        x_plot_param = getLabelArgs(:sfr_area_density; log=true)
     end
-
-    xlabel = LaTeXString(L"\log_{10} \, " * getLabel(x_plot_param.var_name, 0, x_plot_param.unit))
 
     # Set the y label
     if element == :all
-        ylabel = L"$\log_{10}$ %$(plotParams(:gas_metallicity).var_name)"
+        y_plot_param = getLabelArgs(:gas_metallicity; log=true)
     else
-        ylabel = plotParams(Symbol(element, "_gas_abundance")).axis_label
+        y_plot_param = getLabelArgs(Symbol(element, "_gas_abundance"); log=false)
     end
 
     if !mass
@@ -5087,7 +4836,7 @@ function massMetallicityRelation(
 
                 f = Figure()
 
-                ax = CairoMakie.Axis(f[1, 1]; xlabel, ylabel)
+                ax = CairoMakie.Axis(f[1, 1]; xlabel=x_plot_param.label, ylabel=y_plot_param.label)
 
                 x_address = "$(SNAP_BASENAME[])_$(snapshot_number)/$(sim_name)"
                 y_address = "$(SNAP_BASENAME[])_$(snapshot_number)/$(sim_name)"
@@ -5188,7 +4937,6 @@ By default (`trans_mode` = :all_box and `filter_mode` = :all) we use the followi
   - `n_neighbors::Int=32`: Number of neighbors for the mean and standard deviation of the velocity. Setting this value to 1 maximizes the resolution for the velocity, and sets the standard deviation (columns 8, 9, and 10) to NaN. This is only relevant for simulations where gas is represented by Voronoi cells (`type` = :cells).
   - `grid::CubicGrid=CubicGrid(BOX_L[], 300)`: Cubic grid.
   - `row_major_order::Bool=true`: Store the results in row-major order (as used in C and Python) instead of column-major order (used in Julia, Fortran, and MATLAB). See [Row- and column-major order](https://en.wikipedia.org/wiki/Row-_and_column-major_order).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target simulations use our star formation model, see [`isSimSFM`](@ref).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit
   - `l_unit::Unitful.Units=u"kpc"`: Length unit.
   - `v_unit::Unitful.Units=u"km * s^-1"`: Velocity unit.
@@ -5204,7 +4952,6 @@ function gasVelocityCubes(
     n_neighbors::Int=32,
     grid::CubicGrid=CubicGrid(BOX_L[], 300),
     row_major_order::Bool=true,
-    icGen::Function=initialConditionFunction,
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"kpc",
     v_unit::Unitful.Units=u"km * s^-1",
@@ -5226,7 +4973,10 @@ function gasVelocityCubes(
     n_rows = grid.n_voxels
     n_cols = 14
 
-    base_request = mergeRequests(plotParams(:mass).request, Dict(:gas => ["POS ", "VEL "]))
+    base_request = mergeRequests(
+        QTY_REGISTRY[:generic_mass].request,
+        Dict(:gas => ["POS ", "VEL "]),
+    )
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
@@ -5277,11 +5027,11 @@ function gasVelocityCubes(
             # Compute the mass of cold, atomic, and ionized gas in each cell
             if isSimSFM(simulation_path)
 
-                ion_masses  = scatterQty(data_dict, :ode_ionized_mass; icGen)
-                ato_masses  = scatterQty(data_dict, :ode_atomic_mass; icGen)
-                mol_masses  = scatterQty(data_dict, :ode_molecular_stellar_mass; icGen)
-                Z_masses    = scatterQty(data_dict, :ode_metals_mass; icGen)
-                dust_masses = scatterQty(data_dict, :ode_dust_mass; icGen)
+                ion_masses  = scatterQty(data_dict, :ode_ionized_mass)
+                ato_masses  = scatterQty(data_dict, :ode_atomic_mass)
+                mol_masses  = scatterQty(data_dict, :ode_molecular_stellar_mass)
+                Z_masses    = scatterQty(data_dict, :ode_metals_mass)
+                dust_masses = scatterQty(data_dict, :ode_dust_mass)
 
             else
 
@@ -5846,8 +5596,8 @@ function virialAccretionEvolution(
     theme::Attributes=Theme(),
 )::Nothing
 
-    x_plot_params = plotParams(:physical_time)
-    y_plot_params = plotParams(:mass_accretion)
+    x_plot_params = QTY_REGISTRY[:physical_time]
+    y_plot_params = getLabelArgs(:mass_accretion; log=ylog)
 
     if component == :stellar
 
@@ -5878,15 +5628,15 @@ function virialAccretionEvolution(
 
     if flux_direction == :net
 
-        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{net}}^\text{R200}"
+        yaxis_qty_label = L"\dot{M}_{%$(c_label)\text{net}}^\text{R200}"
 
     elseif flux_direction == :inflow
 
-        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{inflow}}^\text{R200}"
+        yaxis_qty_label = L"\dot{M}_{%$(c_label)\text{inflow}}^\text{R200}"
 
     elseif flux_direction == :outflow
 
-        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{outflow}}^\text{R200}"
+        yaxis_qty_label = L"\dot{M}_{%$(c_label)\text{outflow}}^\text{R200}"
 
     else
 
@@ -5896,27 +5646,13 @@ function virialAccretionEvolution(
     end
 
     if ylog
-
-        y_log        = y_plot_params.unit
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-
         post_processing = getNothing
         pp_args         = ()
         pp_kwargs       = (;)
-
     else
-
-        y_log        = nothing
-        y_unit       = y_plot_params.unit
-        y_exp_factor = y_plot_params.exp_factor
-        yaxis_label  = y_plot_params.axis_label
-
         post_processing = ppHorizontalFlags!
         pp_args         = ([0.0],)
         pp_kwargs       = (; colors=[:gray65], line_styles=[:solid])
-
     end
 
     if trace ∈ [:tracers, :particles]
@@ -5933,18 +5669,17 @@ function virialAccretionEvolution(
         slice,
         da_functions=[daVirialAccretion],
         da_args=[(component,)],
-        da_kwargs=[(; flux_direction, halo_idx, trace, y_log, smooth)],
+        da_kwargs=[(; flux_direction, halo_idx, trace, y_log=y_plot_params.log_unit, smooth)],
         post_processing,
         pp_args,
         pp_kwargs,
         x_unit=x_plot_params.unit,
-        y_unit,
+        y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
-        y_exp_factor,
-        xaxis_label=x_plot_params.axis_label,
-        yaxis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name,
+        y_exp_factor=y_plot_params.exp_factor,
+        xaxis_qty_label=x_plot_params.qty_label,
+        yaxis_qty_label,
+        yaxis_label=y_plot_params.label,
         theme=merge(
             theme,
             Theme(
@@ -6015,8 +5750,8 @@ function diskAccretionEvolution(
     theme::Attributes=Theme(),
 )::Nothing
 
-    x_plot_params = plotParams(:physical_time)
-    y_plot_params = plotParams(:mass_accretion)
+    x_plot_params = QTY_REGISTRY[:physical_time]
+    y_plot_params = getLabelArgs(:mass_accretion; log=ylog)
 
     if component == :stellar
 
@@ -6047,15 +5782,15 @@ function diskAccretionEvolution(
 
     if flux_direction == :net
 
-        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{net}}^\text{disk}"
+        yaxis_qty_label = L"\dot{M}_{%$(c_label)\text{net}}^\text{disk}"
 
     elseif flux_direction == :inflow
 
-        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{inflow}}^\text{disk}"
+        yaxis_qty_label = L"\dot{M}_{%$(c_label)\text{inflow}}^\text{disk}"
 
     elseif flux_direction == :outflow
 
-        yaxis_var_name = L"\dot{M}_{%$(c_label)\text{outflow}}^\text{disk}"
+        yaxis_qty_label = L"\dot{M}_{%$(c_label)\text{outflow}}^\text{disk}"
 
     else
 
@@ -6065,27 +5800,13 @@ function diskAccretionEvolution(
     end
 
     if ylog
-
-        y_log        = y_plot_params.unit
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, y_plot_params.unit)
-
         post_processing = getNothing
         pp_args         = ()
         pp_kwargs       = (;)
-
     else
-
-        y_log        = nothing
-        y_unit       = y_plot_params.unit
-        y_exp_factor = y_plot_params.exp_factor
-        yaxis_label  = y_plot_params.axis_label
-
         post_processing = ppHorizontalFlags!
         pp_args         = ([0.0],)
         pp_kwargs       = (; colors=[:gray65], line_styles=[:solid])
-
     end
 
     if trace ∈ [:tracers, :particles]
@@ -6102,18 +5823,27 @@ function diskAccretionEvolution(
         slice,
         da_functions=[daDiskAccretion],
         da_args=[(component,)],
-        da_kwargs=[(; flux_direction, max_r, max_z, trans_mode, trace, y_log, smooth)],
+        da_kwargs=[
+            (;
+                flux_direction,
+                max_r,
+                max_z,
+                trans_mode,
+                trace,
+                y_log=y_plot_params.log_unit,
+                smooth,
+            ),
+        ],
         post_processing,
         pp_args,
         pp_kwargs,
         x_unit=x_plot_params.unit,
-        y_unit,
+        y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,
-        y_exp_factor,
-        xaxis_label=x_plot_params.axis_label,
-        yaxis_label,
-        xaxis_var_name=x_plot_params.var_name,
-        yaxis_var_name,
+        y_exp_factor=y_plot_params.exp_factor,
+        xaxis_qty_label=x_plot_params.qty_label,
+        yaxis_qty_label,
+        yaxis_label=y_plot_params.label,
         theme=merge(
             theme,
             Theme(
@@ -6178,19 +5908,15 @@ function fitVSFLaw(
 
     grid = CubicGrid(box_size, 400)
 
-    x_plot_params = plotParams(Symbol(component, :_mass_density))
-    y_plot_params = plotParams(:sfr_density)
+    x_plot_params = QTY_REGISTRY[Symbol(component, :_mass_density)]
+    y_plot_params = QTY_REGISTRY[:sfr_density]
 
-    base_request = mergeRequests(
-        x_plot_params.request,
-        y_plot_params.request,
-        Dict(:gas=>["POS "]),
-    )
+    base_request = mergeRequests(x_plot_params.request, y_plot_params.request, Dict(:gas=>["POS "]))
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    # Set units
+    # Fix the units
     m_unit         = u"Msun"
     t_unit         = u"yr"
     l_gas_unit     = u"pc"
@@ -6201,10 +5927,10 @@ function fitVSFLaw(
 
     # Set the labels
     xaxis_label = LaTeXString(
-        L"\log_{10} \, " * getLabel(x_plot_params.var_name, 0, ρ_gas_unit)
+        L"\log_{10} \, " * getLabel(x_plot_params.qty_label, 0, ρ_gas_unit)
     )
     yaxis_label = LaTeXString(
-        L"\log_{10} \, " * getLabel(y_plot_params.var_name, 0, ρ_sfr_unit)
+        L"\log_{10} \, " * getLabel(y_plot_params.qty_label, 0, ρ_sfr_unit)
     )
 
     for simulation_path in simulation_paths
@@ -6266,7 +5992,6 @@ Plot the clumping factor of `component` for different volume scales.
   - `smooth::Int=0`: The result will be average out using `smooth` bins for the volume. Set it to 0 if you want no smoothing.
   - `xlog::Bool=false`: If true, sets the x axis to the ``\\log_{10}`` of the volume.
   - `ylog::Bool=false`: If true, sets the y axis to the ``\\log_{10}`` of the clumping factor.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `l_unit::Unitful.Units=u"kpc"`: Lenght unit for the volume.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -6290,7 +6015,6 @@ function clumpingFactor(
     smooth::Int=0,
     xlog::Bool=false,
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     l_unit::Unitful.Units=u"kpc",
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -6302,7 +6026,7 @@ function clumpingFactor(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(Symbol(component, :_clumping_factor))
+    plot_params = getLabelArgs(Symbol(component, :_clumping_factor); log=ylog)
 
     base_request = mergeRequests(plot_params.request, Dict(:gas => ["POS "]), ff_request)
 
@@ -6326,19 +6050,6 @@ function clumpingFactor(
         xaxis_label = getLabel(L"\bar{V}", 0, l_unit^3)
     end
 
-    # Set arguments for the y axis
-    if ylog
-        y_log        = plot_params.unit
-        y_unit       = Unitful.NoUnits
-        y_exp_factor = 0
-        yaxis_label  = L"\log_{10} \, " * getLabel("auto_label", 0, plot_params.unit)
-    else
-        y_log        = nothing
-        y_unit       = plot_params.unit
-        y_exp_factor = plot_params.exp_factor
-        yaxis_label  = plot_params.axis_label
-    end
-
     plotSnapshot(
         simulation_paths,
         request,
@@ -6353,15 +6064,15 @@ function clumpingFactor(
         filter_function,
         da_functions=[daClumpingFactor],
         da_args=[(component,)],
-        da_kwargs=[(; n_neighbors, icGen, filter_function=extra_filter, x_log, y_log)],
+        da_kwargs=[(; n_neighbors, filter_function=extra_filter, x_log, y_log=plot_params.log_unit)],
         smooth,
         x_unit,
-        y_unit,
-        y_exp_factor,
+        y_unit=plot_params.unit,
+        y_exp_factor=plot_params.exp_factor,
         xaxis_label,
-        yaxis_label,
-        xaxis_var_name=L"\bar{V}",
-        yaxis_var_name=plot_params.var_name,
+        yaxis_label=plot_params.label,
+        xaxis_qty_label=L"\bar{V}",
+        yaxis_qty_label=plot_params.qty_label,
         theme,
         sim_labels,
         title,
@@ -6402,9 +6113,10 @@ function circularityHistogram(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(:stellar_circularity)
-
-    translation, rotation, trans_request = selectTransformation(trans_mode, plot_params.request)
+    translation, rotation, trans_request = selectTransformation(
+        trans_mode,
+        QTY_REGISTRY[:stellar_circularity].request,
+    )
     filter_function, request = selectFilter(filter_mode, trans_request)
 
     grid = LinearGrid(-2.0, 2.0, 200)
@@ -6461,7 +6173,7 @@ function circularityHistogram(
 
             ax = CairoMakie.Axis(
                 f[1, 1];
-                xlabel=getLabel(plot_params.var_name, 0, Unitful.NoUnits),
+                xlabel=getLabel(:stellar_circularity),
                 ylabel=L"\mathrm{Normalized \,\, counts}",
             )
 
@@ -6558,7 +6270,7 @@ function efficiencyHistogram(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = plotParams(:eff)
+    plot_params = getLabelArgs(:generic_eff; log=true)
 
     base_request = mergeRequests(plot_params.request, ff_request)
 
@@ -6591,9 +6303,8 @@ function efficiencyHistogram(
                 (; log=true, filter_function=gas_ff),
             ],
             post_processing=ppLee2016!,
-            xaxis_label=L"\log_{10} \," * getLabel(plot_params.axis_label, 0, plot_params.unit),
-            xaxis_var_name=plot_params.var_name,
-            yaxis_var_name=L"\mathrm{Normalized \,\, counts}",
+            xaxis_label=plot_params.label,
+            yaxis_qty_label=L"\mathrm{Normalized \,\, counts}",
             theme=merge(
                 theme,
                 Theme(
@@ -6661,11 +6372,11 @@ function stellarDensityMaps(
     y_label = getLabel("y", 0, l_unit)
     z_label = getLabel("z", 0, l_unit)
 
-    plot_params = plotParams(:stellar_area_density)
+    plot_params = QTY_REGISTRY[:stellar_area_density]
 
     # Label for the colorbar
     colorbar_label = LaTeXString(
-        L"\log_{10} \, " * getLabel(plot_params.var_name, 0, m_unit * l_unit^-2)
+        L"\log_{10} \, " * getLabel(plot_params.qty_label, 0, m_unit * l_unit^-2)
     )
 
     base_request = mergeRequests(plot_params.request, ff_request)
@@ -6812,7 +6523,6 @@ Plot the density map of five gas components for the xy and xz projections, in se
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `box_size::Unitful.Length=BOX_L[]`: Size of the plotting box.
   - `output_path::String="."`: Path to the output folder.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `density_range::NTuple{2,Float64}=(NaN,NaN)`: Area density range in ``\\log_{10} \\mathrm{[M_\\odot \\, kpc^{-2}]``. If set to NaN a value is chosen automatically.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -6825,7 +6535,6 @@ function gasDensityMaps(
     slice::IndexType;
     box_size::Unitful.Length=BOX_L[],
     output_path::String=".",
-    icGen::Function=initialConditionFunction,
     density_range::NTuple{2,Float64}=(NaN,NaN),
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -6881,10 +6590,10 @@ function gasDensityMaps(
 
         for (i, quantity) in pairs(quantities)
 
-            plot_params = plotParams(Symbol(quantity, :_area_density))
+            plot_params = QTY_REGISTRY[Symbol(quantity, :_area_density)]
 
             colorbar_labels[i] = LaTeXString(
-                L"\log_{10} \, " * getLabel(plot_params.var_name, 0, m_unit * l_unit^-2)
+                L"\log_{10} \, " * getLabel(plot_params.qty_label, 0, m_unit * l_unit^-2)
             )
 
             base_request = mergeRequests(plot_params.request, ff_request)
@@ -6910,7 +6619,6 @@ function gasDensityMaps(
                     da_kwargs=[
                         (;
                             projection_plane,
-                            icGen,
                             m_unit,
                             l_unit,
                             filter_function=extra_filter,
@@ -7066,10 +6774,9 @@ f_\mathrm{H_2} = \frac{M_\mathrm{H_2}}{M_\mathrm{H_2} + M_\star} \, ,
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `icGen::Vector{<:Function}=[initialConditionFunction]`: Functions (one per simulation) that generates a initial condition function for each of the :ode components. Each must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
-  - `extra_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Extra request dictionary (maybe useful for the different `icGen` functions).
+  - `extra_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Extra request dictionary.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
@@ -7086,7 +6793,6 @@ function molecularFractionEvolution(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    icGen::Vector{<:Function}=[initialConditionFunction],
     smooth::Int=0,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -7098,10 +6804,8 @@ function molecularFractionEvolution(
         be :scale_factor, :redshift, :physical_time or :lookback_time, but I got :$(x_quantity)")
     )
 
-    x_plot_params = plotParams(x_quantity)
-    y_plot_params = plotParams(:molecular_stellar_fraction)
+    x_plot_params = getLabelArgs(x_quantity; log=true)
 
-    xlabel = LaTeXString(L"\log_{10} \, " * getLabel(x_plot_params.var_name, 0, x_plot_params.unit))
     ylabel = L"\log_{10} \, M_\mathrm{H2} / (M_\mathrm{H2} + M_\star)"
 
     current_theme = merge(
@@ -7133,6 +6837,16 @@ function molecularFractionEvolution(
 
             end
 
+            if isSimSFM(simulation)
+                mol_mass_qty = :ode_molecular_stellar_mass
+            else
+                mol_mass_qty = :br_molecular_mass
+            end
+
+            y_quantity = mol_mass_qty / (mol_mass_qty + :stellar_mass)
+
+            y_plot_params = getLabelArgs(y_quantity; log=true)
+
             temp_folder = joinpath(output_path, "_gas_fraction_evolution")
 
             plotTimeSeries(
@@ -7142,19 +6856,18 @@ function molecularFractionEvolution(
                 slice,
                 filename="gas_mass_fraction",
                 da_functions=[daEvolution],
-                da_args=[(x_quantity, :molecular_stellar_fraction)],
+                da_args=[(x_quantity, y_quantity)],
                 da_kwargs=[
                     (;
                         trans_mode,
                         filter_mode,
                         extra_filter,
                         ff_request,
-                        y_log=y_plot_params.unit,
-                        icGen=ring(icGen, i),
+                        y_log=y_plot_params.log_unit,
                         smooth,
                     ),
                 ],
-                x_unit=x_plot_params.unit,
+                x_unit=x_plot_params.log_unit,
                 save_figures=false,
                 backup_results=true,
             )
@@ -7176,7 +6889,7 @@ function molecularFractionEvolution(
                         log=true,
                     ),
                 ],
-                x_unit=x_plot_params.unit,
+                x_unit=x_plot_params.log_unit,
                 save_figures=false,
                 backup_results=true,
             )
@@ -7185,7 +6898,11 @@ function molecularFractionEvolution(
 
                 f = Figure()
 
-                ax = CairoMakie.Axis(f[1, 1]; xlabel, ylabel)
+                ax = CairoMakie.Axis(
+                    f[1, 1];
+                    xlabel=x_plot_params.label,
+                    ylabel,
+                )
 
                 jldopen(joinpath(temp_folder, "gas_mass_fraction.jld2"), "r") do jld2_file
 
@@ -7240,6 +6957,20 @@ function molecularFractionEvolution(
 
         n_sims = length(simulation_paths)
 
+        y_quantities = Vector{GalaxyInspector.BinaryQuantity}(undef, n_sims)
+
+        for (i, simulation) in pairs(simulation_paths)
+
+            if isSimSFM(simulation)
+                mol_mass_qty = :ode_molecular_stellar_mass
+            else
+                mol_mass_qty = :br_molecular_mass
+            end
+
+            y_quantities[i] = mol_mass_qty / (mol_mass_qty + :stellar_mass)
+
+        end
+
         plotTimeSeries(
             simulation_paths,
             [lines!];
@@ -7247,20 +6978,19 @@ function molecularFractionEvolution(
             slice,
             filename="gas_mass_fraction_evolution",
             da_functions=fill(daEvolution, n_sims),
-            da_args=[(x_quantity, :molecular_stellar_fraction)],
+            da_args=[(x_quantity, y_quantity) for y_quantity in y_quantities],
             da_kwargs=[
                 (;
                     trans_mode,
                     filter_mode,
                     extra_filter,
                     ff_request,
-                    y_log=y_plot_params.unit,
-                    icGen=ring(icGen, i),
+                    y_log=Unitful.NoUnits,
                     smooth,
                 ) for i in 1:n_sims
             ],
-            x_unit=x_plot_params.unit,
-            xaxis_label=xlabel,
+            x_unit=x_plot_params.log_unit,
+            xaxis_label=x_plot_params.label,
             yaxis_label=ylabel,
             theme=current_theme,
             sim_labels,
@@ -7289,7 +7019,6 @@ Make a video of how the projected density (xy and xz planes) evolves through tim
   - `field_type::Symbol=cells`: If the gas field is made up of `:particles` or Voronoi `:cells`.
   - `box_size::Unitful.Length=BOX_L[]`: Size of the plotting box.
   - `output_path::String="."`: Path to the output folder.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `density_range::NTuple{2,Float64}=(NaN,NaN)`: Area density range in ``\\log_{10} \\mathrm{[M_\\odot \\, kpc^{-2}]`` for the `component` and gas. If set to NaN a value is chosen automatically.
   - `framerate::Int64=20`: Video framerate.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -7307,7 +7036,6 @@ function evolutionVideo(
     field_type::Symbol=:cells,
     box_size::Unitful.Length=BOX_L[],
     output_path::String=".",
-    icGen::Function=initialConditionFunction,
     density_range::NTuple{2,Float64}=(NaN,NaN),
     framerate::Int64=20,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -7341,19 +7069,19 @@ function evolutionVideo(
     x_limits = half_box
     y_limits = [half_box, 12]
 
-    plot_params = plotParams(Symbol(component, :_area_density))
+    plot_params = QTY_REGISTRY[Symbol(component, :_area_density)]
     quantities  = [:gas, component, :stellar]
 
     labels = LaTeXString.(
         [
-            L"\log_{10} \, " * getLabel(plotParams(:gas_area_density).var_name, 0, Σ_unit),
-            L"\log_{10} \, " * getLabel(plot_params.var_name, 0, Σ_unit),
-            L"\log_{10} \, " * getLabel(plotParams(:stellar_area_density).var_name, 0, Σ_unit),
+            L"\log_{10} \," * getLabel(QTY_REGISTRY[:gas_area_density].qty_label, 0, Σ_unit),
+            L"\log_{10} \," * getLabel(plot_params.qty_label, 0, Σ_unit),
+            L"\log_{10} \," * getLabel(QTY_REGISTRY[:stellar_area_density].qty_label, 0, Σ_unit),
         ]
     )
     field_types = [field_type, field_type, :particles]
 
-    base_request = mergeRequests(plotParams(:area_density).request, ff_request)
+    base_request = mergeRequests(QTY_REGISTRY[:generic_area_density].request, ff_request)
 
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
@@ -7427,7 +7155,6 @@ function evolutionVideo(
                     da_kwargs=[
                         (;
                             projection_plane,
-                            icGen,
                             m_unit,
                             l_unit,
                             filter_function=extra_filter,
@@ -7688,7 +7415,6 @@ Make a mockup image emulating an SDSS observation.
   - `resolution::Int=800`: Number of bins per side of the cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `extinction::Union{Symbol,Nothing}=nothing`: Type of extinction. The options are:
 
       + `:nothing` -> No extinction.
@@ -7713,7 +7439,6 @@ function SDSSMockup(
     resolution::Int=800,
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
-    icGen::Function=initialConditionFunction,
     extinction::Union{Symbol,Nothing}=nothing,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -7730,13 +7455,13 @@ function SDSSMockup(
     elseif extinction == :neutral
 
         extinction_request = mergeRequests(
-            plotParams(:ode_neutral_mass).request,
-            plotParams(:neutral_mass).request,
+            QTY_REGISTRY[:ode_neutral_mass].request,
+            QTY_REGISTRY[:neutral_mass].request,
         )
 
     elseif extinction == :dust
 
-        extinction_request = plotParams(:ode_dust_mass).request
+        extinction_request = QTY_REGISTRY[:ode_dust_mass].request
 
     else
 
@@ -7746,9 +7471,9 @@ function SDSSMockup(
     end
 
     base_request = mergeRequests(
-        plotParams(:stellar_age).request,
-        plotParams(:stellar_metallicity).request,
-        plotParams(:stellar_mass).request,
+        QTY_REGISTRY[:stellar_age].request,
+        QTY_REGISTRY[:stellar_metallicity].request,
+        QTY_REGISTRY[:stellar_mass].request,
         Dict(:stellar=>["POS "], :gas=>["POS "]),
         extinction_request,
         ff_request,
@@ -7776,15 +7501,7 @@ function SDSSMockup(
         filter_function,
         da_functions=[daSDSSMockup],
         da_args=[(grid,)],
-        da_kwargs=[
-            (;
-                projection_plane,
-                smooth,
-                icGen,
-                extinction,
-                filter_function=extra_filter,
-            ),
-        ],
+        da_kwargs=[(; projection_plane, smooth, extinction, filter_function=extra_filter)],
         save_figures=false,
         backup_results=false,
         backup_raw_results=true,
@@ -8185,7 +7902,6 @@ Write a text file with information about a given snapshot.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be written for each simulation.
   - `slices::Vector{Int}`: Selects which snapshots to plot for each simulation, starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `slice` = (number in filename) + 1.
   - `output_path::String="."`: Path to the output folder.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target simulations use our star formation model, see [`isSimSFM`](@ref).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be considered in the "filtered" section of the report. For options see [`selectFilter`](@ref).
 """
@@ -8193,7 +7909,6 @@ function snapshotReport(
     simulation_paths::Vector{String},
     slices::Vector{Int};
     output_path::String=".",
-    icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
 )::Nothing
@@ -8435,7 +8150,7 @@ function snapshotReport(
 
                 for (gas_component, gas_label) in zip(gas_components, gas_labels)
 
-                    mass     = integrateQty(dd, Symbol(gas_component, :_mass); icGen)
+                    mass     = integrateQty(dd, Symbol(gas_component, :_mass))
                     percent  = round((mass / gas_mass) * 100, sigdigits=4)
                     str_mass = round(mass, sigdigits=3)
                     title    = rpad("$(gas_label) mass:", r_pad)
@@ -8540,7 +8255,7 @@ function snapshotReport(
 
                 qty_symbol = Symbol(:ode_stellar_, quantity)
 
-                values = filter(!isnan, ustrip.(unit, scatterQty(dd, qty_symbol; icGen)))
+                values = filter(!isnan, ustrip.(unit, scatterQty(dd, qty_symbol)))
 
                 println(file, "\t\t$(label):\n")
 
@@ -8578,7 +8293,7 @@ function snapshotReport(
 
                 qty_symbol = Symbol(:ode_gas_, quantity)
 
-                values = filter(!isnan, ustrip.(unit, scatterQty(dd, qty_symbol; icGen)))
+                values = filter(!isnan, ustrip.(unit, scatterQty(dd, qty_symbol)))
 
                 println(file, "\t\t$(label):\n")
 
@@ -8770,7 +8485,7 @@ function snapshotReport(
 
             for (component, label) in zip(components, labels)
 
-                masses = scatterQty(data_dict, Symbol(component, :_mass); icGen)
+                masses = scatterQty(data_dict, Symbol(component, :_mass))
 
                 if !isempty(masses)
 
@@ -8821,7 +8536,6 @@ Write a text file with information about a given `quantity`.
   - `quantity::Symbol`: Target quantity. Has to be one of the valid quantities of [`scatterQty`](@ref).
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be analyzed. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `output_path::String="."`: Path to the output folder.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
 """
@@ -8830,14 +8544,13 @@ function quantityReport(
     quantity::Symbol;
     slice::IndexType=(:),
     output_path::String=".",
-    icGen::Function=initialConditionFunction,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
 )::Nothing
 
-    plot_params = plotParams(quantity)
+    plot_params = QTY_REGISTRY[quantity]
 
-    da_function = dd -> uconvert.(plot_params.unit, scatterQty(dd, quantity; icGen))
+    da_function = dd -> uconvert.(plot_params.unit, scatterQty(dd, quantity))
 
     return quantityReport(
         simulation_paths,

@@ -279,7 +279,11 @@ end
 """
     getLabel(quantity::Symbol; <keyword arguments>)::AbstractString
 
-Construct an axis label for a given quantity.
+Construct an axis label for a given `quantity`.
+
+!!! note
+
+    This label will ignore the `exp_factor` field of `BaseQuantity` and take it as 0.
 
 # Arguments
 
@@ -289,13 +293,42 @@ Construct an axis label for a given quantity.
 
 # Returns
 
-  - The label for `quantity`, according to [`plotParams`](@ref).
+  - The label for `quantity`, according to [`QTY_REGISTRY`](@ref).
 """
 function getLabel(quantity::Symbol; log::Bool=false, latex::Bool=true)::AbstractString
 
-    plot_params = plotParams(quantity)
+    (
+        haskey(QTY_REGISTRY, quantity) ||
+        throw(ArgumentError("getLabel: I don't recognize the quantity :$(quantity). \
+        It is not a key of QTY_REGISTRY"))
+    )
 
-    base_label = getLabel(plot_params.var_name, plot_params.exp_factor, plot_params.unit; latex)
+    return getLabel(QTY_REGISTRY[quantity]; log, latex)
+
+end
+
+"""
+    getLabel(quantity::AbstractPlotQuantity; <keyword arguments>)::AbstractString
+
+Construct an axis label for a given [`AbstractPlotQuantity`](@ref).
+
+!!! note
+
+    This label will ignore the `exp_factor` of [`AbstractPlotQuantity`](@ref) and take it as 0.
+
+# Arguments
+
+  - `quantity::AbstractPlotQuantity`: Target quantity.
+  - `log::Bool=false`: If true adds ``\\log_{10}`` to the label.
+  - `latex::Bool=true`: If the output will be a `LaTeXString` or a plain `String`.
+
+# Returns
+
+  - The label for `quantity`, according to [`QTY_REGISTRY`](@ref).
+"""
+function getLabel(quantity::AbstractPlotQuantity; log::Bool=false, latex::Bool=true)::AbstractString
+
+    base_label = getLabel(getQuantityLabel(quantity), 0, getQuantityUnit(quantity); latex)
 
     if latex && log
 
@@ -312,6 +345,82 @@ function getLabel(quantity::Symbol; log::Bool=false, latex::Bool=true)::Abstract
     end
 
     return label
+
+end
+
+"""
+    getLabelArgs(quantity::Symbol; <keyword arguments>)::NamedTuple
+
+Construct the label arguments of [`plotSnapshot`](@ref) for a given `quantity`.
+
+# Arguments
+
+  - `quantity::Symbol`: Target quantity.
+  - `log::Bool=false`: If true adds ``\\log_{10}`` to the axis label.
+
+# Returns
+
+  - A named tuple with
+
+      + `log_unit::Union{Unitful.Units,Nothing}` -> Quantity unit for the functions that use to decide if the axis will be logarithmic or not. It is set to `nothing` if `log` = false, and to the corresponding unit if `log` = true.
+      + `unit::Unitful.Units`                    -> Target unit for the axis data.
+      + `exp_factor::Int`                        -> Numerical exponent to scale down the axis data, e.g. if `exp_factor` = 10 the values will be divided by ``10^{10}``.
+      + `qty_label::AbstractString`              -> Name of the variable for the axis.
+      + `label::AbstractString`                  -> Label for the axis. It can contain the string `auto_label`, which will be replaced by: `qty_label` [10^`exp_factor` `unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
+      + `request::Dict{Symbol,Vector{String}}`   -> Data request for [`readSnapshot`](@ref).
+"""
+function getLabelArgs(quantity::Symbol; log::Bool=false)::NamedTuple
+
+    (
+        haskey(QTY_REGISTRY, quantity) ||
+        throw(ArgumentError("getLabelArgs: I don't recognize the quantity :$(quantity). \
+        It is not a key of QTY_REGISTRY"))
+    )
+
+    return getLabelArgs(QTY_REGISTRY[quantity]; log)
+
+end
+
+"""
+    getLabelArgs(quantity::AbstractPlotQuantity; <keyword arguments>)::NamedTuple
+
+Construct the label arguments of [`plotSnapshot`](@ref) for a given [`AbstractPlotQuantity`](@ref).
+
+# Arguments
+
+  - `quantity::AbstractPlotQuantity`: Target quantity.
+  - `log::Bool=false`: If true adds ``\\log_{10}`` to the axis label.
+
+# Returns
+
+  - A named tuple with
+
+      + `log_unit::Union{Unitful.Units,Nothing}` -> Quantity unit for the functions that use to decide if the axis will be logarithmic or not. It is set to `nothing` if `log` = false, and to the corresponding unit if `log` = true.
+      + `unit::Unitful.Units`                    -> Target unit for the axis data.
+      + `exp_factor::Int`                        -> Numerical exponent to scale down the axis data, e.g. if `exp_factor` = 10 the values will be divided by ``10^{10}``.
+      + `qty_label::AbstractString`              -> Name of the variable for the axis.
+      + `label::AbstractString`                  -> Label for the axis. It can contain the string `auto_label`, which will be replaced by: `qty_label` [10^`exp_factor` `unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
+      + `request::Dict{Symbol,Vector{String}}`   -> Data request for [`readSnapshot`](@ref).
+"""
+function getLabelArgs(quantity::AbstractPlotQuantity; log::Bool=false)::NamedTuple
+
+    if log
+        log_unit   = getQuantityUnit(quantity)
+        unit       = Unitful.NoUnits
+        exp_factor = 0
+        qty_label  = ""
+        label      = getLabel(quantity; log)
+    else
+        log_unit   = nothing
+        unit       = getQuantityUnit(quantity)
+        exp_factor = getQuantityExpFactor(quantity)
+        qty_label  = getQuantityLabel(quantity)
+        label      = "auto_label"
+    end
+
+    request = getQuantityRequest(quantity)
+
+    return (; log_unit, unit, exp_factor, qty_label, label, request)
 
 end
 
@@ -358,20 +467,24 @@ Method for compatibility with the barplot! function of [Makie](https://docs.maki
 barPlotLabelFormater(x::LaTeXString)::LaTeXString = x
 
 """
-    reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
+    reduceTicks(hr_ticks::Vector{T}, factor::Int)::Vector{T} where {T<:FloatOrQuantity}
 
 Reduce the length of a given list of axis ticks, while keeping the total length of the axis the same.
 
+!!! note
+
+    If `factor` is 1, the original list of ticks will be returned without any checks.
+
 # Arguments
 
-  - `hr_ticks::Vector{<:Number}`: Original "high resolution" list of ticks. It has to be regularly spaced
+  - `hr_ticks::Vector{T}`: Original "high resolution" list of ticks. It has to be regularly spaced
   - `factor::Int`: Factor by which the number of values will be reduced. It has to divide the size of `hr_ticks` exactly.
 
 # Returns
 
   - The new shorter list of ticks.
 """
-function reduceTicks(hr_ticks::Vector{<:Number}, factor::Int)::Vector{<:Number}
+function reduceTicks(hr_ticks::Vector{T}, factor::Int)::Vector{T} where {T<:FloatOrQuantity}
 
     !isone(factor) || return hr_ticks
 
@@ -576,7 +689,7 @@ where N is the power-law index, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\ma
 
   - `Σsfr ::Vector{<:MassFlowDensity}`: Values of the SFR surface density.
   - `molecular::Bool=true`: If the output will be the surface density of molecular hydrogen, or of neutral hydrogen.
-  - `log_output::Bool=true`: If the output will the $\log_{10} \, \Sigma_\text{H}$, or $\Sigma_\text{H}$. If `log_output` = true, the implied units are $10 \, \mathrm{M_\odot \, pc^{-2}}$
+  - `log_output::Bool=true`: If the output will the $\log_{10} \, \Sigma_\text{H2}$, or $\Sigma_\text{HI}$. If `log_output` = true, the implied units are $10 \, \mathrm{M_\odot \, pc^{-2}}$
 
 # Returns
 
@@ -690,1592 +803,692 @@ function invKSLawKennicutt1998(
 
 end
 
-"""
-    derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
+@doc raw"""
+    KSLawCologni2026(ΣH2::Vector{<:SurfaceDensity}; <keyword arguments>)::Vector{<:Number}
 
-Return the plotting parameters for a given `magnitude` of `component`.
+Evaluate the Kennicutt-Schmidt law for the molecular gas, taken from Cologni et al. (2026).
+
+From Cologni et al. (2026) (Section 4.3.2), we have
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, kpc^{-2}}} \right)^{\!N} \, ,
+```
+where N is the power-law index, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $1.0 \, \mathrm{M_\odot \, kpc^{-2}}$.
 
 # Arguments
 
-  - `magnitude::Symbol`: One of the physical magnitudes in [`MAGNITUDES`](@ref).
-  - `component::Symbol`: One of the physical components in [`COMPONENTS`](@ref).
+  - `ΣH2::Vector{<:SurfaceDensity}`: Values of the molecular gas surface density.
+  - `log_output::Bool=true`: If the output will the $\log_{10} \, \Sigma_\text{SFR}$, or $\Sigma_\text{SFR}$. If `log_output` = true, the implied units are $\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}$
 
 # Returns
 
-  - A [`PlotParams`](@ref) object.
+  - The SFR surface density.
+
+# References
+
+R. Cologni et al. (2026). *Resolved molecular gas and star formation in massive unquenched spirals*. Astronomy and Astrophysics, **709**, A148. [doi:10.1051/0004-6361/202558486](https://doi.org/10.1051/0004-6361/202558486)
 """
-function derivedQtyPlotParams(magnitude::Symbol, component::Symbol)::PlotParams
+function KSLawCologni2026(ΣH2::Vector{<:SurfaceDensity}; log_output::Bool=true)::Vector{<:Number}
 
-    ################################################################################################
-    # Physical components in a simulation
-    ################################################################################################
+    log10ΣH2 = @. log10(uconvert(Unitful.NoUnits, ΣH2 / 1.0u"Msun * kpc^-2"))
 
-    ############################
-    # Particle-based components
-    ############################
+    log10Σsfr = @. A_COLOGNI2026 + log10ΣH2 * N_COLOGNI2026
 
-    if component == :stellar
-
-        c_label = "\\star"
-        cp_type = component
-
-    elseif component == :dark_matter
-
-        c_label = "\\text{DM}"
-        cp_type = component
-
-    elseif component == :black_hole
-
-        c_label = "\\text{BH}"
-        cp_type = component
-
-    elseif component == :Z_stellar
-
-        c_label = "\\text{Z\\!\\star}"
-        cp_type = :stellar
-
-    #######################
-    # Gas-based components
-    #######################
-
-    elseif component == :gas
-
-        c_label = "\\text{gas}"
-        cp_type = component
-
-    elseif component == :hydrogen
-
-        c_label = "\\text{H}"
-        cp_type = :gas
-
-    elseif component == :helium
-
-        c_label = "\\text{He}"
-        cp_type = :gas
-
-    elseif component == :Z_gas
-
-        c_label = "\\text{Z\\,gas}"
-        cp_type = :gas
-
-    elseif component == :ionized
-
-        c_label = "\\text{HII}"
-        cp_type = :gas
-
-    elseif component == :neutral
-
-        c_label = "\\mathrm{HI + H2}"
-        cp_type = :gas
-
-    elseif component == :br_atomic
-
-        c_label = "\\text{BR HI}"
-        cp_type = :gas
-
-    elseif component == :br_molecular
-
-        c_label = "\\text{BR H2}"
-        cp_type = :gas
-
-    ###############################
-    # Components from our SF model
-    ###############################
-
-    elseif component == :ode_ionized
-
-        c_label = "\\text{ODE i}"
-        cp_type = :gas
-
-    elseif component == :ode_atomic
-
-        c_label = "\\text{ODE a}"
-        cp_type = :gas
-
-    elseif component == :ode_molecular
-
-        c_label = "\\text{ODE m}"
-        cp_type = :gas
-
-    elseif component == :ode_stellar
-
-        c_label = "\\text{ODE s}"
-        cp_type = :gas
-
-    elseif component == :ode_metals
-
-        c_label = "\\text{ODE Z}"
-        cp_type = :gas
-
-    elseif component == :ode_dust
-
-        c_label = "\\text{ODE d}"
-        cp_type = :gas
-
-    elseif component == :ode_molecular_stellar
-
-        c_label = "{\\text{ODE }\\mathrm{m + s}}"
-        cp_type = :gas
-
-    elseif component == :ode_neutral
-
-        c_label = "{\\text{ODE }\\mathrm{a + m + s}}"
-        cp_type = :gas
-
-    elseif component == :ode_cold
-
-        c_label = "\\text{ODE cold}"
-        cp_type = :gas
-
-    ######################
-    # Wild card component
-    ######################
-
-    elseif component == :generic
-
-        c_label = ""
-        cp_type = nothing
-
+    if log_output
+        return log10Σsfr
     else
-
-        throw(ArgumentError("derivedQtyPlotParams: I don't recognize the component :$(component)"))
-
+        return @. exp10(log10Σsfr) * u"Msun * yr^-1 * kpc^-2"
     end
 
-    ################################################################################################
-    # Physical magnitudes
-    ################################################################################################
+end
 
-    #######################
-    # Mass-like magnitudes
-    #######################
+@doc raw"""
+    invKSLawCologni2026(Σsfr ::Vector{<:MassFlowDensity}; <keyword arguments>)::Vector{<:Number}
 
-    if magnitude == :mass
+Evaluate the inverse Kennicutt-Schmidt law for the molecular gas, taken from Cologni et al. (2026).
 
-        # See computeMass() in ./src/analysis/compute_quantities/masses.jl
-        if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
-            request = Dict(component => ["MASS"])
-        elseif component == :Z_stellar
-            request = Dict(:stellar => ["MASS", "GZ2 "])
-        elseif component ∈ [:hydrogen, :helium]
-            request = Dict(:gas => ["MASS"])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["MASS", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["MASS", "FRAC", "RHO "])
-        else
-            # Generic component
-            request = Dict(
-                :gas         => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                :stellar     => ["MASS", "GZ2 "],
-                :dark_matter => ["MASS"],
-                :black_hole  => ["MASS"],
-            )
-        end
+From Cologni et al. (2026) (Section 4.3.2), we have
 
-        if isempty(c_label)
-            var_name = L"M"
-        else
-            var_name = L"M_%$(c_label)"
-        end
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, kpc^{-2}}} \right)^{\!N} \, ,
+```
+where N is the power-law index, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $1.0 \, \mathrm{M_\odot \, kpc^{-2}}$.
 
-        exp_factor = 10
+# Arguments
 
-        unit = u"Msun"
+  - `Σsfr ::Vector{<:MassFlowDensity}`: Values of the SFR surface density.
+  - `log_output::Bool=true`: If the output will the $\log_{10} \, \Sigma_\text{H2}$. If `log_output` = true, the implied units are $1.0 \, \mathrm{M_\odot \, kpc^{-2}}$
 
-    elseif magnitude == :mass_density
+# Returns
 
-        # See computeMassDensity() in ./src/analysis/compute_quantities/masses.jl
-        if component ∈ [:gas, :hydrogen, :helium]
-            request = Dict(:gas => ["MASS", "RHO "])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["MASS", "RHO ", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["MASS", "FRAC", "RHO "])
-        elseif component == :generic
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
-        else
-            throw(ArgumentError("derivedQtyPlotParams: `component` for magnitude \
-            :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/globals/globals.jl`), but I got :$(component)"))
-        end
+  - The molecular gas surface density.
 
-        if isempty(c_label)
-            var_name = L"\rho"
-        else
-            var_name = L"\rho_%$(c_label)"
-        end
+# References
 
-        exp_factor = 0
+R. Cologni et al. (2026). *Resolved molecular gas and star formation in massive unquenched spirals*. Astronomy and Astrophysics, **709**, A148. [doi:10.1051/0004-6361/202558486](https://doi.org/10.1051/0004-6361/202558486)
+"""
+function invKSLawCologni2026(Σsfr::Vector{<:MassFlowDensity}; log_output::Bool=true)::Vector{<:Number}
 
-        unit = u"Msun * kpc^-3"
+    log10Σsfr = @. log10(ustrip(u"Msun * yr^-1 * kpc^-2", Σsfr))
 
-    elseif magnitude == :number_density
+    log10ΣH2 = @. (log10Σsfr - A_COLOGNI2026) / N_COLOGNI2026
 
-        # See computeNumberDensity() in ./src/analysis/compute_quantities/masses.jl
-        if component ∈ [:gas, :hydrogen, :helium]
-            request = Dict(:gas => ["MASS", "RHO "])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["MASS", "RHO ", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["MASS", "FRAC", "RHO "])
-        elseif component == :generic
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
-        else
-            throw(ArgumentError("derivedQtyPlotParams: `component` for magnitude \
-            :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/globals/globals.jl`), but I got :$(component)"))
-        end
-
-        if isempty(c_label)
-            var_name = L"n"
-        else
-            var_name = L"n_{\,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = u"cm^-3"
-
-    elseif magnitude == :area_density
-
-        # See quantity3DProjection() in ./src/analysis/compute_quantities/masses.jl
-        if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
-            request = Dict(component => ["MASS", "POS ", "RHO "])
-        elseif component == :Z_stellar
-            request = Dict(:stellar => ["MASS", "GZ2 ", "POS ", "RHO "])
-        elseif component ∈ [:hydrogen, :helium]
-            request = Dict(:gas => ["MASS", "POS ", "RHO "])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["MASS", "GZ  ", "POS ", "RHO "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "POS ", "RHO "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES", "POS ", "RHO "])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "POS "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["MASS", "FRAC", "RHO ", "POS "])
-        else
-            # Generic component
-            request = Dict(
-                :gas         => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES", "POS "],
-                :stellar     => ["MASS", "GZ2 ", "POS ", "RHO "],
-                :dark_matter => ["MASS", "POS ", "RHO "],
-                :black_hole  => ["MASS", "POS ", "RHO "],
-            )
-        end
-
-        if isempty(c_label)
-            var_name = L"\Sigma"
-        else
-            var_name = L"\Sigma_%$(c_label)"
-        end
-
-        exp_factor = 0
-
-        unit = u"Msun * pc^-2"
-
-    elseif magnitude == :number
-
-        # See computeNumber() in ./src/analysis/compute_quantities/masses.jl
-        if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
-            request = Dict(component => ["MASS"])
-        elseif component == :Z_stellar
-            request = Dict(:stellar => ["MASS"])
-        elseif component ∈ [:hydrogen, :helium]
-            request = Dict(:gas => ["MASS"])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["MASS", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["MASS", "FRAC", "RHO "])
-        else
-            request = Dict(
-                :gas         => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                :stellar     => ["MASS"],
-                :dark_matter => ["MASS"],
-                :black_hole  => ["MASS"],
-            )
-        end
-
-        if isempty(c_label)
-            var_name = L"N"
-        else
-            var_name = L"N_%$(c_label)"
-        end
-
-        exp_factor = 0
-
-        unit = Unitful.NoUnits
-
-    elseif magnitude == :fraction
-
-        # See computeFraction() in ./src/analysis/compute_quantities/masses.jl
-        if component == :Z_stellar
-            request = Dict(:stellar => ["GZ2 "])
-        elseif component ∈ [:gas, :hydrogen, :helium]
-            request = Dict(:gas => ["MASS"])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["MASS", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["MASS", "FRAC", "RHO "])
-        elseif component == :generic
-            request = Dict(
-                :gas     => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                :stellar => ["GZ2 "],
-            )
-        else
-            throw(ArgumentError("derivedQtyPlotParams: `component` for the magnitude \
-            :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/globals/globals.jl`) or :Z_stellar, but I got :$(component)"))
-        end
-
-        if isempty(c_label)
-            var_name = L"f"
-        else
-            var_name = L"f_{\,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = Unitful.NoUnits
-
-    elseif magnitude == :eff
-
-        # See computeEfficiencyFF() in ./src/analysis/compute_quantities/masses.jl
-        if component == :stellar
-            request = Dict(:stellar => ["RHOC", "GMAS", "GSFR"])
-        elseif component ∈ [:gas, :hydrogen, :helium]
-            request = Dict(:gas => ["SFR ", "MASS", "RHO "])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["SFR ", "MASS", "RHO ", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["SFR ", "MASS", "RHO ", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["SFR ", "MASS", "RHO ", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["SFR ", "MASS", "FRAC", "RHO "])
-        elseif component == :generic
-            request = Dict(
-                :gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                :stellar => ["RHOC", "GMAS", "GSFR"],
-            )
-        else
-            throw(ArgumentError("derivedQtyPlotParams: `component` for magnitude \
-            :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/globals/globals.jl`), but I got :$(component)"))
-        end
-
-        if isempty(c_label)
-            var_name = L"\epsilon_\text{ff}"
-        else
-            var_name = L"\epsilon_{\text{ff}, %$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = Unitful.NoUnits
-
-    elseif magnitude == :clumping_factor
-
-        # See computeClumpingFactor() in ./src/analysis/compute_quantities/masses.jl
-        if component ∈ [:gas, :hydrogen, :helium]
-            request = Dict(:gas => ["MASS", "RHO "])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["MASS", "RHO ", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["MASS", "FRAC", "RHO "])
-        elseif component == :generic
-            request = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
-        else
-            throw(ArgumentError("derivedQtyPlotParams: `component` for magnitude \
-            :$(magnitude) can only be one of the gas elements of `COMPONENTS` \
-            (see `./src/globals/globals.jl`), but I got :$(component)"))
-        end
-
-        if isempty(c_label)
-            var_name = L"C_\rho"
-        else
-            var_name = L"C_{\rho, \,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = Unitful.NoUnits
-
-    #######################
-    # Cinematic magnitudes
-    #######################
-
-    elseif magnitude == :specific_z_angular_momentum
-
-        # See computeSpecificAngularMomentum() in ./src/analysis/compute_quantities/velocities.jl
-        blocks = ["VEL ", "POS "]
-        types  = [:gas, :dark_matter, :stellar, :black_hole]
-
-        if component ∈ types
-            request = Dict(component => blocks)
-        elseif component == :generic
-            request = Dict(type => blocks for type in types)
-        elseif component == :Z_stellar
-            request = Dict(:stellar => blocks)
-        else
-            # Gas-based components
-            request = Dict(:gas => blocks)
-        end
-
-        if isempty(c_label)
-            var_name = L"j_z"
-        else
-            var_name = L"j_{z, \,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = u"kpc^2 * s^-1"
-
-    elseif magnitude == :z_angular_momentum
-
-        # See computeAngularMomentum() in ./src/analysis/compute_quantities/velocities.jl
-        blocks = ["VEL ", "POS ", "MASS"]
-        types  = [:gas, :dark_matter, :stellar, :black_hole]
-
-        if component ∈ types
-            request = Dict(component => blocks)
-        elseif component == :generic
-            request = Dict(type => blocks for type in types)
-        elseif component == :Z_stellar
-            request = Dict(:stellar => blocks)
-        else
-            # Gas-based components
-            request = Dict(:gas => blocks)
-        end
-
-        if isempty(c_label)
-            var_name = L"l_z"
-        else
-            var_name = L"l_{z, \,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = u"Msun * kpc^2 * s^-1"
-
-    elseif magnitude == :spin_parameter
-
-        # See computeSpinParameter() in ./src/analysis/compute_quantities/velocities.jl
-        blocks = ["VEL ", "POS ", "MASS"]
-        types  = [:gas, :dark_matter, :stellar, :black_hole]
-
-        if component ∈ types
-            request = Dict(component => blocks)
-        elseif component == :generic
-            request = Dict(type => blocks for type in types)
-        elseif component == :Z_stellar
-            request = Dict(:stellar => blocks)
-        else
-            # Gas-based components
-            request = Dict(:gas => blocks)
-        end
-
-        if isempty(c_label)
-            var_name = L"\lambda"
-        else
-            var_name = L"\lambda_%$(c_label)"
-        end
-
-        exp_factor = 0
-
-        unit = Unitful.NoUnits
-
-    elseif magnitude == :circularity
-
-        # See computeCircularity() in ./src/analysis/compute_quantities/velocities.jl
-        request = Dict(type => ["VEL ", "POS ", "MASS"] for type in keys(PARTICLE_INDEX))
-
-        if isempty(c_label)
-            var_name = L"\epsilon"
-        else
-            var_name = L"\epsilon_{\,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = Unitful.NoUnits
-
-    elseif magnitude == :circular_velocity
-
-        # See computeVcirc() in ./src/analysis/compute_quantities/velocities.jl
-        request = Dict(type => ["MASS", "POS "] for type in keys(PARTICLE_INDEX))
-
-        if isempty(c_label)
-            var_name = L"v_\text{circ}"
-        else
-            var_name = L"v_{\text{circ}, \,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = u"km * s^-1"
-
-    elseif magnitude == :radial_velocity
-
-        # See computeVpolar() in ./src/analysis/compute_quantities/velocities.jl
-        blocks = ["VEL ", "POS "]
-        types  = [:gas, :dark_matter, :stellar, :black_hole]
-
-        if component ∈ types
-            request = Dict(component => blocks)
-        elseif component == :generic
-            request = Dict(type => blocks for type in types)
-        elseif component == :Z_stellar
-            request = Dict(:stellar => blocks)
-        else
-            # Gas-based components
-            request = Dict(:gas => blocks)
-        end
-
-        if isempty(c_label)
-            var_name = L"v_r"
-        else
-            var_name = L"v_{r, \,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = u"km * s^-1"
-
-    elseif magnitude == :tangential_velocity
-
-        # See computeVpolar() in ./src/analysis/compute_quantities/velocities.jl
-        blocks = ["VEL ", "POS "]
-        types  = [:gas, :dark_matter, :stellar, :black_hole]
-
-        if component ∈ types
-            request = Dict(component => blocks)
-        elseif component == :generic
-            request = Dict(type => blocks for type in types)
-        elseif component == :Z_stellar
-            request = Dict(:stellar => blocks)
-        else
-            # Gas-based components
-            request = Dict(:gas => blocks)
-        end
-
-        if isempty(c_label)
-            var_name = L"v_\theta"
-        else
-            var_name = L"v_{\theta, \,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = u"km * s^-1"
-
-    elseif magnitude == :zstar_velocity
-
-        # See computeVpolar() in ./src/analysis/compute_quantities/velocities.jl
-        blocks = ["VEL ", "POS "]
-        types  = [:gas, :dark_matter, :stellar, :black_hole]
-
-        if component ∈ types
-            request = Dict(component => blocks)
-        elseif component == :generic
-            request = Dict(type => blocks for type in types)
-        else
-            # Gas-based components
-            request = Dict(:gas => blocks)
-        end
-
-        if isempty(c_label)
-            var_name = L"v_z \, \mathrm{sign}(z)"
-        else
-            var_name = L"v_{z, \,%$(c_label)} \, \mathrm{sign}(z)"
-        end
-
-        exp_factor = 0
-
-        unit = u"km * s^-1"
-
-    elseif magnitude == :kinetic_energy
-
-        # See computeKineticEnergy() in ./src/analysis/compute_quantities/energies.jl
-        if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
-            request = Dict(component => ["VEL ", "MASS"])
-        elseif component == :Z_stellar
-            request = Dict(:stellar => ["VEL ", "MASS", "GZ2 "])
-        elseif component ∈ [:hydrogen, :helium]
-            request = Dict(:gas => ["VEL ", "MASS"])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["VEL ", "MASS", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["VEL ", "MASS", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["VEL ", "MASS", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["VEL ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["VEL ", "MASS", "FRAC", "RHO "])
-        else
-            # Generic component
-            request = Dict(
-                :gas         => ["VEL ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                :stellar     => ["VEL ", "MASS", "GZ2 "],
-                :dark_matter => ["VEL ", "MASS"],
-                :black_hole  => ["VEL ", "MASS"],
-            )
-        end
-
-        if isempty(c_label)
-            var_name = L"E_k"
-        else
-            var_name = L"E_{k, \,%$(c_label)}"
-        end
-
-        exp_factor = 51
-
-        unit = u"erg"
-
-    elseif magnitude == :potential_energy
-
-        # See computePotentialEnergy() in ./src/analysis/compute_quantities/energies.jl
-        if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
-            request = Dict(component => ["POT ", "MASS"])
-        elseif component == :Z_stellar
-            request = Dict(:stellar => ["POT ", "MASS", "GZ2 "])
-        elseif component ∈ [:hydrogen, :helium]
-            request = Dict(:gas => ["POT ", "MASS"])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["POT ", "MASS", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["POT ", "MASS", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["POT ", "MASS", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["POT ", "MASS", "FRAC", "RHO "])
-        else
-            # Generic component
-            request = Dict(
-                :gas         => ["POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                :stellar     => ["POT ", "MASS", "GZ2 "],
-                :dark_matter => ["POT ", "MASS"],
-                :black_hole  => ["POT ", "MASS"],
-            )
-        end
-
-        if isempty(c_label)
-            var_name = L"E_p"
-        else
-            var_name = L"E_{p, \,%$(c_label)}"
-        end
-
-        exp_factor = 51
-
-        unit = u"erg"
-
-    elseif magnitude == :total_energy
-
-        # See computeTotalEnergy() in ./src/analysis/compute_quantities/energies.jl
-        if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
-            request = Dict(component => ["VEL ", "POT ", "MASS"])
-        elseif component == :Z_stellar
-            request = Dict(:stellar => ["VEL ", "POT ", "MASS", "GZ2 "])
-        elseif component ∈ [:hydrogen, :helium]
-            request = Dict(:gas => ["VEL ", "POT ", "MASS"])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["VEL ", "POT ", "MASS", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["VEL ", "POT ", "MASS", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["VEL ", "POT ", "MASS", "FRAC", "RHO "])
-        else
-            # Generic component
-            request = Dict(
-                :gas         => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                :stellar     => ["VEL ", "POT ", "MASS", "GZ2 "],
-                :dark_matter => ["VEL ", "POT ", "MASS"],
-                :black_hole  => ["VEL ", "POT ", "MASS"],
-            )
-        end
-
-        if isempty(c_label)
-            var_name = L"E"
-        else
-            var_name = L"E_{%$(c_label)}"
-        end
-
-        exp_factor = 51
-
-        unit = u"erg"
-
-    ########
-    # Other
-    ########
-
-    elseif magnitude == :depletion_time
-
-        # See computeDepletionTime() in ./src/analysis/compute_quantities/times.jl
-        if component ∈ [:gas, :hydrogen, :helium]
-            request = Dict(:gas => ["SFR ", "MASS"])
-        elseif component == :Z_gas
-            request = Dict(:gas => ["SFR ", "MASS", "GZ  "])
-        elseif component ∈ [:ionized, :neutral]
-            request = Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP "])
-        elseif component ∈ [:br_atomic, :br_molecular]
-            request = Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "PRES"])
-        elseif component ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-            request = Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "])
-        elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
-            request = Dict(:gas => ["SFR ", "MASS", "FRAC", "RHO "])
-        else
-            # Generic component
-            request = Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
-        end
-
-        if isempty(c_label)
-            var_name = L"\tau_\text{dep}"
-        else
-            var_name = L"\tau_{\text{dep}, \,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = u"Gyr"
-
-    elseif magnitude == :xy_distance
-
-        # See computeXYDistance() in ./src/analysis/compute_quantities/positions.jl
-        blocks = ["POS "]
-        types  = [:gas, :dark_matter, :stellar, :black_hole]
-
-        if component ∈ types
-            request = Dict(component => blocks)
-        elseif component == :generic
-            request = Dict(type => blocks for type in types)
-        elseif component == :Z_stellar
-            request = Dict(:stellar => blocks)
-        else
-            # Gas-based components
-            request = Dict(:gas => blocks)
-        end
-
-        if isempty(c_label)
-            var_name = L"d_{xy}"
-        else
-            var_name = L"d_{xy, \,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = u"kpc"
-
-    elseif magnitude == :radial_distance
-
-        # See computeRadialDistance() in ./src/analysis/compute_quantities/positions.jl
-        blocks = ["POS "]
-        types  = [:gas, :dark_matter, :stellar, :black_hole]
-
-        if component ∈ types
-            request = Dict(component => blocks)
-        elseif component == :generic
-            request = Dict(type => blocks for type in types)
-        elseif component == :Z_stellar
-            request = Dict(:stellar => blocks)
-        else
-            # Gas-based components
-            request = Dict(:gas => blocks)
-        end
-
-        if isempty(c_label)
-            var_name = L"r"
-        else
-            var_name = L"r_{\,%$(c_label)}"
-        end
-
-        exp_factor = 0
-
-        unit = u"kpc"
-
+    if log_output
+        return log10ΣH2
     else
-
-        throw(ArgumentError("derivedQtyPlotParams: I don't recognize the magnitude :$(magnitude)"))
-
+        return @. exp10(log10ΣH2) * 1.0u"Msun * kpc^-2"
     end
 
-    return PlotParams(; request, var_name, exp_factor, unit, cp_type)
+end
+
+@doc raw"""
+    KSLawLin2019(ΣH2::Vector{<:SurfaceDensity}; <keyword arguments>)::Vector{<:Number}
+
+Evaluate the Kennicutt-Schmidt law for the molecular gas, taken from Lin et al. (2019).
+
+From Lin et al. (2019) (Section 3.1, Table 1), we have
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, kpc^{-2}}} \right)^{\!N} \, ,
+```
+where N is the power-law index, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $1.0 \, \mathrm{M_\odot \, kpc^{-2}}$.
+
+# Arguments
+
+  - `ΣH2::Vector{<:SurfaceDensity}`: Values of the molecular gas surface density.
+  - `log_output::Bool=true`: If the output will the $\log_{10} \, \Sigma_\text{SFR}$, or $\Sigma_\text{SFR}$. If `log_output` = true, the implied units are $\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}$
+
+# Returns
+
+  - The SFR surface density.
+
+# References
+
+L. Lin et al. (2019). *The ALMaQUEST Survey: The Molecular Gas Main Sequence and the Origin of the Star-forming Main Sequence*. The Astrophysical Journal Letters, **884(2)**, L33. [doi:10.3847/2041-8213/ab4815](https://doi.org/10.3847/2041-8213/ab4815)
+"""
+function KSLawLin2019(ΣH2::Vector{<:SurfaceDensity}; log_output::Bool=true)::Vector{<:Number}
+
+    log10ΣH2 = @. log10(uconvert(Unitful.NoUnits, ΣH2 / 1.0u"Msun * kpc^-2"))
+
+    log10Σsfr = @. A_LIN2019 + log10ΣH2 * N_LIN2019
+
+    if log_output
+        return log10Σsfr
+    else
+        return @. exp10(log10Σsfr) * u"Msun * yr^-1 * kpc^-2"
+    end
+
+end
+
+@doc raw"""
+    invKSLawLin2019(Σsfr ::Vector{<:MassFlowDensity}; <keyword arguments>)::Vector{<:Number}
+
+Evaluate the inverse Kennicutt-Schmidt law for the molecular gas, taken from Lin et al. (2019).
+
+From Lin et al. (2019) (Section 3.1, Table 1), we have
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, kpc^{-2}}} \right)^{\!N} \, ,
+```
+where N is the power-law index, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $1.0 \, \mathrm{M_\odot \, kpc^{-2}}$.
+
+# Arguments
+
+  - `Σsfr ::Vector{<:MassFlowDensity}`: Values of the SFR surface density.
+  - `log_output::Bool=true`: If the output will the $\log_{10} \, \Sigma_\text{H2}$. If `log_output` = true, the implied units are $1.0 \, \mathrm{M_\odot \, kpc^{-2}}$
+
+# Returns
+
+  - The molecular gas surface density.
+
+# References
+
+L. Lin et al. (2019). *The ALMaQUEST Survey: The Molecular Gas Main Sequence and the Origin of the Star-forming Main Sequence*. The Astrophysical Journal Letters, **884(2)**, L33. [doi:10.3847/2041-8213/ab4815](https://doi.org/10.3847/2041-8213/ab4815)
+"""
+function invKSLawLin2019(Σsfr::Vector{<:MassFlowDensity}; log_output::Bool=true)::Vector{<:Number}
+
+    log10Σsfr = @. log10(ustrip(u"Msun * yr^-1 * kpc^-2", Σsfr))
+
+    log10ΣH2 = @. (log10Σsfr - A_LIN2019) / N_LIN2019
+
+    if log_output
+        return log10ΣH2
+    else
+        return @. exp10(log10ΣH2) * 1.0u"Msun * kpc^-2"
+    end
+
+end
+
+@doc raw"""
+    KSLawQuerejeta2021(ΣH2::Vector{<:SurfaceDensity}; <keyword arguments>)::Vector{<:Number}
+
+Evaluate the Kennicutt-Schmidt law for the molecular gas, taken from Querejeta et al. (2021).
+
+From Querejeta et al. (2021) (Section 4.3, Table 4, row All, mean of the columns), we have
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
+```
+where N is the power-law index, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $1.0 \, \mathrm{M_\odot \, pc^{-2}}$.
+
+# Arguments
+
+  - `ΣH2::Vector{<:SurfaceDensity}`: Values of the molecular gas surface density.
+  - `log_output::Bool=true`: If the output will the $\log_{10} \, \Sigma_\text{SFR}$, or $\Sigma_\text{SFR}$. If `log_output` = true, the implied units are $\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}$
+
+# Returns
+
+  - The SFR surface density.
+
+# References
+
+M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formation across the PHANGS sample of nearby galaxies*. Astronomy and Astrophysics, **656**, A133. [doi:10.1051/0004-6361/202140695](https://doi.org/10.1051/0004-6361/202140695)
+"""
+function KSLawQuerejeta2021(ΣH2::Vector{<:SurfaceDensity}; log_output::Bool=true)::Vector{<:Number}
+
+    log10ΣH2 = @. log10(uconvert(Unitful.NoUnits, ΣH2 / 1.0u"Msun * pc^-2"))
+
+    log10Σsfr = @. A_QUEREJETA2021 + log10ΣH2 * N_QUEREJETA2021
+
+    if log_output
+        return log10Σsfr
+    else
+        return @. exp10(log10Σsfr) * u"Msun * yr^-1 * kpc^-2"
+    end
+
+end
+
+@doc raw"""
+    invKSLawQuerejeta2021(Σsfr ::Vector{<:MassFlowDensity}; <keyword arguments>)::Vector{<:Number}
+
+Evaluate the inverse Kennicutt-Schmidt law for the molecular gas, taken from Querejeta et al. (2021).
+
+From Querejeta et al. (2021) (Section 4.3, Table 4, row All, mean of the columns), we have
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
+```
+where N is the power-law index, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial gas surface density of $1.0 \, \mathrm{M_\odot \, pc^{-2}}$.
+
+# Arguments
+
+  - `Σsfr ::Vector{<:MassFlowDensity}`: Values of the SFR surface density.
+  - `log_output::Bool=true`: If the output will the $\log_{10} \, \Sigma_\text{H2}$. If `log_output` = true, the implied units are $1.0 \, \mathrm{M_\odot \, pc^{-2}}$
+
+# Returns
+
+  - The molecular gas surface density.
+
+# References
+
+M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formation across the PHANGS sample of nearby galaxies*. Astronomy and Astrophysics, **656**, A133. [doi:10.1051/0004-6361/202140695](https://doi.org/10.1051/0004-6361/202140695)
+"""
+function invKSLawQuerejeta2021(Σsfr::Vector{<:MassFlowDensity}; log_output::Bool=true)::Vector{<:Number}
+
+    log10Σsfr = @. log10(ustrip(u"Msun * yr^-1 * kpc^-2", Σsfr))
+
+    log10ΣH2 = @. (log10Σsfr - A_QUEREJETA2021) / N_QUEREJETA2021
+
+    if log_output
+        return log10ΣH2
+    else
+        return @. exp10(log10ΣH2) * 1.0u"Msun * pc^-2"
+    end
 
 end
 
 """
-    sfmQtyPlotParams(quantity::Symbol)::PlotParams
+    hvcatImages(
+        blocks_per_row::Int,
+        paths::Vector{String};
+        <keyword arguments>
+    )::Nothing
 
-Return the plotting parameters for a given base code quantity of our SF model.
+Join several images vertically and horizontally.
+
+The images in `paths` will fill the rows and columns starting at the top left, going from left to right and from top to bottom (row-major order).
 
 # Arguments
 
-  - `quantity::Symbol`: One of the quantities in [`SFM_QTY`](@ref).
+  - `blocks_per_row::Int`: Number of columns.
+  - `paths::Vector{String}`: Paths to the images.
+  - `output_path::String="./joined_images.png"`: Path to the output image.
+"""
+function hvcatImages(
+    blocks_per_row::Int,
+    paths::Vector{String};
+    output_path::String="./joined_images.png",
+)::Nothing
+
+    isempty(paths) && throw(ArgumentError("hvcatImages: `paths` is empty"))
+
+    new_image = hvcat(blocks_per_row, [load(path) for path in paths]...)
+
+    save(output_path, new_image)
+
+    return nothing
+
+end
+
+"""
+    rangeCut!(
+        raw_values::Vector{<:Number},
+        range::Tuple{<:Number,<:Number};
+        <keyword arguments>
+    )::Bool
+
+Delete every element in `raw_values` that is outside the given `range`.
+
+# Arguments
+
+  - `raw_values::Vector{<:Number}`: Dataset that will be pruned.
+  - `range::Tuple{<:Number,<:Number}`: The range in question.
+  - `keep_edges::Bool=true`: If the edges of the range will be kept.
+  - `min_left::Int=1`: Minimum number of values that need to be left after pruning to proceed with the transformation.
 
 # Returns
 
-  - A [`PlotParams`](@ref) object.
+  - If a transformation was performed.
 """
-function sfmQtyPlotParams(quantity::Symbol)::PlotParams
+function rangeCut!(
+    raw_values::Vector{<:Number},
+    range::Tuple{<:Number,<:Number};
+    keep_edges::Bool=true,
+    min_left::Int=1,
+)::Bool
+
+    # Shortcut computation for special cases
+    !(isempty(raw_values) || all(isinf.(range))) || return false
+
+    if keep_edges
+
+        # Check that after the transformation at least `min_left` elements will be left
+        count(x -> range[1] <= x <= range[2], raw_values) >= min_left || return false
+
+        # Delete elements outside of the provided range
+        filter!(x -> range[1] <= x <= range[2], raw_values)
+
+    else
+
+        # Check that after the transformation at least `min_left` elements will be left
+        count(x -> range[1] < x < range[2], raw_values) >= min_left || return false
+
+        # Delete elements outside of the provided range
+        filter!(x -> range[1] < x < range[2], raw_values)
+
+    end
+
+    return true
+
+end
+
+"""
+    rangeCut!(
+        m_data::Vector{<:Number},
+        s_data::Vector,
+        range::Tuple{<:Number,<:Number};
+        <keyword arguments>
+    )::Bool
+
+Delete every element in `m_data` that is outside the given `range`.
+
+Every corresponding element in `s_data` (i.e. with the same index) will be deleted too.
+
+# Arguments
+
+  - `m_data::Vector{<:Number}`: Master dataset that will be pruned.
+  - `s_data::Vector`: Slave dataset that will be pruned according to which values of `m_data` are outside `range`.
+  - `range::Tuple{<:Number,<:Number}`: The range in question.
+  - `keep_edges::Bool=true`: If the edges of the range will be kept.
+  - `min_left::Int=1`: Minimum number of values that need to be left in the master dataset after pruning to proceed with the transformation.
+
+# Returns
+
+  - If a transformation was performed.
+"""
+function rangeCut!(
+    m_data::Vector{<:Number},
+    s_data::Vector,
+    range::Tuple{<:Number,<:Number};
+    keep_edges::Bool=true,
+    min_left::Int=1,
+)::Bool
+
+    # Shortcut computation for special cases
+    !(isempty(m_data) || all(isinf.(range))) || return false
 
     (
-        quantity ∈ SFM_QTY ||
-        throw(ArgumentError("sfmQtyPlotParams: I don't recognize the quantity :$(quantity)"))
+        length(s_data) >= length(m_data) ||
+        throw(ArgumentError("rangeCut!: `s_data` must have at least as many elements as `m_data`, \
+        but I got length(`s_data`) = $(length(s_data)) < length(`m_data`) = $(length(m_data))"))
     )
 
-    magnitude, component = SFM_QTY_SPLITS[quantity]
+    if keep_edges
 
-    if component == :ode_gas_
+        # Find the elements outside of the provided range
+        idxs = map(x -> x < range[1] || x > range[2], m_data)
 
-        c_label = "\\,\\text{gas}"
-        cp_type = :gas
+        # Check that after the transformation at least `min_left` elements will be left
+        count(.!idxs) >= min_left || return false
 
-    elseif component == :ode_stellar_
-
-        c_label = "\\star"
-        cp_type = :stellar
-
-    else
-
-        throw(ArgumentError("sfmQtyPlotParams: I don't recognize the component \
-        :$(component). The only options are :ode_gas_ and :ode_stellar_"))
-
-    end
-
-    if magnitude == :integration_time
-
-        # Integration time
-        var_name = L"t_{i}^{%$(c_label)}"
-        unit     = u"Myr"
-
-    elseif magnitude == :parameter_a
-
-        # Scale factor
-        var_name = L"a^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-
-    elseif magnitude == :parameter_uvb
-
-        # UVB photoionization rate
-        var_name = L"\text{UVB}^{%$(c_label)}"
-        unit     = u"Myr^-1"
-
-    elseif magnitude == :parameter_lwb
-
-        # LWB photodissociation rate
-        var_name = L"\text{LWB}^{%$(c_label)}"
-        unit     = u"Myr^-1"
-
-    elseif magnitude == :tau_s
-
-        # Star formation time parameter
-        var_name = L"\tau_\text{star}^{%$(c_label)}"
-        unit     = u"Myr"
-
-    elseif magnitude == :parameter_cell_density
-
-        # Gas density
-        var_name = L"\rho_{c}^{%$(c_label)}"
-        unit     = u"cm^-3"
-
-    elseif magnitude == :parameter_metallicity
-
-        # Gas metallicity
-        var_name = L"Z^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-
-    elseif magnitude == :parameter_column_height
-
-        # Column height
-        var_name = L"h^{%$(c_label)}"
-        unit     = u"pc"
-
-    elseif magnitude == :parameter_eta_d
-
-        # Photodissociation efficiency
-        var_name = L"\eta_{\,\text{diss}}^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-
-    elseif magnitude == :parameter_eta_i
-
-        # Photoionization efficiency
-        var_name = L"\eta_{\,\text{ion}}^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-
-    elseif magnitude == :parameter_r
-
-        # Mass recycling fraction
-        var_name = L"R^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-
-    elseif magnitude == :parameter_zsn
-
-        # Metallicity of the supernova ejecta
-        var_name = L"Z_\text{SN}^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-
-    elseif magnitude == :sf_flag
-
-        # Star formation flag
-        var_name = L"\text{SF}_\text{flag}^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-
-    elseif magnitude == :cold_mass_frac
-
-        # Cold gas fraction
-        var_name = L"f_\text{cold}^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-
-    elseif magnitude == :gas_mass
-
-        # Parent gas cell mass
-        var_name = L"M_\text{gas}^{\,%$(c_label)}"
-        unit     = u"Msun"
-
-    elseif magnitude == :gas_sfr
-
-        # Parent gas cell SFR
-        var_name = L"\text{SFR}_\text{gas}^{%$(c_label)}"
-        unit     = u"Msun * yr^-1"
-
-    elseif magnitude == :gas_pressure
-
-        # Parent gas cell pressure
-        var_name = L"P^{%$(c_label)}"
-        unit     = u"Pa"
+        # Delete elements outside of the provided range
+        deleteat!(m_data, idxs)
+        deleteat!(s_data, idxs)
 
     else
 
-        throw(ArgumentError("sfmQtyPlotParams: I don't recognize the magnitude :$(magnitude), \
-        see the keys of SFM_KEYS in ./src/globals/globals.jl for options"))
+        # Find the elements outside of the provided range
+        idxs = map(x -> x <= range[1] || x >= range[2], m_data)
+
+        # Check that after the transformation at least `min_left` elements will be left
+        count(.!idxs) >= min_left || return false
+
+        # Delete elements outside of the provided range
+        deleteat!(m_data, idxs)
+        deleteat!(s_data, idxs)
 
     end
 
-    request = Dict(cp_type => [SFM_KEYS[magnitude]])
-
-    return PlotParams(; request, var_name, unit, cp_type)
+    return true
 
 end
 
 """
-    derivedSFMQtyPlotParams(quantity::Symbol)::PlotParams
+    sanitizeData!(
+        raw_values::Vector{<:Number};
+        <keyword arguments>
+    )::NTuple{2,Bool}
 
-Return the plotting parameters for a given derived code quantity of our SF model.
+Do the following transformations over `raw_values`, in order:
+
+  - Trim it to fit within the domain of the function `func_domain`.
+  - Trim it to fit within `range`.
+  - Scale it down by a factor of 10^`exp_factor`.
+
+By default, no transformation is done.
 
 # Arguments
 
-  - `quantity::Symbol`: One of the quantities in [`SFM_DERIVED_QTY`](@ref).
+  - `raw_values::Vector{<:Number}`: Dataset to be sanitized.
+  - `func_domain::Function=identity`: `raw_values` will be trimmed to fit within the domain of the function `func_domain`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `range::Tuple{<:Number,<:Number}=(-Inf, Inf)`: Every element in `raw_values` that falls outside of `range` will be deleted.
+  - `keep_edges::Bool=true`: If the edges of `range` will be kept.
+  - `min_left::Int=1`: Minimum number of values that need to be left after each transformation to proceed with it.
+  - `exp_factor::Int=0`: Every element in `raw_values` will be divided by 10^`exp_factor`.
 
 # Returns
 
-  - A [`PlotParams`](@ref) object.
+  - A tuple with two flags:
+
+      + If `raw_values` was mutated to fit within the domain of `func_domain`.
+      + If `raw_values` was mutated to fit within `range`.
 """
-function derivedSFMQtyPlotParams(quantity::Symbol)::PlotParams
+function sanitizeData!(
+    raw_values::Vector{<:Number};
+    func_domain::Function=identity,
+    range::Tuple{<:Number,<:Number}=(-Inf, Inf),
+    keep_edges::Bool=true,
+    min_left::Int=1,
+    exp_factor::Int=0,
+)::NTuple{2,Bool}
+
+    !isempty(raw_values) || return false, false
+
+    d_unit = unit(first(raw_values))
+
+    # Trim `raw_values` to fit within the domain of `func_domain`
+    if func_domain ∈ [identity, Makie.pseudolog10, Makie.Symlog10]
+
+        domain_flag = false
+
+    elseif func_domain == sqrt
+
+        domain_flag = rangeCut!(raw_values, (0.0, Inf) .* d_unit; keep_edges=true, min_left)
+
+    elseif func_domain == Makie.logit
+
+        domain_flag = rangeCut!(raw_values, (0.0, 1.0) .* d_unit; keep_edges=false, min_left)
+
+    elseif func_domain ∈ [log, log2, log10]
+
+        domain_flag = rangeCut!(raw_values, (0.0, Inf) .* d_unit; keep_edges=false, min_left)
+
+    else
+
+        throw(ArgumentError("sanitizeData!: The function $(func_domain) is not supported. See \
+        the list of supported scaling functions in the [Makie](https://docs.makie.org/stable/) \
+        documentation"))
+
+    end
+
+    # Trim `raw_values` to fit within `range`
+    range_flag = rangeCut!(raw_values, range; keep_edges, min_left)
 
     (
-        quantity ∈ SFM_DERIVED_QTY ||
-        throw(ArgumentError("derivedSFMQtyPlotParams: I don't recognize the quantity :$(quantity)"))
+        !(isa(raw_values, Vector{<:Integer}) && !iszero(exp_factor) && LOGGING[]) ||
+        @warn("sanitizeData!: Elements of `raw_values` are of type `Integer`, this may result \
+        in errors or unwanted truncation when using `exp_factor` != 0")
     )
 
-    magnitude, component = SFM_DERIVED_QTY_SPLITS[quantity]
+    # Scale `raw_values` down by a factor of 10^`exp_factor`
+    iszero(exp_factor) || (raw_values ./= exp10(exp_factor))
 
-    if component == :ode_gas_
-
-        c_label = "\\,\\text{gas}"
-        cp_type = :gas
-
-    elseif component == :ode_stellar_
-
-        c_label = "\\star"
-        cp_type = :stellar
-
-    else
-
-        throw(ArgumentError("derivedSFMQtyPlotParams: I don't recognize the component \
-        :$(component). The only options are :ode_gas_ and :ode_stellar_"))
-
-    end
-
-    if magnitude == :tau_star
-
-        # Star formation timescale
-        var_name = L"\tau_\text{star}^{%$(c_label)}"
-        unit     = u"Myr"
-        request  = Dict(cp_type => ["RHOC"])
-
-    elseif magnitude == :tau_rec
-
-        # Recombination timescale
-        var_name = L"\tau_\text{rec}^{%$(c_label)}"
-        unit     = u"Myr"
-        request  = Dict(cp_type => ["RHOC", "FRAC"])
-
-    elseif magnitude == :tau_cond
-
-        # Condensation timescale
-        var_name = L"\tau_\text{cond}^{%$(c_label)}"
-        unit     = u"Myr"
-        request  = Dict(cp_type => ["RHOC", "FRAC"])
-
-    elseif magnitude == :tau_dg
-
-        # Dust growth timescale
-        var_name = L"\tau_\text{dg}^{%$(c_label)}"
-        unit     = u"Gyr"
-        request  = Dict(cp_type => ["RHOC", "FRAC"])
-
-    elseif magnitude == :tau_dc
-
-        # Dust growth timescale
-        var_name = L"\tau_\text{dc}^{%$(c_label)}"
-        unit     = u"Gyr"
-        request  = Dict(cp_type => ["RHOC", "FRAC"])
-
-    elseif magnitude == :tau_dd
-
-        # Dust destruction timescale
-        var_name = L"\tau_\text{dd}^{%$(c_label)}"
-        unit     = u"Gyr"
-        request  = Dict(cp_type => ["RHOC", "FRAC", "PARS"])
-
-    elseif magnitude == :tau_ion
-
-        # Ionization optical depth
-        var_name = L"\tau_\text{ion}^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-        request  = Dict(cp_type => ["RHOC", "PARH", "FRAC"])
-
-    elseif magnitude == :tau_diss
-
-        # Dissociation optical depth
-        var_name = L"\tau_\text{diss}^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-        request  = Dict(cp_type => ["RHOC", "PARH", "FRAC"])
-
-    elseif magnitude == :S_d
-
-        # Dust shielding factor
-        var_name = L"S_{d}^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-        request  = Dict(cp_type => ["RHOC", "PARH", "FRAC"])
-
-    elseif magnitude == :S_H2
-
-        # H2 self-shielding factor
-        var_name = L"S_{H2}^{%$(c_label)}"
-        unit     = Unitful.NoUnits
-        request  = Dict(cp_type => ["RHOC", "PARH", "FRAC"])
-
-    elseif magnitude == :equivalent_size
-
-        # Equivalent size
-        var_name = L"d_\text{eq}^{%$(c_label)}"
-        unit     = u"pc"
-        if cp_type == :gas
-            request = Dict(cp_type => ["RHOC", "MASS"])
-        else
-            request = Dict(cp_type => ["RHOC", "GMAS"])
-        end
-
-    else
-
-        throw(ArgumentError("derivedSFMQtyPlotParams: I don't recognize the magnitude \
-        :$(magnitude), see the keys of SFM_DERIVED_MAGNITUDES in ./src/globals/globals.jl \
-        for options"))
-
-    end
-
-    return PlotParams(; request, var_name, unit, cp_type)
+    return domain_flag, range_flag
 
 end
 
 """
-    haloQtyPlotParams(quantity::Symbol)::PlotParams
+    sanitizeData!(
+        x_data::Vector{<:Number},
+        y_data::Vector{<:Number};
+        <keyword arguments>
+    )::NTuple{4,Bool}
 
-Return the plotting parameters for a given halo magnitude.
+Do the following transformations over `x_data` and `y_data`, in order:
+
+  - Trim them to fit within the domain of the functions `func_domain[1]` and `func_domain[2]`, respectively.
+  - Trim them to fit within `range[1]` and `range[2]`, respectively.
+  - Scale them down by a factor 10^`exp_factor[1]` and 10^`exp_factor[2]`, respectively.
+
+By default, no transformation is done.
+
+!!! note
+
+    The datasets must have the same length, and any operation that deletes an element, will delete the corresponding element (i.e. with the same index) in the other dataset, so that the datasets will remain of equal length.
 
 # Arguments
 
-  - `quantity::Symbol`: Target halo and halo quantity, e.g., `:halo_mass_12`. The index of the target halo starts at 1 and the halo quantity has to be one of the keys of [`HALO_KEYS`](@ref).
+  - `x_data::Vector{<:Number}`: First dataset to be sanitized.
+  - `y_data::Vector{<:Number}`: Second dataset to be sanitized.
+  - `func_domain::NTuple{2,Function}=(identity, identity)`: `x_data` will be trimmed to fit within the domain of the function `func_domain[1]`, and `y_data` will be trimmed to fit within the domain of the function `func_domain[2]`. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity.
+  - `range::Tuple{Tuple{<:Number,<:Number},Tuple{<:Number,<:Number}}=((-Inf, Inf), (-Inf, Inf))`: Every element in `x_data` that falls outside of `range[1]` will be deleted, and every element in `y_data` that falls outside of `range[2]` will be deleted.
+  - `keep_edges::NTuple{2,Bool}=(true, true)`: If the edges of each corresponding `range` will be kept.
+  - `min_left::Int=1`: Minimum number of values that need to be left in each dataset after any of the transformations to proceed with them.
+  - `exp_factor::NTuple{2,Int}=(0, 0)`: Every element in `x_data` will be divided by 10^`exp_factor[1]`, and every element in `y_data` will be divided by 10^`exp_factor[2]`.
 
 # Returns
 
-  - A [`PlotParams`](@ref) object.
-"""
-function haloQtyPlotParams(quantity::Symbol)::PlotParams
+  - A tuple with four flags:
 
-    magnitude, _ = parseHaloQuantity(quantity)
+      + If `x_data` was mutated to fit within the domain of `func_domain[1]`.
+      + If `y_data` was mutated to fit within the domain of `func_domain[2]`.
+      + If `x_data` was mutated to fit within `range[1]`.
+      + If `y_data` was mutated to fit within `range[2]`.
+"""
+function sanitizeData!(
+    x_data::Vector{<:Number},
+    y_data::Vector{<:Number};
+    func_domain::NTuple{2,Function}=(identity, identity),
+    range::Tuple{Tuple{<:Number,<:Number},Tuple{<:Number,<:Number}}=((-Inf, Inf), (-Inf, Inf)),
+    keep_edges::NTuple{2,Bool}=(true, true),
+    min_left::Int=1,
+    exp_factor::NTuple{2,Int}=(0, 0),
+)::NTuple{4,Bool}
 
     (
-        magnitude ∉ HALO_QTY &&
-        throw(ArgumentError("haloQtyPlotParams: I don't recognize the magnitude :$(magnitude), \
-        the options are the elements of HALO_QTY (see `./src/globals/quantities.jl`)"))
+        length(x_data) == length(y_data) ||
+        throw(ArgumentError("sanitizeData!: `x_data` and `y_data` must have the same length, \
+        but I got length(x_data) = $(length(x_data)) != length(y_data) = $(length(y_data))"))
     )
 
-    if magnitude == :halo_mass
+    x_unit = isempty(x_data) ? Unitful.NoUnits : unit(first(x_data))
 
-        # Halo mass
-        var_name   = L"M_\text{halo}"
-        unit       = u"Msun"
-        exp_factor = 10
+    # Trim the data to fit within the domain of `func_domain[1]`
+    if func_domain[1] ∈ [identity, Makie.pseudolog10, Makie.Symlog10]
 
-    elseif magnitude == :halo_n_subhalos
+        x_domain_flag = false
 
-        # Number of subhalos
-        var_name   = L"N_\text{subhalos}"
-        unit       = Unitful.NoUnits
-        exp_factor = 0
+    elseif func_domain[1] == sqrt
 
-    elseif magnitude == :halo_M200
+        x_domain_flag = rangeCut!(x_data, y_data, (0.0, Inf) .* x_unit; keep_edges=true, min_left)
 
-        # Virial mass
-        var_name   = L"M_{200}"
-        unit       = u"Msun"
-        exp_factor = 10
+    elseif func_domain[1] == Makie.logit
 
-    elseif magnitude == :halo_R200
+        x_domain_flag = rangeCut!(x_data, y_data, (0.0, 1.0) .* x_unit; keep_edges=false, min_left)
 
-        # Virial radius
-        var_name   = L"R_{200}"
-        unit       = u"kpc"
-        exp_factor = 0
+    elseif func_domain[1] ∈ [log, log2, log10]
+
+        x_domain_flag = rangeCut!(x_data, y_data, (0.0, Inf) .* x_unit; keep_edges=false, min_left)
 
     else
 
-        throw(ArgumentError("haloQtyPlotParams: I don't recognize the magnitude :$(magnitude), \
-        the options are the keys of `HALO_KEYS` (see `./src/globals/quantities.jl`)"))
+        throw(ArgumentError("sanitizeData!: The function $(func_domain[1]) is not supported. See \
+        the list of supported scaling functions in the [Makie](https://docs.makie.org/stable/) \
+        documentation"))
 
     end
 
-    cp_type = :group
+    y_unit = isempty(y_data) ? Unitful.NoUnits : unit(first(y_data))
 
-    request = Dict(cp_type => [HALO_KEYS[magnitude]])
+    # Trim the data to fit within the domain of `func_domain[2]`
+    if func_domain[2] ∈ [identity, Makie.pseudolog10, Makie.Symlog10]
 
-    return PlotParams(; request, var_name, exp_factor, unit, cp_type)
+        y_domain_flag = false
+
+    elseif func_domain[2] == sqrt
+
+        y_domain_flag = rangeCut!(y_data, x_data, (0.0, Inf) .* y_unit; keep_edges=true, min_left)
+
+    elseif func_domain[2] == Makie.logit
+
+        y_domain_flag = rangeCut!(y_data, x_data, (0.0, 1.0) .* y_unit; keep_edges=false, min_left)
+
+    elseif func_domain[2] ∈ [log, log2, log10]
+
+        y_domain_flag = rangeCut!(y_data, x_data, (0.0, Inf) .* y_unit; keep_edges=false, min_left)
+
+    else
+
+        throw(ArgumentError("sanitizeData!: The function $(func_domain[2]) is not supported. See \
+        the list of supported scaling functions in the [Makie](https://docs.makie.org/stable/) \
+        documentation"))
+
+    end
+
+    # Trim data to fit within `range[1]`
+    x_range_flag = rangeCut!(x_data, y_data, range[1]; keep_edges=keep_edges[1], min_left)
+
+    # Trim data to fit within `range[2]`
+    y_range_flag = rangeCut!(y_data, x_data, range[2]; keep_edges=keep_edges[2], min_left)
+
+    (
+        !(isa(x_data, Vector{<:Integer}) && !iszero(exp_factor[1]) && LOGGING[]) ||
+        @warn("sanitizeData!: Elements of `x_data` are of type Integer, this may result \
+        in errors or unwanted truncation when using `exp_factor[1]` != 0")
+    )
+
+    (
+        !(isa(y_data, Vector{<:Integer}) && !iszero(exp_factor[2]) && LOGGING[]) ||
+        @warn("sanitizeData!: Elements of `y_data` are of type Integer, this may result \
+        in errors or unwanted truncation when using `exp_factor[2]` != 0")
+    )
+
+    # Scale the data down by the factors `exp_factor`
+    iszero(exp_factor[1]) || (x_data ./= exp10(exp_factor[1]))
+    iszero(exp_factor[2]) || (y_data ./= exp10(exp_factor[2]))
+
+    return x_domain_flag, y_domain_flag, x_range_flag, y_range_flag
 
 end
 
 """
-    plotParams(quantity::Symbol)::PlotParams
+    smoothWindow(
+        x_data::Vector{<:Number},
+        y_data::Vector{<:Number},
+        n_bins::Int;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
 
-Return the plotting parameters for a given `quantity`.
+Separate the values of `x_data` in `n_bins` bins and compute the mean value of `x_data` and `y_data` within each one.
 
 # Arguments
 
-  - `quantity::Symbol`: Target quantity. See `./src/globals/quantities.jl` for options.
+  - `x_data::Vector{<:Number}`: x-axis data.
+  - `y_data::Vector{<:Number}`: y-axis data.
+  - `n_bins::Int`: Number of bins.
+  - `scaling::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity. All the values of `x_data` must be in the domain of `scaling`.
 
 # Returns
 
-  - A [`PlotParams`](@ref) object.
+  - A tuple with two vectors, containing the smoothed-out x and y values.
 """
-function plotParams(quantity::Symbol)::PlotParams
-
-    #####################
-    # Derived quantities
-    #####################
-
-    if quantity ∈ DERIVED_QTY
-
-        magnitude, component = QUANTITY_SPLITS[quantity]
-
-        plot_params = derivedQtyPlotParams(magnitude, component)
-
-    elseif quantity ∈ MAGNITUDES
-
-        plot_params = derivedQtyPlotParams(quantity, :generic)
-
-    elseif quantity ∈ SFM_QTY
-
-        plot_params = sfmQtyPlotParams(quantity)
-
-    elseif quantity ∈ SFM_DERIVED_QTY
-
-        plot_params = derivedSFMQtyPlotParams(quantity)
-
-    #########
-    # Ratios
-    #########
-
-    elseif quantity ∈ RATIO_QTY
-
-        qty_01, qty_02 = RATIO_SPLITS[quantity]
-
-        plot_params_01 = plotParams(qty_01)
-        plot_params_02 = plotParams(qty_02)
-
-        var_name_01 = plot_params_01.var_name
-        var_name_02 = plot_params_02.var_name
-
-        request_01 = plot_params_01.request
-        request_02 = plot_params_02.request
-
-        plot_params = PlotParams(;
-            request  = mergeRequests(request_01, request_02),
-            var_name = LaTeXString(var_name_01 * L"\, / \," * var_name_02),
-        )
-
-    ###########################
-    # Group catalog quantities
-    ###########################
-
-    elseif !isnothing(match(r"^halo_(.*)_(\d+)$", string(quantity)))
-
-        plot_params = haloQtyPlotParams(quantity)
-
-    #################
-    # Gas quantities
-    #################
-
-    elseif quantity == :temperature
-
-        plot_params = PlotParams(;
-            request  = Dict(:gas => ["TEMP"]),
-            var_name = L"T",
-            unit     = u"K",
-            cp_type  = :gas,
-        )
-
-    elseif quantity == :pressure
-
-        plot_params = PlotParams(;
-            request  = Dict(:gas => ["PRES"]),
-            var_name = L"P",
-            unit     = u"Pa",
-            cp_type  = :gas,
-        )
-
-    #################
-    # SFR quantities
-    #################
-
-    elseif quantity == :sfr
-
-        # See computeSFR() in ./src/analysis/compute_quantities/times.jl
-        plot_params = PlotParams(;
-            request  = Dict(:stellar => ["MASS", "GAGE"]),
-            var_name = L"\text{SFR}",
-            unit     = u"Msun * yr^-1",
-            cp_type  = :stellar,
-        )
-
-    elseif quantity == :ssfr
-
-        # See computeSSFR() in ./src/analysis/compute_quantities/times.jl
-        plot_params = PlotParams(;
-            request  = Dict(:stellar => ["GAGE"]),
-            var_name = L"\text{sSFR}",
-            unit     = u"Gyr^-1",
-            cp_type  = :stellar,
-        )
-
-    elseif quantity == :observational_sfr
-
-        # See computeSFR() in ./src/analysis/compute_quantities/times.jl
-        plot_params = PlotParams(;
-            request  = Dict(:stellar => ["MASS", "GAGE"]),
-            var_name = L"\text{SFR}",
-            unit     = u"Msun * yr^-1",
-            cp_type  = :stellar,
-        )
-
-    elseif quantity == :observational_ssfr
-
-        # See computeSSFR() in ./src/analysis/compute_quantities/times.jl
-        plot_params = PlotParams(;
-            request  = Dict(:stellar => ["MASS", "GAGE"]),
-            var_name = L"\text{sSFR}",
-            unit     = u"yr^-1",
-            cp_type  = :stellar,
-        )
-
-    elseif quantity == :sfr_area_density
-
-        plot_params = PlotParams(;
-            request  = Dict(:stellar => ["MASS", "GAGE", "POS "]),
-            var_name = L"\Sigma_\text{SFR}",
-            unit     = u"Msun * yr^-1 * kpc^-2",
-            cp_type  = :stellar,
-        )
-
-    elseif quantity == :sfr_density
-
-        plot_params = PlotParams(;
-            request  = Dict(:stellar => ["MASS", "GAGE", "POS "]),
-            var_name = L"\rho_\text{SFR}",
-            unit     = u"Msun * yr^-1 * kpc^-3",
-            cp_type  = :stellar,
-        )
-
-    elseif quantity == :stellar_age
-
-        # See computeStellarAge() in ./src/analysis/compute_quantities/times.jl
-        plot_params = PlotParams(;
-            request  = Dict(:stellar => ["GAGE"]),
-            var_name = L"\text{Stellar age}",
-            unit     = u"Gyr",
-            cp_type  = :stellar,
-        )
-
-    elseif quantity == :stellar_birth_time
-
-        # See computeStellarAge() in ./src/analysis/compute_quantities/times.jl
-        plot_params = PlotParams(;
-            request  = Dict(:stellar => ["GAGE"]),
-            var_name = L"\text{Stellar birth time}",
-            unit     = u"Gyr",
-            cp_type  = :stellar,
-        )
-
-    elseif quantity == :gas_sfr
-
-        plot_params = PlotParams(;
-            request  = Dict(:gas => ["SFR "]),
-            var_name = L"\mathrm{SFR_{gas}}",
-            unit     = u"Msun * yr^-1",
-            cp_type  = :gas,
-        )
-
-    elseif quantity == :gas_sfr_area_density
-
-        plot_params = PlotParams(;
-            request  = Dict(:gas => ["SFR ", "POS "]),
-            var_name = L"\Sigma_\text{SFR}^\text{gas}",
-            unit     = u"Msun * yr^-1 * kpc^-2",
-            cp_type  = :gas,
-        )
-
-    elseif quantity == :mu_mol
-
-        plot_params = PlotParams(;
-            request  = Dict(
-                :stellar => ["MASS", "POS ", "RHO "],
-                :gas => ["MASS", "FRAC", "POS ", "RHO "],
-            ),
-            var_name = L"\mu_\mathrm{mol}",
-        )
-
-    ##################
-    # Time quantities
-    ##################
-
-    elseif quantity == :scale_factor
-
-        plot_params = PlotParams(; var_name=L"a")
-
-    elseif quantity == :redshift
-
-        plot_params = PlotParams(; var_name=L"z")
-
-    elseif quantity == :physical_time
-
-        plot_params = PlotParams(; var_name=L"t", unit=u"Gyr")
-
-    elseif quantity == :lookback_time
-
-        plot_params = PlotParams(; var_name=L"\mathrm{Lookback \,\, time}", unit=u"Gyr")
-
-    elseif quantity == :time_step
-
-        plot_params = PlotParams(; var_name=L"\mathrm{Number \,\, of \,\, time \,\, steps}")
-
-    elseif quantity == :clock_time_s
-
-        plot_params = PlotParams(; var_name=L"\mathrm{Wallclock \,\, time}", unit=u"s")
-
-    elseif quantity == :clock_time_percent
-
-        plot_params = PlotParams(; axis_label=L"\mathrm{Wallclock \,\, time \, [\%]}")
-
-    elseif quantity == :tot_clock_time_s
-
-        plot_params = PlotParams(;
-            var_name = L"\mathrm{Cumulative \,\, wallclock \,\, time}",
-            unit     = u"s",
-        )
-
-    elseif quantity == :tot_clock_time_percent
-
-        plot_params = PlotParams(;
-            axis_label = L"\mathrm{Cumulative \,\, wallclock \,\, time \, [\%]}"
-        )
-
-    #########################
-    # Metallicity quantities
-    #########################
-
-    elseif quantity == :gas_metallicity
-
-        plot_params = PlotParams(;
-            request  = Dict(:gas => ["GZ  "]),
-            var_name = L"Z_\mathrm{gas} [\mathrm{Z_\odot}]",
-            cp_type  = :gas,
-        )
-
-    elseif quantity == :stellar_metallicity
-
-        plot_params = PlotParams(;
-            request  = Dict(:stellar => ["GZ2 "]),
-            var_name = L"Z_\star \, [\mathrm{Z_\odot}]",
-            cp_type  = :stellar,
-        )
-
-    elseif quantity == :ode_metallicity
-
-        plot_params = PlotParams(;
-            request  = Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]),
-            var_name = L"Z_\text{ODE} \, [\mathrm{Z_\odot}]",
-            cp_type  = :gas,
-        )
-
-    elseif quantity ∈ GAS_METALS_MASS
-
-        # See computeElementMass() in ./src/analysis/compute_quantities/masses.jl
-        element = GAS_METALS_MASS_SPLITS[quantity]
-
-        plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "GMET"]),
-            var_name   = L"M_%$(element)^\text{gas}",
-            exp_factor = 5,
-            unit       = u"Msun",
-            cp_type    = :gas,
-        )
-
-    elseif quantity ∈ STELLAR_METALS_MASS
-
-        # See computeElementMass() in ./src/analysis/compute_quantities/masses.jl
-        element = STELLAR_METALS_MASS_SPLITS[quantity]
-
-        plot_params = PlotParams(;
-            request    = Dict(:stellar => ["MASS", "GME2"]),
-            var_name   = L"M_%$(element)^\star",
-            exp_factor = 8,
-            unit       = u"Msun",
-            cp_type    = :stellar,
-        )
-
-    elseif quantity ∈ GAS_ABUNDANCE
-
-        # See computeAbundance() in ./src/analysis/compute_quantities/masses.jl
-        element = GAS_ABUNDANCE_SPLITS[quantity]
-
-        if iszero(ABUNDANCE_SHIFT[][element])
-            axis_label = L"\log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
-        else
-            axis_label = L"%$(Int(ABUNDANCE_SHIFT[][element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
-        end
-
-        plot_params = PlotParams(;
-            request    = Dict(:gas => ["MASS", "GMET"]),
-            axis_label,
-            cp_type    = :gas,
-        )
-
-    elseif quantity ∈ STELLAR_ABUNDANCE
-
-        # See computeAbundance() in ./src/analysis/compute_quantities/masses.jl
-        element = STELLAR_ABUNDANCE_SPLITS[quantity]
-
-        if iszero(ABUNDANCE_SHIFT[][element])
-            axis_label = L"\log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
-        else
-            axis_label = L"%$(Int(ABUNDANCE_SHIFT[][element])) + \log_{10}(\mathrm{%$element} \, / \, \mathrm{H})"
-        end
-
-        plot_params = PlotParams(;
-            request    = Dict(:stellar => ["MASS", "GME2"]),
-            axis_label,
-            cp_type    = :stellar,
-        )
-
-    elseif quantity == :mass_accretion
-
-        # See computeVirialAccretion() and computeDiskAccretion() in ./src/analysis/compute_quantities/masses.jl
-        plot_params = PlotParams(;
-            request  = Dict(
-                :gas         => ["ID  ", "POS ", "MASS"],
-                :stellar     => ["ID  ", "POS ", "MASS"],
-                :black_hole  => ["ID  ", "POS ", "MASS"],
-                :dark_matter => ["ID  ", "POS ", "MASS"],
-                :group       => ["G_R_Crit200", "G_Nsubs", "G_Pos"],
-                :subhalo     => ["S_Pos"],
-                :tracer      => ["PAID", "TRID"],
-            ),
-            var_name = L"\dot{M}_\text{acc}",
-            unit     = u"Msun * yr^-1",
-        )
-
-    elseif quantity == :molecular_stellar_fraction
-
-        plot_params_01 = plotParams(:ode_molecular_stellar_mass)
-        plot_params_02 = plotParams(:stellar_mass)
-
-        var_name_01 = plot_params_01.var_name
-        var_name_02 = plot_params_02.var_name
-
-        request_01 = plot_params_01.request
-        request_02 = plot_params_02.request
-
-        plot_params = PlotParams(;
-            request  = mergeRequests(request_01, request_02),
-            var_name = LaTeXString(
-                var_name_01 * L"\, / \, (" * var_name_01 * L"+" * var_name_02 * L")",
-            ),
-        )
-
-    else
-
-        throw(ArgumentError("plotParams: I don't recognize the quantity :$(quantity)"))
-
-    end
-
-    return plot_params
+function smoothWindow(
+    x_data::Vector{<:Number},
+    y_data::Vector{<:Number},
+    n_bins::Int;
+    scaling::Function=identity,
+)::NTuple{2,Vector{<:Number}}
+
+    # Check that the input vectors have the same length
+    (
+        length(x_data) == length(y_data) ||
+        throw(DimensionMismatch("smoothWindow: `x_data` and `y_data` must have the same length, \
+        but I got length(`x_data`) = $(length(x_data)) != length(`y_data`) = $(length(y_data))"))
+    )
+
+    positions = scaling.(ustrip(x_data))
+    grid = LinearGrid(extrema(positions)..., n_bins)
+
+    smooth_x_data = histogram1D(positions, x_data, grid; total=false)
+    smooth_y_data = histogram1D(positions, y_data, grid; total=false)
+
+    # Remove empty bins
+    return filter!(!isnan, smooth_x_data), filter!(!isnan, smooth_y_data)
+
+end
+
+"""
+    formatSeconds(sec::Float64)::String
+
+Format given number of seconds as "DDd-HHh:MM':SS''", where D is days, H is hours, M is minutes, and S is seconds.
+
+# Arguments
+
+  - `sec::Float64`: Number of seconds.
+
+# Returns
+
+  - String with the formatted time.
+"""
+function formatSeconds(sec::Float64)::String
+
+    days    = floor(sec / (24 * 3600))
+    rem1    = sec - days * (24 * 3600)
+    hours   = floor(rem1 / 3600)
+    rem2    = rem1 - hours * 3600
+    minutes = floor(rem2 / 60)
+    seconds = round(rem2 - minutes * 60)
+
+    return string(
+        Int(days),
+        "d ",
+        lpad(Int(hours), 2, "0"),
+        "hs ",
+        lpad(Int(minutes), 2, "0"),
+        "' ",
+        lpad(Int(seconds), 2, "0"),
+        "''",
+    )
 
 end
 

@@ -123,15 +123,14 @@ end
 """
     computeKineticEnergy(
         data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
+        component::Symbol,
     )::Vector{<:Unitful.Energy}
 
 Compute the kinetic energy.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
@@ -151,7 +150,6 @@ Compute the kinetic energy.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["VEL ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -159,11 +157,10 @@ Compute the kinetic energy.
 """
 function computeKineticEnergy(
     data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
+    component::Symbol,
 )::Vector{<:Unitful.Energy}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeKineticEnergy: `component` can only be one of the elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -176,7 +173,7 @@ function computeKineticEnergy(
         type = :gas
     end
 
-    masses     = computeMass(data_dict, component; icGen)
+    masses     = computeMass(data_dict, component)
     velocities = data_dict[type]["VEL "]
 
     return computeKineticEnergy(masses, velocities)
@@ -184,17 +181,13 @@ function computeKineticEnergy(
 end
 
 """
-    computePotentialEnergy(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Vector{<:Unitful.Energy}
+    computePotentialEnergy(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Energy}
 
 Compute the gravitational potencial energy.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
@@ -214,19 +207,14 @@ Compute the gravitational potencial energy.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["POT ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
   - The gravitational potencial energy of each cell/particle.
 """
-function computePotentialEnergy(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Vector{<:Unitful.Energy}
+function computePotentialEnergy(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Energy}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computePotentialEnergy: `component` can only be one of the elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -239,7 +227,7 @@ function computePotentialEnergy(
         type = :gas
     end
 
-    masses    = computeMass(data_dict, component; icGen)
+    masses    = computeMass(data_dict, component)
     potential = data_dict[type]["POT "]
 
     return computePotentialEnergy(masses, potential)
@@ -248,17 +236,13 @@ function computePotentialEnergy(
 end
 
 """
-    computeTotalEnergy(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Vector{<:Unitful.Energy}
+    computeTotalEnergy(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Energy}
 
 Compute the total energy (kinetic + potential).
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
@@ -278,20 +262,15 @@ Compute the total energy (kinetic + potential).
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["VEL ", "POT ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
   - The total energy of each cell/particle.
 """
-function computeTotalEnergy(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Vector{<:Unitful.Energy}
+function computeTotalEnergy(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Energy}
 
-    Ep = computePotentialEnergy(data_dict, component; icGen)
-    Ek = computeKineticEnergy(data_dict, component; icGen)
+    Ep = computePotentialEnergy(data_dict, component)
+    Ek = computeKineticEnergy(data_dict, component)
 
     if any(isempty, [Ek, Ep])
 

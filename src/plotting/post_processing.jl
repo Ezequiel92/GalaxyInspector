@@ -22,7 +22,7 @@
         figure::Makie.Figure,
         positions::Vector{<:Real};
         <keyword arguments>
-    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
 Draw vertical lines.
 
@@ -32,7 +32,7 @@ Draw vertical lines.
   - `positions::Vector{<:Real}`: The x coordinates of the lines.
   - `colors::Vector{<:ColorType}=[WONG_RED]`: Colors of the lines.
   - `line_styles::Vector{<:LineStyleType}=[:solid]`: Styles of the lines.
-  - `labels::Union{Vector{AbstractString},Nothing}=nothing`: Labels for the lines. If set to `nothing` no label is printed.
+  - `labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the lines. If set to `nothing` no label is printed.
 
 # Returns
 
@@ -46,8 +46,8 @@ function ppVerticalFlags!(
     positions::Vector{<:Real};
     colors::Vector{<:ColorType}=[WONG_RED],
     line_styles::Vector{<:LineStyleType}=[:solid],
-    labels::Union{Vector{AbstractString},Nothing}=nothing,
-)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+    labels::Union{Vector{<:AbstractString},Nothing}=nothing,
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
     # Filter out values outside the range of the original plot
     rangeCut!(positions, xlimits!(figure); keep_edges=false)
@@ -92,7 +92,7 @@ end
         figure::Makie.Figure,
         positions::Vector{<:Real};
         <keyword arguments>
-    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
 Draw horizontal lines.
 
@@ -102,7 +102,7 @@ Draw horizontal lines.
   - `positions::Vector{<:Real}`: The y coordinates of the lines.
   - `colors::Vector{<:ColorType}=[WONG_RED]`: Colors of the lines.
   - `line_styles::Vector{<:LineStyleType}=[:solid]`: Styles of the lines.
-  - `labels::Union{Vector{AbstractString},Nothing}=nothing`: Labels for the lines. If set to `nothing` no label is printed.
+  - `labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the lines. If set to `nothing` no label is printed.
 
 # Returns
 
@@ -116,8 +116,8 @@ function ppHorizontalFlags!(
     positions::Vector{<:Real};
     colors::Vector{<:ColorType}=[WONG_RED],
     line_styles::Vector{<:LineStyleType}=[:solid],
-    labels::Union{Vector{AbstractString},Nothing}=nothing,
-)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+    labels::Union{Vector{<:AbstractString},Nothing}=nothing,
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
     # Filter out values outside the range of the original plot
     rangeCut!(positions, ylimits!(figure); keep_edges=false)
@@ -162,7 +162,7 @@ end
         figure::Makie.Figure,
         cross_point::Tuple{<:Real,<:Real};
         <keyword arguments>
-    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
 Draw two lines, one horizontal and one vertical.
 
@@ -187,7 +187,7 @@ function ppCross!(
     color::ColorType=WONG_RED,
     linestyle::LineStyleType=:solid,
     label::Union{AbstractString,Nothing}=nothing,
-)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
     x_limits = xlimits!(figure)
     y_limits = ylimits!(figure)
@@ -284,7 +284,7 @@ end
     ppFillBelowLine!(
         figure::Makie.Figure;
         <keyword arguments>
-    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
 Fill the space below a line plot with a solid `color` down to a `lower_limit`.
 
@@ -309,7 +309,7 @@ function ppFillBelowLine!(
     color::ColorType=WONG_RED,
     alpha::Float64=0.3,
     label::Union{AbstractString,Nothing}=nothing,
-)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -415,7 +415,7 @@ end
         ::Makie.Figure,
         components::Vector{Symbol};
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
 Return the legend elements for the plot made by [`gasBarPlot`](@ref).
 
@@ -436,9 +436,9 @@ function ppBarPlotLabels(
     ::Makie.Figure,
     components::Vector{Symbol};
     colors=Makie.wong_colors(),
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
-    labels = [plotParams(Symbol(component, :_fraction)).var_name for component in components]
+    labels = [QTY_REGISTRY[Symbol(component, :_fraction)].qty_label for component in components]
 
     return [PolyElement(polycolor=colors[i]) for i in 1:length(labels)], labels
 
@@ -448,7 +448,7 @@ end
     ppFitLine!(
         figure::Makie.Figure;
         <keyword arguments>
-    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
 Draw a linear fit for the data in `figure`.
 
@@ -489,7 +489,7 @@ function ppFitLine!(
     color::ColorType=WONG_RED,
     linestyle::LineStyleType=:solid,
     linewidth::Int=3,
-)::Union{Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}},Nothing}
+)::Union{Tuple{Vector{Vector{<:LegendElement}},Vector{<:AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -638,7 +638,7 @@ end
     ppKennicutt1998!(
         figure::Makie.Figure;
         <keyword arguments>
-    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
 Draw a line plot with the fit for the Kennicutt-Schmidt relation from Kennicutt (1998).
 
@@ -675,7 +675,7 @@ function ppKennicutt1998!(
     color::ColorType=WONG_RED,
     linestyles::Vector{<:LineStyleType}=[:solid, :dash],
     linewidth::Int=3,
-)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -794,7 +794,7 @@ end
         figure::Makie.Figure,
         molecular::Bool;
         <keyword arguments>
-    )::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
 Draw a line plot with the fit for the Kennicutt-Schmidt relation from Bigiel et al. (2008).
 
@@ -837,7 +837,7 @@ function ppBigiel2008!(
     color::ColorType=WONG_RED,
     linestyles::Vector{<:LineStyleType}=[:solid, :dash],
     linewidth::Int=3,
-)::Union{Tuple{Vector{<:LegendElement},Vector{AbstractString}},Nothing}
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
     # Read the data points in the plot
     points = pointData(figure)
@@ -952,10 +952,487 @@ function ppBigiel2008!(
 end
 
 """
+    ppCologni2026!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+Draw a line plot with the fit for the Kennicutt-Schmidt relation from Cologni et al. (2026).
+
+!!! note
+
+    The resolution used in Cologni et al. (2026) is 3.0 kpc (see Section 3.2).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
+  - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
+  - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
+  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}`` (`y_log` = false).
+  - `extend::Float64=0.0`: By default the y axis limits will be the vertical range of the points in the plot. This can be extended by the multiplicative factor `extend` of the vertical range.
+  - `color::ColorType=WONG_RED`: Color for the line.
+  - `linestyles::Vector{<:LineStyleType}=[:solid, :dash],`: Styles for the lines. The first style will indicate the range for which there are experimental data, and the second one will be for the extrapolation.
+  - `linewidth::Int=3`: Line width.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `LineElement` to be used as the marker.
+      + The label.
+
+# References
+
+R. Cologni et al. (2026). *Resolved molecular gas and star formation in massive unquenched spirals*. Astronomy and Astrophysics, **709**, A148. [doi:10.1051/0004-6361/202558486](https://doi.org/10.1051/0004-6361/202558486)
+"""
+function ppCologni2026!(
+    figure::Makie.Figure;
+    x_unit::Unitful.Units=u"Msun * pc^-2",
+    y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2",
+    x_log::Bool=true,
+    y_log::Bool=true,
+    extend::Float64=0.0,
+    color::ColorType=WONG_RED,
+    linestyles::Vector{<:LineStyleType}=[:solid, :dash],
+    linewidth::Int=3,
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+    # Read the data points in the plot
+    points = pointData(figure)
+
+    if isempty(points)
+        LOGGING[] && @warn("ppCologni2026!: There are no points in the figure")
+        return nothing
+    end
+
+    ################################################################################################
+    # Range of Σsfr in the plot
+    ################################################################################################
+
+    # Get the extrema of the y coordinates
+    y_limits = [extrema(Float64[point[2] for point in points])...]
+
+    # Compute the vertical range, and if it is too small extend it
+    y_range = y_limits[2] - y_limits[1]
+
+    if iszero(extend) && (abs(y_range / y_limits[1]) < 0.1)
+        extend = 0.4 / abs(y_range / y_limits[1])
+    end
+
+    # Extend the y limits the required amount
+    if extend > 0.0
+
+        extension = y_range * extend
+
+        y_limits[1] -= extension
+        y_limits[2] += extension
+
+    end
+
+    ################################################################################################
+    # Range of Σsfr in Cologni et al. (2026)
+    ################################################################################################
+
+    # Set the correct unit and scale for the range of experimental values
+    if y_log
+        cologni_range = log10.(ustrip.(y_unit, COLOGNI2026_SFR_RANGE))
+    else
+        cologni_range = ustrip.(y_unit, COLOGNI2026_SFR_RANGE)
+    end
+
+    # Set the y ranges to be plotted
+    y_ranges = [cologni_range]
+
+    # If there is extrapolation add new ranges
+    if y_limits[2] > cologni_range[2]
+        push!(y_ranges, [cologni_range[2], y_limits[2]])
+    end
+    if y_limits[1] < cologni_range[1]
+        push!(y_ranges, [y_limits[1], cologni_range[1]])
+    end
+
+    ################################################################################################
+    # Plot the fit from Cologni et al. (2026)
+    ################################################################################################
+
+    for (i, (y_zone, linestyle)) in enumerate(zip(y_ranges, [linestyles..., linestyles[2]]))
+
+        # Compute the extrema of the star formation area density
+        if y_log
+            Σsfr = @. exp10(y_zone) * y_unit
+        else
+            Σsfr = @. y_zone * y_unit
+        end
+
+        # Compute the extrema of the gas mass area density
+        ΣH       = invKSLawCologni2026(Σsfr; log_output=false)
+        x_limits = Measurements.value.(ΣH)
+
+        # Compute the values for the x axis
+        x_points = collect(range(x_limits[1], x_limits[2], 100))
+
+        if x_log
+            x_axis = @. log10(ustrip(x_unit, x_points))
+        else
+            x_axis = @. ustrip(x_unit, x_points)
+        end
+
+        # Compute the values for the y axis
+        y_points = KSLawCologni2026(x_points; log_output=false)
+
+        if y_log
+            y_axis = @. log10(ustrip(y_unit, y_points))
+        else
+            y_axis = @. ustrip(y_unit, y_points)
+        end
+
+        values        = Measurements.value.(y_axis)
+        uncertainties = Measurements.uncertainty.(y_axis)
+
+        bp = band!(
+            figure.current_axis.x,
+            x_axis,
+            values .- uncertainties,
+            values .+ uncertainties;
+            color,
+        )
+
+        lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+
+        # Put the post processing elements at the back of the plot
+        translate!(Accum, bp, 0, 0, -10)
+        translate!(Accum, lp, 0, 0, -10)
+
+    end
+
+    return [LineElement(; color, linestyle=linestyles[1], linewidth)], ["Cologni et al. (2026)"]
+
+end
+
+"""
+    ppLin2019!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+Draw a line plot with the fit for the Kennicutt-Schmidt relation from Lin et al. (2019).
+
+!!! note
+
+    The resolution used in Lin et al. (2019) is 1.0 kpc (see Section 4).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
+  - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
+  - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
+  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}`` (`y_log` = false).
+  - `extend::Float64=0.0`: By default the y axis limits will be the vertical range of the points in the plot. This can be extended by the multiplicative factor `extend` of the vertical range.
+  - `color::ColorType=WONG_RED`: Color for the line.
+  - `linestyles::Vector{<:LineStyleType}=[:solid, :dash],`: Styles for the lines. The first style will indicate the range for which there are experimental data, and the second one will be for the extrapolation.
+  - `linewidth::Int=3`: Line width.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `LineElement` to be used as the marker.
+      + The label.
+
+# References
+
+L. Lin et al. (2019). *The ALMaQUEST Survey: The Molecular Gas Main Sequence and the Origin of the Star-forming Main Sequence*. The Astrophysical Journal Letters, **884(2)**, L33. [doi:10.3847/2041-8213/ab4815](https://doi.org/10.3847/2041-8213/ab4815)
+"""
+function ppLin2019!(
+    figure::Makie.Figure;
+    x_unit::Unitful.Units=u"Msun * pc^-2",
+    y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2",
+    x_log::Bool=true,
+    y_log::Bool=true,
+    extend::Float64=0.0,
+    color::ColorType=WONG_RED,
+    linestyles::Vector{<:LineStyleType}=[:solid, :dash],
+    linewidth::Int=3,
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+    # Read the data points in the plot
+    points = pointData(figure)
+
+    if isempty(points)
+        LOGGING[] && @warn("ppLin2019!: There are no points in the figure")
+        return nothing
+    end
+
+    ################################################################################################
+    # Range of Σsfr in the plot
+    ################################################################################################
+
+    # Get the extrema of the y coordinates
+    y_limits = [extrema(Float64[point[2] for point in points])...]
+
+    # Compute the vertical range, and if it is too small extend it
+    y_range = y_limits[2] - y_limits[1]
+
+    if iszero(extend) && (abs(y_range / y_limits[1]) < 0.1)
+        extend = 0.4 / abs(y_range / y_limits[1])
+    end
+
+    # Extend the y limits the required amount
+    if extend > 0.0
+
+        extension = y_range * extend
+
+        y_limits[1] -= extension
+        y_limits[2] += extension
+
+    end
+
+    ################################################################################################
+    # Range of Σsfr in Lin et al. (2019)
+    ################################################################################################
+
+    # Set the correct unit and scale for the range of experimental values
+    if y_log
+        lin_range = log10.(ustrip.(y_unit, LIN2019_SFR_RANGE))
+    else
+        lin_range = ustrip.(y_unit, LIN2019_SFR_RANGE)
+    end
+
+    # Set the y ranges to be plotted
+    y_ranges = [lin_range]
+
+    # If there is extrapolation add new ranges
+    if y_limits[2] > lin_range[2]
+        push!(y_ranges, [lin_range[2], y_limits[2]])
+    end
+    if y_limits[1] < lin_range[1]
+        push!(y_ranges, [y_limits[1], lin_range[1]])
+    end
+
+    ################################################################################################
+    # Plot the fit from Lin et al. (2019)
+    ################################################################################################
+
+    for (y_zone, linestyle) in zip(y_ranges, [linestyles..., linestyles[2]])
+
+        # Compute the extrema of the star formation area density
+        if y_log
+            Σsfr = @. exp10(y_zone) * y_unit
+        else
+            Σsfr = @. y_zone * y_unit
+        end
+
+        # Compute the extrema of the gas mass area density
+        ΣH       = invKSLawLin2019(Σsfr; log_output=false)
+        x_limits = Measurements.value.(ΣH)
+
+        # Compute the values for the x axis
+        x_points = collect(range(x_limits[1], x_limits[2], 100))
+
+        if x_log
+            x_axis = @. log10(ustrip(x_unit, x_points))
+        else
+            x_axis = @. ustrip(x_unit, x_points)
+        end
+
+        # Compute the values for the y axis
+        y_points = KSLawLin2019(x_points; log_output=false)
+
+        if y_log
+            y_axis = @. log10(ustrip(y_unit, y_points))
+        else
+            y_axis = @. ustrip(y_unit, y_points)
+        end
+
+        values        = Measurements.value.(y_axis)
+        uncertainties = Measurements.uncertainty.(y_axis)
+
+        bp = band!(
+            figure.current_axis.x,
+            x_axis,
+            values .- uncertainties,
+            values .+ uncertainties;
+            color,
+        )
+
+        lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+
+        # Put the post processing elements at the back of the plot
+        translate!(Accum, bp, 0, 0, -10)
+        translate!(Accum, lp, 0, 0, -10)
+
+    end
+
+    return [LineElement(; color, linestyle=linestyles[1], linewidth)], ["Lin et al. (2019)"]
+
+end
+
+"""
+    ppQuerejeta2021!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+Draw a line plot with the fit for the Kennicutt-Schmidt relation from Querejeta et al. (2021).
+
+!!! note
+
+    The resolution used in Querejeta et al. (2021) is 1.5 kpc (see Section 2.3).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
+  - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
+  - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
+  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\Sigma_\\mathrm{SFR})`` (`y_log` = true) or just ``\\Sigma_\\mathrm{SFR}`` (`y_log` = false).
+  - `extend::Float64=0.0`: By default the y axis limits will be the vertical range of the points in the plot. This can be extended by the multiplicative factor `extend` of the vertical range.
+  - `color::ColorType=WONG_RED`: Color for the line.
+  - `linestyles::Vector{<:LineStyleType}=[:solid, :dash],`: Styles for the lines. The first style will indicate the range for which there are experimental data, and the second one will be for the extrapolation.
+  - `linewidth::Int=3`: Line width.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `LineElement` to be used as the marker.
+      + The label.
+
+# References
+
+M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formation across the PHANGS sample of nearby galaxies*. Astronomy and Astrophysics, **656**, A133. [doi:10.1051/0004-6361/202140695](https://doi.org/10.1051/0004-6361/202140695)
+"""
+function ppQuerejeta2021!(
+    figure::Makie.Figure;
+    x_unit::Unitful.Units=u"Msun * pc^-2",
+    y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2",
+    x_log::Bool=true,
+    y_log::Bool=true,
+    extend::Float64=0.0,
+    color::ColorType=WONG_RED,
+    linestyles::Vector{<:LineStyleType}=[:solid, :dash],
+    linewidth::Int=3,
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+    # Read the data points in the plot
+    points = pointData(figure)
+
+    if isempty(points)
+        LOGGING[] && @warn("ppQuerejeta2021!: There are no points in the figure")
+        return nothing
+    end
+
+    ################################################################################################
+    # Range of Σsfr in the plot
+    ################################################################################################
+
+    # Get the extrema of the y coordinates
+    y_limits = [extrema(Float64[point[2] for point in points])...]
+
+    # Compute the vertical range, and if it is too small extend it
+    y_range = y_limits[2] - y_limits[1]
+
+    if iszero(extend) && (abs(y_range / y_limits[1]) < 0.1)
+        extend = 0.4 / abs(y_range / y_limits[1])
+    end
+
+    # Extend the y limits the required amount
+    if extend > 0.0
+
+        extension = y_range * extend
+
+        y_limits[1] -= extension
+        y_limits[2] += extension
+
+    end
+
+    ################################################################################################
+    # Range of Σsfr in Querejeta et al. (2021)
+    ################################################################################################
+
+    # Set the correct unit and scale for the range of experimental values
+    if y_log
+        querejeta_range = log10.(ustrip.(y_unit, QUEREJETA2021_SFR_RANGE))
+    else
+        querejeta_range = ustrip.(y_unit, QUEREJETA2021_SFR_RANGE)
+    end
+
+    # Set the y ranges to be plotted
+    y_ranges = [querejeta_range]
+
+    # If there is extrapolation add new ranges
+    if y_limits[2] > querejeta_range[2]
+        push!(y_ranges, [querejeta_range[2], y_limits[2]])
+    end
+    if y_limits[1] < querejeta_range[1]
+        push!(y_ranges, [y_limits[1], querejeta_range[1]])
+    end
+
+    ################################################################################################
+    # Plot the fit from Querejeta et al. (2021)
+    ################################################################################################
+
+    for (y_zone, linestyle) in zip(y_ranges, [linestyles..., linestyles[2]])
+
+        # Compute the extrema of the star formation area density
+        if y_log
+            Σsfr = @. exp10(y_zone) * y_unit
+        else
+            Σsfr = @. y_zone * y_unit
+        end
+
+        # Compute the extrema of the gas mass area density
+        ΣH       = invKSLawQuerejeta2021(Σsfr; log_output=false)
+        x_limits = Measurements.value.(ΣH)
+
+        # Compute the values for the x axis
+        x_points = collect(range(x_limits[1], x_limits[2], 100))
+
+        if x_log
+            x_axis = @. log10(ustrip(x_unit, x_points))
+        else
+            x_axis = @. ustrip(x_unit, x_points)
+        end
+
+        # Compute the values for the y axis
+        y_points = KSLawQuerejeta2021(x_points; log_output=false)
+
+        if y_log
+            y_axis = @. log10(ustrip(y_unit, y_points))
+        else
+            y_axis = @. ustrip(y_unit, y_points)
+        end
+
+        values        = Measurements.value.(y_axis)
+        uncertainties = Measurements.uncertainty.(y_axis)
+
+        bp = band!(
+            figure.current_axis.x,
+            x_axis,
+            values .- uncertainties,
+            values .+ uncertainties;
+            color,
+        )
+
+        lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+
+        # Put the post processing elements at the back of the plot
+        translate!(Accum, bp, 0, 0, -10)
+        translate!(Accum, lp, 0, 0, -10)
+
+    end
+
+    return [LineElement(; color, linestyle=linestyles[1], linewidth)], ["Querejeta et al. (2021)"]
+
+end
+
+"""
     ppBigiel2010!(
         figure::Makie.Figure;
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
 Draw a scatter plot of the SFR surface density vs gas surface density (Kennicutt-Schmidt law) for a given galaxy, using the data from Bigiel et al. (2010).
 
@@ -1002,7 +1479,7 @@ function ppBigiel2010!(
     x_log::Bool=true,
     y_log::Bool=true,
     color::ColorType=WONG_RED,
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
     ################################################################################################
     # Load table 2 from Bigiel et al. 2010
@@ -1032,9 +1509,9 @@ function ppBigiel2010!(
 
         gtype = strip(data[1:13])
         name  = strip(data[14:24])
-        HI    = exp10(parserWS(data[26:29])) * u"Msun * pc^-2"
-        H2    = exp10(parserWS(data[36:39])) * u"Msun * pc^-2"
-        SFR   = exp10(parserWS(data[46:50])) * u"Msun * yr^-1 * kpc^-2"
+        HI    = exp10(parseString(data[26:29])) * u"Msun * pc^-2"
+        H2    = exp10(parseString(data[36:39])) * u"Msun * pc^-2"
+        SFR   = exp10(parseString(data[46:50])) * u"Msun * yr^-1 * kpc^-2"
 
         push!(table_2, [gtype name HI H2 SFR])
 
@@ -1069,8 +1546,8 @@ function ppBigiel2010!(
 
         gtype = strip(data[1:8])
         name  = strip(data[9:19])
-        HI    = exp10(parserWS(data[21:25])) * u"Msun * pc^-2"
-        SFR   = parserWS(data[32:37]) * exp10(-5.0) * u"Msun * yr^-1 * kpc^-2"
+        HI    = exp10(parseString(data[21:25])) * u"Msun * pc^-2"
+        SFR   = parseString(data[32:37]) * exp10(-5.0) * u"Msun * yr^-1 * kpc^-2"
 
         push!(table_3, [gtype name HI SFR])
 
@@ -1201,7 +1678,7 @@ end
     ppSun2023!(
 	    figure::Makie.Figure;
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
 Draw a scatter plot of the SFR surface density vs molecular surface density (molecular Kennicutt-Schmidt law) for a given galaxy, using the data from Sun et al. (2023).
 
@@ -1245,7 +1722,7 @@ function ppSun2023!(
     x_log::Bool=true,
     y_log::Bool=true,
     color::ColorType=WONG_RED,
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
     ################################################################################################
     # Load table A1 from Sun et al. 2023
@@ -1361,7 +1838,7 @@ end
     ppLeroy2008!(
         figure::Makie.Figure;
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
 Draw a scatter plot of the SFR surface density vs gas surface density (Kennicutt-Schmidt law) for a given galaxy, using the data from Leroy et al. (2008).
 
@@ -1409,7 +1886,7 @@ function ppLeroy2008!(
     y_log::Bool=true,
     error_bars::Bool=false,
     color::ColorType=WONG_RED,
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
     ################################################################################################
     # Load the data from Leroy et al. (2008)
@@ -1527,7 +2004,7 @@ end
     ppdelosReyes2019!(
         figure::Makie.Figure;
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
 Draw a scatter plot of the SFR surface density vs gas surface density (Kennicutt-Schmidt law), using the data from de los Reyes et al. (2019).
 
@@ -1570,7 +2047,7 @@ function ppdelosReyes2019!(
     x_log::Bool=true,
     y_log::Bool=true,
     color::ColorType=WONG_RED,
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
     ################################################################################################
     # Load table 4 (corrected) from de los Reyes et al. (2019)
@@ -1596,9 +2073,9 @@ function ppdelosReyes2019!(
             # Ensure line is long enough (pad if needed)
             line = rpad(line, 84)
 
-            push!(logSigSFRcorr, parseString(line[ranges.logSigSFRcorr]))
-            push!(logSigHI,      parseString(line[ranges.logSigHI]))
-            push!(logSigH2,      parseString(line[ranges.logSigH2]))
+            push!(logSigSFRcorr, parseString(line[ranges.logSigSFRcorr]; empty=:nan))
+            push!(logSigHI,      parseString(line[ranges.logSigHI]; empty=:nan))
+            push!(logSigH2,      parseString(line[ranges.logSigH2]; empty=:nan))
         end
     end
 
@@ -1661,7 +2138,7 @@ end
         figure::Makie.Figure,
         quantity::Symbol,
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
 Draw a profile for the Milky Way using the data compiled by Mollá et al. (2015).
 
@@ -1694,7 +2171,7 @@ function ppMolla2015!(
     linestyle::LineStyleType=:solid,
     marker::Symbol=:utriangle,
     error_bars::Bool=true,
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
     ################################################################################################
     # Load the data from Mollá et al. (2015)
@@ -1761,7 +2238,7 @@ function ppMolla2015!(
 
     else
 
-        _, component = QUANTITY_SPLITS[quantity]
+        component = Symbol(replace(string(quantity), "_area_density" => ""))
 
         if component == :stellar
 
@@ -1826,7 +2303,7 @@ end
     ppAgertz2021!(
         figure::Makie.Figure;
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
 Draw the stellar density profiles from McMillan (2011) and Leroy et al. (2008), show in Agertz et al. (2021).
 
@@ -1873,7 +2350,7 @@ function ppAgertz2021!(
     colors::Vector{<:ColorType}=[WONG_RED],
     linestyle::LineStyleType=:solid,
     linewidth::Int=3,
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
     ################################################################################################
     # Load the data from McMillan (2011) and Leroy et al. (2008)
@@ -1985,7 +2462,7 @@ end
         x_quantity::Symbol,
         y_quantity::Symbol;
         <keyword arguments>
-    )::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
 Draw the experimental data from xGASS and xCOLD GASS, compiled by Feldmann (2020), as a line or scatter plot.
 
@@ -2026,7 +2503,7 @@ function ppFeldmann2020!(
     scatter::Bool=false,
     xlog::Bool=true,
     ylog::Bool=true,
-)::Tuple{Vector{<:LegendElement},Vector{AbstractString}}
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
     ################################################################################################
     # Load the data from McMillan (2011) and Feldmann (2020)
@@ -2133,6 +2610,7 @@ function ppFeldmann2020!(
             color=WONG_RED,
             marker=:star4,
             markersize=12,
+            strokewidth=0,
         )
 
         translate!(Accum, sp, 0, 0, -10)
@@ -2277,7 +2755,7 @@ end
     ppLee2016!(
         figure::Makie.Figure;
         <keyword arguments>
-    )::Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}}
+    )::Tuple{Vector{Vector{<:LegendElement}},Vector{<:AbstractString}}
 
 Draw the measurements of the star formation efficiency per free-fall time, from Lee et al. (2016).
 
@@ -2305,7 +2783,7 @@ function ppLee2016!(
     figure::Makie.Figure;
     eff_axis::Symbol=:x,
     log::Bool=true,
-)::Tuple{Vector{Vector{<:LegendElement}},Vector{AbstractString}}
+)::Tuple{Vector{Vector{<:LegendElement}},Vector{<:AbstractString}}
 
     if log
         lee_2016 = log10(LEE2016_ϵff)

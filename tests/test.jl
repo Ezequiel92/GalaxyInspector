@@ -10,7 +10,7 @@ using CairoMakie, LaTeXStrings, Unitful, UnitfulAstro
 push!(LOAD_PATH, "../src/")
 using GalaxyInspector
 
-const BASE_OUT_PATH    = "./test_plots"
+const BASE_OUT_PATH    = "./test_results"
 const BASE_SRC_PATH    = "/run/media/elozano/DISK4T/simulations/"
 const SIMULATIONS      = ["SFM_06"]
 const LABELS           = ["SFM_06"]
@@ -251,9 +251,13 @@ timeSeries(
 
 timeSeries(
     SIMULATION_PATHS,
-    :physical_time,
-    :halo_R200_1;
-    ylog=true,
+    GalaxyInspector.getLabelArgs(:physical_time; log=false),
+    GalaxyInspector.getLabelArgs(GalaxyInspector.haloQuantity(:halo_R200, 1); log=true),
+        (
+        dd->GalaxyInspector.integrateQty(dd, :physical_time),
+        dd->GalaxyInspector.integrateQty(dd, GalaxyInspector.haloQuantity(:halo_R200, 1)),
+    );
+    file_name="halo_R200_1_vs_physical_time",
     output_path=joinpath(BASE_OUT_PATH, "timeSeries"),
     trans_mode=TRANS_MODE,
     filter_mode=FILTER_MODE,

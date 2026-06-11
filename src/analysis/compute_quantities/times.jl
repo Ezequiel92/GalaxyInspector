@@ -301,7 +301,7 @@ Compute the stellar birth times.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:stellar` => ["GAGE"]
@@ -340,7 +340,7 @@ Compute the age of the stars.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:stellar` => ["GAGE"]
@@ -367,6 +367,70 @@ function computeStellarAge(data_dict::Dict)::Vector{<:Unitful.Time}
 end
 
 """
+    computeSnapshotSFR(data_dict::Dict)::Vector{<:Unitful.MassFlow}
+
+Compute the star formation rate of each stellar particle.
+
+For stellar particles born between the current and previous snapshot, the SFR is its mass divided by time gap between snapshots. For older particles it is 0.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+    This function requires the following blocks to be present:
+
+      + `:stellar` => ["MASS", "GAGE"]
+
+# Returns
+
+  - The star formation rate of each stellar particle.
+"""
+function computeSnapshotSFR(data_dict::Dict)::Vector{<:Unitful.MassFlow}
+
+    # Read the global index (index in the context of the whole simulation) of the current snapshot
+    present_idx = data_dict[:snap_data].global_index
+
+    if present_idx == 1
+        return zeros(typeof(1.0u"Msun * yr^-1"), length(data_dict[:stellar]["MASS"]))
+    end
+
+    # Read the physical times
+    times = data_dict[:sim_data].simulation_table[!, :physical_times]
+
+    # Compute the time between snapshots
+    Δt = times[present_idx] - times[present_idx - 1]
+
+    if iszero(Δt)
+        if present_idx - 2 > 0
+
+            (
+                LOGGING[] &&
+                @warn("computeSnapshotSFR: The target snapshot and the one before it have the same \
+                time coordinate, I will shift the target snapshot by one")
+            )
+
+            Δt = times[present_idx - 1] - times[present_idx - 2]
+
+            (
+                iszero(Δt) &&
+                throw(ArgumentError("computeSnapshotSFR: All snapshots seem to have the same time \
+                coordinate!!!"))
+            )
+
+        else
+
+            throw(ArgumentError("computeSnapshotSFR: There is only one snapshot before the target \
+            one, and its has the same time coordinate (Δt = 0)"))
+
+        end
+    end
+
+    # For stellar particles younger than Δt, the SFR is its mass divided by Δt
+    # For older particles it is 0
+    return computeSFR(data_dict; age_limit=Δt)
+
+end
+
+"""
     computeSFR(
         data_dict::Dict;
         <keyword arguments>
@@ -378,7 +442,7 @@ For stellar particles younger than `age_limit`, the SFR is its mass divided by `
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:stellar` => ["MASS", "GAGE"]
@@ -418,6 +482,68 @@ function computeSFR(
 end
 
 """
+    computeSnapshotSSFR(data_dict::Dict)::Vector{<:Unitful.MassFlow}
+
+Compute the specific star formation rate of each stellar particle.
+
+For stellar particles born between the current and previous snapshot, the SFR is 1 divided by time gap between snapshots. For older particles it is 0.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+    This function requires the following blocks to be present:
+
+      + `:stellar` => ["MASS", "GAGE"]
+
+# Returns
+
+  - The specific star formation rate of each stellar particle.
+"""
+function computeSnapshotSSFR(data_dict::Dict)::Vector{<:Unitful.MassFlow}
+
+    # Read the global index (index in the context of the whole simulation) of the current snapshot
+    present_idx = data_dict[:snap_data].global_index
+
+    if present_idx == 1
+        return zeros(typeof(1.0u"yr^-1"), length(data_dict[:stellar]["GAGE"]))
+    end
+
+    # Read the physical times
+    times = data_dict[:sim_data].simulation_table[!, :physical_times]
+
+    # Compute the time between snapshots
+    Δt = times[present_idx] - times[present_idx - 1]
+
+    if iszero(Δt)
+        if present_idx - 2 > 0
+
+            (
+                LOGGING[] &&
+                @warn("computeSnapshotSSFR: The target snapshot and the one before it have the same \
+                time coordinate, I will shift the target snapshot by one")
+            )
+
+            Δt = times[present_idx - 1] - times[present_idx - 2]
+
+            (
+                iszero(Δt) &&
+                throw(ArgumentError("computeSnapshotSSFR: All snapshots seem to have the same time \
+                coordinate!!!"))
+            )
+
+        else
+
+            throw(ArgumentError("computeSnapshotSSFR: There is only one snapshot before the target \
+            one, and its has the same time coordinate (Δt = 0)"))
+
+        end
+    end
+
+    return computeSSFR(data_dict; age_limit=Δt)
+
+end
+
+"""
     computeSSFR(
         data_dict::Dict;
         <keyword arguments>
@@ -429,7 +555,7 @@ For stellar particles younger than `age_limit`, the sSFR is 1 / `age_limit`. For
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:stellar` => ["MASS", "GAGE"]
@@ -509,11 +635,7 @@ function computeDepletionTime(
 end
 
 @doc raw"""
-    computeDepletionTime(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Vector{<:Unitful.Time}
+    computeDepletionTime(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Time}
 
 Compute the depletion time,
 
@@ -523,7 +645,7 @@ t_\mathrm{ff} = \frac{M_\mathrm{gas}}{\dot{M}_\star} \, .
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:gas, :hydrogen, :helium]:
@@ -539,24 +661,19 @@ t_\mathrm{ff} = \frac{M_\mathrm{gas}}{\dot{M}_\star} \, .
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
   - The depletion time of `component`.
 """
-function computeDepletionTime(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Vector{<:Unitful.Time}
+function computeDepletionTime(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Time}
 
-    if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
+    if component ∉ keys(COMPONENTS) || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeDepletionTime: `component` can only be one of the gas elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
-    masses = computeMass(data_dict, component; icGen)
+    masses = computeMass(data_dict, component)
     sfrs   = data_dict[:gas]["SFR "]
 
     return computeDepletionTime(masses, sfrs)

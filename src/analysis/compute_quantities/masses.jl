@@ -370,7 +370,7 @@ Generate a function that gives the initial condition of `component` for the `i`-
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
@@ -458,7 +458,7 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
             metallicity = setPositive(Z)
             fn = (1 - metallicity) * nh / (nhp + nh)
 
-            return metallicity * (1.0 - Cxd * fn)
+            return metallicity * (1.0 - AREPO_SFM.Cxd * fn)
 
         end
 
@@ -481,7 +481,7 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
             metallicity = setPositive(Z)
             fn = (1.0 - metallicity) * nh / (nhp + nh)
 
-            return metallicity * Cxd * fn
+            return metallicity * AREPO_SFM.Cxd * fn
 
         end
 
@@ -525,17 +525,13 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
 end
 
 """
-    computeFraction(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Vector{Float64}
+    computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
 Compute the fraction of a given `component` in each cell/particle.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` == :Z_stellar
@@ -553,7 +549,6 @@ Compute the fraction of a given `component` in each cell/particle.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) (except :stellar, :dark_matter, and :black_hole).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -563,14 +558,10 @@ Compute the fraction of a given `component` in each cell/particle.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeFraction(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Vector{Float64}
+function computeFraction(data_dict::Dict, component::Symbol)::Vector{Float64}
 
     # Initial condition for our star formation model
-    ode_ic = icGen(data_dict, component)
+    ode_ic = initialConditionFunction(data_dict, component)
 
     if isnothing(ode_ic)
 
@@ -589,7 +580,7 @@ Compute the fraction of a given non :ode `component` in each cell/particle.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` == :Z_stellar
@@ -861,7 +852,7 @@ Compute the fraction of a given :ode `component` in each cell/particle.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
@@ -1049,11 +1040,7 @@ end
 ###################
 
 @doc raw"""
-    computeClumpingFactor(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Float64
+    computeClumpingFactor(data_dict::Dict, component::Symbol)::Float64
 
 Compute the clumping factor,
 
@@ -1063,7 +1050,7 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:gas, :hydrogen, :helium]:
@@ -1079,35 +1066,26 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
   - The clumping factor.
 """
-function computeClumpingFactor(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Float64
+function computeClumpingFactor(data_dict::Dict, component::Symbol)::Float64
 
-    if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
+    if component ∉ keys(COMPONENTS) || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
-    ρ = computeMassDensity(data_dict, component; icGen)
+    ρ = computeMassDensity(data_dict, component)
 
     return computeClumpingFactor(ρ)
 
 end
 
 @doc raw"""
-    computeEfficiencyFF(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Vector{Float64}
+    computeEfficiencyFF(data_dict::Dict, component::Symbol)::Vector{Float64}
 
 Compute the star formation efficiency per free-fall time, according to the definition in eq. 1 of Krumholz et al. (2012),
 
@@ -1132,7 +1110,7 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component == :stellar
@@ -1150,7 +1128,6 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1160,13 +1137,9 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
 
 M. R. Krumholz et al. (2012). *A UNIVERSAL, LOCAL STAR FORMATION LAW IN GALACTIC CLOUDS, NEARBY GALAXIES, HIGH-REDSHIFT DISKS, AND STARBURSTS*. The Astrophysical Journal, **745(1)**, 69. [doi:10.1088/0004-637X/745/1/69](https://doi.org/10.1088/0004-637X/745/1/69)
 """
-function computeEfficiencyFF(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Vector{Float64}
+function computeEfficiencyFF(data_dict::Dict, component::Symbol)::Vector{Float64}
 
-    if component ∉ COMPONENTS || component ∈ [:dark_matter, :black_hole, :Z_stellar]
+    if component ∉ keys(COMPONENTS) || component ∈ [:dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
         of `COMPONENTS` or :stellar (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -1182,8 +1155,8 @@ function computeEfficiencyFF(
 
         # The efficiency will be computed only for star forming gas cells
         # See the other method for computeEfficiencyFF
-        densities = computeMassDensity(data_dict, component; icGen)
-        masses    = computeMass(data_dict, component; icGen)
+        densities = computeMassDensity(data_dict, component)
+        masses    = computeMass(data_dict, component)
         sfrs      = data_dict[:gas]["SFR "]
 
     end
@@ -1193,17 +1166,13 @@ function computeEfficiencyFF(
 end
 
 """
-    computeMass(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Vector{<:Unitful.Mass}
+    computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
 Compute the mass in each cell/particle of a given `component`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
@@ -1223,7 +1192,6 @@ Compute the mass in each cell/particle of a given `component`.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1233,24 +1201,20 @@ Compute the mass in each cell/particle of a given `component`.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeMass(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Vector{<:Unitful.Mass}
+function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeMass: `component` can only be one of the elements of \
         `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:gas, :stellar, :dark_matter, :black_hole]
+    if component ∈ (:gas, :stellar, :dark_matter, :black_hole)
 
         masses = data_dict[component]["MASS"]
 
     else
 
-        fractions = computeFraction(data_dict, component; icGen)
+        fractions = computeFraction(data_dict, component)
 
         if isempty(fractions)
 
@@ -1283,17 +1247,13 @@ function computeMass(
 end
 
 """
-    computeMassDensity(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Vector{<:Unitful.Density}
+    computeMassDensity(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Density}
 
 Compute the mass density of a given gas `component` for each cell.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:gas, :hydrogen, :helium]:
@@ -1309,7 +1269,6 @@ Compute the mass density of a given gas `component` for each cell.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1319,13 +1278,9 @@ Compute the mass density of a given gas `component` for each cell.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeMassDensity(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Vector{<:Unitful.Density}
+function computeMassDensity(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Density}
 
-    if component ∉ COMPONENTS || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
+    if component ∉ keys(COMPONENTS) || component ∈ [:stellar, :dark_matter, :black_hole, :Z_stellar]
         throw(ArgumentError("computeMassDensity: `component` can only be one of the gas elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -1336,7 +1291,7 @@ function computeMassDensity(
 
     else
 
-        fractions = computeFraction(data_dict, component; icGen)
+        fractions = computeFraction(data_dict, component)
 
         if isempty(fractions)
 
@@ -1366,11 +1321,7 @@ function computeMassDensity(
 end
 
 """
-    computeNumberDensity(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Vector{<:NumberDensity}
+    computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:NumberDensity}
 
 Compute the number density of a given gas `component` for each cell.
 
@@ -1380,7 +1331,7 @@ Compute the number density of a given gas `component` for each cell.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:gas, :hydrogen, :helium]:
@@ -1396,7 +1347,6 @@ Compute the number density of a given gas `component` for each cell.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1406,11 +1356,7 @@ Compute the number density of a given gas `component` for each cell.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeNumberDensity(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Vector{<:NumberDensity}
+function computeNumberDensity(data_dict::Dict, component::Symbol)::Vector{<:NumberDensity}
 
     if component ∈ [:helium, :br_molecular, :ode_molecular, :ode_molecular_stellar]
 
@@ -1418,7 +1364,7 @@ function computeNumberDensity(
         # Number density as the amount of elements (atoms/molecules) per unit volume
         ############################################################################################
 
-        ρ = computeMassDensity(data_dict, component; icGen)
+        ρ = computeMassDensity(data_dict, component)
 
         n = ρ / (2.0 * Unitful.mp)
 
@@ -1428,7 +1374,7 @@ function computeNumberDensity(
         # Number density as the mass density in units of proton mass per unit volume
         ############################################################################################
 
-        ρ = computeMassDensity(data_dict, component; icGen)
+        ρ = computeMassDensity(data_dict, component)
 
         n = ρ / Unitful.mp
 
@@ -1450,11 +1396,7 @@ function computeNumberDensity(
 end
 
 """
-    computeNumber(
-        data_dict::Dict,
-        component::Symbol;
-        <keyword arguments>
-    )::Vector{Float64}
+    computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
 
 Compute the number of a given `component`.
 
@@ -1464,7 +1406,7 @@ Compute the number of a given `component`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
@@ -1484,7 +1426,6 @@ Compute the number of a given `component`.
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1494,13 +1435,9 @@ Compute the number of a given `component`.
 
 L. Blitz et al. (2006). *The Role of Pressure in GMC Formation II: The H2-Pressure Relation*. The Astrophysical Journal, **650(2)**, 933. [doi:10.1086/505417](https://doi.org/10.1086/505417)
 """
-function computeNumber(
-    data_dict::Dict,
-    component::Symbol;
-    icGen::Function=initialConditionFunction,
-)::Vector{Float64}
+function computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeNumber: `component` can only be one of the elements of \
         `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -1527,7 +1464,7 @@ function computeNumber(
         # Number as the amount of elements (atoms/molecules) in each cell
         ############################################################################################
 
-        M = computeMass(data_dict, component; icGen)
+        M = computeMass(data_dict, component)
 
         N = ustrip.(Unitful.NoUnits, M / (2.0 * Unitful.mp))
 
@@ -1537,7 +1474,7 @@ function computeNumber(
         # Number as the mass in units of proton mass
         ############################################################################################
 
-        M = computeMass(data_dict, component; icGen)
+        M = computeMass(data_dict, component)
 
         N = ustrip.(Unitful.NoUnits, M / Unitful.mp)
 
@@ -1750,7 +1687,7 @@ Compute the total mass of `element` in each cell/particle.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `type`:
 
       + If `type` == :stellar:
@@ -1828,7 +1765,7 @@ Compute the abundance of a given element in each cell/particle. The abundance is
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `type`:
 
       + If `type` == :stellar:
@@ -1884,7 +1821,7 @@ Compute the total abundance of a given element, as $n_X / n_H$ where $n_X$ is th
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `type`:
 
       + If `type` == :stellar:
@@ -1943,15 +1880,14 @@ Project a `quantity` field into a given 3D grid.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `grid::CubicGrid`: Cubic grid.
-  - `quantity::Symbol`: Target quantity. It can be any quantity valid for [`scatterQty`](@ref), as long as it has a well defined cell/particle type (see [`plotParams`](@ref)).
+  - `quantity::Symbol`: Target quantity. It can be any quantity valid for [`scatterQty`](@ref), as long as it has a well defined cell/particle type (see [`QTY_REGISTRY`](@ref)).
   - `field_type::Symbol`: If the field is made up of `:particles` or Voronoi `:cells`.
   - `scale_by_volume::Bool=true`: If `quantity` is extensive (e.g. a mass), this should be set to true, so the values are correctly scaled to the voxel volume.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
   - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -1971,7 +1907,6 @@ function quantity3DProjection(
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
-    icGen::Function=initialConditionFunction,
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
@@ -1979,7 +1914,7 @@ function quantity3DProjection(
     if field_type == :cells
 
         # Get the cell/particle type
-        cp_type = plotParams(quantity).cp_type
+        cp_type = QTY_REGISTRY[quantity].cp_type
 
         if isnothing(cp_type)
             throw(ArgumentError("quantity3DProjection: `quantity` = $(quantity) has cell/particle \
@@ -2074,7 +2009,6 @@ function quantity3DProjection(
         empty_nan,
         density,
         log,
-        icGen,
         return_idxs,
         filter_function,
     )
@@ -2096,17 +2030,20 @@ Project a `quantity` field into a given 3D grid.
 
     If the source of the field are particles, a simple 3D histogram is used. If they are Voronoi cells instead, the value of the closest cell to the voxel is used.
 
+!!! note
+
+    Filter functions are applied by setting the value of `quantity` to 0 for the cells/particles that do not pass the filter, so they will not contribute to the final values of the grid (this is the correct way to apply filters to Voronoi cells before rasterizing). In this way this method does not distinguish between filtered out cell/particles and ones with a 0 value for `quantity`. `empty_nan` = true will set to NaN all 0, regardless of origin.
+
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `grid::CubicGrid`: Cubic grid.
-  - `quantity::Symbol`: Target quantity. It can be any quantity valid for [`scatterQty`](@ref), as long as it has a well defined cell/particle type (see [`plotParams`](@ref)).
+  - `quantity::Symbol`: Target quantity. It can be any quantity valid for [`scatterQty`](@ref), as long as it has a well defined cell/particle type (see [`QTY_REGISTRY`](@ref)).
   - `nn_idxs::Array{Int}`: A vector with the index of the closest cell to each voxel (the result of `nn()` from [NearestNeighbors](https://github.com/KristofferC/NearestNeighbors.jl)). If empty, it is assumed that the field is made up of particles.
   - `scale_by_volume::Bool=true`: If `quantity` is extensive (e.g. a mass), this should be set to true, so the values are correctly scaled to the voxel volume.
   - `empty_nan::Bool=true`: If NaN will be put into empty bins, 0 is used otherwise.
   - `density::Union{Unitful.Units,Nothing}=nothing`: Target length unit for the density. Set it to `nothing` if you want the values of `quantity` instead of the volume densities of `quantity`.
   - `log::Bool=true`: Set it to true to apply ``\\log_{10}`` to the final values.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `return_idxs::Bool=false`: If the indices of the closest cells to each voxel will be returned as the second element of the output tuple.
   - `filter_function::Function=filterNothing`: Set to 0 the value of `quantity` for the cells/particles that do not pass the `filter_function`. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -2126,13 +2063,12 @@ function quantity3DProjection(
     empty_nan::Bool=true,
     density::Union{Unitful.Units,Nothing}=nothing,
     log::Bool=true,
-    icGen::Function=initialConditionFunction,
     return_idxs::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{Array{Float64,3},Tuple{Array{Float64,3},Array{Int}}}
 
     # Get the cell/particle type
-    cp_type = plotParams(quantity).cp_type
+    cp_type = QTY_REGISTRY[quantity].cp_type
 
     if isnothing(cp_type)
         throw(ArgumentError("quantity3DProjection: `quantity` = $(quantity) has cell/particle \
@@ -2140,10 +2076,10 @@ function quantity3DProjection(
     end
 
     # Load the quantity unit
-    qty_unit = plotParams(quantity).unit
+    qty_unit = QTY_REGISTRY[quantity].unit
 
     # Compute the values of the target quantity
-    qty_values = ustrip.(qty_unit, scatterQty(data_dict, quantity; icGen))
+    qty_values = ustrip.(qty_unit, scatterQty(data_dict, quantity))
 
     # Set to 0 the value of `quantity` for all cells/particles that do not pass the filter
     if filter_function != filterNothing
@@ -2227,6 +2163,8 @@ function quantity3DProjection(
         end
 
         voxel_values = histogram3D(positions, qty_values, grid; empty_nan)
+
+        empty_nan && replace!(x -> iszero(x) ? NaN : x, voxel_values)
 
         field_type = :particles
 

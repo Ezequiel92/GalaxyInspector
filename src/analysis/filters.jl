@@ -13,7 +13,7 @@ Filter `data_dict` using the indices provided by `filter_function`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `filter_function::Function=filterNothing`: Filter function. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -56,7 +56,7 @@ Return a filtered copy of `data_dict` using the indices provided by `filter_func
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `filter_function::Function=filterNothing`: Filter function. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -248,7 +248,7 @@ Select the cells/particles within a given spherical shell.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `min_r::Unitful.Length`: Internal radius of the spherical shell.
   - `max_r::Unitful.Length`: External radius of the spherical shell.
   - `origin...`: It can be any number and type of argument compatible with the second to last arguments of a [`computeCenter`](@ref) method.
@@ -301,7 +301,7 @@ Select the cells/particles within a given cylinder.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `max_r::Unitful.Length`: Radius of the cylinder.
   - `max_z::Unitful.Length`: Half height of the cylinder.
   - `origin...`: It can be any number and type of argument compatible with the second to last arguments of a [`computeCenter`](@ref) method.
@@ -353,7 +353,7 @@ Select the cells/particles that belong to a given halo and subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are included.
 
@@ -510,7 +510,7 @@ Select the cells/particles that belong to a given subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `subhalo_abs_idx::Int`: Index of the target subhalo (subfind). Starts at 1.
 
 # Returns
@@ -612,18 +612,16 @@ end
         quantity::Symbol,
         min::Number,
         max::Number,
-        <keyword arguments>
     )::Dict{Symbol,IndexType}
 
 Select particles/cells with a value of `quantity` within [`min`, `max`].
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::Symbol`: Target quantity. For the possibilities see the documentation of [`scatterQty`](@ref).
   - `min::Number`: Minimum value of `quantity`.
   - `max::Number`: Maximum value of `quantity`.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -633,8 +631,7 @@ function filterByQuantity(
     data_dict::Dict,
     quantity::Symbol,
     min::Number,
-    max::Number;
-    icGen::Function=initialConditionFunction,
+    max::Number,
 )::Dict{Symbol,IndexType}
 
     (
@@ -646,9 +643,9 @@ function filterByQuantity(
     filter_dict = Dict{Symbol,IndexType}(type => (:) for type in snapshotTypes(data_dict))
 
     # Compute the `quantity`
-    values = scatterQty(data_dict, quantity; icGen)
+    values = scatterQty(data_dict, quantity)
 
-    cp_type = plotParams(quantity).cp_type
+    cp_type = QTY_REGISTRY[quantity].cp_type
 
     (
         isnothing(cp_type) &&
@@ -673,7 +670,7 @@ Select the gas cells that have entered our star formation routine at least once.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
 
 # Returns
 
@@ -705,7 +702,7 @@ Select stars with an age within [`min_age`, `max_age`].
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `min_age::Unitful.Time=0.0u"Gyr"`: Minimum age.
   - `max_age::Unitful.Time=AGE_RESOLUTION[]`: Maximum age.
 
@@ -746,7 +743,7 @@ Select stars born after the previous snapshot.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
 
 # Returns
 
@@ -805,7 +802,7 @@ Select stars that were born either inside the given halo and subhalo (`exclude`=
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `exclude::Symbol`: Which stars will be excluded, either the ones born outside the given halo and subhalo (:exsitu), or inside (:insitu).
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
   - `subhalo_rel_idx::Int=1`: Index of the target subhalo (subfind), relative to the target halo. Starts at 1. If it is set to 0, all subhalos of the target halo are considered in-situ.

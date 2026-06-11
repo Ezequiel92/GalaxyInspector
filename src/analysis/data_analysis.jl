@@ -25,8 +25,8 @@
 """
     daScatterGalaxy(
         data_dict::Dict,
-        x_quantity::Symbol,
-        y_quantity::Symbol;
+        x_quantity::Union{Symbol,AbstractPlotQuantity},
+        y_quantity::Union{Symbol,AbstractPlotQuantity};
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
@@ -34,12 +34,11 @@ Compute two quantities for every cell/particle in the simulation using [`scatter
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the quantities valid for [`scatterQty`](@ref).
-  - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the quantities valid for [`scatterQty`](@ref).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+  - `x_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the x axis. It can be any of the quantities valid for [`scatterQty`](@ref).
+  - `y_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the y axis. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -51,23 +50,22 @@ Compute two quantities for every cell/particle in the simulation using [`scatter
 """
 function daScatterGalaxy(
     data_dict::Dict,
-    x_quantity::Symbol,
-    y_quantity::Symbol;
+    x_quantity::Union{Symbol,AbstractPlotQuantity},
+    y_quantity::Union{Symbol,AbstractPlotQuantity};
     x_log::Union{Unitful.Units,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
-    icGen::Function=initialConditionFunction,
     filter_function::Function=filterNothing,
 )::NTuple{2,Vector{<:Number}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    x_values = scatterQty(filtered_dd, x_quantity; icGen)
-    y_values = scatterQty(filtered_dd, y_quantity; icGen)
+    x_values = scatterQty(filtered_dd, x_quantity)
+    y_values = scatterQty(filtered_dd, y_quantity)
 
     (
         length(x_values) == length(y_values) ||
-        throw(ArgumentError("daScatterGalaxy: :$(x_quantity) and :$(y_quantity) have a different \
-        number of elements. Maybe they are quantities for different types of cells/particles?"))
+        throw(ArgumentError("daScatterGalaxy: The target quantities have a different number of \
+        elements. Maybe they are quantities for different types of cells/particles?"))
     )
 
     x_idxs = isnothing(x_log) ? map(isinf, x_values) : map(x->iszero(x) || isinf(x), x_values)
@@ -96,8 +94,8 @@ end
 """
     daIntegrateGalaxy(
         data_dict::Dict,
-        x_quantity::Symbol,
-        y_quantity::Symbol;
+        x_quantity::Union{Symbol,AbstractPlotQuantity},
+        y_quantity::Union{Symbol,AbstractPlotQuantity};
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
@@ -105,12 +103,11 @@ Compute two global quantities for the simulation.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the quantities valid for [`integrateQty`](@ref).
-  - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the quantities valid for [`integrateQty`](@ref).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+  - `x_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the x axis. It can be any of the quantities valid for [`integrateQty`](@ref).
+  - `y_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the y axis. It can be any of the quantities valid for [`integrateQty`](@ref).
   - `x_agg_func::Union{Function,Symbol}=:default`: If `x_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `x_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `x_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
   - `y_agg_func::Union{Function,Symbol}=:default`: If `y_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `y_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `y_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -122,19 +119,18 @@ Compute two global quantities for the simulation.
 """
 function daIntegrateGalaxy(
     data_dict::Dict,
-    x_quantity::Symbol,
-    y_quantity::Symbol;
+    x_quantity::Union{Symbol,AbstractPlotQuantity},
+    y_quantity::Union{Symbol,AbstractPlotQuantity};
     x_agg_func::Union{Function,Symbol}=:default,
     y_agg_func::Union{Function,Symbol}=:default,
-    icGen::Function=initialConditionFunction,
     filter_function::Function=filterNothing,
 )::NTuple{2,Vector{<:Number}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
     return (
-        [integrateQty(filtered_dd, x_quantity; agg_function=x_agg_func, icGen)],
-        [integrateQty(filtered_dd, y_quantity; agg_function=y_agg_func, icGen)],
+        [integrateQty(filtered_dd, x_quantity; agg_function=x_agg_func)],
+        [integrateQty(filtered_dd, y_quantity; agg_function=y_agg_func)],
     )
 
 end
@@ -142,8 +138,8 @@ end
 """
     daScatterDensity(
         data_dict::Dict,
-        x_quantity::Symbol,
-        y_quantity::Symbol;
+        x_quantity::Union{Symbol,AbstractPlotQuantity},
+        y_quantity::Union{Symbol,AbstractPlotQuantity};
         <keyword arguments>
     )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
@@ -151,14 +147,13 @@ Compute two quantities for every cell/particle using a 2D histogram.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the quantities valid for [`scatterQty`](@ref).
-  - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the quantities valid for [`scatterQty`](@ref).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+  - `x_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the x axis. It can be any of the quantities valid for [`scatterQty`](@ref).
+  - `y_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the y axis. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range for the histogram grid. If set to `nothing`, the extrema of the values will be used.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target quantities is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `n_bins::Int=100`: Number of bins per side of the grid.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -172,13 +167,12 @@ Compute two quantities for every cell/particle using a 2D histogram.
 """
 function daScatterDensity(
     data_dict::Dict,
-    x_quantity::Symbol,
-    y_quantity::Symbol;
+    x_quantity::Union{Symbol,AbstractPlotQuantity},
+    y_quantity::Union{Symbol,AbstractPlotQuantity};
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     x_log::Union{Unitful.Units,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
-    icGen::Function=initialConditionFunction,
     n_bins::Int=100,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
@@ -189,7 +183,6 @@ function daScatterDensity(
         y_quantity;
         x_log,
         y_log,
-        icGen,
         filter_function,
     )
 
@@ -238,20 +231,16 @@ function daScatterDensity(
 
     end
 
-    # The transpose and reverse operation are used to conform to the way heatmap! expect the matrix
-    # to be structured
-    z_axis = reverse!(transpose(counts), dims=2)
-
-    return x_axis, y_axis, z_axis
+    return x_axis, y_axis, counts
 
 end
 
 """
     daScatterWeightedDensity(
         data_dict::Dict,
-        x_quantity::Symbol,
-        y_quantity::Symbol,
-        z_quantity::Symbol;
+        x_quantity::Union{Symbol,AbstractPlotQuantity},
+        y_quantity::Union{Symbol,AbstractPlotQuantity},
+        z_quantity::Union{Symbol,AbstractPlotQuantity};
         <keyword arguments>
     )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
@@ -259,15 +248,14 @@ Compute two quantities for every cell/particle using a 2D histogram, weighted by
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
-  - `x_quantity::Symbol`: Quantity for the x axis. It can be any of the quantities valid for [`scatterQty`](@ref).
-  - `y_quantity::Symbol`: Quantity for the y axis. It can be any of the quantities valid for [`scatterQty`](@ref).
-  - `z_quantity::Symbol`: Quantity for the weights. It can be any of the quantities valid for [`scatterQty`](@ref).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+  - `x_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the x axis. It can be any of the quantities valid for [`scatterQty`](@ref).
+  - `y_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the y axis. It can be any of the quantities valid for [`scatterQty`](@ref).
+  - `z_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the weights. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `x_range::Union{NTuple{2,<:Number},Nothing}=nothing`: x axis range. If set to `nothing`, the extrema of the values will be used.
   - `y_range::Union{NTuple{2,<:Number},Nothing}=nothing`: y axis range. If set to `nothing`, the extrema of the values will be used.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if any of the target quantities is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `total::Bool=true`: If the sum (default) or the mean of `z_quantity` will be used as the value of each bin.
   - `n_bins::Int=100`: Number of bins per side of the grid.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -282,14 +270,13 @@ Compute two quantities for every cell/particle using a 2D histogram, weighted by
 """
 function daScatterWeightedDensity(
     data_dict::Dict,
-    x_quantity::Symbol,
-    y_quantity::Symbol,
-    z_quantity::Symbol;
+    x_quantity::Union{Symbol,AbstractPlotQuantity},
+    y_quantity::Union{Symbol,AbstractPlotQuantity},
+    z_quantity::Union{Symbol,AbstractPlotQuantity};
     x_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     y_range::Union{NTuple{2,<:Number},Nothing}=nothing,
     x_log::Union{Unitful.Units,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
-    icGen::Function=initialConditionFunction,
     total::Bool=true,
     n_bins::Int=100,
     filter_function::Function=filterNothing,
@@ -297,14 +284,14 @@ function daScatterWeightedDensity(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    x_values = scatterQty(filtered_dd, x_quantity; icGen)
-    y_values = scatterQty(filtered_dd, y_quantity; icGen)
-    z_values = scatterQty(filtered_dd, z_quantity; icGen)
+    x_values = scatterQty(filtered_dd, x_quantity)
+    y_values = scatterQty(filtered_dd, y_quantity)
+    z_values = scatterQty(filtered_dd, z_quantity)
 
     (
         allequal(length, [x_values, y_values, z_values]) ||
-        throw(ArgumentError("daScatterGalaxy: :$(x_quantity), :$(y_quantity), and :$(z_quantity) \
-        have different lengths. Maybe they are quantities for different types of cells/particles?"))
+        throw(ArgumentError("daScatterGalaxy: The target quantities have different lengths. \
+        Maybe they are quantities for different types of cells/particles?"))
     )
 
     x_idxs = isnothing(x_log) ? map(isinf, x_values) : map(x->iszero(x) || isinf(x), x_values)
@@ -348,7 +335,7 @@ function daScatterWeightedDensity(
         total,
     )
 
-    z_unit = plotParams(z_quantity).unit
+    z_unit = QTY_REGISTRY[z_quantity].unit
 
     # Apply log10 to enhance the contrast
     log_hist = log10.(ustrip.(z_unit, histogram))
@@ -368,11 +355,7 @@ function daScatterWeightedDensity(
 
     end
 
-    # The transpose and reverse operation are used to conform to the way heatmap! expect the matrix
-    # to be structured
-    z_axis = reverse!(transpose(log_hist), dims=2)
-
-    return x_axis, y_axis, z_axis
+    return x_axis, y_axis, log_hist
 
 end
 
@@ -388,12 +371,11 @@ Compute a profile.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `grid::LinearGrid`: Linear grid.
   - `norm::Union{Symbol,Nothing}=nothing`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`. It can be any of the quantities valid for [`scatterQty`](@ref). If set to `nothing`, no operation is applied.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `quantity`, if you want to apply ``\\log_{10}`` to `quantity`. If set to `nothing`, the data is left as is.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity or `norm` is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin. This affects the values of `norm` too.
   - `cumulative::Bool=false`: If the profile will be accumulated (after dividing by `norm`).
@@ -415,7 +397,6 @@ function daProfile(
     grid::LinearGrid;
     norm::Union{Symbol,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
-    icGen::Function=initialConditionFunction,
     flat::Bool=true,
     total::Bool=true,
     cumulative::Bool=false,
@@ -425,10 +406,8 @@ function daProfile(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    plot_params = plotParams(quantity)
-
     # Get the cell/particle type
-    cp_type = plot_params.cp_type
+    cp_type = QTY_REGISTRY[quantity].cp_type
 
     (
         isnothing(cp_type) &&
@@ -438,8 +417,8 @@ function daProfile(
 
     # Read the positions and values
     positions = filtered_dd[cp_type]["POS "]
-    values    = scatterQty(filtered_dd, quantity; icGen)
-    n_values  = isnothing(norm) ? Number[] : scatterQty(filtered_dd, norm; icGen)
+    values    = scatterQty(filtered_dd, quantity)
+    n_values  = isnothing(norm) ? Number[] : scatterQty(filtered_dd, norm)
 
     if any(isempty, [values, positions])
 
@@ -504,13 +483,12 @@ Compute a profile with uncertainty bands.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `grid::LinearGrid`: Linear grid.
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `density::Bool=false`: If the profile will be of the density of `quantity`.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`).
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `error_bar::Bool=false`: If the returned values will be compatible with `band!` (default) or with `errorbars!`.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -538,7 +516,6 @@ function daBandProfile(
     flat::Bool=true,
     density::Bool=false,
     ylog::Bool=false,
-    icGen::Function=initialConditionFunction,
     error_bar::Bool=false,
     filter_function::Function=filterNothing,
 )::Union{
@@ -549,14 +526,14 @@ function daBandProfile(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    plot_params = plotParams(quantity)
+    plot_params = QTY_REGISTRY[quantity]
 
     # Get the cell/particle type
     type = plot_params.cp_type
 
     # Read the positions and values
     positions = filtered_dd[type]["POS "]
-    values    = scatterQty(filtered_dd, quantity; icGen)
+    values    = scatterQty(filtered_dd, quantity)
 
     if any(isempty, [values, positions])
         (
@@ -622,7 +599,7 @@ Compute the evolution of a given stellar `quantity` using the stellar ages at a 
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::Symbol=:sfr`: Target quantity. The options are:
 
       + `:sfr`                 -> Star formation rate.
@@ -728,7 +705,7 @@ function daStellarHistory(
         deleteat!(x_axis, delete_idxs)
         deleteat!(y_axis, delete_idxs)
 
-        y_axis = log10.(ustrip.(plotParams(quantity).unit, y_axis))
+        y_axis = log10.(ustrip.(QTY_REGISTRY[quantity].unit, y_axis))
 
     else
 
@@ -755,11 +732,10 @@ Compute a 1D histogram of a given `quantity`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `grid::LinearGrid`: Linear grid.
   -  `log::Bool=false`: If the histogram bins will be logarithmic.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `norm::Int=0`: Number of counts that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -775,12 +751,11 @@ function daHistogram(
     quantity::Symbol,
     grid::LinearGrid;
     log::Bool=false,
-    icGen::Function=initialConditionFunction,
     norm::Int=0,
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Number},Vector{Float64}},Nothing}
 
-    scatter_qty = scatterQty(data_dict, quantity; icGen)
+    scatter_qty = scatterQty(data_dict, quantity)
 
     if isempty(scatter_qty)
         (
@@ -790,7 +765,7 @@ function daHistogram(
         return nothing
     end
 
-    plot_params = plotParams(quantity)
+    plot_params = QTY_REGISTRY[quantity]
 
     # Get the cell/particle type
     cp_type = plot_params.cp_type
@@ -822,7 +797,7 @@ function daHistogram(
 
         copy_vals = copyArray(values)
 
-        filter!(x -> !isinf(x), copy_vals)
+        filter!(x -> !isinf(x) && !isnan(x), copy_vals)
 
         @info(
             "\nCounts \
@@ -832,9 +807,9 @@ function daHistogram(
             \n  Type:        $(cp_type) \
             \n  Largest bin: $(grid.x_axis[argmax(counts)]) \
             \n  Max count:   $(maximum(counts)) \
-            \n  Min - Max:   $(nanextrema(copy_vals)) \
-            \n  Mean:        $(nanmean(copy_vals)) \
-            \n  Median:      $(nanmedian!(copy_vals))"
+            \n  Min - Max:   $(extrema(copy_vals)) \
+            \n  Mean:        $(mean(copy_vals)) \
+            \n  Median:      $(median(copy_vals))"
         )
 
     end
@@ -873,11 +848,10 @@ Compute a 1D histogram of a given `quantity`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref).
   - `n_bins::Int`: Number of bins.
   - `log::Bool=false`: If the histogram bins will be logarithmic.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `norm::Int=0`: Number of count that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -893,12 +867,11 @@ function daHistogram(
     quantity::Symbol,
     n_bins::Int;
     log::Bool=false,
-    icGen::Function=initialConditionFunction,
     norm::Int=0,
     filter_function::Function=filterNothing,
 )::Union{Tuple{Vector{<:Number},Vector{Float64}},Nothing}
 
-    scatter_qty = scatterQty(data_dict, quantity; icGen)
+    scatter_qty = scatterQty(data_dict, quantity)
 
     if isempty(scatter_qty)
         (
@@ -908,7 +881,7 @@ function daHistogram(
         return nothing
     end
 
-    plot_params = plotParams(quantity)
+    plot_params = QTY_REGISTRY[quantity]
 
     # Get the cell/particle type
     cp_type = plot_params.cp_type
@@ -945,7 +918,7 @@ function daHistogram(
 
         copy_vals = copyArray(values)
 
-        filter!(x -> !isinf(x), copy_vals)
+        filter!(x -> !isinf(x) && !isnan(x), copy_vals)
 
         @info(
             "\nCounts \
@@ -955,9 +928,9 @@ function daHistogram(
             \n  Type:        $(cp_type) \
             \n  Largest bin: $(grid.x_axis[argmax(counts)]) \
             \n  Max count:   $(maximum(counts)) \
-            \n  Min - Max:   $(nanextrema(copy_vals)) \
-            \n  Mean:        $(nanmean(copy_vals)) \
-            \n  Median:      $(nanmedian!(copy_vals))"
+            \n  Min - Max:   $(extrema(copy_vals)) \
+            \n  Mean:        $(mean(copy_vals)) \
+            \n  Median:      $(median(copy_vals))"
         )
 
     end
@@ -990,7 +963,7 @@ Compute a rotation curve.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `R::Unitful.Length=DISK_R[]`: Maximum radial distance for the rotation curve.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
@@ -1034,11 +1007,10 @@ Compute a bar plot, where the bins are for a given gas `quantity` and the height
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::Symbol`: Target quantity. It can be any of the quantities valid for [`scatterQty`](@ref) with the cell/particle type `:gas`.
   - `grid::LinearGrid`: Linear grid.
   - `components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_cold]`: List of gas components to be considered. The fractions will be normalized to this list of components. See [`COMPONENTS`](@ref) for options.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1053,11 +1025,10 @@ function daBarGasFractions(
     quantity::Symbol,
     grid::LinearGrid;
     components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_cold],
-    icGen::Function=initialConditionFunction,
     filter_function::Function=filterNothing,
 )::Union{NTuple{2,Vector{<:Number}},Nothing}
 
-    qty_type = plotParams(quantity).cp_type
+    qty_type = QTY_REGISTRY[quantity].cp_type
 
     (
         qty_type == :gas ||
@@ -1065,7 +1036,7 @@ function daBarGasFractions(
         cell/particle type :gas, but I got :$(qty_type)"))
     )
 
-    comp_types = [plotParams(Symbol(component, :_mass)).cp_type for component in components]
+    comp_types = [QTY_REGISTRY[Symbol(component, :_mass)].cp_type for component in components]
 
     (
         all(x->x == :gas, comp_types) ||
@@ -1074,7 +1045,7 @@ function daBarGasFractions(
     )
 
     filtered_dd = filterData(data_dict; filter_function)
-    gas_qty = scatterQty(filtered_dd, quantity; icGen)
+    gas_qty = scatterQty(filtered_dd, quantity)
 
     if isempty(gas_qty)
         (
@@ -1085,7 +1056,7 @@ function daBarGasFractions(
     end
 
     # Compute the mass of each gas component for every cell
-    masses = [computeMass(filtered_dd, component; icGen) for component in components]
+    masses = [computeMass(filtered_dd, component) for component in components]
 
     if any(isempty, masses)
 
@@ -1148,7 +1119,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `grid::LinearGrid`: Linear grid.
   - `quantity::Symbol`: Quantity for the y axis. The options are:
 
@@ -1163,7 +1134,6 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `:C_stellar_abundance`                -> Stellar abundance of carbon, as ``12 + \\log_{10}(\\mathrm{C \\, / \\, H})``.
       + `:mu_mol`                             -> Molecular gas fraction, as ``\\mu_\\mathrm{mol} = \\Sigma_\\mathrm{H2} / \\Sigma_\\star``.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Unit for `quantity`.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g., :ode_atomic_area_density).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -1186,7 +1156,6 @@ function daMolla2015(
     grid::LinearGrid,
     quantity::Symbol;
     y_unit::Unitful.Units=Unitful.NoUnits,
-    icGen::Function=initialConditionFunction,
     filter_function::Function=filterNothing,
 )::Union{
     Tuple{
@@ -1198,7 +1167,7 @@ function daMolla2015(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    if quantity ∈ STELLAR_ABUNDANCE
+    if quantity ∈ (:O_stellar_abundance, :N_stellar_abundance, :C_stellar_abundance)
 
         element = Symbol(replace(string(quantity), "_stellar_abundance" => ""))
 
@@ -1212,12 +1181,12 @@ function daMolla2015(
     elseif quantity == :mu_mol
 
         if isSnapSFM(filtered_dd[:snap_data].path)
-            masses = computeMass(filtered_dd, :ode_molecular_stellar; icGen)
+            masses = computeMass(filtered_dd, :ode_molecular_stellar)
         else
-            masses = computeMass(filtered_dd, :br_molecular; icGen)
+            masses = computeMass(filtered_dd, :br_molecular)
         end
 
-        norm = computeMass(filtered_dd, :stellar; icGen)
+        norm = computeMass(filtered_dd, :stellar)
         positions = filtered_dd[:gas]["POS "]
         norm_positions = filtered_dd[:stellar]["POS "]
         scaling = x -> log10.(ustrip.(y_unit, x))
@@ -1225,13 +1194,13 @@ function daMolla2015(
 
     else
 
-        plot_params = plotParams(quantity)
+        plot_params = QTY_REGISTRY[quantity]
         component = Symbol(replace(string(quantity), "_area_density" => ""))
 
         if component == :sfr
             masses = scatterQty(filtered_dd, :observational_sfr)
         else
-            masses = computeMass(filtered_dd, component; icGen)
+            masses = computeMass(filtered_dd, component)
         end
 
         positions = filtered_dd[plot_params.cp_type]["POS "]
@@ -1273,7 +1242,7 @@ Project a 3D mass density field into a given plane.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `field_type::Symbol`: If the field is made up of `:particles` or Voronoi `:cells`.
@@ -1284,7 +1253,6 @@ Project a 3D mass density field into a given plane.
       + `:circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric rings. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
       + `:log_circular` -> The density distribution will be projected into a flat circular grid, formed by a series of `reduce_factor` concentric logarithmic rings. The first bin starts at 1e-3 of the radius. `reduce_factor` = 1 means that the result will be a single point. Note that this behaves in the opposite way than `reduce_grid` = :square.
   - `reduce_factor::Int=1`: Factor by which the resolution of the result will be reduced. This will be applied after the density projection. If `reduce_grid` = :square, the new values will be computed averaging the values of neighboring pixels. `reduce_factor` has to divide the size of `grid` exactly. If `reduce_grid` = :circular, the new values will be computed averaging the values of the pixels the fall within each of the `reduce_factor` concentric rings.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -1305,7 +1273,6 @@ function daDensity2DProjection(
     projection_plane::Symbol=:xy,
     reduce_grid::Symbol=:square,
     reduce_factor::Int=1,
-    icGen::Function=initialConditionFunction,
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"pc",
     filter_function::Function=filterNothing,
@@ -1320,7 +1287,6 @@ function daDensity2DProjection(
         field_type;
         empty_nan=false,
         log=false,
-        icGen,
         filter_function,
     )
 
@@ -1346,7 +1312,7 @@ function daDensity2DProjection(
         physical_factor = 1.0
     end
 
-    munit_factor = ustrip(m_unit, 1.0 * plotParams(quantity).unit)
+    munit_factor = ustrip(m_unit, 1.0 * QTY_REGISTRY[quantity].unit)
     voxel_area   = ustrip(l_unit^2, grid.bin_size_2D[dims]) * physical_factor
 
     density = dropdims(sum(mass_grid; dims); dims) .* (munit_factor / voxel_area)
@@ -1426,7 +1392,7 @@ Project the 3D gas SFR field into a given plane.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `grid::CubicGrid`: Cubic grid.
   - `field_type::Symbol`: If the field is made up of `:particles` or Voronoi `:cells`.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
@@ -1482,7 +1448,7 @@ function daGasSFR2DProjection(
         :xy, :xz or :yz, but I got :$(projection_plane)"))
     end
 
-    sfr_factor = ustrip(m_unit * t_unit^-1, 1.0 * plotParams(:gas_sfr).unit)
+    sfr_factor = ustrip(m_unit * t_unit^-1, 1.0 * QTY_REGISTRY[:gas_sfr].unit)
 
     sfr = dropdims(sum(sfr_grid; dims); dims) .* sfr_factor
 
@@ -1561,7 +1527,7 @@ Project the 3D metallicity field to a given plane.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can be either `:stellar` or `:gas`.
   - `field_type::Symbol`: If the field is made up of `:particles` or Voronoi `:cells`.
@@ -1767,7 +1733,7 @@ Project a 3D velocity field into a given plane.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `grid::SquareGrid`: Square grid.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
@@ -1794,7 +1760,7 @@ function daVelocityField(
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    cp_type = plotParams(Symbol(component, :_mass)).cp_type
+    cp_type = QTY_REGISTRY[Symbol(component, :_mass)].cp_type
 
     positions  = filtered_dd[cp_type]["POS "]
     velocities = filtered_dd[cp_type]["VEL "]
@@ -1848,11 +1814,10 @@ Compute a mockup image emulating an SDSS observation.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `grid::CubicGrid`: Cubic grid.
   - `projection_plane::Symbol=:xy`: Projection plane. The options are `:xy`, `:xz`, and `:yz`.
   - `smooth::Bool=false`: If gaussian smooththing will be applied to the whole image.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `extinction::Union{Symbol,Nothing}=nothing`: Type of extinction. The options are:
 
       + `:nothing` -> No extinction.
@@ -1869,7 +1834,6 @@ function daSDSSMockup(
     grid::CubicGrid;
     projection_plane::Symbol=:xy,
     smooth::Bool=false,
-    icGen::Function=initialConditionFunction,
     extinction::Union{Symbol,Nothing}=nothing,
     filter_function::Function=filterNothing,
 )::Array
@@ -1976,7 +1940,7 @@ function daSDSSMockup(
 
         end
 
-        m_unit     = plotParams(extinction_quantity).unit
+        m_unit     = QTY_REGISTRY[extinction_quantity].unit
         ext_factor = 1.0 / ustrip(m_unit*u"pc^-2", extinction_factor)
         voxel_area = ustrip(u"pc^2", grid.bin_size_2D[compact_dim]) * physical_factor
 
@@ -1988,7 +1952,6 @@ function daSDSSMockup(
             :cells;
             empty_nan=false,
             log=false,
-            icGen,
         )
 
         for star_idx in eachindex(masses)
@@ -2071,14 +2034,13 @@ Compute the gas density and the SFR density, used in the volumetric star formati
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `grid::CubicGrid`: Cubic grid.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `field_type::Symbol=:cells`: If the gas surface density will be calculated assuming the gas is in `:particles` or in Voronoi `:cells`.
   - `age_limit::Unitful.Time=AGE_RESOLUTION[]`: Age limit for the SFR.
   - `stellar_ff::Function=filterNothing`: Filter function for the stars. See the required signature and examples in `./src/analysis/filters.jl`.
   - `gas_ff::Function=filterNothing`: Filter function for the gas. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target `component` is one of the :ode components (e.g. :ode_atomic_fraction).
   - `m_unit::Unitful.Units=u"Msun"`: Target mass unit.
   - `t_unit::Unitful.Units=u"yr"`: Target time unit.
   - `l_gas_unit::Unitful.Units=u"pc"`: Target length unit for the gas density.
@@ -2101,14 +2063,13 @@ function daVSFLaw(
     age_limit::Unitful.Time=AGE_RESOLUTION[],
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
-    icGen::Function=initialConditionFunction,
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
     l_gas_unit::Unitful.Units=u"pc",
     l_stellar_unit::Unitful.Units=u"kpc"
 )::Union{NTuple{2,Vector{<:Float64}},Nothing}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("daVSFLaw: `component` can only be one of the elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -2125,11 +2086,10 @@ function daVSFLaw(
         scale_by_volume=true,
         density=l_gas_unit,
         log=false,
-        icGen,
         filter_function=gas_ff,
     )
 
-    m_gas_factor = ustrip(m_unit, 1.0 * plotParams(Symbol(component, :_mass)).unit)
+    m_gas_factor = ustrip(m_unit, 1.0 * QTY_REGISTRY[Symbol(component, :_mass)].unit)
 
     stellar_density = quantity3DProjection(
         data_dict,
@@ -2142,7 +2102,7 @@ function daVSFLaw(
         filter_function=stellar_ff,
     )
 
-    m_stellar_factor = ustrip(m_unit, 1.0 * plotParams(:stellar_mass).unit)
+    m_stellar_factor = ustrip(m_unit, 1.0 * QTY_REGISTRY[:stellar_mass].unit)
 
     x_axis = vec(gas_density) .* m_gas_factor
     y_axis = vec(stellar_density) .* m_stellar_factor
@@ -2183,13 +2143,12 @@ C_\rho = \frac{\langle n^2 \rangle}{\langle n \rangle^2} \, ,
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) with cell/partcile type :gas.
   - `n_neighbors::Int=32`: Number of neighbors.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for the volume, if you want to apply ``\log_{10}`` to the volume. If set to `nothing`, the volume is left as is.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for the clumping factor, if you want to apply ``\log_{10}`` to the clumping factor`. If set to `nothing`, the clumping factor is left as is.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target component is one of the :ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -2205,10 +2164,9 @@ function daClumpingFactor(
     filter_function::Function=filterNothing,
     x_log::Union{Unitful.Units,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
-    icGen::Function=initialConditionFunction,
 )::Tuple{Vector{<:Number},Vector{Float64}}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("daClumpingFactor: `component` can only be one of the elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -2216,7 +2174,7 @@ function daClumpingFactor(
     filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the number density of the target component
-    number_densities = scatterQty(filtered_dd, Symbol(component, :_number_density); icGen)
+    number_densities = scatterQty(filtered_dd, Symbol(component, :_number_density))
 
     # Load the position of each cell/particle
     positions = ustrip.(u"kpc", filtered_dd[:gas]["POS "])
@@ -2291,10 +2249,9 @@ C_\rho = \frac{\langle n^2 \rangle}{\langle n \rangle^2} \, ,
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) with cell/partcile type :gas.
   - `grid::LinearGrid`: Linear grid.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target component is one of the :ode components (e.g. :ode_atomic_fraction).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
 
 # Returns
@@ -2308,11 +2265,10 @@ function daClumpingFactorProfile(
     data_dict::Dict,
     component::Symbol,
     grid::LinearGrid;
-    icGen::Function=initialConditionFunction,
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{Float64}}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("daClumpingFactorProfile: `component` can only be one of the elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -2320,7 +2276,7 @@ function daClumpingFactorProfile(
     filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the number density of the target component
-    number_densities = scatterQty(filtered_dd, Symbol(component, :_number_density); icGen)
+    number_densities = scatterQty(filtered_dd, Symbol(component, :_number_density))
 
     # Load the position of each cell/particle
     positions = filtered_dd[:gas]["POS "]
@@ -2367,8 +2323,8 @@ end
 """
     daEvolution(
         sim_data::Simulation,
-        x_quantity::Symbol,
-        y_quantity::Symbol;
+        x_quantity::Union{Symbol,AbstractPlotQuantity},
+        y_quantity::Union{Symbol,AbstractPlotQuantity};
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
@@ -2381,8 +2337,8 @@ Compute the time series of two quantities, using [`integrateQty`](@ref) to compu
 # Arguments
 
   - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
-  - `x_quantity::Symbol`: Quantity for the x axis.
-  - `y_quantity::Symbol`: Quantity for the y axis.
+  - `x_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the x axis.
+  - `y_quantity::Union{Symbol,AbstractPlotQuantity}`: Quantity for the y axis.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -2393,7 +2349,6 @@ Compute the time series of two quantities, using [`integrateQty`](@ref) to compu
   - `y_agg_func::Union{Function,Symbol}=:default`: If `y_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `y_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `y_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
-  - `icGen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the :ode components. It must have the signature `icGen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the :ode components (e.g. :ode_atomic_fraction).
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
 # Returns
@@ -2405,10 +2360,10 @@ Compute the time series of two quantities, using [`integrateQty`](@ref) to compu
 """
 function daEvolution(
     sim_data::Simulation,
-    x_quantity::Symbol,
-    y_quantity::Symbol;
+    x_quantity::Union{Symbol,AbstractPlotQuantity},
+    y_quantity::Union{Symbol,AbstractPlotQuantity};
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     x_log::Union{Unitful.Units,Nothing}=nothing,
@@ -2417,15 +2372,90 @@ function daEvolution(
     y_agg_func::Union{Function,Symbol}=:default,
     smooth::Int=0,
     cumulative::Bool=false,
-    icGen::Function=initialConditionFunction,
     show_progress::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
-    qty_request = mergeRequests(plotParams(x_quantity).request, plotParams(y_quantity).request)
+    x, y = daEvolution(
+        sim_data,
+        Q(x_quantity),
+        Q(y_quantity);
+        trans_mode,
+        filter_mode,
+        extra_filter,
+        ff_request,
+        x_log,
+        y_log,
+        x_agg_func,
+        y_agg_func,
+        smooth,
+        cumulative,
+        show_progress,
+    )
+
+    return x, y
+
+end
+
+"""
+    daEvolution(
+        sim_data::Simulation,
+        x_quantity::AbstractPlotQuantity,
+        y_quantity::AbstractPlotQuantity;
+        <keyword arguments>
+    )::NTuple{2,Vector{<:Number}}
+
+Compute the time series of two quantities, using [`integrateQty`](@ref) to compute their values at each time.
+
+!!! note
+
+    The log10 operation, if requested, is applied after the integration of the quantities.
+
+# Arguments
+
+  - `sim_data::Simulation`: The [`Simulation`](@ref) struct for the target simulation.
+  - `x_quantity::AbstractPlotQuantity`: Quantity for the x axis.
+  - `y_quantity::AbstractPlotQuantity`: Quantity for the y axis.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
+  - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
+  - `x_agg_func::Union{Function,Symbol}=:default`: If `x_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `x_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `x_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
+  - `y_agg_func::Union{Function,Symbol}=:default`: If `y_quantity` is one the the listed symbols in [`DERIVED_QTY`](@ref), [`SFM_STELLAR_QTY`](@ref) or [`SFM_GAS_QTY`](@ref), you can pass an `y_agg_func` to accumulate the values given by [`scatterQty`](@ref). If `y_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
+  - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
+  - `show_progress::Bool=true`: If a progress bar will be shown.
+
+# Returns
+
+  - A tuple with two elements:
+
+      + A vector with the time series of `x_quantity`.
+      + A vector with the time series of `y_quantity`.
+"""
+function daEvolution(
+    sim_data::Simulation,
+    x_quantity::AbstractPlotQuantity,
+    y_quantity::AbstractPlotQuantity;
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    x_log::Union{Unitful.Units,Nothing}=nothing,
+    y_log::Union{Unitful.Units,Nothing}=nothing,
+    x_agg_func::Union{Function,Symbol}=:default,
+    y_agg_func::Union{Function,Symbol}=:default,
+    smooth::Int=0,
+    cumulative::Bool=false,
+    show_progress::Bool=true,
+)::NTuple{2,Vector{<:Number}}
+
+    qty_request = mergeRequests(getQuantityRequest(x_quantity), getQuantityRequest(y_quantity))
 
     integration_functions = (
-        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func, icGen),
-        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func, icGen),
+        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func),
+        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func),
     )
 
     return daEvolution(
@@ -2469,7 +2499,7 @@ Compute the time series of two quantities, using the provided integration functi
 
     where
 
-      + `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+      + `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
@@ -2492,7 +2522,7 @@ function daEvolution(
     qty_request::Dict{Symbol,Vector{String}},
     integration_functions::NTuple{2,Function};
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     x_log::Union{Unitful.Units,Nothing}=nothing,
@@ -2969,7 +2999,7 @@ function daVirialAccretion(
     show_progress::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
-    request = plotParams(:mass_accretion).request
+    request = QTY_REGISTRY[:mass_accretion].request
 
     # Read the metadata table for the simulation
     simulation_dataframe = DataFrame(sim_data.simulation_table[sim_data.slice, :])
@@ -3231,7 +3261,7 @@ function daDiskAccretion(
     show_progress::Bool=true,
 )::NTuple{2,Vector{<:Number}}
 
-    base_request = plotParams(:mass_accretion).request
+    base_request = QTY_REGISTRY[:mass_accretion].request
 
     translation, rotation, request = selectTransformation(trans_mode, base_request)
 
@@ -3608,7 +3638,7 @@ function daScoville2016(
     sim_data::Simulation;
     x_quantity::Symbol=:physical_time,
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
-    filter_mode::Union{Symbol,Dict{Symbol,Any}}=:all,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     log::Bool=true,
@@ -3616,8 +3646,8 @@ function daScoville2016(
 )::Tuple{Vector{Float64},Vector{<:Measurement{Float64}}}
 
     base_request = mergeRequests(
-        plotParams(:stellar_mass).request,
-        plotParams(:sfr).request,
+        QTY_REGISTRY[:stellar_mass].request,
+        QTY_REGISTRY[:sfr].request,
         ff_request,
     )
 

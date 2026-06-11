@@ -36,4 +36,4 @@ UnitfulAstro = "6112ee07-acf9-5e0f-b108-d242c714bf9f"
 WriteVTK = "64499a7a-5c06-52f2-abe2-ccb03c286192"
 
 [compat]
-NaNStatistics = "0.6.56"
+CairoMakie = "=0.15.6"

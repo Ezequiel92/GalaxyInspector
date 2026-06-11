@@ -13,7 +13,7 @@ Find the tracer IDs given a list of parent IDs.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `target_ids::Vector{<:Unsigned}`: List of parent IDs.
 
 # Returns
@@ -48,7 +48,7 @@ Find the parent IDs given a list of tracer IDs.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `target_ids::Vector{<:Unsigned}`: List of tracer IDs.
 
 # Returns
@@ -84,7 +84,7 @@ Find the indices of the cells/particles given their IDs.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `target_ids::Vector{<:Unsigned}`: List of IDs.
 
 # Returns
@@ -147,7 +147,7 @@ Find the masses of the parents given a list of tracer IDs.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `target_ids::Vector{<:Unsigned}`: List of tracer IDs.
 
 # Returns
@@ -184,7 +184,7 @@ Find the mass of tracers given a list of parent IDs, ignoring parents without tr
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `target_ids::Vector{<:Unsigned}`: List of parent IDs.
 
 # Returns
@@ -229,7 +229,7 @@ Find the IDs the the cell/particles of `component` that are within the virial ra
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `halo_idx::Int=1`: Index of the target halo (FoF group). Starts at 1.
 
@@ -314,7 +314,7 @@ Find the IDs the the cell/particles of `component` that are within the given gal
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `max_r::Unitful.Length`: Radius of the disk.
   - `max_z::Unitful.Length`: Half height of the disk.
@@ -395,7 +395,7 @@ Filter out IDs from `target_ids` that do not exist for `component`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `target_ids::Vector{UInt}`: IDs to be filtered.
 
@@ -443,7 +443,7 @@ Compute the total mass of the cells/particles with IDs given by `target_ids`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
   - `target_ids::Vector{UInt}`: Target IDs.
   - `tracers::Bool=false`: If the mass will be computed using tracers or the proper mass of each cell/particle.

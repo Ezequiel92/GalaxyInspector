@@ -11,10 +11,10 @@
     <a href="https://ezequiel92.github.io/GalaxyInspector/dev/intro/"><img src="https://img.shields.io/badge/documentation-blue.svg"></a>
 </p>
 
-A Julia module for the data analysis of galaxy simulations.
+A Julia module for the analysis of galaxy simulations.
 
 > [!CAUTION]
-> This code is written for my personal use and is a work in progress, thus it may break at any moment. Use it at your own risk.
+> This is written for my personal use and is a work in progress, thus it may break at any moment. Use it at your own risk.
 
 > ℹ️ **NOTE**
 >
@@ -23,7 +23,7 @@ A Julia module for the data analysis of galaxy simulations.
 ## ⚙️ Characteristics
 
 - Works only with snapshots in [HDF5](https://www.hdfgroup.org/solutions/hdf5/) format (option `SnapFormat = 3` in P-Gadget3 and Arepo).
-- This is a collection of scripts inside a module, not a package. Global constants and data structures are defined in `./src/globals/globals.jl`.
+- This is a collection of scripts inside a module, not a package. Global constants and data structures are defined in `./src/globals/`.
 
 ## Configuration
 
@@ -32,9 +32,6 @@ User-tunable defaults can be overridden with a `config.toml` file. The module lo
 Example:
 
 ```toml
-[general]
-physical_units = false
-
 [mmap]
 memory_fraction = 0.2
 
@@ -42,6 +39,7 @@ memory_fraction = 0.2
 disk_r         = "40.0 kpc"
 disk_height    = "5.0 kpc"
 box_l          = "65.0 kpc"
+rotation_r     = "8.0 kpc"
 age_resolution = "200.0 Myr"
 
 [abundances]
@@ -64,12 +62,15 @@ gamma             = 1.666
 tracer_mass       = 3.65456e-06
 solar_metallicity = 0.0127
 hubble_constant   = 0.102201
-internal_l_unit   = "3.085678e21 cm"
-internal_m_unit   = "1.989e43 g"
-internal_v_unit   = "1.0e5 cm*s^-1"
+
+[units]
+physical_units  = false
+internal_l_unit = "3.085678e21 cm"
+internal_m_unit = "1.989e43 g"
+internal_v_unit = "1.0e5 cm*s^-1"
 ```
 
-The default value of each parameter can be found in `./src/globals/globals.jl`.
+The default values can be found in `./src/globals/config.jl`.
 
 ## 🔗 Links
 

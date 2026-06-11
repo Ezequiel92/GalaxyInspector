@@ -59,16 +59,20 @@ end
 
 """
     reduceMatrix(
-        hr_matrix::Matrix{<:Number},
+        hr_matrix::AbstractMatrix{T},
         factor::Int;
         <keyword arguments>
-    )::Matrix{<:Number}
+    ) where {T<:FloatOrQuantity}
 
 Reduce the number of rows and columns of a given square matrix by `factor`, averaging or adding up its values.
 
+!!! note
+
+    If `factor` is 1, the original matrix will be returned without any checks.
+
 # Arguments
 
-  - `hr_matrix::Matrix{<:Number}`: Original "high resolution" matrix. It has to be a square matrix.
+  - `hr_matrix::AbstractMatrix{T}`: Original "high resolution" matrix. It has to be a square matrix.
   - `factor::Int`: Factor by which the number of rows and columns will be reduced. It has to divide the size of `hr_matrix` exactly.
   - `total::Bool=false`: If the sum (`total` = true) or the mean (`total` = false) of the high resolution values will be used for the new matrix.
 
@@ -76,7 +80,11 @@ Reduce the number of rows and columns of a given square matrix by `factor`, aver
 
   - The new smaller matrix.
 """
-function reduceMatrix(hr_matrix::Matrix{<:Number}, factor::Int; total::Bool=false)::Matrix{<:Number}
+function reduceMatrix(
+    hr_matrix::AbstractMatrix{T},
+    factor::Int;
+    total::Bool=false
+) where {T<:FloatOrQuantity}
 
     !isone(factor) || return hr_matrix
 

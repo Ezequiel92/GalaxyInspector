@@ -8,9 +8,9 @@
 #                              /____/                  /_/                                  /___/
 ####################################################################################################
 
-####################################################################################################
+########################################################
 # A Julia module for the analysis of galaxy simulations
-####################################################################################################
+########################################################
 
 module GalaxyInspector
 
@@ -46,31 +46,31 @@ using AstroImages,
     UnitfulAstro,
     WriteVTK
 
-####################################################################################################
+###############
 # Optimization
-####################################################################################################
+###############
 
 @eval Base.Experimental.@optlevel 3
 
-####################################################################################################
+#############
 # Submodules
-####################################################################################################
+#############
 
-include("globals/globals.jl")
+include("globals/config.jl")
+include("globals/constants.jl")
 
+include("auxiliary_functions/quantities.jl")
 include("auxiliary_functions/grid.jl")
 include("auxiliary_functions/histograms.jl")
-include("auxiliary_functions/other.jl")
 include("auxiliary_functions/plotting.jl")
+include("auxiliary_functions/other.jl")
 
 include("analysis/data_acquisition.jl")
 include("analysis/compute_quantities/energies.jl")
 include("analysis/compute_quantities/masses.jl")
 include("analysis/compute_quantities/positions.jl")
-include("analysis/compute_quantities/sfm.jl")
 include("analysis/compute_quantities/times.jl")
 include("analysis/compute_quantities/velocities.jl")
-include("analysis/compute_quantities/aggregators.jl")
 include("analysis/filters.jl")
 include("analysis/tracers.jl")
 include("analysis/transformations.jl")
@@ -80,9 +80,9 @@ include("plotting/post_processing.jl")
 include("plotting/pipelines.jl")
 include("plotting/convenience.jl")
 
-####################################################################################################
+###################
 # Public functions
-####################################################################################################
+###################
 
 # From `analysis/data_acquisition.jl`
 export readGroupCatalog
@@ -139,9 +139,17 @@ export snapshotReport
 export simulationReport
 export quantityReport
 
+#################
+# Initialization
+#################
+
 function __init__()
 
+    # Load the configuration file if it exist
     loadConfig!()
+
+    # Fill the quantity registry with all the compound quantities
+    fillRegistry!()
 
     # Create the folder for memory mapping if it does not exist already
     mkpath(MMAP_PATH)

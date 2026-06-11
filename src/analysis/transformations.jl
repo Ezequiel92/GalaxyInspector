@@ -45,7 +45,7 @@ Translate the positions and velocities of the cells/particles in `data_dict` suc
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `origin::Vector{<:Unitful.Length}`: Target origin.
   - `vcm::Vector{<:Unitful.Velocity}`: Velocity of the center of mass.
 """
@@ -80,7 +80,7 @@ Translate the positions and velocities of the cells/particles in `data_dict`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `translation::Union{Symbol,NTuple{2,Int},Int}`: Target translation. The options are:
 
       + `:zero`                       -> No translation is applied.
@@ -115,7 +115,7 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `rotation_matrix::Union{Matrix{Float64},UniformScaling{Bool}}`: Rotation matrix.
 """
 function rotateData!(
@@ -155,7 +155,7 @@ Compute the corresponding rotation matrix.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `z_axis::Symbol`: Target reference system axis. The options are:
 
       + `:zero` -> No rotation is applied.
@@ -217,7 +217,7 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `z_axis::Symbol`: Target reference system axis. The options are:
 
       + `:zero` -> No rotation is applied.
@@ -290,7 +290,7 @@ function selectTransformation(
 )::Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}
 
     if trans_mode == :zero
-        return :zero, (:zero, :zero, filterNothing), base_request
+        return :zero, I, base_request
     end
 
     (
@@ -321,9 +321,9 @@ function selectTransformation(
         new_request     = mergeRequests(
             base_request,
             pa_request,
-            Dict(
-                :group => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
-                :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
+            mergeRequests(
+                Dict(:group => ["G_Pos", "G_Vel"], :subhalo => ["S_Pos", "S_Vel"]),
+                Dict(component => ["POS "] for component in keys(PARTICLE_INDEX))
             ),
         )
 
@@ -335,9 +335,9 @@ function selectTransformation(
         new_request     = mergeRequests(
             base_request,
             pa_request,
-            Dict(
-                :group => ["G_Nsubs", "G_LenType", "G_Pos", "G_Vel"],
-                :subhalo => ["S_LenType", "S_Pos", "S_Vel"],
+            mergeRequests(
+                Dict(:group => ["G_Pos", "G_Vel", "G_Nsubs"], :subhalo => ["S_Pos", "S_Vel"]),
+                Dict(component => ["POS "] for component in keys(PARTICLE_INDEX))
             ),
         )
 

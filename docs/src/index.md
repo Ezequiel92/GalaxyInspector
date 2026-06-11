@@ -4,9 +4,9 @@
 
 This module provides a collection of scripts and functions for reading, filtering, analyzing, and plotting simulation outputs. It is designed for flexibility and extensibility, allowing users to adapt it to their own simulation setups and scientific needs.
 
-> ⚠️ **Caution:** This code is written for my personal use and is a work in progress, thus it may break at any moment. Use it at your own risk.
+> ⚠️ **Caution:** This is written for my personal use and is a work in progress, thus it may break at any moment. Use it at your own risk.
 
-> ℹ️ **Note:** There are other tools to analyze/plot simulations (you can see [here](https://github.com/Ezequiel92/GalaxyInspector#-links)). This module was written not only as a basic plotting tool, but as an exercise to learn [Julia](https://julialang.org/) and software development in general.
+> ℹ️ **Note:** There are other tools to analyze/plot simulations (you can see some [here](https://github.com/Ezequiel92/GalaxyInspector#-links)). This module was written not only as a basic plotting tool, but as an exercise to learn [Julia](https://julialang.org/) and software development in general.
 
 ## License
 

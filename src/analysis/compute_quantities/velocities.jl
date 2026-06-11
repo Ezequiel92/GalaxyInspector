@@ -547,7 +547,7 @@ Return the velocity of the center of mass of a given halo or subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:group`   => ["G\_Nsubs", "G\_Vel"]
@@ -641,7 +641,7 @@ Return the velocity of the center of mass of a given subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:subhalo` => ["S\_Vel"]
@@ -694,7 +694,7 @@ Compute a characteristic velocity for the system.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `cm_type`:
 
       + If `cm_type` == :all:
@@ -773,7 +773,7 @@ where $r$ is the radial distance of the cell/particle, and $M(r)$ is the total m
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["POS ", "MASS"].
@@ -791,7 +791,7 @@ function computeVcirc(
     component::Symbol,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Velocity}}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeVcirc: `component` can only be one of the elements of \
         `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -864,7 +864,7 @@ in order to distinguish between inflows ($v^*_z < 0$) and outflows ($v^*_z > 0$)
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
       + `cell/particle type` => ["POS ", "VEL "].
@@ -885,7 +885,7 @@ function computeVpolar(
     vel_type::Symbol,
 )::Vector{<:Unitful.Velocity}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeVpolar: `component` can only be one of the elements of \
         `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -916,7 +916,7 @@ Compute the specific angular momentum in the z direction with respect to the ori
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
       + `cell/particle type` => ["POS ", "VEL "].
@@ -932,7 +932,7 @@ function computeSpecificAngularMomentum(
     component::Symbol,
 )::Vector{<:Unitful.KinematicViscosity}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeSpecificAngularMomentum: `component` can only be one of the \
         elements of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -963,7 +963,7 @@ Compute the angular momentum in the z direction with respect to the origin, for 
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
@@ -978,7 +978,7 @@ function computeAngularMomentum(
     component::Symbol,
 )::Vector{<:AngularMomentum}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeAngularMomentum: `component` can only be one of the elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -1007,7 +1007,7 @@ Compute the total angular momentum of the system, with respect to the origin
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
@@ -1080,7 +1080,7 @@ is the circular velocity.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
@@ -1105,7 +1105,7 @@ function computeSpinParameter(
     R::Unitful.Length=DISK_R[],
 )::Float64
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeSpinParameter: `component` can only be one of the elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -1162,7 +1162,7 @@ is the circular velocity.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["POS ", "VEL ", "MASS"].
@@ -1223,7 +1223,7 @@ where $r$ is the radial distance of the particle, and $M(r)$ is the total mass w
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["VEL ", "POS ", "MASS"].

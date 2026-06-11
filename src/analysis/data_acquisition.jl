@@ -1031,7 +1031,7 @@ Find which cell/particle types are part of the keys of `data_dict`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
 
 # Returns
 
@@ -1101,7 +1101,7 @@ Find which group catalog data types are part of the keys of `data_dict`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
 
 # Returns
 

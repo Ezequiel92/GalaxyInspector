@@ -99,7 +99,6 @@ end
 """
     computePARotationMatrix(
         positions::Matrix{<:Unitful.Length},
-        velocities::Matrix{<:Unitful.Velocity},
         masses::Vector{<:Unitful.Mass},
     )::Union{Matrix{Float64},UniformScaling{Bool}}
 
@@ -108,7 +107,6 @@ Compute the rotation matrix that will turn the principal axis into the new coord
 # Arguments
 
   - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
-  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
 
 # Returns
@@ -117,7 +115,6 @@ Compute the rotation matrix that will turn the principal axis into the new coord
 """
 function computePARotationMatrix(
     positions::Matrix{<:Unitful.Length},
-    velocities::Matrix{<:Unitful.Velocity},
     masses::Vector{<:Unitful.Mass},
 )::Union{Matrix{Float64},UniformScaling{Bool}}
 
@@ -135,18 +132,13 @@ function computePARotationMatrix(
     M_tot = sum(mass)
 
     # ==========================================================================
-    # Compute the mass-weighted covariance matrix (Inertia tensor)
-    # https://en.wikipedia.org/wiki/Moment_of_inertia#Inertia_tensor
+    # Compute the mass-weighted second-moment tensor
     # ==========================================================================
-    # We compute the mass-weighted covariance matrix, which is physically
-    # equivalent to the moment of inertia tensor (up to a trace subtraction,
-    # though both share the same principal axes).
+    # This tensor shares the same eigenvectors as the inertia tensor and
+    # therefore defines the same principal axes.
     #
     # Let X be the 3×N position matrix and M be a diagonal matrix of masses,
-    # we are calculating R = (X * M * X') / M_tot.
-    #
-    # Each element R[j,k] represents the mass-weighted covariance between
-    # dimension j and dimension k:
+    # we are calculating R = (X * M * X') / M_tot:
     #
     #   R_jk = [ Σ (M_i * X_ji * X_ki) ] / Σ M_i
     #
@@ -158,65 +150,40 @@ function computePARotationMatrix(
     #     compression. For disc galaxies, this is the symmetry axis.
     # ==========================================================================
     R = zeros(Float64, 3, 3)
+
     @inbounds for i in 1:N
         for row in 1:3, col in 1:3
             R[row, col] += mass[i] * pos[row, i] * pos[col, i]
         end
     end
+
     R ./= M_tot
 
-    # Compute the eigenvectors of the covariance matrix
-    # eigen() returns ascending eigenvalues: E[:,1] is the minor axis, E[:,3] is the major axis
-    E = eigen(R).vectors
-
-    # Reverse the order of the eigenvectors, making the last column the eigenvector
-    # with the lowest eigenvalue, which should correspond to the new z axis
-    pa = hcat(E[:, 3], E[:, 2], E[:, 1])
-
-    # Compute the total angular momentum
-    L = computeTotalAngularMomentum(positions, velocities, masses; normal=true)
-
-    # 3rd principal axis ≡ new z axis
-    pa_z = pa[:, 3]
-
-    # Align principal z-axis with the angular momentum
-    # L and pa_z are both normalized so dot(L, pa_z) = cos(θ)
-    cos_θ = dot(L, pa_z)
-
-    # Check for anti-parallel alignment
-    if cos_θ < -0.999999
-        # Flip the z-axis and y-axis to maintain right-handedness
-        pa[:, 3] = -pa[:, 3]
-        pa[:, 2] = -pa[:, 2]
-        aligned_pa = pa
-    else
-        θ = acos(clamp(cos_θ, -1.0, 1.0))
-        n_cross = cross(pa_z, L)
-        n_norm = norm(n_cross)
-
-        # We still must normalize n_cross because its length is sin(θ), not 1
-        if n_norm < 1e-8
-            aligned_pa = pa
-        else
-            n = n_cross ./ n_norm
-            aligned_pa = AngleAxis(θ, n...) * pa
-        end
-    end
+    # ==========================================================================
+    # Principal axes
+    # ==========================================================================
+    # Eigenvalues sorted in descending order:
+    #
+    #   λ₁ -> Major axis
+    #   λ₂ -> Intermediate axis
+    #   λ₃ -> Minor axis
+    # ==========================================================================
+    pa = eigen(R; sortby=λ -> -λ).vectors
 
     # The rotation matrix has the principal axis as rows
-    rotation_matrix = aligned_pa'
+    rotation_matrix = Matrix(transpose(pa))
 
     # Handedness check
     if det(rotation_matrix) < 0.0
         # If the determinant is < 0, that means that the chosen principal axis for the x and y
         # directions form a left-handed Cartesian reference system (x × y = -z). When applying
-        # this as a rotation, the z axis will be flipped. So, in this case we swap the x and y
-        # axis to get a right-handed Cartesian reference system (x × y = z) and generate the
+        # this as a rotation, the z axis will be flipped. So, in this case we flip the y axis
+        # to get a right-handed Cartesian reference system (x × y = z) and generate the
         # correct rotation
-        rotation_matrix[[1, 2], :] = rotation_matrix[[2, 1], :]
+        rotation_matrix[2, :] .*= -1.0
     end
 
-    return Matrix(rotation_matrix)
+    return rotation_matrix
 
 end
 
@@ -231,7 +198,7 @@ Compute the center of mass of `component`.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["POS ", "MASS"]
@@ -299,7 +266,7 @@ Return the 3D position of the potential minimum for a halo or subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:group`   => ["G\_Nsubs", "G\_Pos"]
@@ -396,7 +363,7 @@ Return the 3D position of the potential minimum for a given subhalo.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:subhalo` => ["S\_Pos"]
@@ -442,7 +409,7 @@ Compute a characteristic center of mass for the system.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `cm_type`:
 
       + If `cm_type` == `:all`:
@@ -476,7 +443,7 @@ Compute the projected distance of each cell/particle to the origin, in the xy pl
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
       + `cell/particle type` => ["POS "].
@@ -488,7 +455,7 @@ Compute the projected distance of each cell/particle to the origin, in the xy pl
 """
 function computeXYDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Length}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeXYDistance: `component` can only be one of the elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -523,7 +490,7 @@ Compute the distance of each cell/particle to the origin.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for the cell/particle type corresponding to `component`:
 
       + `cell/particle type` => ["POS "].
@@ -535,7 +502,7 @@ Compute the distance of each cell/particle to the origin.
 """
 function computeRadialDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Length}
 
-    if component ∉ COMPONENTS
+    if component ∉ keys(COMPONENTS)
         throw(ArgumentError("computeRadialDistance: `component` can only be one of the elements \
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
@@ -576,7 +543,7 @@ For stars with no halo, an index of -1 is given.
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:group`   => ["G\_LenType"]
@@ -649,7 +616,7 @@ For stars with no halo or subhalo, an index of -1 is given. The subhalo index is
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:group`   => ["G\_Nsubs", "G\_LenType"]
@@ -833,7 +800,7 @@ For stars with no halo or subhalo, an index of -1 is given. The subhalo index is
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present:
 
       + `:stellar` => ["GAGE", "ID  "]
@@ -1008,7 +975,7 @@ Compute the rotation matrix that will turn the angular momentum of `component` i
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["POS ", "MASS", "VEL "]
@@ -1088,7 +1055,7 @@ Compute the rotation matrix that will turn the principal axis of `component` int
 
 # Arguments
 
-  - `data_dict::Dict`: Data dictionary (see [`makeDataDict`](@ref) for the canonical description).
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
 
       + `cell/particle type` => ["POS ", "MASS", "VEL "]
@@ -1110,26 +1077,18 @@ function computePARotationMatrix(
 
         snap_types = snapshotTypes(data_dict)
 
-        # Remove components with no position, velocity or mass data
+        # Remove components with no position or mass data
         filter!(st -> !isempty(data_dict[st]["POS "]), snap_types)
-        filter!(st -> !isempty(data_dict[st]["VEL "]), snap_types)
         filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
 
-        # Concatenate the position, velocities, and masses of all the cells and particles in the system
-        positions  = mapreduce(st -> data_dict[st]["POS "], hcat, snap_types)
-        velocities = mapreduce(st -> data_dict[st]["VEL "], hcat, snap_types)
-        masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
+        # Concatenate the position and masses of all the cells and particles in the system
+        positions = mapreduce(st -> data_dict[st]["POS "], hcat, snap_types)
+        masses    = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
 
-        (
-            LOGGING[] &&
-            @info("computePARotationMatrix: The angular momentum will be computed using \
-            $(snap_types)")
-        )
-
-        if any(isempty, [positions, velocities, masses])
+        if any(isempty, [positions, masses])
             (
                 LOGGING[] &&
-                @info("computePARotationMatrix: The positions, masses or velocities are empty. \
+                @info("computePARotationMatrix: The positions or masses are empty. \
                 I will return the identity matrix")
             )
             return I
@@ -1137,14 +1096,13 @@ function computePARotationMatrix(
 
     elseif component ∈ snapshotTypes(data_dict)
 
-        positions  = data_dict[component]["POS "]
-        velocities = data_dict[component]["VEL "]
-        masses     = data_dict[component]["MASS"]
+        positions = data_dict[component]["POS "]
+        masses    = data_dict[component]["MASS"]
 
-        if any(isempty, [positions, velocities, masses])
+        if any(isempty, [positions, masses])
             (
                 LOGGING[] &&
-                @info("computePARotationMatrix: The positions, masses or velocities for component \
+                @info("computePARotationMatrix: The positions or masses for component \
                 :$(component) are empty. I will return the identity matrix")
             )
             return I
@@ -1157,6 +1115,6 @@ function computePARotationMatrix(
 
     end
 
-    return computePARotationMatrix(positions, velocities, masses)
+    return computePARotationMatrix(positions, masses)
 
 end

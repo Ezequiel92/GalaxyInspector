@@ -75,10 +75,10 @@ Some of the features are:
   - `y_edges::Bool=false`: Set it to `true` if you want to keep the borders of `y_trim`.
   - `x_scale_func::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity. The data will be trimmed down to fit within the domain of `x_scale_func`.
   - `y_scale_func::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity. The data will be trimmed down to fit within the domain of `y_scale_func`.
-  - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_var_name` [10^`x_exp_factor` `x_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
-  - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` [10^`y_exp_factor` `y_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
-  - `xaxis_var_name::AbstractString="x"`: Name of the variable for the x axis.
-  - `yaxis_var_name::AbstractString="y"`: Name of the variable for the y axis.
+  - `xaxis_qty_label::AbstractString="x"`: Name of the variable for the x axis.
+  - `yaxis_qty_label::AbstractString="y"`: Name of the variable for the y axis.
+  - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_qty_label` [10^`x_exp_factor` `x_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
+  - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_qty_label` [10^`y_exp_factor` `y_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
 
 ### Plotting options
 
@@ -135,10 +135,10 @@ function plotSnapshot(
     y_edges::Bool=false,
     x_scale_func::Function=identity,
     y_scale_func::Function=identity,
+    xaxis_qty_label::AbstractString="x",
+    yaxis_qty_label::AbstractString="y",
     xaxis_label::AbstractString="auto_label",
     yaxis_label::AbstractString="auto_label",
-    xaxis_var_name::AbstractString="x",
-    yaxis_var_name::AbstractString="y",
     # Plotting optionsplotSnapshot
     save_figures::Bool=true,
     backup_results::Bool=false,
@@ -204,10 +204,10 @@ function plotSnapshot(
 
         # Create the labels
         xlabel = LaTeXString(
-            replace(xaxis_label, "auto_label" => getLabel(xaxis_var_name, x_exp_factor, x_unit)),
+            replace(xaxis_label, "auto_label" => getLabel(xaxis_qty_label, x_exp_factor, x_unit)),
         )
         ylabel = LaTeXString(
-            replace(yaxis_label, "auto_label" => getLabel(yaxis_var_name, y_exp_factor, y_unit)),
+            replace(yaxis_label, "auto_label" => getLabel(yaxis_qty_label, y_exp_factor, y_unit)),
         )
 
         # Create the axes
@@ -595,31 +595,31 @@ function plotSnapshot(
                         time_stamp = round(p_t; sigdigits=3)
                     end
 
-                    axes.title = L"lt = %$rpad(time_stamp, 4, '0')) \, \text{Gyr}"
+                    axes.title = L"lt = %$(rpad(time_stamp, 4, '0')) \, \text{Gyr}"
 
                 elseif title == :redshift
 
                     z_t = time_row[1, :redshifts]
 
-                    if p_t < 1.0
+                    if z_t < 1.0
                         time_stamp = round(z_t; digits=2)
                     else
                         time_stamp = round(z_t; sigdigits=3)
                     end
 
-                    axes.title = L"z = \mathrm{%$rpad(time_stamp, 4, '0'))}"
+                    axes.title = L"z = %$(rpad(time_stamp, 4, '0'))"
 
                 elseif title == :scale_factor
 
                     a_t = time_row[1, :scale_factors]
 
-                    if p_t < 1.0
+                    if a_t < 1.0
                         time_stamp = round(a_t; digits=2)
                     else
                         time_stamp = round(a_t; sigdigits=3)
                     end
 
-                    axes.title = L"a = \mathrm{%$rpad(time_stamp, 4, '0'))}"
+                    axes.title = L"a = %$(rpad(time_stamp, 4, '0'))"
 
                 else
 
@@ -781,10 +781,10 @@ Some of the features are:
   - `y_edges::Bool=false`: Set it to `true` if you want to keep the borders of `y_trim`.
   - `x_scale_func::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity. The data will be trimmed down to fit within the domain of `x_scale_func`.
   - `y_scale_func::Function=identity`: Scaling function for the y axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity. The data will be trimmed down to fit within the domain of `y_scale_func`.
-  - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_var_name` [10^`x_exp_factor` `x_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
-  - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_var_name` [10^`y_exp_factor` `y_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
-  - `xaxis_var_name::AbstractString="x"`: Name of the variable for the x axis.
-  - `yaxis_var_name::AbstractString="y"`: Name of the variable for the y axis.
+  - `xaxis_qty_label::AbstractString="x"`: Name of the variable for the x axis.
+  - `yaxis_qty_label::AbstractString="y"`: Name of the variable for the y axis.
+  - `xaxis_label::AbstractString="auto_label"`: Label for the x axis. It can contain the string `auto_label`, which will be replaced by: `xaxis_qty_label` [10^`x_exp_factor` `x_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
+  - `yaxis_label::AbstractString="auto_label"`: Label for the y axis. It can contain the string `auto_label`, which will be replaced by: `yaxis_qty_label` [10^`y_exp_factor` `y_unit`]. If a LaTeXString with `auto_label` inside is used, it is recommended that each section around `auto_label` is delimited with a `\$ \$` pair.
 
 ### Plotting options
 
@@ -826,10 +826,10 @@ function plotTimeSeries(
     y_edges::Bool=false,
     x_scale_func::Function=identity,
     y_scale_func::Function=identity,
+    xaxis_qty_label::AbstractString="x",
+    yaxis_qty_label::AbstractString="y",
     xaxis_label::AbstractString="auto_label",
     yaxis_label::AbstractString="auto_label",
-    xaxis_var_name::AbstractString="x",
-    yaxis_var_name::AbstractString="y",
     # Plotting options
     save_figures::Bool=true,
     backup_results::Bool=false,
@@ -862,10 +862,10 @@ function plotTimeSeries(
 
         # Create the labels
         xlabel = LaTeXString(
-            replace(xaxis_label, "auto_label" => getLabel(xaxis_var_name, x_exp_factor, x_unit)),
+            replace(xaxis_label, "auto_label" => getLabel(xaxis_qty_label, x_exp_factor, x_unit)),
         )
         ylabel = LaTeXString(
-            replace(yaxis_label, "auto_label" => getLabel(yaxis_var_name, y_exp_factor, y_unit)),
+            replace(yaxis_label, "auto_label" => getLabel(yaxis_qty_label, y_exp_factor, y_unit)),
         )
 
         # Create the axes
