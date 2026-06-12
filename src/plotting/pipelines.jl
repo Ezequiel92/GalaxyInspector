@@ -449,14 +449,11 @@ function plotSnapshot(
                 # Apply a smoothing window
                 ####################################################################################
 
-                if length(axis_data) > 1 && !iszero(smooth)
-                    axis_data[1], axis_data[2] = smoothWindow(
-                        axis_data[1],
-                        axis_data[2],
-                        smooth;
-                        scaling=x_scale_func,
-                    )
-                end
+                axis_data[1], axis_data[2] = smoothMovingWindow(
+                    axis_data[1],
+                    axis_data[2];
+                    window_radius=smooth,
+                )
 
             end
 

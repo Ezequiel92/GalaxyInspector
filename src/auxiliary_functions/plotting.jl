@@ -1412,31 +1412,30 @@ function sanitizeData!(
 end
 
 """
-    smoothWindow(
+    smoothMovingWindow(
         x_data::Vector{<:Number},
-        y_data::Vector{<:Number},
-        n_bins::Int;
+        y_data::Vector{<:Number};
         <keyword arguments>
     )::NTuple{2,Vector{<:Number}}
 
-Separate the values of `x_data` in `n_bins` bins and compute the mean value of `x_data` and `y_data` within each one.
+Smooth data using a central moving window of a fixed number of points, moving one point at a time. The output vectors retain the exact same length as the input vectors.
 
 # Arguments
 
   - `x_data::Vector{<:Number}`: x-axis data.
   - `y_data::Vector{<:Number}`: y-axis data.
-  - `n_bins::Int`: Number of bins.
-  - `scaling::Function=identity`: Scaling function for the x axis. The options are the scaling functions accepted by [Makie](https://docs.makie.org/stable/): log10, log2, log, sqrt, Makie.logit, Makie.Symlog10, Makie.pseudolog10, and identity. All the values of `x_data` must be in the domain of `scaling`.
+  - `window_radius::Int=0`: Number of points to gather to the left and to the right of the center point. A value of 0 bypasses calculations and returns the original data.
+  - `agg::Function=mean`: The aggregation function applied to the points inside the window (e.g., `mean`, `median`).
 
 # Returns
 
   - A tuple with two vectors, containing the smoothed-out x and y values.
 """
-function smoothWindow(
+function smoothMovingWindow(
     x_data::Vector{<:Number},
-    y_data::Vector{<:Number},
-    n_bins::Int;
-    scaling::Function=identity,
+    y_data::Vector{<:Number};
+    window_radius::Int=0,
+    agg::Function=mean,
 )::NTuple{2,Vector{<:Number}}
 
     # Check that the input vectors have the same length
@@ -1446,14 +1445,61 @@ function smoothWindow(
         but I got length(`x_data`) = $(length(x_data)) != length(`y_data`) = $(length(y_data))"))
     )
 
-    positions = scaling.(ustrip(x_data))
-    grid = LinearGrid(extrema(positions)..., n_bins)
+    if window_radius <= 0
+        return x_data, y_data
+    end
 
-    smooth_x_data = histogram1D(positions, x_data, grid; total=false)
-    smooth_y_data = histogram1D(positions, y_data, grid; total=false)
+    n = length(x_data)
 
-    # Remove empty bins
-    return filter!(!isnan, smooth_x_data), filter!(!isnan, smooth_y_data)
+    # Handle cases where the dataset is smaller than or equal to the window footprint
+    # by chossing the largest window possible, if 0, return the array unchanged
+    if n <= 2 * window_radius + 1
+
+        new_radius = max(0, (n - 1) ÷ 2)
+
+        (
+            LOGGING[] ||
+            @warn("smoothMovingWindow: The chosen window of radius $(window_radius) is too large \
+            for the dataset of length $(n), I will use a window of radius $(new_radius)")
+        )
+
+        if new_radius == 0
+            return x_data, y_data
+        else
+            window_radius = new_radius
+        end
+
+    end
+
+    smooth_x = Vector{runtimeType(x_data)}(undef, n)
+    smooth_y = Vector{runtimeType(y_data)}(undef, n)
+
+    # Sort based on x-axis positions to ensure true neighborhood order
+    perm     = sortperm(x_data)
+    sorted_x = x_data[perm]
+    sorted_y = y_data[perm]
+
+    for i in 1:n
+        # Enforce boundary truncation: shrink window near the edges to keep it symmetric
+        local_radius = min(window_radius, i - 1, n - i)
+
+        if local_radius == 0
+
+            # Edge points that cannot be smoothed symmetrically remain unchanged
+            smooth_x[i] = sorted_x[i]
+            smooth_y[i] = sorted_y[i]
+
+        else
+
+            window_range = (i - local_radius):(i + local_radius)
+
+            smooth_x[i] = agg(view(sorted_x, window_range))
+            smooth_y[i] = agg(view(sorted_y, window_range))
+
+        end
+    end
+
+    return smooth_x, smooth_y
 
 end
 

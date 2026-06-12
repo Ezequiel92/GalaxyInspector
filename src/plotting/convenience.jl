@@ -1006,9 +1006,6 @@ function rotationCurve(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    # Smooth out the curve with 5 bins per kpc
-    smooth = round(Int64, 5 * ustrip(u"kpc", R))
-
     if isone(length(simulation_paths))
         base_filename = "$(basename(simulation_paths[1]))_rotation_curve"
     else
@@ -1028,7 +1025,7 @@ function rotationCurve(
         filter_function,
         da_functions=[daRotationCurve],
         da_kwargs=[(; R, filter_function=extra_filter)],
-        smooth,
+        smooth=2,
         x_unit=x_plot_params.unit,
         y_unit=y_plot_params.unit,
         x_exp_factor=x_plot_params.exp_factor,

@@ -2506,7 +2506,7 @@ Compute the time series of two quantities, using the provided integration functi
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
-  - `smooth::Int=0`: The result of `integration_functions` will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result of `integration_functions` will be smoothed out using bins of `smooth` radius. Set it to 0 if you want no smoothing. See [`smoothMovingWindow`](@ref).
   - `cumulative::Bool=false`: If the `y_quantity` will be accumulated or not.
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
@@ -2640,11 +2640,7 @@ function daEvolution(
     x_axis = isnothing(x_log) ? x_values : log10.(ustrip.(x_log, x_values))
     y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
 
-    if iszero(smooth)
-        return x_axis, y_axis
-    else
-        return smoothWindow(x_axis, y_axis, smooth)
-    end
+    return smoothMovingWindow(x_axis, y_axis; window_radius=smooth)
 
 end
 
@@ -2671,7 +2667,7 @@ Compute the stellar mass or SFR evolution using the data in the `sfr.txt` file.
 
       + `:stellar_mass` -> Cumulative stellar mass.
       + `:sfr`          -> Star formation rate.
-  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result of `integration_functions` will be smoothed out using bins of `smooth` radius. Set it to 0 if you want no smoothing. See [`smoothMovingWindow`](@ref).
 
 # Returns
 
@@ -2778,12 +2774,7 @@ function daSFRtxt(
 
     end
 
-    # Apply smoothing if required
-    if !iszero(smooth)
-        x_axis, y_axis = smoothWindow(x_axis, y_axis, smooth)
-    end
-
-    return x_axis, y_axis
+    return smoothMovingWindow(x_axis, y_axis; window_radius=smooth)
 
 end
 
@@ -2819,7 +2810,7 @@ Compute the evolution of a measured quantity in the `cpu.txt` file, for a given 
       + `:tot_clock_time_s`       -> Total clock time in seconds.
       + `:tot_clock_time_percent` -> Total clock time as a percentage.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from `cpu.txt` is left as is.
-  - `smooth::Int=0`: The result will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result of `integration_functions` will be smoothed out using bins of `smooth` radius. Set it to 0 if you want no smoothing. See [`smoothMovingWindow`](@ref).
 
 # Returns
 
@@ -2939,12 +2930,7 @@ function daCPUtxt(
 
     y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
 
-    # Apply smoothing if required
-    if !iszero(smooth)
-        x_axis, y_axis = smoothWindow(x_axis, y_axis, smooth)
-    end
-
-    return x_axis, y_axis
+    return smoothMovingWindow(x_axis, y_axis; window_radius=smooth)
 
 end
 
@@ -2978,7 +2964,7 @@ Compute the evolution of the accreted mass into a sphere with the virial radius.
       + `:tracers`   -> Use tracers to compute the mass flux.
       + `:particles` -> Use the particles/cells directly to compute the mass flux.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeVirialAccretion`](@ref) is left as is.
-  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result of `integration_functions` will be smoothed out using bins of `smooth` radius. Set it to 0 if you want no smoothing. See [`smoothMovingWindow`](@ref).
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
 # Returns
@@ -3198,11 +3184,7 @@ function daVirialAccretion(
 
     y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
 
-    if iszero(smooth)
-        return x_axis, y_axis
-    else
-        return smoothWindow(x_axis, y_axis, smooth)
-    end
+    return smoothMovingWindow(x_axis, y_axis; window_radius=smooth)
 
 end
 
@@ -3238,7 +3220,7 @@ Compute the evolution of the accreted mass into a given galactic disc.
       + `:tracers`   -> Use tracers to compute the mass flux.
       + `:particles` -> Use the particles/cells directly to compute the mass flux.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for integrated mass flux, if you want to apply ``\\log_{10}`` to it. If set to `nothing`, the data from [`computeDiskAccretion`](@ref) is left as is.
-  - `smooth::Int=0`: The time series will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
+  - `smooth::Int=0`: The result of `integration_functions` will be smoothed out using bins of `smooth` radius. Set it to 0 if you want no smoothing. See [`smoothMovingWindow`](@ref).
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
 # Returns
@@ -3479,11 +3461,7 @@ function daDiskAccretion(
 
     y_axis = isnothing(y_log) ? y_values : log10.(ustrip.(y_log, y_values))
 
-    if iszero(smooth)
-        return x_axis, y_axis
-    else
-        return smoothWindow(x_axis, y_axis, smooth)
-    end
+    return smoothMovingWindow(x_axis, y_axis; window_radius=smooth)
 
 end
 
