@@ -137,6 +137,7 @@ export molecularFractionEvolution
 export evolutionVideo
 export SDSSMockup
 export snapshotReport
+export compareGiannetti2017
 export simulationReport
 export quantityReport
 

@@ -329,6 +329,33 @@ M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formati
 """
 const SFR_RANGE_QUEREJETA2021 = exp10.([-4.0, 0.0]) .* u"Msun * yr^-1 * kpc^-2"
 
+##########################
+# Giannetti et al. (2017)
+##########################
+
+@doc raw"""
+Best fit for the gas-to-dust ratio vs. galactocentric distance, from Giannetti et al. (2017) (Section 3, Equation 2).
+
+```math
+\log_{10} \, \gamma = A \, R_\text{GC} + B \, ,
+```
+
+# References
+
+A. Giannetti et al. (2017). *Galactocentric variation of the gas-to-dust ratio and its relation with metallicity*. Astronomy and Astrophysics, **606**, L12. [doi:10.1051/0004-6361/201731728](https://doi.org/10.1051/0004-6361/201731728)
+"""
+const A_GIANNETTI2017 = 0.087u"kpc^-1"
+const B_GIANNETTI2017 = 1.44
+
+@doc raw"""
+Range of values for the galactocentric distances in Figure 4 and Table A.1 of Giannetti et al. (2017).
+
+# References
+
+A. Giannetti et al. (2017). *Galactocentric variation of the gas-to-dust ratio and its relation with metallicity*. Astronomy and Astrophysics, **606**, L12. [doi:10.1051/0004-6361/201731728](https://doi.org/10.1051/0004-6361/201731728)
+"""
+const RGC_RANGE_GIANNETTI2017 = [2.0, 20.3] .* u"kpc"
+
 ####################
 # Sun et al. (2023)
 ####################

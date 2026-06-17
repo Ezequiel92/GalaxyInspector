@@ -7592,6 +7592,120 @@ function SDSSMockup(
 
 end
 
+
+
+"""
+    compareGiannetti2017(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot a radial profile.
+
+!!! note
+
+    This method plots one quantity for several simulations in one figure.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+"""
+function compareGiannetti2017(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    title::Union{Symbol,<:AbstractString}="",
+    theme::Attributes=Theme(),
+)::Nothing
+
+    plot_params = QTY_REGISTRY[:gas_mass]
+
+    # Compute the unit and request of the norm
+    n_plot_params = QTY_REGISTRY[:ode_dust_mass]
+    u_norm        = n_plot_params.unit
+    norm_request  = n_plot_params.request
+
+    base_request = mergeRequests(
+        plot_params.request,
+        norm_request,
+        ff_request,
+        Dict(plot_params.cp_type=>["POS "]),
+    )
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    grid = LinearGrid(0.0u"kpc", 20.0u"kpc", 80)
+
+    if isone(length(simulation_paths))
+        base_filename = "$(basename(simulation_paths[1]))_Giannetti2017_radial_profile"
+    else
+        base_filename = "Giannetti2017_radial_profile"
+    end
+
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [lines!];
+        output_path,
+        base_filename,
+        slice,
+        transform_box=true,
+        translation,
+        rotation,
+        filter_function,
+        da_functions=[daProfile],
+        da_args=[(:gas_mass, grid)],
+        da_kwargs=[
+            (;
+                norm=:ode_dust_mass,
+                y_log=plot_params.unit / u_norm,
+                filter_function=extra_filter),
+        ],
+        post_processing=ppGiannetti2017!,
+        x_unit=u"kpc",
+        yaxis_label=L"\log_{10} \, \gamma",
+        xaxis_qty_label=L"r",
+        theme=merge(
+            theme,
+            Theme(
+                size=(1200, 880),
+                Axis=(
+                    aspect=nothing,
+                    xticks=0:2:20,
+                    yticks=1.0:0.5:4.0,
+                    limits=(nothing, nothing, 0.8, 4.2),
+                ),
+            ),
+        ),
+        sim_labels,
+        title,
+    )
+
+    return nothing
+
+end
+
 """
     simulationReport(simulation_paths::Vector{String}; <keyword arguments>)::Nothing
 

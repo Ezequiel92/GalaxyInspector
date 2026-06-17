@@ -575,8 +575,8 @@ function ppFitLine!(
         color,
     )
 
+    translate!(Accum, lp, 0, 0, -9)
     translate!(Accum, bp, 0, 0, -10)
-    translate!(Accum, lp, 0, 0, -10)
 
     ################################################################################################
     # Annotation
@@ -780,8 +780,8 @@ function ppKennicutt1998!(
         lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
 
         # Put the post processing elements at the back of the plot
+        translate!(Accum, lp, 0, 0, -9)
         translate!(Accum, bp, 0, 0, -10)
-        translate!(Accum, lp, 0, 0, -10)
 
     end
 
@@ -942,8 +942,8 @@ function ppBigiel2008!(
         lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
 
         # Put the post processing elements at the back of the plot
+        translate!(Accum, lp, 0, 0, -9)
         translate!(Accum, bp, 0, 0, -10)
-        translate!(Accum, lp, 0, 0, -10)
 
     end
 
@@ -1101,8 +1101,8 @@ function ppCologni2026!(
         lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
 
         # Put the post processing elements at the back of the plot
+        translate!(Accum, lp, 0, 0, -9)
         translate!(Accum, bp, 0, 0, -10)
-        translate!(Accum, lp, 0, 0, -10)
 
     end
 
@@ -1260,8 +1260,8 @@ function ppLin2019!(
         lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
 
         # Put the post processing elements at the back of the plot
+        translate!(Accum, lp, 0, 0, -9)
         translate!(Accum, bp, 0, 0, -10)
-        translate!(Accum, lp, 0, 0, -10)
 
     end
 
@@ -1419,8 +1419,8 @@ function ppQuerejeta2021!(
         lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
 
         # Put the post processing elements at the back of the plot
+        translate!(Accum, lp, 0, 0, -9)
         translate!(Accum, bp, 0, 0, -10)
-        translate!(Accum, lp, 0, 0, -10)
 
     end
 
@@ -1974,7 +1974,7 @@ function ppLeroy2008!(
             markersize=10,
         )
 
-        translate!(Accum, sp, 0, 0, -10)
+        translate!(Accum, sp, 0, 0, -9)
 
         if error_bars
 
@@ -2287,8 +2287,7 @@ function ppMolla2015!(
         marker,
     )
 
-    translate!(Accum, slp, 0, 0, -10)
-
+    translate!(Accum, slp, 0, 0, -9)
     if error_bars
         # Plot the error bars
         ep = errorbars!(figure.current_axis.x, x_values, y_values, y_uncertainties; color)
@@ -2420,7 +2419,7 @@ function ppAgertz2021!(
             sp = scatter!(figure.current_axis.x, x_data, y_data; color=(color, 0.4))
 
             # Put the post processing elements at the back of the plot
-            translate!(Accum, sp, 0, 0, -10)
+            translate!(Accum, sp, 0, 0, -9)
 
             legend_elements[i] = MarkerElement(; color, marker=:circle)
             labels[i] = "Agertz et al. (2021)"
@@ -2440,10 +2439,10 @@ function ppAgertz2021!(
             lp = lines!(figure.current_axis.x, x_data, y_data; color, linestyle, linewidth)
 
             # Put the post processing elements at the back of the plot
+            translate!(Accum, lp, 0, 0, -9)
             if error_band
                 translate!(Accum, bp, 0, 0, -10)
             end
-            translate!(Accum, lp, 0, 0, -10)
 
             legend_elements[i] = LineElement(; color, linestyle, linewidth)
             labels[i] = "$(galaxy) - Agertz et al. (2021)"
@@ -2736,11 +2735,11 @@ function ppFeldmann2020!(
     bp2l = band!(figure.current_axis.x, x_axis, ylower_2σ, ylower_1σ; color=WONG_ORANGE)
 
     # Put the post processing elements at the back of the plot
+    translate!(Accum, lp, 0, 0, -9)
     translate!(Accum, bp1, 0, 0, -10)
     translate!(Accum, bp2u, 0, 0, -10)
     translate!(Accum, bp2l, 0, 0, -10)
-    translate!(Accum, lp, 0, 0, -10)
-
+    0
     return (
         [PolyElement(; color=(WONG_RED, 0.5)), PolyElement(; color=(WONG_ORANGE, 0.5))],
         [
@@ -2825,5 +2824,115 @@ function ppLee2016!(
         ],
         ["Lee et al. (2016)"],
     )
+
+end
+
+"""
+    ppGiannetti2017!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+Draw a line plot with the fit for the gas-to-dust ratio (``\\gamma``) profile from Giannetti et al. (2017).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `x_unit::Unitful.Units=u"kpc"`: Unit for the galactocentric distance used in `figure`.
+  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\gamma)`` (`y_log` = true) or just ``\\gamma`` (`y_log` = false).
+  - `color::ColorType=WONG_RED`: Color for the line.
+  - `linestyles::Vector{<:LineStyleType}=[:solid, :dash],`: Styles for the lines. The first style will indicate the range for which there are experimental data, and the second one will be for the extrapolation.
+  - `linewidth::Int=3`: Line width.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `LineElement` to be used as the marker.
+      + The label.
+
+# References
+
+A. Giannetti et al. (2017). *Galactocentric variation of the gas-to-dust ratio and its relation with metallicity*. Astronomy and Astrophysics, **606**, L12. [doi:10.1051/0004-6361/201731728](https://doi.org/10.1051/0004-6361/201731728)
+"""
+function ppGiannetti2017!(
+    figure::Makie.Figure;
+    x_unit::Unitful.Units=u"kpc",
+    y_log::Bool=true,
+    color::ColorType=WONG_RED,
+    linestyles::Vector{<:LineStyleType}=[:solid, :dash],
+    linewidth::Int=3,
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+    # Read the data points in the plot
+    points = pointData(figure)
+
+    if isempty(points)
+        LOGGING[] && @warn("ppGiannetti2017!: There are no points in the figure")
+        return nothing
+    end
+
+    # Get the extrema of the x coordinates
+    x_limits = [extrema(Float64[point[1] for point in points])...]
+
+    ################################################################################################
+    # Range of RGC in Giannetti et al. (2017)
+    ################################################################################################
+
+    # Set the correct unit for the range of experimental values
+    giannetti_range = ustrip.(x_unit, RGC_RANGE_GIANNETTI2017)
+
+    # Set the main x range to be plotted
+    x_ranges = [giannetti_range]
+
+    # If there is extrapolation add new ranges
+    if x_limits[2] > giannetti_range[2]
+        push!(x_ranges, [giannetti_range[2], x_limits[2]])
+    end
+    if x_limits[1] < giannetti_range[1]
+        push!(x_ranges, [x_limits[1], giannetti_range[1]])
+    end
+
+    ################################################################################################
+    # Plot the fit from Giannetti et al. (2017)
+    ################################################################################################
+
+    for (x_zone, linestyle) in zip(x_ranges, [linestyles..., linestyles[2]])
+
+        # Compute the values for the x axis
+        x_axis = collect(range(x_zone[1], x_zone[2], 5))
+
+        slope = ustrip(x_unit^-1, A_GIANNETTI2017)
+
+        # Compute the values for the y axis
+        y_points = slope .* x_axis .+ B_GIANNETTI2017
+
+        if y_log
+            y_axis = y_points
+            y_low  = y_axis .- 0.2
+            y_high = y_axis .+ 0.2
+        else
+            y_axis = exp10.(y_points)
+            y_low  = exp10.(y_axis .- 0.2)
+            y_high = exp10.(y_axis .+ 0.2)
+        end
+
+        bp = band!(
+            figure.current_axis.x,
+            x_axis,
+            y_low,
+            y_high;
+            color,
+        )
+
+        lp = lines!(figure.current_axis.x, x_axis, y_axis; color, linestyle, linewidth)
+
+        # Put the post processing elements at the back of the plot
+        translate!(Accum, lp, 0, 0, -9)
+        translate!(Accum, bp, 0, 0, -10)
+
+    end
+
+    return [LineElement(; color, linestyle=linestyles[1], linewidth)], ["Giannetti et al. (2017)"]
 
 end
