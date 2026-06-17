@@ -715,9 +715,9 @@ function ppKennicutt1998!(
 
     # Set the correct unit and scale for the range of experimental values
     if y_log
-        kennicutt_range = log10.(ustrip.(y_unit, KS98_SFR_RANGE))
+        kennicutt_range = log10.(ustrip.(y_unit, SFR_RANGE_KS98))
     else
-        kennicutt_range = ustrip.(y_unit, KS98_SFR_RANGE)
+        kennicutt_range = ustrip.(y_unit, SFR_RANGE_KS98)
     end
 
     # Set the y ranges to be plotted
@@ -877,9 +877,9 @@ function ppBigiel2008!(
 
     # Set the correct unit and scale for the range of experimental values
     if y_log
-        bigiel_range = log10.(ustrip.(y_unit, BIGIEL2008_SFR_RANGE))
+        bigiel_range = log10.(ustrip.(y_unit, SFR_RANGE_BIGIEL2008))
     else
-        bigiel_range = ustrip.(y_unit, BIGIEL2008_SFR_RANGE)
+        bigiel_range = ustrip.(y_unit, SFR_RANGE_BIGIEL2008)
     end
 
     # Set the y ranges to be plotted
@@ -1036,9 +1036,9 @@ function ppCologni2026!(
 
     # Set the correct unit and scale for the range of experimental values
     if y_log
-        cologni_range = log10.(ustrip.(y_unit, COLOGNI2026_SFR_RANGE))
+        cologni_range = log10.(ustrip.(y_unit, SFR_RANGE_COLOGNI2026))
     else
-        cologni_range = ustrip.(y_unit, COLOGNI2026_SFR_RANGE)
+        cologni_range = ustrip.(y_unit, SFR_RANGE_COLOGNI2026)
     end
 
     # Set the y ranges to be plotted
@@ -1195,9 +1195,9 @@ function ppLin2019!(
 
     # Set the correct unit and scale for the range of experimental values
     if y_log
-        lin_range = log10.(ustrip.(y_unit, LIN2019_SFR_RANGE))
+        lin_range = log10.(ustrip.(y_unit, SFR_RANGE_LIN2019))
     else
-        lin_range = ustrip.(y_unit, LIN2019_SFR_RANGE)
+        lin_range = ustrip.(y_unit, SFR_RANGE_LIN2019)
     end
 
     # Set the y ranges to be plotted
@@ -1354,9 +1354,9 @@ function ppQuerejeta2021!(
 
     # Set the correct unit and scale for the range of experimental values
     if y_log
-        querejeta_range = log10.(ustrip.(y_unit, QUEREJETA2021_SFR_RANGE))
+        querejeta_range = log10.(ustrip.(y_unit, SFR_RANGE_QUEREJETA2021))
     else
-        querejeta_range = ustrip.(y_unit, QUEREJETA2021_SFR_RANGE)
+        querejeta_range = ustrip.(y_unit, SFR_RANGE_QUEREJETA2021)
     end
 
     # Set the y ranges to be plotted
@@ -1729,7 +1729,7 @@ function ppSun2023!(
     ################################################################################################
 
     raw_data = CSV.read(
-        SUN2023_TABLE,
+        SUN2023_DATA_PATH,
         DataFrame;
         delim=' ',
         skipto=58,
@@ -2064,7 +2064,7 @@ function ppdelosReyes2019!(
     logSigHI      = Union{Float64}[]
     logSigH2      = Union{Float64}[]
 
-    open(DELOSREYES2019_TABLE, "r") do io
+    open(DELOSREYES2019_DATA_PATH, "r") do io
         for (i, line) in enumerate(eachline(io))
             if i < 152
                 continue

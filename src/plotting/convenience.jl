@@ -2962,7 +2962,7 @@ Plot the Kennicutt-Schmidt law.
       + `:circular` -> The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric rings. This emulates the traditional way the Kennicutt-Schmidt law is measured in simulations. The number fo bins will be `grid_size` /  (2 * `bin_size`).
       + `:log_circular` ->  The gas and stellar distributions will be projected into a regular cubic grid first, then into a flat square one, and finally into a flat circular grid, formed by a series of concentric logarithmic rings. The first bin starts at 1e-3 of the radius. The number fo bins will be `grid_size` /  (2 * `bin_size`).
   - `grid_size::Unitful.Length=BOX_L[]`: Physical side length of the cubic and square grids, if `reduce_grid` = :square, and diameter of the circular grid if `reduce_grid` = :circular. This limits which cells/particles will be consider. As a reference, Bigiel et al. (2008) uses measurements up to the optical radius r25 (where the B-band magnitude drops below 25 mag arcsec^−2).
-  - `bin_size::Unitful.Length=BIGIEL2008_PXSIZE`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`.
+  - `bin_size::Unitful.Length=PXSIZE_BIGIEL2008`: Target bin size for the grids. If `reduce_grid` = :square, it is the physical side length of the pixels in the final square grid. If `reduce_grid` = :circular, it is the ring width for the final circular grid. In both cases of `reduce_grid`, the result will only be exact if `bin_size` divides `grid_size` exactly, otherwise `grid_size` will take priority and the final sizes will only approximate `bin_size`.
   - `age_limit::Unitful.Time=AGE_RESOLUTION[]`: Maximum age of the stars to consider for the star formation area density.
   - `plot_type::Symbol=:scatter`: If the plot will be a `:scatter` plot, a `:scatter_xwindow` plot or a `:heatmap`. Heatmaps will not show legends or several simulations at once. Scatter plots show one mark per pixel, `:scatter_xwindow` show the median and a measure of uncertanty for 10 binned windows of the x-axis, and heatmaps show a 2D histogram for the number of pixel in each bin.
   - `integrated::Bool=false`: If the integrated (one mark per galaxy) or resolved (several marks per galaxy) Kennicutt-Schmidt law will be plotted. `integrated` = true only works with `plot_type` = `:scatter`.
@@ -3001,7 +3001,7 @@ function kennicuttSchmidtLaw(
     gas_type::Symbol=:cells,
     reduce_grid::Symbol=:square,
     grid_size::Unitful.Length=BOX_L[],
-    bin_size::Unitful.Length=BIGIEL2008_PXSIZE,
+    bin_size::Unitful.Length=PXSIZE_BIGIEL2008,
     age_limit::Unitful.Time=AGE_RESOLUTION[],
     plot_type::Symbol=:scatter,
     integrated::Bool=false,
@@ -3169,10 +3169,10 @@ function kennicuttSchmidtLaw(
             LOGGING[] &&
             @warn("kennicuttSchmidtLaw: `bin_size` is set to a value larger than \
             `grid_size` / 2 = $(grid_size / 2.0). This makes no sense. `bin_size` \
-            will be ignored and default to `BIGIEL2008_PXSIZE` = $(BIGIEL2008_PXSIZE)")
+            will be ignored and default to `PXSIZE_BIGIEL2008` = $(PXSIZE_BIGIEL2008)")
         )
 
-        bin_size = BIGIEL2008_PXSIZE
+        bin_size = PXSIZE_BIGIEL2008
 
     end
 

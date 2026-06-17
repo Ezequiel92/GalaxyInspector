@@ -69,6 +69,10 @@ const ATOMIC_WEIGHTS = Dict(
     :Fe => 55.845, # Iron
 )
 
+###################
+# Kennicutt (1998)
+###################
+
 @doc raw"""
 Slope of the Kennicutt-Schmidt law, taken from Kennicutt (1998) (Section 4, Equation 4).
 
@@ -107,7 +111,11 @@ from the combine data (Table 1 and 2) in Kennicutt (1998).
 
 R. C. Kennicutt (1998). *The Global Schmidt Law in Star-forming Galaxies*. The Astrophysical Journal, **498(2)**, 541-552. [doi:10.1086/305588](https://doi.org/10.1086/305588)
 """
-const KS98_SFR_RANGE = exp10.([-3.55, 2.98]) .* u"Msun * yr^-1 * kpc^-2"
+const SFR_RANGE_KS98 = exp10.([-3.55, 2.98]) .* u"Msun * yr^-1 * kpc^-2"
+
+#######################
+# Bigiel et al. (2008)
+#######################
 
 @doc raw"""
 Kennicutt-Schmidt law fits for molecular and neutral gas, from Bigiel et al. (2008) (Table 2, Average).
@@ -144,90 +152,6 @@ const A_BIGIEL2008_BF_MOLECULAR = −2.1 ± 0.2
 const N_BIGIEL2008_BF_MOLECULAR = 1.0 ± 0.2
 
 @doc raw"""
-Kennicutt-Schmidt law best-fit for molecular gas, from Cologni et al. (2026) (Section 4.3.2).
-
-Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial molecular gas surface density of $1.0 \mathrm{M_\odot \, kpc^{-2}}$ are given.
-
-```math
-\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, kpc^{-2}}} \right)^{\!N} \, ,
-```
-
-# References
-
-R. Cologni et al. (2026). *Resolved molecular gas and star formation in massive unquenched spirals*. Astronomy and Astrophysics, **709**, A148. [doi:10.1051/0004-6361/202558486](https://doi.org/10.1051/0004-6361/202558486)
-"""
-const A_COLOGNI2026 = -8.36 ± 0.57
-const N_COLOGNI2026 = 0.87 ± 0.09
-
-@doc raw"""
-Kennicutt-Schmidt law best-fit for molecular gas, from Lin et al. (2019) (Section 3.1, Table 1).
-
-Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial molecular gas surface density of $1.0 \mathrm{M_\odot \, kpc^{-2}}$ are given.
-
-```math
-\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, kpc^{-2}}} \right)^{\!N} \, ,
-```
-
-# References
-
-L. Lin et al. (2019). *The ALMaQUEST Survey: The Molecular Gas Main Sequence and the Origin of the Star-forming Main Sequence*. The Astrophysical Journal Letters, **884(2)**, L33. [doi:10.3847/2041-8213/ab4815](https://doi.org/10.3847/2041-8213/ab4815)
-"""
-const A_LIN2019 = −9.33 ± 0.06
-const N_LIN2019 = 1.05 ± 0.01
-
-@doc raw"""
-Kennicutt-Schmidt law best-fit for molecular gas, from Querejeta et al. (2021) (Section 4.3, Table 4, row All, mean of the columns).
-
-Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial molecular gas surface density of $1.0 \mathrm{M_\odot \, pc^{-2}}$ are given.
-
-```math
-\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
-```
-
-# References
-
-M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formation across the PHANGS sample of nearby galaxies*. Astronomy and Astrophysics, **656**, A133. [doi:10.1051/0004-6361/202140695](https://doi.org/10.1051/0004-6361/202140695)
-"""
-const A_QUEREJETA2021 = -3.285 ± 0.012
-const N_QUEREJETA2021 = 1.1 ± 0.075
-
-"""
-Spatial resolution used in Bigiel et al. (2008) (see Section 1).
-
-# References
-
-F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
-"""
-const BIGIEL2008_PXSIZE = 750.0u"pc"
-
-"""
-Spatial resolution used in Cologni et al. (2026) (see Section 3.2).
-
-# References
-
-R. Cologni et al. (2026). *Resolved molecular gas and star formation in massive unquenched spirals*. Astronomy and Astrophysics, **709**, A148. [doi:10.1051/0004-6361/202558486](https://doi.org/10.1051/0004-6361/202558486)
-"""
-const COLOGNI2026_PXSIZE = 3.0u"kpc"
-
-"""
-Spatial resolution used in Lin et al. (2019) (see Section 4).
-
-# References
-
-L. Lin et al. (2019). *The ALMaQUEST Survey: The Molecular Gas Main Sequence and the Origin of the Star-forming Main Sequence*. The Astrophysical Journal Letters, **884(2)**, L33. [doi:10.3847/2041-8213/ab4815](https://doi.org/10.3847/2041-8213/ab4815)
-"""
-const LIN2019_PXSIZE = 1.0u"kpc"
-
-"""
-Spatial resolution used in Querejeta et al. (2021) (see Section 2.3).
-
-# References
-
-M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formation across the PHANGS sample of nearby galaxies*. Astronomy and Astrophysics, **656**, A133. [doi:10.1051/0004-6361/202140695](https://doi.org/10.1051/0004-6361/202140695)
-"""
-const QUEREJETA2021_PXSIZE = 1.5u"kpc"
-
-@doc raw"""
 Range of values for
 
 ```math
@@ -243,49 +167,20 @@ F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC S
 
 F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
 """
-const BIGIEL2008_SFR_RANGE = exp10.([-2.99, -0.33]) .* u"Msun * yr^-1 * kpc^-2"
+const SFR_RANGE_BIGIEL2008 = exp10.([-2.99, -0.33]) .* u"Msun * yr^-1 * kpc^-2"
 
-@doc raw"""
-Range of values for
-
-```math
-\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
-```
-in Figure 7 of Cologni et al. (2026), with associated molecular data.
+"""
+Spatial resolution used in Bigiel et al. (2008) (see Section 1).
 
 # References
 
-R. Cologni et al. (2026). *Resolved molecular gas and star formation in massive unquenched spirals*. Astronomy and Astrophysics, **709**, A148. [doi:10.1051/0004-6361/202558486](https://doi.org/10.1051/0004-6361/202558486)
+F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
-const COLOGNI2026_SFR_RANGE = exp10.([-3.5, -2.0]) .* u"Msun * yr^-1 * kpc^-2"
+const PXSIZE_BIGIEL2008 = 750.0u"pc"
 
-@doc raw"""
-Range of values for
-
-```math
-\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
-```
-in Figure 3 of Lin et al. (2019), with associated molecular data.
-
-# References
-
-L. Lin et al. (2019). *The ALMaQUEST Survey: The Molecular Gas Main Sequence and the Origin of the Star-forming Main Sequence*. The Astrophysical Journal Letters, **884(2)**, L33. [doi:10.3847/2041-8213/ab4815](https://doi.org/10.3847/2041-8213/ab4815)
-"""
-const LIN2019_SFR_RANGE = exp10.([-3.5, -0.5]) .* u"Msun * yr^-1 * kpc^-2"
-
-@doc raw"""
-Range of values for
-
-```math
-\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
-```
-in Figure 6 and 7 of Querejeta et al. (2021), with associated molecular data.
-
-# References
-
-M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formation across the PHANGS sample of nearby galaxies*. Astronomy and Astrophysics, **656**, A133. [doi:10.1051/0004-6361/202140695](https://doi.org/10.1051/0004-6361/202140695)
-"""
-const QUEREJETA2021_SFR_RANGE = exp10.([-4.0, 0.0]) .* u"Msun * yr^-1 * kpc^-2"
+#######################
+# Bigiel et al. (2010)
+#######################
 
 """
 Path to Table 2 of Bigiel et al. (2010).
@@ -305,6 +200,139 @@ F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISK
 """
 const BIGIEL2010_TABLE_3 = joinpath(@__DIR__, "../../experimental_data/bigiel_2010/table_03.txt")
 
+########################
+# Cologni et al. (2026)
+########################
+
+@doc raw"""
+Kennicutt-Schmidt law best-fit for molecular gas, from Cologni et al. (2026) (Section 4.3.2).
+
+Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial molecular gas surface density of $1.0 \mathrm{M_\odot \, kpc^{-2}}$ are given.
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, kpc^{-2}}} \right)^{\!N} \, ,
+```
+
+# References
+
+R. Cologni et al. (2026). *Resolved molecular gas and star formation in massive unquenched spirals*. Astronomy and Astrophysics, **709**, A148. [doi:10.1051/0004-6361/202558486](https://doi.org/10.1051/0004-6361/202558486)
+"""
+const A_COLOGNI2026 = -8.36 ± 0.57
+const N_COLOGNI2026 = 0.87 ± 0.09
+
+@doc raw"""
+Range of values for
+
+```math
+\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
+```
+in Figure 7 of Cologni et al. (2026), with associated molecular data.
+
+# References
+
+R. Cologni et al. (2026). *Resolved molecular gas and star formation in massive unquenched spirals*. Astronomy and Astrophysics, **709**, A148. [doi:10.1051/0004-6361/202558486](https://doi.org/10.1051/0004-6361/202558486)
+"""
+const SFR_RANGE_COLOGNI2026 = exp10.([-3.5, -2.0]) .* u"Msun * yr^-1 * kpc^-2"
+
+"""
+Spatial resolution used in Cologni et al. (2026) (see Section 3.2).
+
+# References
+
+R. Cologni et al. (2026). *Resolved molecular gas and star formation in massive unquenched spirals*. Astronomy and Astrophysics, **709**, A148. [doi:10.1051/0004-6361/202558486](https://doi.org/10.1051/0004-6361/202558486)
+"""
+const PXSIZE_COLOGNI2026 = 3.0u"kpc"
+
+####################
+# Lin et al. (2019)
+####################
+
+@doc raw"""
+Kennicutt-Schmidt law best-fit for molecular gas, from Lin et al. (2019) (Section 3.1, Table 1).
+
+Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial molecular gas surface density of $1.0 \mathrm{M_\odot \, kpc^{-2}}$ are given.
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, kpc^{-2}}} \right)^{\!N} \, ,
+```
+
+# References
+
+L. Lin et al. (2019). *The ALMaQUEST Survey: The Molecular Gas Main Sequence and the Origin of the Star-forming Main Sequence*. The Astrophysical Journal Letters, **884(2)**, L33. [doi:10.3847/2041-8213/ab4815](https://doi.org/10.3847/2041-8213/ab4815)
+"""
+const A_LIN2019 = −9.33 ± 0.06
+const N_LIN2019 = 1.05 ± 0.01
+
+@doc raw"""
+Range of values for
+
+```math
+\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
+```
+in Figure 3 of Lin et al. (2019), with associated molecular data.
+
+# References
+
+L. Lin et al. (2019). *The ALMaQUEST Survey: The Molecular Gas Main Sequence and the Origin of the Star-forming Main Sequence*. The Astrophysical Journal Letters, **884(2)**, L33. [doi:10.3847/2041-8213/ab4815](https://doi.org/10.3847/2041-8213/ab4815)
+"""
+const SFR_RANGE_LIN2019 = exp10.([-3.5, -0.5]) .* u"Msun * yr^-1 * kpc^-2"
+
+"""
+Spatial resolution used in Lin et al. (2019) (see Section 4).
+
+# References
+
+L. Lin et al. (2019). *The ALMaQUEST Survey: The Molecular Gas Main Sequence and the Origin of the Star-forming Main Sequence*. The Astrophysical Journal Letters, **884(2)**, L33. [doi:10.3847/2041-8213/ab4815](https://doi.org/10.3847/2041-8213/ab4815)
+"""
+const PXSIZE_LIN2019 = 1.0u"kpc"
+
+##########################
+# Querejeta et al. (2021)
+##########################
+
+@doc raw"""
+Kennicutt-Schmidt law best-fit for molecular gas, from Querejeta et al. (2021) (Section 4.3, Table 4, row All, mean of the columns).
+
+Power-law index, N, and $A = \log_{10}(a)$, where $a$ is $\Sigma_\mathrm{SFR}$ at the fiducial molecular gas surface density of $1.0 \mathrm{M_\odot \, pc^{-2}}$ are given.
+
+```math
+\Sigma_\mathrm{SFR} = a \left( \frac{\Sigma_\mathrm{H_2}}{1.0 \, \mathrm{M_\odot \, pc^{-2}}} \right)^{\!N} \, ,
+```
+
+# References
+
+M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formation across the PHANGS sample of nearby galaxies*. Astronomy and Astrophysics, **656**, A133. [doi:10.1051/0004-6361/202140695](https://doi.org/10.1051/0004-6361/202140695)
+"""
+const A_QUEREJETA2021 = -3.285 ± 0.012
+const N_QUEREJETA2021 = 1.1 ± 0.075
+
+"""
+Spatial resolution used in Querejeta et al. (2021) (see Section 2.3).
+
+# References
+
+M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formation across the PHANGS sample of nearby galaxies*. Astronomy and Astrophysics, **656**, A133. [doi:10.1051/0004-6361/202140695](https://doi.org/10.1051/0004-6361/202140695)
+"""
+const PXSIZE_QUEREJETA2021 = 1.5u"kpc"
+
+@doc raw"""
+Range of values for
+
+```math
+\Sigma_\mathrm{SFR} \, [\mathrm{M_\odot \, yr^{-1} \, kpc^{-2}}] \, ,
+```
+in Figure 6 and 7 of Querejeta et al. (2021), with associated molecular data.
+
+# References
+
+M. Querejeta et al. (2021). *Stellar structures, molecular gas, and star formation across the PHANGS sample of nearby galaxies*. Astronomy and Astrophysics, **656**, A133. [doi:10.1051/0004-6361/202140695](https://doi.org/10.1051/0004-6361/202140695)
+"""
+const SFR_RANGE_QUEREJETA2021 = exp10.([-4.0, 0.0]) .* u"Msun * yr^-1 * kpc^-2"
+
+####################
+# Sun et al. (2023)
+####################
+
 """
 Spatial resolution used in Sun et al. (2023).
 
@@ -312,7 +340,11 @@ Spatial resolution used in Sun et al. (2023).
 
 J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
 """
-const SUN_PX_SIZE = 1.5u"kpc"
+const PXSIZE_SUN2023 = 1.5u"kpc"
+
+##############
+# Data tables
+##############
 
 """
 Path to Table A1 from Sun et al. (2023).
@@ -321,7 +353,7 @@ Path to Table A1 from Sun et al. (2023).
 
 J. Sun et al. (2023). *Star Formation Laws and Efficiencies across 80 Nearby Galaxies*. The Astrophysical Journal Letters, **945(2)**, L19. [doi:10.3847/2041-8213/acbd9c](https://doi.org/10.3847/2041-8213/acbd9c)
 """
-const SUN2023_TABLE = joinpath(@__DIR__, "../../experimental_data/sun_2023.txt")
+const SUN2023_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/sun_2023.txt")
 
 """
 Path to Table 4 (corrected) from de los Reyes et al. (2019).
@@ -332,7 +364,7 @@ M. A. C. de los Reyes et al. (2019). *Revisiting the Integrated Star Formation L
 
 M. A. C. de los Reyes et al. (2019). *Erratum: “Revisiting the Integrated Star Formation Law. I. Non-starbursting Galaxies” (2019 ApJ, 872, 16)*. The Astrophysical Journal, **878(1)**, 74. [doi:10.3847/1538-4357/ab22af)](https://doi.org/10.3847/1538-4357/ab22af)
 """
-const DELOSREYES2019_TABLE = joinpath(@__DIR__, "../../experimental_data/de_los_reyes_2019.txt")
+const DELOSREYES2019_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/de_los_reyes_2019.txt")
 
 """
 Path to the file with the Milky Way profiles from Mollá et al. (2015).
@@ -387,6 +419,8 @@ I. Millán-Irigoyen et al. (2025). *HR-pyPopStar II: high spectral resolution ev
 M. Doi et al. (2010). *PHOTOMETRIC RESPONSE FUNCTIONS OF THE SLOAN DIGITAL SKY SURVEY IMAGER*. The Astronomical Journal **139(4)**, 1628-1648. [doi:10.1088/0004-6256/139/4/1628](https://doi.org/10.1088/0004-6256/139/4/1628)
 """
 const MILLANIRIGOYEN2025_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/millan-irigoyen_2025.txt")
+
+####################################################################################################
 
 @doc raw"""
 Extinction factor from T. Güver et al. (2009).
