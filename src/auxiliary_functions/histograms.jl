@@ -4,7 +4,7 @@
 
 """
     computeProfile(
-        positions::Matrix{<:Unitful.Length},
+        positions::Matrix{<:Number},
         quantity::Vector{<:Number},
         grid::LinearGrid;
         <keyword arguments>
@@ -14,7 +14,7 @@ Compute a profile of `quantity`, using an 1D histogram.
 
 # Arguments
 
-  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `positions::Matrix{<:Number}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
   - `quantity::Vector{<:Number}`: The profile will be of this quantity.
   - `grid::LinearGrid`: Linear grid.
   - `norm::Vector{<:Number}=Number[]`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`.
@@ -30,7 +30,7 @@ Compute a profile of `quantity`, using an 1D histogram.
   - Vector with the values of the profile.
 """
 function computeProfile(
-    positions::Matrix{<:Unitful.Length},
+    positions::Matrix{<:Number},
     quantity::Vector{<:Number},
     grid::LinearGrid;
     norm::Vector{<:Number}=Number[],
@@ -173,6 +173,113 @@ function computeBandProfile(
     end
 
     return center, low, high
+
+end
+
+@doc raw"""
+    computeR25(
+        data_dict::Dict;
+        <keyword arguments>
+    )::Unitful.Length
+
+Estimate R25 (radius at which the B-band surface brightness falls to 25 mag * arcsec^−2).
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+  - `bulge_cut::Unitful.Length=BULGE_R[]`: Bulge radius. For the exponential fit we will ignore the bulge which follows a different law (``\log(\Sigma / \Sigma_0) \propto r^{-1/4}``)
+
+# Returns
+
+  - R25. It returns NaN if any of the input arrays are empty.
+"""
+function computeR25(
+    data_dict::Dict;
+    bulge_cut::Unitful.Length=BULGE_R[],
+)::Unitful.Length
+
+    (
+        haskey(data_dict, :stellar) ||
+        throw(ArgumentError("computeR25: The stellar field in the data dictionary is missing, \
+        and I need it to compute R25"))
+    )
+
+    (
+        (haskey(data_dict[:stellar], "POS ") && haskey(data_dict[:stellar], "MASS")) ||
+        throw(ArgumentError("computeR25: The \"POS \" and/or \"MASS\" fields in the data dictionary \
+        are missing, and I need them to compute R25"))
+    )
+
+    return computeR25(data_dict[:stellar]["POS "], data_dict[:stellar]["MASS"]; bulge_cut)
+
+end
+
+@doc raw"""
+    computeR25(
+        positions::Matrix{<:Unitful.Length},
+        masses::Vector{<:Unitful.Mass};
+        <keyword arguments>
+    )::Unitful.Length
+
+Estimate R25 (radius at which the B-band surface brightness falls to 25 mag * arcsec^−2).
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the stellar particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Masses of the stellar particles.
+  - `bulge_cut::Unitful.Length=BULGE_R[]`: Bulge radius. For the exponential fit we will ignore the bulge which follows a different law (``\log(\Sigma / \Sigma_0) \propto r^{-1/4}``)
+
+# Returns
+
+  - R25. It returns NaN if any of the input arrays are empty.
+"""
+function computeR25(
+    positions::Matrix{<:Unitful.Length},
+    masses::Vector{<:Unitful.Mass};
+    bulge_cut::Unitful.Length=BULGE_R[],
+)::Unitful.Length
+
+    if isempty(positions) || isempty(masses)
+        (
+            LOGGING[] &&
+            @warn("computeR25: The stellar positions or masses are empty, I will return NaN")
+        )
+        return NaN * u"kpc"
+    end
+
+    grid = LinearGrid(bulge_cut, 15.0u"kpc", 60)
+
+    # Compute the distances of the particles to the origin of the grid
+    distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
+
+    # Compute the stellar density profile
+    profile = histogram1D(distances, masses, grid; empty_nan=false) ./ grid.bin_size_2D
+
+    r  = ustrip.(u"kpc", grid.x_axis)
+    Σs = ustrip.(u"Msun * kpc^-2", profile)
+
+    # Fit the density profile to Σs = Σ0 * exp(- r / Rd)
+    # Rd: stellar disc scale length
+    # Σ0: central surface density
+    prob = CurveFitProblem(r, Σs)
+    # Use y = b * exp(a * x) for the fitting
+    # sol.u[1] = a
+    # sol.u[2] = log(b)
+    sol = solve(prob, ExpCurveFitAlgorithm())
+
+    # Stellar disc scale length
+    # Section 5.4 of Galaxies and galactic structure - ISBN: 9780137792320 by Elmegreen (1998)
+    Rd = -1.0u"kpc" / sol.u[1]
+
+    # Estimate R25 as 4 * Rd
+    # Section 5.4 of Galaxies and galactic structure - ISBN: 9780137792320 by Elmegreen (1998)
+    R25 = 4.0 * Rd
+
+    if R25 < 0.0u"kpc" || R25 > 30.0u"kpc"
+        error("computeR25: R25 should be ~10 kpc, but I got $(R25), something went wrong!")
+    end
+
+    return R25
 
 end
 

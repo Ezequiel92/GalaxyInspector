@@ -36,6 +36,11 @@ Characteristic radius for rotations.
 const ROTATION_R = Ref(5.0u"kpc")
 
 """
+Characteristic bulge radius (for R25 calculation).
+"""
+const BULGE_R = Ref(3.0u"kpc")
+
+"""
 Characteristic stellar age for the SFR and sSFR.
 """
 const AGE_RESOLUTION = Ref(200.0u"Myr")
@@ -222,6 +227,7 @@ const CONFIG_SCHEMA = Dict{String,Tuple{Any,Function}}(
     "galaxy.disk_height"      => (DISK_HEIGHT,          parseUnitful),
     "galaxy.box_l"            => (BOX_L,                parseUnitful),
     "galaxy.rotation_r"       => (ROTATION_R,           parseUnitful),
+    "galaxy.bulge_r"          => (BULGE_R,           parseUnitful),
     "galaxy.age_resolution"   => (AGE_RESOLUTION,       parseUnitful),
     "abundances"              => (ABUNDANCE_SHIFT,      parseAbundanceShift),
     "arepo.snap_basename"     => (SNAP_BASENAME,        string),

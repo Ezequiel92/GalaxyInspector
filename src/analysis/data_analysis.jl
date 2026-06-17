@@ -365,7 +365,7 @@ end
         quantity::Symbol,
         grid::LinearGrid;
         <keyword arguments>
-    )::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
+    )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
 Compute a profile.
 
@@ -376,6 +376,7 @@ Compute a profile.
   - `grid::LinearGrid`: Linear grid.
   - `norm::Union{Symbol,Nothing}=nothing`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`. It can be any of the quantities valid for [`scatterQty`](@ref). If set to `nothing`, no operation is applied.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `quantity`, if you want to apply ``\\log_{10}`` to `quantity`. If set to `nothing`, the data is left as is.
+  - `r25::Bool=false`: Set the x axis (radial distances) to units of R25 (radius at which the B-band surface brightness falls to 25 mag * arcsec^−2). The `grid` should be dimensionless accordingly.
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin. This affects the values of `norm` too.
   - `cumulative::Bool=false`: If the profile will be accumulated (after dividing by `norm`).
@@ -397,12 +398,13 @@ function daProfile(
     grid::LinearGrid;
     norm::Union{Symbol,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
+    r25::Bool=false,
     flat::Bool=true,
     total::Bool=true,
     cumulative::Bool=false,
     density::Bool=false,
     filter_function::Function=filterNothing,
-)::Union{Tuple{Vector{<:Unitful.Length},Vector{<:Number}},Nothing}
+)::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
     filtered_dd = filterData(data_dict; filter_function)
 
@@ -415,10 +417,15 @@ function daProfile(
         It is not valid to make a profile"))
     )
 
-    # Read the positions and values
-    positions = filtered_dd[cp_type]["POS "]
-    values    = scatterQty(filtered_dd, quantity)
-    n_values  = isnothing(norm) ? Number[] : scatterQty(filtered_dd, norm)
+    if r25
+        R25 = computeR25(data_dict)
+        positions = ustrip.(Unitful.NoUnits, filtered_dd[cp_type]["POS "] ./ R25)
+    else
+        positions = filtered_dd[cp_type]["POS "]
+    end
+
+    values   = scatterQty(filtered_dd, quantity)
+    n_values = isnothing(norm) ? Number[] : scatterQty(filtered_dd, norm)
 
     if any(isempty, [values, positions])
 

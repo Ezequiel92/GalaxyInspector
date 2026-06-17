@@ -40,6 +40,7 @@ disk_r         = "40.0 kpc"
 disk_height    = "5.0 kpc"
 box_l          = "65.0 kpc"
 rotation_r     = "8.0 kpc"
+bulge_r        = "3.0 kpc"
 age_resolution = "200.0 Myr"
 
 [abundances]

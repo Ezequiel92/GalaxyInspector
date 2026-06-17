@@ -466,10 +466,11 @@ Plot a radial profile.
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
   - `quantity::Symbol`: Target quantity. It can be any of the valid quantities of [`scatterQty`](@ref).
   - `norm::Union{Symbol,Nothing}=nothing`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`. It can be any of the valid quantities of [`scatterQty`](@ref). If set to `nothing`, no operation is applied.
-  - `radius::Unitful.Length=DISK_R[]`: Radius of the profile.
+  - `radius::Number=DISK_R[]`: Radius of the profile.
   - `shift::Number=zero(radius)`: Distance of the first bin edge to the center.
   - `n_bins::Int=60`: Number of bins.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`) (after dividing by `norm`).
+  - `r25::Bool=false`: Set the x axis (radial distances) to units of R25 (radius at which the B-band surface brightness falls to 25 mag * arcsec^−2). The `radius` should be dimensionless accordingly.
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin. This affects the values of `norm` too.
   - `cumulative::Bool=false`: If the profile will be accumulated (after dividing by `norm`).
@@ -493,10 +494,11 @@ function radialProfile(
     slice::IndexType,
     quantity::Symbol;
     norm::Union{Symbol,Nothing}=nothing,
-    radius::Unitful.Length=DISK_R[],
+    radius::Number=DISK_R[],
     shift::Number=zero(radius),
     n_bins::Int=60,
     ylog::Bool=false,
+    r25::Bool=false,
     flat::Bool=true,
     total::Bool=true,
     cumulative::Bool=false,
@@ -567,7 +569,7 @@ function radialProfile(
     plotSnapshot(
         simulation_paths,
         request,
-        [scatterlines!];
+        [lines!];
         output_path,
         base_filename,
         slice,
@@ -577,11 +579,13 @@ function radialProfile(
         filter_function,
         da_functions=[daProfile],
         da_args=[(quantity, grid)],
-        da_kwargs=[(; norm, y_log, flat, total, cumulative, density, filter_function=extra_filter)],
-        x_unit=u"kpc",
+        da_kwargs=[
+            (; norm, y_log, r25, flat, total, cumulative, density, filter_function=extra_filter),
+        ],
+        x_unit=r25 ? Unitful.NoUnits : u"kpc",
         y_unit=ylog ? Unitful.NoUnits : yunit,
         yaxis_label,
-        xaxis_qty_label=L"r",
+        xaxis_qty_label=r25 ? L"r \, / \, \text{R}_{25}" : L"r",
         theme=merge(
             theme,
             Theme(
@@ -621,9 +625,10 @@ Plot a density profile.
   - `q_var_name::AbstractString`: Name of the variable for the y axis.
   - `q_unit::Unitful.Units=Unitful.NoUnits`: Unit of `quantities`. All must have the same units.
   - `norm::Union{Symbol,Nothing}=nothing`: The value of `quantity` in each bin will be divided by the corresponding value of `norm`. It can be any of the valid quantities of [`scatterQty`](@ref). If set to `nothing`, no operation is applied.
-  - `radius::Unitful.Length=DISK_R[]`: Radius of the profile.
+  - `radius::Number=DISK_R[]`: Radius of the profile.
   - `n_bins::Int=60`: Number of bins.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`) (after dividing by `norm`).
+  - `r25::Bool=false`: Set the x axis (radial distances) to units of R25 (radius at which the B-band surface brightness falls to 25 mag * arcsec^−2). The `radius` should be dimensionless accordingly.
   - `flat::Bool=true`: If the profile will be 2D (rings), or 3D (spherical shells).
   - `total::Bool=true`: If the sum (default) or the mean of `quantity` will be computed for each bin. This affects the values of `norm` too.
   - `cumulative::Bool=false`: If the profile will be accumulated (after dividing by `norm`).
@@ -648,9 +653,10 @@ function radialProfile(
     q_qty_label::AbstractString;
     q_unit::Unitful.Units=Unitful.NoUnits,
     norm::Union{Symbol,Nothing}=nothing,
-    radius::Unitful.Length=DISK_R[],
+    radius::Number=DISK_R[],
     n_bins::Int=60,
     ylog::Bool=false,
+    r25::Bool=false,
     flat::Bool=true,
     total::Bool=true,
     cumulative::Bool=false,
@@ -714,7 +720,7 @@ function radialProfile(
         plotSnapshot(
             fill(simulation_path, length(quantities)),
             request,
-            [scatterlines!];
+            [lines!];
             output_path,
             base_filename="$(basename(simulation_path))_radial_profile",
             slice,
@@ -725,12 +731,12 @@ function radialProfile(
             da_functions=[daProfile],
             da_args=[(quantity, grid) for quantity in quantities],
             da_kwargs=[
-                (; norm, y_log, flat, total, cumulative, density, filter_function=extra_filter),
+                (; norm, y_log, r25, flat, total, cumulative, density, filter_function=extra_filter),
             ],
-            x_unit=u"kpc",
+            x_unit=r25 ? Unitful.NoUnits : u"kpc",
             y_unit=ylog ? Unitful.NoUnits : yunit,
             yaxis_label,
-            xaxis_qty_label=L"r",
+            xaxis_qty_label=r25 ? L"r \, / \, \text{R}_{25}" : L"r",
             theme=merge(
                 theme,
                 Theme(
@@ -4245,7 +4251,8 @@ Plot a mass profile.
   - `components::Vector{Symbol}`: Target components. It can only be one of the elements of [`COMPONENTS`](@ref). All the components will be plotted together.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
   - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
-  - `radius::Unitful.Length=DISK_R[]`: Radius of the profile.
+  - `r25::Bool=false`: Set the x axis (radial distances) to units of R25 (radius at which the B-band surface brightness falls to 25 mag * arcsec^−2). The `radius` should be dimensionless accordingly.
+  - `radius::Number=DISK_R[]`: Radius of the profile.
   - `n_bins::Int=100`: Number of bins.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -4266,7 +4273,8 @@ function massProfile(
     components::Vector{Symbol};
     cumulative::Bool=false,
     ylog::Bool=false,
-    radius::Unitful.Length=DISK_R[],
+    r25::Bool=false,
+    radius::Number=DISK_R[],
     n_bins::Int=100,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
@@ -4324,11 +4332,11 @@ function massProfile(
             filter_function,
             da_functions=[daProfile],
             da_args=[(Symbol(component, :_mass), grid) for component in components],
-            da_kwargs=[(; y_log=plot_params.log_unit, cumulative, filter_function=extra_filter)],
-            x_unit=u"kpc",
+            da_kwargs=[(; y_log=plot_params.log_unit, r25, cumulative, filter_function=extra_filter)],
+            x_unit=r25 ? Unitful.NoUnits : u"kpc",
             y_unit=plot_params.unit,
             y_exp_factor=plot_params.exp_factor,
-            xaxis_qty_label=L"r",
+            xaxis_qty_label=r25 ? L"r \, / \, \text{R}_{25}" : L"r",
             yaxis_qty_label=plot_params.qty_label,
             yaxis_label=plot_params.label,
             theme=merge(
@@ -4370,8 +4378,9 @@ Plot a velocity profile.
       + `:stellar_radial_velocity`     -> Component of the stellar velocity in the radial direction (``v_r``).
       + `:stellar_tangential_velocity` -> Component of the stellar velocity in the tangential direction (``v_\\theta``).
       + `:stellar_zstar_velocity`      -> Component of the stellar velocity in the z direction , computed as ``v_z \\, \\mathrm{sign}(z)``.
-  - `radius::Unitful.Length=DISK_R[]`: Radius of the profile.
+  - `radius::Number=DISK_R[]`: Radius of the profile.
   - `n_bins::Int=40`: Number of bins.
+  - `r25::Bool=false`: Set the x axis (radial distances) to units of R25 (radius at which the B-band surface brightness falls to 25 mag * arcsec^−2). The `radius` should be dimensionless accordingly.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -4390,8 +4399,9 @@ function velocityProfile(
     simulation_paths::Vector{String},
     slice::IndexType,
     velocity::Symbol;
-    radius::Unitful.Length=DISK_R[],
+    radius::Number=DISK_R[],
     n_bins::Int=40,
+    r25::Bool=false,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -4429,11 +4439,11 @@ function velocityProfile(
         filter_function,
         da_functions=[daProfile],
         da_args=[(velocity, grid)],
-        da_kwargs=[(; total=false, filter_function=extra_filter)],
-        x_unit=u"kpc",
+        da_kwargs=[(; r25, total=false, filter_function=extra_filter)],
+        x_unit=r25 ? Unitful.NoUnits : u"kpc",
         y_unit=plot_params.unit,
         y_exp_factor=plot_params.exp_factor,
-        xaxis_qty_label=L"r",
+        xaxis_qty_label=r25 ? L"r \, / \, \text{R}_{25}" : L"r",
         yaxis_qty_label=plot_params.qty_label,
         theme=merge(
             theme,
