@@ -7638,7 +7638,7 @@ function compareGiannetti2017(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = QTY_REGISTRY[:gas_mass]
+    plot_params = QTY_REGISTRY[:ode_molecular_stellar_mass]
 
     # Compute the unit and request of the norm
     n_plot_params = QTY_REGISTRY[:ode_dust_mass]
@@ -7675,7 +7675,7 @@ function compareGiannetti2017(
         rotation,
         filter_function,
         da_functions=[daProfile],
-        da_args=[(:gas_mass, grid)],
+        da_args=[(:ode_molecular_stellar_mass, grid)],
         da_kwargs=[
             (;
                 norm=:ode_dust_mass,
