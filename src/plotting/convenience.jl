@@ -4257,8 +4257,9 @@ Plot a mass profile.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `extra_filter,::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter,`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `component_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing`: Labels for the different mass components. If set to `nothing`, automatic labels are used.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -4281,6 +4282,7 @@ function massProfile(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    component_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
@@ -4299,7 +4301,16 @@ function massProfile(
 
     n_sims = length(simulation_paths)
 
-    sim_labels = ["$(component)_mass" for component in components]
+    if isnothing(component_labels)
+        sim_labels = [QTY_REGISTRY[Symbol(component, :_mass)].qty_label for component in components]
+    else
+        (
+            length(component_labels) == length(components) ||
+            throw(ArgumentError("massProfile: The number of labels ($(length(component_labels))) \
+            and the number of components ($(length(components))) are not the same"))
+        )
+        sim_labels = component_labels
+    end
 
     for simulation_path in simulation_paths
 
@@ -4384,8 +4395,8 @@ Plot a velocity profile.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `extra_filter,::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
-  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter,`.
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -7655,7 +7666,7 @@ function compareGiannetti2017(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    grid = LinearGrid(0.0u"kpc", 20.0u"kpc", 80)
+    grid = LinearGrid(0.0u"kpc", 25.0u"kpc", 100)
 
     if isone(length(simulation_paths))
         base_filename = "$(basename(simulation_paths[1]))_Giannetti2017_radial_profile"
@@ -7686,18 +7697,7 @@ function compareGiannetti2017(
         x_unit=u"kpc",
         yaxis_label=L"\log_{10} \, \gamma",
         xaxis_qty_label=L"r",
-        theme=merge(
-            theme,
-            Theme(
-                size=(1200, 880),
-                Axis=(
-                    aspect=nothing,
-                    xticks=0:2:20,
-                    yticks=1.0:0.5:4.0,
-                    limits=(nothing, nothing, 0.8, 4.2),
-                ),
-            ),
-        ),
+        theme=merge(theme, Theme(size=(1200, 880), Axis=(aspect=nothing, xticks=0:5:25))),
         sim_labels,
         title,
     )
