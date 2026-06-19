@@ -1434,7 +1434,7 @@ end
         <keyword arguments>
     )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
-Draw a scatter plot of the SFR surface density vs gas surface density (Kennicutt-Schmidt law) for a given galaxy, using the data from Bigiel et al. (2010).
+Draw a scatter plot of the SFR surface density vs. gas surface density (Kennicutt-Schmidt law) for a given galaxy, using the data from Bigiel et al. (2010).
 
 !!! note
 
@@ -1474,7 +1474,7 @@ function ppBigiel2010!(
     figure::Makie.Figure;
     galaxy::Union{String,Symbol}="NGC 628",
     quantity::Symbol=:molecular,
-    x_unit::Unitful.Units=u"Msun * kpc^-2",
+    x_unit::Unitful.Units=u"Msun * pc^-2",
     y_unit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2",
     x_log::Bool=true,
     y_log::Bool=true,
@@ -1680,7 +1680,7 @@ end
         <keyword arguments>
     )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
-Draw a scatter plot of the SFR surface density vs molecular surface density (molecular Kennicutt-Schmidt law) for a given galaxy, using the data from Sun et al. (2023).
+Draw a scatter plot of the SFR surface density vs. molecular surface density (molecular Kennicutt-Schmidt law) for a given galaxy, using the data from Sun et al. (2023).
 
 !!! note
     The resolution used in Sun et al. (2023) is 1.5 kpc (see Section 2).
@@ -1840,7 +1840,7 @@ end
         <keyword arguments>
     )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
-Draw a scatter plot of the SFR surface density vs gas surface density (Kennicutt-Schmidt law) for a given galaxy, using the data from Leroy et al. (2008).
+Draw a scatter plot of the SFR surface density vs. gas surface density (Kennicutt-Schmidt law) for a given galaxy, using the data from Leroy et al. (2008).
 
 !!! note
 
@@ -2006,11 +2006,7 @@ end
         <keyword arguments>
     )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
 
-Draw a scatter plot of the SFR surface density vs gas surface density (Kennicutt-Schmidt law), using the data from de los Reyes et al. (2019).
-
-!!! note
-
-    The resolution used in Leroy et al. (2008) is 800 pc for spirals and 400 pc for dwarf galaxies (Section 3.1).
+Draw a scatter plot of the SFR surface density vs. gas surface density (Kennicutt-Schmidt law), using the data from de los Reyes et al. (2019).
 
 # Arguments
 
@@ -2042,7 +2038,7 @@ M. A. C. de los Reyes et al. (2019). *Erratum: “Revisiting the Integrated Star
 function ppdelosReyes2019!(
     figure::Makie.Figure;
     quantity::Symbol=:molecular,
-    x_unit::Unitful.Units=u"Msun * kpc^-2",
+    x_unit::Unitful.Units=u"Msun * pc^-2",
     y_unit::Unitful.Units=u"Msun * yr^-1 *  kpc^-2",
     x_log::Bool=true,
     y_log::Bool=true,
