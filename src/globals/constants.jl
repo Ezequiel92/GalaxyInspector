@@ -2382,7 +2382,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
     :gas_metallicity => BaseQuantity(;
         id             = :gas_metallicity,
         qty_label      = L"Z_\mathrm{gas} \, [\mathrm{Z_\odot}]",
-        request        = Dict(:gas => ["GZ  "]),
+        request        = Dict(:gas => ["GZ  ", "MASS"]),
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = :gas,
