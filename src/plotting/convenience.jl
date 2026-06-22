@@ -3907,7 +3907,7 @@ function kennicuttSchmidtLaw(
         end
 
         # Force consistent units and colors
-        pp_kwargs = merge(pp_kwargs, (; x_unit=Σg_unit, y_unit=Σs_unit, color=pp_color))
+        pp_kwargs = merge((; x_unit=Σg_unit, y_unit=Σs_unit, color=pp_color), pp_kwargs)
         pp_legend = post_processing(figure, pp_args...; pp_kwargs...)
 
         if scatter_legend && !isnothing(pp_legend)
