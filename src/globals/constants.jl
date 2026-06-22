@@ -2404,7 +2404,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
     :stellar_metallicity => BaseQuantity(;
         id             = :stellar_metallicity,
         qty_label      = L"Z_\star \, [\mathrm{Z_\odot}]",
-        request        = Dict(:stellar => ["GZ2 "]),
+        request        = Dict(:stellar => ["GZ2 ", "MASS"]),
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = :stellar,
