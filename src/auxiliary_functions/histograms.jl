@@ -275,8 +275,8 @@ function computeR25(
     # Section 5.4 of Galaxies and galactic structure - ISBN: 9780137792320 by Elmegreen (1998)
     R25 = 4.0 * Rd
 
-    if R25 < 0.0u"kpc" || R25 > 30.0u"kpc"
-        error("computeR25: R25 should be ~10 kpc, but I got $(R25), something went wrong!")
+    if R25 < 0.0u"kpc"
+        error("computeR25: R25 should be positive, but I got $(R25), something went wrong!")
     end
 
     return R25

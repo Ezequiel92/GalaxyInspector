@@ -1819,13 +1819,17 @@ const ELEMENT_INDEX = Dict(
     :Mg    => 7,  # Magnesium
     :Si    => 8,  # Silicon
     :Fe    => 9,  # Iron
-    :Other => 10, # All other
 )
+
+"""
+List of element above helium.
+"""
+const METAL_LIST = [:C, :N, :O, :Ne, :Mg, :Si, :Fe]
 
 """
 List of element indices above helium.
 """
-const METAL_LIST = [3, 4, 5, 6, 7, 8, 9, 10]
+const METAL_LIST_IDX = [get(ELEMENT_INDEX, metal, 0) for metal in METAL_LIST]
 
 #################################
 # Star formation model constants

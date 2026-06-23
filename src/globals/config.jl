@@ -63,7 +63,6 @@ const ABUNDANCE_SHIFT = Ref{Dict{Symbol,Float64}}(
         :Mg    => 0.0,  # Magnesium
         :Si    => 0.0,  # Silicon
         :Fe    => 0.0,  # Iron
-        :Other => 0.0,  # All other
     )
 )
 
