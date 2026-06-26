@@ -585,7 +585,7 @@ function radialProfile(
         x_unit=r25 ? Unitful.NoUnits : u"kpc",
         y_unit=ylog ? Unitful.NoUnits : yunit,
         yaxis_label,
-        xaxis_qty_label=r25 ? L"r \, / \, \text{R}_{25}" : L"r",
+        xaxis_qty_label=r25 ? L"R \, / \, \text{R}_{25}" : L"R",
         theme=merge(
             theme,
             Theme(
@@ -736,7 +736,7 @@ function radialProfile(
             x_unit=r25 ? Unitful.NoUnits : u"kpc",
             y_unit=ylog ? Unitful.NoUnits : yunit,
             yaxis_label,
-            xaxis_qty_label=r25 ? L"r \, / \, \text{R}_{25}" : L"r",
+            xaxis_qty_label=r25 ? L"R \, / \, \text{R}_{25}" : L"R",
             theme=merge(
                 theme,
                 Theme(
@@ -1331,7 +1331,7 @@ function compareMolla2015(
         pp_args=(quantity,),
         pp_kwargs=(; y_unit, color, linestyle, marker),
         x_unit=u"kpc",
-        xaxis_qty_label=L"r",
+        xaxis_qty_label=L"R",
         yaxis_qty_label=plot_params.qty_label,
         yaxis_label=plot_params.label,
         theme=current_theme,
@@ -1423,7 +1423,7 @@ function compareAgertz2021(
         ),
         x_unit=u"kpc",
         y_unit=plot_params.unit,
-        xaxis_qty_label=L"r",
+        xaxis_qty_label=L"R",
         yaxis_qty_label=plot_params.qty_label,
         yaxis_label=plot_params.label,
         theme=merge(
@@ -4347,7 +4347,7 @@ function massProfile(
             x_unit=r25 ? Unitful.NoUnits : u"kpc",
             y_unit=plot_params.unit,
             y_exp_factor=plot_params.exp_factor,
-            xaxis_qty_label=r25 ? L"r \, / \, \text{R}_{25}" : L"r",
+            xaxis_qty_label=r25 ? L"R \, / \, \text{R}_{25}" : L"R",
             yaxis_qty_label=plot_params.qty_label,
             yaxis_label=plot_params.label,
             theme=merge(
@@ -4454,7 +4454,7 @@ function velocityProfile(
         x_unit=r25 ? Unitful.NoUnits : u"kpc",
         y_unit=plot_params.unit,
         y_exp_factor=plot_params.exp_factor,
-        xaxis_qty_label=r25 ? L"r \, / \, \text{R}_{25}" : L"r",
+        xaxis_qty_label=r25 ? L"R \, / \, \text{R}_{25}" : L"R",
         yaxis_qty_label=plot_params.qty_label,
         theme=merge(
             theme,
@@ -7696,7 +7696,7 @@ function compareGiannetti2017(
         post_processing=ppGiannetti2017!,
         x_unit=u"kpc",
         yaxis_label=L"\log_{10} \, \gamma",
-        xaxis_qty_label=L"r",
+        xaxis_qty_label=L"R",
         theme=merge(theme, Theme(size=(1200, 880), Axis=(aspect=nothing, xticks=0:5:25))),
         sim_labels,
         title,

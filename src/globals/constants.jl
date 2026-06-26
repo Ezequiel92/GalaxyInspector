@@ -3201,7 +3201,7 @@ const MAGNITUDES = Dict(
 
     # Distance to the origin [L]
     :radial_distance => (
-        label_fmt      = l -> isempty(l) ? L"r" : L"r_{\,%$(l)}",
+        label_fmt      = l -> isempty(l) ? L"R" : L"R_{\,%$(l)}",
         unit           = u"kpc",
         exp_factor     = 0,
         scatter_func   = (d, c) -> computeRadialDistance(d, c),
