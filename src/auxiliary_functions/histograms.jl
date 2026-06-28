@@ -263,8 +263,8 @@ function computeR25(
     # Σ0: central surface density
     prob = CurveFitProblem(r, Σs)
     # Use y = b * exp(a * x) for the fitting
-    # sol.u[1] = a
-    # sol.u[2] = log(b)
+    # sol.u[1] = a = -1.0 / Rd
+    # sol.u[2] = b = Σ0
     sol = solve(prob, ExpCurveFitAlgorithm())
 
     # Stellar disc scale length
