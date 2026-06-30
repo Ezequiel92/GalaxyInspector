@@ -4250,6 +4250,7 @@ Plot a mass profile.
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `components::Vector{Symbol}`: Target components. It can only be one of the elements of [`COMPONENTS`](@ref). All the components will be plotted together.
   - `cumulative::Bool=false`: If the profile will be accumulated or not.
+  - `density::Bool=false`: If the profile will be of the density of `components`.
   - `ylog::Bool=false`: If the y axis is will have a ``\\log_{10}`` scale.
   - `r25::Bool=false`: Set the x axis (radial distances) to units of R25 (radius at which the B-band surface brightness falls to 25 mag * arcsec^−2). The `radius` should be dimensionless accordingly.
   - `radius::Number=DISK_R[]`: Radius of the profile.
@@ -4273,6 +4274,7 @@ function massProfile(
     slice::IndexType,
     components::Vector{Symbol};
     cumulative::Bool=false,
+    density::Bool=false,
     ylog::Bool=false,
     r25::Bool=false,
     radius::Number=DISK_R[],
@@ -4287,7 +4289,13 @@ function massProfile(
     theme::Attributes=Theme(),
 )::Nothing
 
-    plot_params = getLabelArgs(:generic_mass; log=ylog)
+    if density
+        quantity = :generic_area_density
+    else
+        quantity = :generic_mass
+    end
+
+    plot_params = getLabelArgs(quantity; log=ylog)
     base_request = mergeRequests(
         plot_params.request,
         ff_request,
@@ -4302,7 +4310,16 @@ function massProfile(
     n_sims = length(simulation_paths)
 
     if isnothing(component_labels)
-        sim_labels = [QTY_REGISTRY[Symbol(component, :_mass)].qty_label for component in components]
+        if density
+            sim_labels = [
+                QTY_REGISTRY[Symbol(component, :_area_density)].qty_label
+                for component in components
+            ]
+        else
+            sim_labels = [
+                QTY_REGISTRY[Symbol(component, :_mass)].qty_label for component in components
+            ]
+        end
     else
         (
             length(component_labels) == length(components) ||
@@ -4343,7 +4360,15 @@ function massProfile(
             filter_function,
             da_functions=[daProfile],
             da_args=[(Symbol(component, :_mass), grid) for component in components],
-            da_kwargs=[(; y_log=plot_params.log_unit, r25, cumulative, filter_function=extra_filter)],
+            da_kwargs=[
+                (;
+                    y_log=plot_params.log_unit,
+                    r25,
+                    cumulative,
+                    density,
+                    filter_function=extra_filter,
+                ),
+            ],
             x_unit=r25 ? Unitful.NoUnits : u"kpc",
             y_unit=plot_params.unit,
             y_exp_factor=plot_params.exp_factor,
