@@ -154,7 +154,7 @@ Parse a string of the form `"40.0 kpc"` into a Unitful quantity.
 
 !!! note
 
-    Works for any unit string that Unitful.uparse accepts (e.g. "kpc", "km/s", "K"). The string must have a space between the value and the unit, otherwise it will not be parsed correctly (e.g. "40.0kpc" will not work, but "40.0 kpc" will). And the unit should have no spaces (e.g. "km/s" is correct, but "km / s" is not). This is because the function splits the string into two parts using whitespace as a delimiter, and then parses the first part as a number and the second part as a unit.
+    Works for any unit string that uparse accepts (e.g. "kpc", "km/s", "K"). The string must have a space between the value and the unit, otherwise it will not be parsed correctly (e.g. "40.0kpc" will not work, but "40.0 kpc" will). And the unit should have no spaces (e.g. "km/s" is correct, but "km / s" is not). This is because the function splits the string into two parts using whitespace as a delimiter, and then parses the first part as a number and the second part as a unit.
 
 # Arguments
 
@@ -175,7 +175,7 @@ function parseUnitful(s::String)::Unitful.Quantity
     )
 
     val  = parse(Float64, parts[1])
-    unit = Unitful.uparse(parts[2])
+    unit = uparse(parts[2]; unit_context=UnitfulAstro)
 
     return val * unit
 
@@ -226,7 +226,7 @@ const CONFIG_SCHEMA = Dict{String,Tuple{Any,Function}}(
     "galaxy.disk_height"      => (DISK_HEIGHT,          parseUnitful),
     "galaxy.box_l"            => (BOX_L,                parseUnitful),
     "galaxy.rotation_r"       => (ROTATION_R,           parseUnitful),
-    "galaxy.bulge_r"          => (BULGE_R,           parseUnitful),
+    "galaxy.bulge_r"          => (BULGE_R,              parseUnitful),
     "galaxy.age_resolution"   => (AGE_RESOLUTION,       parseUnitful),
     "abundances"              => (ABUNDANCE_SHIFT,      parseAbundanceShift),
     "arepo.snap_basename"     => (SNAP_BASENAME,        string),
