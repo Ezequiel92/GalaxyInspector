@@ -448,7 +448,7 @@ Path to the files with the measurements of the DTS (dust-to-stellar ration) from
 
 # References
 
-C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:/10.48550/arXiv.2606.17270]( https://doi.org/10.48550/arXiv.2606.17270)
+C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:10.48550/arXiv.2606.17270](https://doi.org/10.48550/arXiv.2606.17270)
 """
 const CASEY2026_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/casey_2026/")
 
