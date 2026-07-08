@@ -178,28 +178,6 @@ F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC S
 """
 const PXSIZE_BIGIEL2008 = 750.0u"pc"
 
-#######################
-# Bigiel et al. (2010)
-#######################
-
-"""
-Path to Table 2 of Bigiel et al. (2010).
-
-# References
-
-F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
-"""
-const BIGIEL2010_TABLE_2 = joinpath(@__DIR__, "../../experimental_data/bigiel_2010/table_02.txt")
-
-"""
-Path to Table 3 of Bigiel et al. (2010).
-
-# References
-
-F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
-"""
-const BIGIEL2010_TABLE_3 = joinpath(@__DIR__, "../../experimental_data/bigiel_2010/table_03.txt")
-
 ########################
 # Cologni et al. (2026)
 ########################
@@ -374,6 +352,24 @@ const PXSIZE_SUN2023 = 1.5u"kpc"
 ##############
 
 """
+Path to Table 2 of Bigiel et al. (2010).
+
+# References
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2010_TABLE_2 = joinpath(@__DIR__, "../../experimental_data/bigiel_2010/table_02.txt")
+
+"""
+Path to Table 3 of Bigiel et al. (2010).
+
+# References
+
+F. Bigiel et al. (2010). *EXTREMELY INEFFICIENT STAR FORMATION IN THE OUTER DISKS OF NEARBY GALAXIES*. The Astrophysical Journal, **140(5)**, 1194. [doi:10.1088/0004-6256/140/5/1194](https://doi.org/10.1088/0004-6256/140/5/1194)
+"""
+const BIGIEL2010_TABLE_3 = joinpath(@__DIR__, "../../experimental_data/bigiel_2010/table_03.txt")
+
+"""
 Path to Table A1 from Sun et al. (2023).
 
 # References
@@ -446,6 +442,15 @@ I. Millán-Irigoyen et al. (2025). *HR-pyPopStar II: high spectral resolution ev
 M. Doi et al. (2010). *PHOTOMETRIC RESPONSE FUNCTIONS OF THE SLOAN DIGITAL SKY SURVEY IMAGER*. The Astronomical Journal **139(4)**, 1628-1648. [doi:10.1088/0004-6256/139/4/1628](https://doi.org/10.1088/0004-6256/139/4/1628)
 """
 const MILLANIRIGOYEN2025_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/millan-irigoyen_2025.txt")
+
+"""
+Path to the files with the measurements of the DTS (dust-to-stellar ration) from Casey et al. (2026).
+
+# References
+
+C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:/10.48550/arXiv.2606.17270]( https://doi.org/10.48550/arXiv.2606.17270)
+"""
+const CASEY2026_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/casey_2026/")
 
 ####################################################################################################
 

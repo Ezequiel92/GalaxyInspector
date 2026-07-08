@@ -7628,8 +7628,6 @@ function SDSSMockup(
 
 end
 
-
-
 """
     compareGiannetti2017(
         simulation_paths::Vector{String},
@@ -7637,7 +7635,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot a radial profile.
+Plot the gas-to-dust ratio (``\\gamma``) profile, comparing with the measurements from Giannetti et al. (2017).
 
 !!! note
 
@@ -7660,6 +7658,10 @@ Plot a radial profile.
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+A. Giannetti et al. (2017). *Galactocentric variation of the gas-to-dust ratio and its relation with metallicity*. Astronomy and Astrophysics, **606**, L12. [doi:10.1051/0004-6361/201731728](https://doi.org/10.1051/0004-6361/201731728)
 """
 function compareGiannetti2017(
     simulation_paths::Vector{String},
@@ -7726,6 +7728,160 @@ function compareGiannetti2017(
         sim_labels,
         title,
     )
+
+    return nothing
+
+end
+
+"""
+    compareCasey2026(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot the gas-to-stellar ration evolution, comparing with the measurements from Casey et al. (2026).
+
+!!! note
+
+    This method plots one simulation per figure.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `colors::Vector{<:ColorType}=[WONG_RED, WONG_BLUE]`: Colors for the plot lines. The first color is used for the simulation and the second for the Casey et al. (2026) data.
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:/10.48550/arXiv.2606.17270]( https://doi.org/10.48550/arXiv.2606.17270)
+"""
+function compareCasey2026(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    colors::Vector{<:ColorType}=[WONG_RED, WONG_BLUE],
+    sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    base_request = mergeRequests(
+        QTY_REGISTRY[:stellar_mass].request,
+        QTY_REGISTRY[:ode_dust_mass].request,
+        ff_request,
+    )
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    for (simulation_path, label) in zip(simulation_paths, sim_labels)
+
+        temp_folder = joinpath(output_path, "_casey2026")
+
+        plotTimeSeries(
+            [simulation_path],
+            [lines!];
+            output_path=temp_folder,
+            filename="stars",
+            slice,
+            da_functions=[daEvolution],
+            da_args=[(:redshift, :stellar_mass)],
+            da_kwargs=[
+                (;
+                    trans_mode,
+                    filter_mode,
+                    extra_filter,
+                    ff_request,
+                )
+            ],
+            y_unit=u"Msun",
+            save_figures=false,
+            backup_results=true,
+        )
+
+        plotTimeSeries(
+            [simulation_path],
+            [lines!];
+            output_path=temp_folder,
+            filename="dust",
+            slice,
+            da_functions=[daEvolution],
+            da_args=[(:redshift, :ode_dust_mass)],
+            da_kwargs=[
+                (;
+                    trans_mode,
+                    filter_mode,
+                    extra_filter,
+                    ff_request,
+                )
+            ],
+            y_unit=u"Msun",
+            save_figures=false,
+            backup_results=true,
+        )
+
+        current_theme = merge(
+            theme,
+            Theme(
+                size=(1200, 880),
+                Axis=(aspect=nothing, xticks=0:10),
+                Lines=(linewidth=3,),
+                Scatter=(strokewidth=2, strokecolor=:black, markersize=18),
+            ),
+            DEFAULT_THEME,
+            theme_latexfonts(),
+        )
+
+        with_theme(current_theme) do
+
+            f = Figure()
+
+            ax = CairoMakie.Axis(
+                f[1, 1];
+                xlabel=L"z",
+                ylabel=L"\log_{10} \, M_\text{dust} \, / \, M_\star",
+            )
+
+            jldopen(joinpath(temp_folder, "dust.jld2"), "r") do dust_mass
+
+                jldopen(joinpath(temp_folder, "stars.jld2"), "r") do stars_mass
+
+                    z, Ms = stars_mass["stars"][basename(simulation_path)]
+                    _, Md = dust_mass["dust"][basename(simulation_path)]
+
+                    dts = log10.(Md ./ Ms)
+
+                    idxs = map(!isinf, dts)
+
+                    x, y = smoothMovingWindow(z[idxs], dts[idxs]; window_radius=1)
+
+                    lines!(ax, x, y; color=colors[1], label)
+                    ppCasey2026!(f, z, Ms; color=colors[2])
+
+                end
+
+            end
+
+            axislegend(ax, position=:lt, framevisible=false, nbanks=1)
+
+            save(joinpath(output_path, "$(basename(simulation_path))_Casey2026.png"), f)
+
+        end
+
+        rm(temp_folder; recursive=true)
+
+    end
 
     return nothing
 

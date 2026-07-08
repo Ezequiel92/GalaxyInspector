@@ -2837,7 +2837,7 @@ Draw a line plot with the fit for the gas-to-dust ratio (``\\gamma``) profile fr
   - `x_unit::Unitful.Units=u"kpc"`: Unit for the galactocentric distance used in `figure`.
   - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\gamma)`` (`y_log` = true) or just ``\\gamma`` (`y_log` = false).
   - `color::ColorType=WONG_RED`: Color for the line.
-  - `linestyles::Vector{<:LineStyleType}=[:solid, :dash],`: Styles for the lines. The first style will indicate the range for which there are experimental data, and the second one will be for the extrapolation.
+  - `linestyles::Vector{<:LineStyleType}=[:solid, :dash]`: Styles for the lines. The first style will indicate the range for which there are experimental data, and the second one will be for the extrapolation.
   - `linewidth::Int=3`: Line width.
 
 # Returns
@@ -2930,5 +2930,99 @@ function ppGiannetti2017!(
     end
 
     return [LineElement(; color, linestyle=linestyles[1], linewidth)], ["Giannetti et al. (2017)"]
+
+end
+
+"""
+    ppCasey2026!(
+        figure::Makie.Figure,
+        redshift::Vector{Float64},
+        stellar_mass::Vector{Float64};
+        <keyword arguments>
+    )::Nothing
+
+Draw a line plot and a scatter plot with the gas-to-stellar (DTS) ratio evolution from Casey et al. (2026).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `redshift::Vector{Float64}`: List of redshifts.
+  - `stellar_mass::Vector{Float64}`: List of stellar masses at each of the redshifts.
+  - `color::ColorType=WONG_RED`: Color for the line.
+  - `linestyle::LineStyleType=:solid`: Style for the line.
+
+# References
+
+C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:/10.48550/arXiv.2606.17270]( https://doi.org/10.48550/arXiv.2606.17270)
+"""
+function ppCasey2026!(
+    figure::Makie.Figure,
+    redshift::Vector{Float64},
+    stellar_mass::Vector{Float64};
+    color::ColorType=WONG_RED,
+    linestyle::LineStyleType=:solid,
+)::Nothing
+
+    (
+        length(redshift) == length(stellar_mass) ||
+        throw(ArgumentError("ppCasey2026!: `redshift` and `stellar_mass` must have the same length"))
+    )
+
+    # Plot axis
+    ax = figure.current_axis.x
+
+    ############################################
+	# Fit for the DTS, from Casey et al. (2026)
+	############################################
+
+    idxs = findall(!iszero, stellar_mass)
+
+	M = log10.(stellar_mass[idxs])
+    z = redshift[idxs]
+
+	A  = −3.237 ± 0.036
+	η0 = −0.296 ± 0.023
+	η1 = 1.364 ± 0.066
+
+    # Compute the DTS values for the given redshifts and stellar masses
+    dts = @. A + η0 * (M - 10.0) + η1 * log10(1 + z)
+
+    # Consider 2σ for the uncertainty
+	err_vals  = Measurements.uncertainty.(dts) .* 2.0
+    mean_vals = Measurements.value.(dts)
+
+	high_vals = mean_vals .+ err_vals
+	low_vals  = mean_vals .- err_vals
+
+	bp = band!(ax, z, low_vals, high_vals; color, alpha=0.3)
+	lp = lines!(ax, z, mean_vals; color, linestyle, alpha=0.6)
+
+	#########################################################
+	# Mean of all the measurements, from Casey et al. (2026)
+	#########################################################
+
+	df_mean = CSV.read(joinpath(CASEY2026_DATA_PATH, "mean_vals_fig_13.csv"), DataFrame)
+	df_low  = CSV.read(joinpath(CASEY2026_DATA_PATH, "low_vals_fig_13.csv"), DataFrame)
+	df_high = CSV.read(joinpath(CASEY2026_DATA_PATH, "high_vals_fig_13.csv"), DataFrame)
+
+	sort!(df_high, [:x])
+    sort!(df_low, [:x])
+
+	mean_z   = df_mean[!, 1]
+	mean_dtg = df_mean[!, 2]
+
+	low_dtg  = df_low[!, 2]
+	high_dtg = df_high[!, 2]
+
+	ep = errorbars!(ax, mean_z, mean_dtg, mean_dtg .- low_dtg, high_dtg .- mean_dtg; color)
+	sp = scatter!(ax, mean_z, mean_dtg; color, label="Casey et al. (2026)")
+
+    # Put the post processing elements at the back of the plot
+    translate!(Accum, lp, 0, 0, -10)
+    translate!(Accum, bp, 0, 0, -10)
+    translate!(Accum, ep, 0, 0, -9)
+    translate!(Accum, sp, 0, 0, -9)
+
+    return nothing
 
 end

@@ -138,6 +138,7 @@ export evolutionVideo
 export SDSSMockup
 export snapshotReport
 export compareGiannetti2017
+export compareCasey2026
 export simulationReport
 export quantityReport
 
