@@ -7761,7 +7761,7 @@ Plot the gas-to-stellar ration evolution, comparing with the measurements from C
 
 # References
 
-C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:/10.48550/arXiv.2606.17270]( https://doi.org/10.48550/arXiv.2606.17270)
+C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:10.48550/arXiv.2606.17270](https://doi.org/10.48550/arXiv.2606.17270)
 """
 function compareCasey2026(
     simulation_paths::Vector{String},
