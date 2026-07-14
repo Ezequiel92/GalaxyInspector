@@ -538,15 +538,15 @@ Compute the fraction of a given `component` in each cell/particle.
           * `:stellar` => ["GZ2 "]
       + If `component` ∈ [:gas, :hydrogen, :helium]:
           * `:gas` => ["MASS"]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) (except :stellar, :dark_matter, and :black_hole).
 
@@ -587,11 +587,11 @@ Compute the fraction of a given non :ode `component` in each cell/particle.
           * `:stellar` => ["GZ2 "]
       + If `component` ∈ [:gas, :hydrogen, :helium]:
           * `:gas` => ["MASS"]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
   - `component::Symbol`: Target component. It can only be one of the non :ode elements of [`COMPONENTS`](@ref) (except :stellar, :dark_matter, and :black_hole).
 
@@ -855,9 +855,9 @@ Compute the fraction of a given :ode `component` in each cell/particle.
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the :ode elements of [`COMPONENTS`](@ref).
   - `ode_ic::F`: Function that gives the initial value of `component` for the `i`-th cell/particle. It must have the signature `ode_ic(i::Int)::Float64`.
@@ -1055,15 +1055,15 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
 
       + If `component` ∈ [:gas, :hydrogen, :helium]:
           * `:gas` => ["MASS", "RHO "]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  ", "RHO "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP ", "RHO "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
 
@@ -1117,15 +1117,15 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
           * `:stellar` => ["RHOC", "GMAS", "GSFR"]
       + If `component` ∈ [:gas, :hydrogen, :helium]:
           * `:gas` => ["SFR ", "MASS", "RHO "]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["SFR ", "MASS", "GZ  ", "RHO "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "RHO "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "PRES", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
 
@@ -1175,21 +1175,21 @@ Compute the mass in each cell/particle of a given `component`.
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
-      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
+      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]
           * `component` => ["MASS"]
       + If `component` == :Z_stellar
           * `:stellar` => ["MASS", "GZ2 "]
-      + If `component` ∈ [:hydrogen, :helium]:
+      + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["MASS"]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
@@ -1258,13 +1258,13 @@ Compute the mass density of a given gas `component` for each cell.
 
       + If `component` ∈ [:gas, :hydrogen, :helium]:
           * `:gas` => ["MASS", "RHO "]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  ", "RHO "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP ", "RHO "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar:
           * `:gas` => ["MASS", "FRAC", "RHO "]
@@ -1336,15 +1336,15 @@ Compute the number density of a given gas `component` for each cell.
 
       + If `component` ∈ [:gas, :hydrogen, :helium]:
           * `:gas` => ["MASS", "RHO "]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  ", "RHO "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP ", "RHO "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
 
@@ -1409,21 +1409,21 @@ Compute the number of a given `component`.
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
-      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
+      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]
           * `component` => ["MASS"]
       + If `component` ∈ [:Z_stellar]:
           * `:stellar` => ["MASS"]
-      + If `component` ∈ [:hydrogen, :helium]:
+      + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["MASS"]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 

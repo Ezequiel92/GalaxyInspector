@@ -133,21 +133,21 @@ Compute the kinetic energy.
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
-      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
+      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]
           * `component` => ["VEL ", "MASS"]
       + If `component` == :Z_stellar
           * `:stellar` => ["VEL ", "MASS", "GZ2 "]
-      + If `component` ∈ [:hydrogen, :helium]:
+      + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["VEL ", "MASS"]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["VEL ", "MASS", "GZ  "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["VEL ", "MASS", "NH  ", "NHP "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["VEL ", "MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["VEL ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["VEL ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
@@ -190,21 +190,21 @@ Compute the gravitational potencial energy.
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
-      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
+      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]
           * `component` => ["POT ", "MASS"]
       + If `component` == :Z_stellar
           * `:stellar` => ["POT ", "MASS", "GZ2 "]
-      + If `component` ∈ [:hydrogen, :helium]:
+      + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["POT ", "MASS"]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["POT ", "MASS", "GZ  "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["POT ", "MASS", "NH  ", "NHP "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["POT ", "MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["POT ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
@@ -245,21 +245,21 @@ Compute the total energy (kinetic + potential).
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
-      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]:
+      + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]
           * `component` => ["VEL ", "POT ", "MASS"]
       + If `component` == :Z_stellar
           * `:stellar` => ["VEL ", "POT ", "MASS", "GZ2 "]
-      + If `component` ∈ [:hydrogen, :helium]:
+      + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["VEL ", "POT ", "MASS"]
-      + If `component` == :Z_gas:
+      + If `component` == :Z_gas
           * `:gas` => ["VEL ", "POT ", "MASS", "GZ  "]
-      + If `component` ∈ [:ionized, :neutral]:
+      + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["VEL ", "POT ", "MASS", "NH  ", "NHP "]
-      + If `component` ∈ [:br_atomic, :br_molecular]:
+      + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "PRES"]
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
           * `:gas` => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["VEL ", "POT ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
