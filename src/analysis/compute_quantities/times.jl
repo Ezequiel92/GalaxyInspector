@@ -652,6 +652,8 @@ t_\mathrm{ff} = \frac{M_\mathrm{gas}}{\dot{M}_\star} \, .
           * `:gas` => ["SFR ", "MASS"]
       + If `component` == :Z_gas
           * `:gas` => ["SFR ", "MASS", "GZ  "]
+      + If `component` == :dust_gas
+          * `:gas` => ["SFR ", "MASS", "GDZ "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]

@@ -2620,8 +2620,8 @@ function gasFractionsEvolution(
             quantities = [:ode_ionized, :ode_atomic, :ode_molecular_stellar, :ode_metals, :ode_dust]
             labels = ["ODE HII", "ODE HI", "ODE H2 + stars", "ODE Z", "ODE dust"]
         else
-            quantities = [:ionized, :br_atomic, :br_molecular, :Z_gas]
-            labels = ["HII", "BR HI", "BR H2", "Z"]
+            quantities = [:ionized, :br_atomic, :br_molecular, :Z_gas, :dust_gas]
+            labels = ["HII", "BR HI", "BR H2", "Z", "Zd"]
         end
 
         colors = [WONG_BLUE, WONG_PINK, WONG_GREEN, WONG_CELESTE, WONG_RED]
@@ -5082,7 +5082,7 @@ function gasVelocityCubes(
                 ato_masses  = scatterQty(data_dict, :br_atomic_mass)
                 mol_masses  = scatterQty(data_dict, :br_molecular_mass)
                 Z_masses    = scatterQty(data_dict, :Z_gas_mass)
-                dust_masses = zeros(runtimeType(Z_masses), length(Z_masses))
+                dust_masses = scatterQty(data_dict, :dust_gas_mass)
 
             end
 
@@ -6615,15 +6615,13 @@ function gasDensityMaps(
                 :ode_dust,
             ]
 
-            size = (2600, 1020)
-
         else
 
-            quantities = [:gas, :ionized, :br_atomic, :br_molecular, :Z_gas]
-
-            size = (2200, 1020)
+            quantities = [:gas, :ionized, :br_atomic, :br_molecular, :Z_gas, :dust_gas]
 
         end
+
+        size = (2600, 1020)
 
         n_rows = length(projection_planes)
         n_cols = length(quantities)
@@ -8440,9 +8438,23 @@ function snapshotReport(
 
                 else
 
-                    gas_components = [:ionized, :br_atomic, :br_molecular, :neutral, :Z_gas]
+                    gas_components = [
+                        :ionized,
+                        :br_atomic,
+                        :br_molecular,
+                        :neutral,
+                        :Z_gas,
+                        :dust_gas,
+                    ]
 
-                    gas_labels = ["Ionized", "BR atomic", "BR molecular", "Neutral", "Metals"]
+                    gas_labels = [
+                        "Ionized",
+                        "BR atomic",
+                        "BR molecular",
+                        "Neutral",
+                        "Metals",
+                        "Dust",
+                    ]
 
                     r_pad = 25
 
@@ -8767,7 +8779,16 @@ function snapshotReport(
 
             else
 
-                components = [:stellar, :gas, :ionized, :br_atomic, :br_molecular, :neutral, :Z_gas]
+                components = [
+                    :stellar,
+                    :gas,
+                    :ionized,
+                    :br_atomic,
+                    :br_molecular,
+                    :neutral,
+                    :Z_gas,
+                    :dust_gas,
+                ]
 
                 labels = [
                     "stellar",
@@ -8777,6 +8798,7 @@ function snapshotReport(
                     "BR molecular gas",
                     "neutral gas",
                     "metals",
+                    "dust",
                 ]
 
             end

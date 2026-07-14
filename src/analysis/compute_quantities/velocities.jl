@@ -798,7 +798,7 @@ function computeVcirc(
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
         type = :stellar
     else
         type = :gas
@@ -892,7 +892,7 @@ function computeVpolar(
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
         type = :stellar
     else
         type = :gas
@@ -939,7 +939,7 @@ function computeSpecificAngularMomentum(
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
         type = :stellar
     else
         type = :gas
@@ -985,7 +985,7 @@ function computeAngularMomentum(
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
         type = :stellar
     else
         type = :gas
@@ -1112,7 +1112,7 @@ function computeSpinParameter(
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
         type = :stellar
     else
         type = :gas

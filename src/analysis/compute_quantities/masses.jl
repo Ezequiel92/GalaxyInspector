@@ -373,11 +373,11 @@ Generate a function that gives the initial condition of `component` for the `i`-
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
     This function requires the following blocks to be present, depending on the value of `component`:
 
-      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]:
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]
           * `:gas` => ["NH  ", "NHP ", "GZ  "]
-      + If `component` ∈ [:ode_cold]:
+      + If `component` ∈ [:ode_cold]
           * `:gas` => ["GZ  "]
-      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar, :Z_stellar, :gas, :hydrogen, :helium, :Z_gas, :ionized, :neutral, :br_atomic, :br_molecular]:
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar, :Z_stellar, :gas, :hydrogen, :helium, :Z_gas, :ionized, :neutral, :br_atomic, :br_molecular, :dust_gas, :dust_stellar]
           * No blocks are required.
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
 
@@ -509,6 +509,8 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
         :neutral,
         :br_atomic,
         :br_molecular,
+        :dust_gas,
+        :dust_stellar,
     ]
 
         ode_ic = nothing
@@ -536,10 +538,14 @@ Compute the fraction of a given `component` in each cell/particle.
 
       + If `component` == :Z_stellar
           * `:stellar` => ["GZ2 "]
+      + If `component` == :dust_stellar
+          * `:stellar` => ["GDZ2"]
       + If `component` ∈ [:gas, :hydrogen, :helium]:
           * `:gas` => ["MASS"]
       + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  "]
+      + If `component` == :dust_gas
+          * `:gas` => ["MASS", "GDZ "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -585,10 +591,14 @@ Compute the fraction of a given non :ode `component` in each cell/particle.
 
       + If `component` == :Z_stellar
           * `:stellar` => ["GZ2 "]
+      + If `component` == :dust_stellar
+          * `:stellar` => ["GDZ2"]
       + If `component` ∈ [:gas, :hydrogen, :helium]:
           * `:gas` => ["MASS"]
       + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  "]
+      + If `component` == :dust_gas
+          * `:gas` => ["MASS", "GDZ "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -622,6 +632,27 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         else
 
             fractions = setPositive(Z)
+
+        end
+
+        return fractions
+
+    elseif component == :dust_stellar
+
+        Zd = data_dict[:stellar]["GDZ2"]
+
+        if isempty(Zd)
+
+            (
+                LOGGING[] &&
+                @warn("_compute_fraction: I could not compute the stellar dust metallicity")
+            )
+
+            fractions = Float64[]
+
+        else
+
+            fractions = setPositive(Zd)
 
         end
 
@@ -689,6 +720,30 @@ function _compute_fraction(data_dict::Dict, component::Symbol)::Vector{Float64}
         else
 
             fractions = setPositive(Z)
+
+        end
+
+    #######################
+    # Gas dust metallicity
+    #######################
+
+    elseif component == :dust_gas
+
+        Zd = dg["GDZ "]
+
+        if isempty(Zd)
+
+            (
+                LOGGING[] &&
+                @warn("_compute_fraction: I could not compute the gas dust metallicity. \
+                The block 'GDZ ' is empty")
+            )
+
+            fractions = Float64[]
+
+        else
+
+            fractions = setPositive(Zd)
 
         end
 
@@ -1057,6 +1112,8 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
           * `:gas` => ["MASS", "RHO "]
       + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  ", "RHO "]
+      + If `component` == :dust_gas
+          * `:gas` => ["MASS", "GDZ ", "RHO "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -1119,6 +1176,8 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
           * `:gas` => ["SFR ", "MASS", "RHO "]
       + If `component` == :Z_gas
           * `:gas` => ["SFR ", "MASS", "GZ  ", "RHO "]
+      + If `component` == :dust_gas
+          * `:gas` => ["SFR ", "MASS", "GDZ ", "RHO "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -1179,10 +1238,14 @@ Compute the mass in each cell/particle of a given `component`.
           * `component` => ["MASS"]
       + If `component` == :Z_stellar
           * `:stellar` => ["MASS", "GZ2 "]
+      + If `component` == :dust_stellar
+          * `:stellar` => ["MASS", "GDZ2"]
       + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["MASS"]
       + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  "]
+      + If `component` == :dust_gas
+          * `:gas` => ["MASS", "GDZ "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -1222,7 +1285,7 @@ function computeMass(data_dict::Dict, component::Symbol)::Vector{<:Unitful.Mass}
 
         else
 
-            if component == :Z_stellar
+            if component ∈ (:Z_stellar, :dust_stellar)
                 type = :stellar
             else
                 type = :gas
@@ -1260,6 +1323,8 @@ Compute the mass density of a given gas `component` for each cell.
           * `:gas` => ["MASS", "RHO "]
       + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  ", "RHO "]
+      + If `component` == :dust_gas
+          * `:gas` => ["MASS", "GDZ ", "RHO "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -1338,6 +1403,8 @@ Compute the number density of a given gas `component` for each cell.
           * `:gas` => ["MASS", "RHO "]
       + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  ", "RHO "]
+      + If `component` == :dust_gas
+          * `:gas` => ["MASS", "GDZ ", "RHO "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP ", "RHO "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -1411,12 +1478,14 @@ Compute the number of a given `component`.
 
       + If `component` ∈ [:stellar, :dark_matter, :black_hole, :gas]
           * `component` => ["MASS"]
-      + If `component` ∈ [:Z_stellar]:
+      + If `component` ∈ (:Z_stellar, :dust_stellar)
           * `:stellar` => ["MASS"]
       + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["MASS"]
       + If `component` == :Z_gas
           * `:gas` => ["MASS", "GZ  "]
+      + If `component` == :dust_gas
+          * `:gas` => ["MASS", "GDZ "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -1442,7 +1511,7 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
         `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:stellar, :dark_matter, :black_hole, :gas]
+    if component ∈ (:stellar, :dark_matter, :black_hole, :gas)
 
         ############################################################################################
         # Number as the amount of particles
@@ -1450,7 +1519,7 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         N = [lenght(data_dict[component]["MASS"])]
 
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
 
         ############################################################################################
         # Number as the amount of particles
@@ -1458,7 +1527,7 @@ function computeNumber(data_dict::Dict, component::Symbol)::Vector{Float64}
 
         N = [lenght(data_dict[:stellar]["MASS"])]
 
-    elseif component ∈ [:helium, :br_molecular, :ode_molecular, :ode_molecular_stellar]
+    elseif component ∈ (:helium, :br_molecular, :ode_molecular, :ode_molecular_stellar)
 
         ############################################################################################
         # Number as the amount of elements (atoms/molecules) in each cell

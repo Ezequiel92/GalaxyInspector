@@ -2454,6 +2454,50 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         end,
     ),
 
+    :gas_dust_metallicity => BaseQuantity(;
+        id             = :gas_dust_metallicity,
+        qty_label      = L"Zd_\mathrm{gas}",
+        request        = Dict(:gas => ["GDZ ", "MASS"]),
+        unit           = Unitful.NoUnits,
+        exp_factor     = 0,
+        cp_type        = :gas,
+        scatter_func   = dd -> computeFraction(dd, :dust_gas),
+        integrate_func = dd -> let
+
+            Md = sum(computeMass(dd, :dust_gas); init=0.0u"Msun")
+            Mg = sum(computeMass(dd, :gas); init=0.0u"Msun")
+
+            if iszero(Mg)
+                NaN
+            else
+                Md / Mg
+            end
+
+        end,
+    ),
+
+    :stellar_dust_metallicity => BaseQuantity(;
+        id             = :stellar_dust_metallicity,
+        qty_label      = L"Zd_\star",
+        request        = Dict(:stellar => ["GDZ2", "MASS"]),
+        unit           = Unitful.NoUnits,
+        exp_factor     = 0,
+        cp_type        = :stellar,
+        scatter_func   = dd -> computeFraction(dd, :dust_stellar),
+        integrate_func = dd -> let
+
+            Md = sum(computeMass(dd, :dust_stellar); init=0.0u"Msun")
+            Ms = sum(computeMass(dd, :stellar); init=0.0u"Msun")
+
+            if iszero(Ms)
+                NaN
+            else
+                Md / Ms
+            end
+
+        end,
+    ),
+
 )
 
 """
@@ -2466,13 +2510,15 @@ const COMPONENTS = Dict(
     ############################
 
     # Stellar particles
-    :stellar     => (qty_label="\\star", cp_type=:stellar),
+    :stellar      => (qty_label="\\star", cp_type=:stellar),
     # Dark matter particles
-    :dark_matter => (qty_label="\\text{DM}", cp_type=:dark_matter),
+    :dark_matter  => (qty_label="\\text{DM}", cp_type=:dark_matter),
     # Black hole particles
-    :black_hole  => (qty_label="\\text{BH}", cp_type=:black_hole),
+    :black_hole   => (qty_label="\\text{BH}", cp_type=:black_hole),
     # Metals in the stars
-    :Z_stellar   => (qty_label="\\text{Z\\!\\star}", cp_type=:stellar),
+    :Z_stellar    => (qty_label="\\text{Z\\!\\star}", cp_type=:stellar),
+    # Dust in the stars
+    :dust_stellar => (qty_label="\\text{Zd\\!\\star}", cp_type=:stellar),
 
     #######################
     # Gas-based components
@@ -2486,6 +2532,8 @@ const COMPONENTS = Dict(
     :helium       => (qty_label="\\text{He}", cp_type=:gas),
     # Metals in the gas
     :Z_gas        => (qty_label="\\text{Z\\,gas}", cp_type=:gas),
+    # Dust in the gas
+    :dust_gas     => (qty_label="\\text{Zd\\,gas}", cp_type=:gas),
     # Ionized gas (using the Arepo data)
     :ionized      => (qty_label="\\text{HII}", cp_type=:gas),
     # Neutral gas (using the Arepo data)
@@ -2546,10 +2594,14 @@ const MAGNITUDES = Dict(
                 Dict(c => ["MASS"])
             elseif c == :Z_stellar
                 Dict(:stellar => ["MASS", "GZ2 "])
+            elseif c == :dust_stellar
+                Dict(:stellar => ["MASS", "GDZ2"])
             elseif c ∈ (:hydrogen, :helium)
                 Dict(:gas => ["MASS"])
             elseif c == :Z_gas
                 Dict(:gas => ["MASS", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["MASS", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["MASS", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -2560,8 +2612,8 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["MASS", "FRAC", "RHO "])
             elseif c == :generic
                 Dict(
-                    :gas         => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                    :stellar     => ["MASS", "GZ2 "],
+                    :gas         => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES"],
+                    :stellar     => ["MASS", "GZ2 ", "GDZ2"],
                     :dark_matter => ["MASS"],
                     :black_hole  => ["MASS"],
                 )
@@ -2584,6 +2636,8 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["MASS", "RHO "])
             elseif c == :Z_gas
                 Dict(:gas => ["MASS", "RHO ", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["MASS", "RHO ", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -2593,8 +2647,8 @@ const MAGNITUDES = Dict(
             elseif c ∈ (:ode_molecular, :ode_stellar, :ode_molecular_stellar)
                 Dict(:gas => ["MASS", "FRAC", "RHO "])
             elseif c == :generic
-                Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
-            elseif c ∈ (:stellar, :Z_stellar, :dark_matter, :black_hole)
+                Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES"])
+            elseif c ∈ (:stellar, :Z_stellar, :dust_stellar, :dark_matter, :black_hole)
                 nothing
             else
                 throw(ArgumentError("MAGNITUDES: The given component :$(c) is not valid for the \
@@ -2615,6 +2669,8 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["MASS", "RHO "])
             elseif c == :Z_gas
                 Dict(:gas => ["MASS", "RHO ", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["MASS", "RHO ", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -2624,8 +2680,8 @@ const MAGNITUDES = Dict(
             elseif c ∈ (:ode_molecular, :ode_stellar, :ode_molecular_stellar)
                 Dict(:gas => ["MASS", "FRAC", "RHO "])
             elseif c == :generic
-                Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
-            elseif c ∈ (:stellar, :Z_stellar, :dark_matter, :black_hole)
+                Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES"])
+            elseif c ∈ (:stellar, :Z_stellar, :dust_stellar, :dark_matter, :black_hole)
                 nothing
             else
                 throw(ArgumentError("MAGNITUDES: The given component :$(c) is not valid for the \
@@ -2647,10 +2703,14 @@ const MAGNITUDES = Dict(
                 Dict(c => ["MASS", "POS ", "RHO "])
             elseif c == :Z_stellar
                 Dict(:stellar => ["MASS", "GZ2 ", "POS ", "RHO "])
+            elseif c == :dust_stellar
+                Dict(:stellar => ["MASS", "GDZ2", "POS ", "RHO "])
             elseif c ∈ (:hydrogen, :helium)
                 Dict(:gas => ["MASS", "POS ", "RHO "])
             elseif c == :Z_gas
                 Dict(:gas => ["MASS", "GZ  ", "POS ", "RHO "])
+            elseif c == :dust_gas
+                Dict(:gas => ["MASS", "GDZ ", "POS ", "RHO "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["MASS", "NH  ", "NHP ", "POS ", "RHO "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -2661,8 +2721,18 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["MASS", "FRAC", "RHO ", "POS "])
             elseif c == :generic
                 Dict(
-                    :gas         => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES", "POS "],
-                    :stellar     => ["MASS", "GZ2 ", "POS ", "RHO "],
+                    :gas         => [
+                        "MASS",
+                        "NH  ",
+                        "NHP ",
+                        "FRAC",
+                        "RHO ",
+                        "GZ  ",
+                        "GDZ ",
+                        "PRES",
+                        "POS ",
+                    ],
+                    :stellar     => ["MASS", "GZ2 ", "GDZ2", "POS ", "RHO "],
                     :dark_matter => ["MASS", "POS ", "RHO "],
                     :black_hole  => ["MASS", "POS ", "RHO "],
                 )
@@ -2682,7 +2752,7 @@ const MAGNITUDES = Dict(
         integrate_func = (d, c) -> (
             if c ∈ (:stellar, :dark_matter, :black_hole, :gas)
                 lenght(d[c]["MASS"])
-            elseif c == :Z_stellar
+            elseif c ∈ (:Z_stellar, :dust_stellar)
                 lenght(d[:stellar]["MASS"])
             else
                 # Gas-based components
@@ -2692,12 +2762,14 @@ const MAGNITUDES = Dict(
         request        = c -> (
             if c ∈ (:stellar, :dark_matter, :black_hole, :gas)
                 Dict(c => ["MASS"])
-            elseif c == :Z_stellar
+            elseif c ∈ (:Z_stellar, :dust_stellar)
                 Dict(:stellar => ["MASS"])
             elseif c ∈ (:hydrogen, :helium)
                 Dict(:gas => ["MASS"])
             elseif c == :Z_gas
                 Dict(:gas => ["MASS", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["MASS", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["MASS", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -2708,7 +2780,7 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["MASS", "FRAC", "RHO "])
             elseif c == :generic
                 Dict(
-                    :gas         => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
+                    :gas         => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES"],
                     :stellar     => ["MASS"],
                     :dark_matter => ["MASS"],
                     :black_hole  => ["MASS"],
@@ -2728,7 +2800,7 @@ const MAGNITUDES = Dict(
         scatter_func   = (d, c) -> computeFraction(d, c),
         integrate_func = (d, c) -> let
 
-            type = (c == :Z_stellar) ? :stellar : :gas
+            type = (c ∈ (:Z_stellar, :dust_stellar)) ? :stellar : :gas
 
             comp_mass = sum(computeMass(d, c); init=0.0u"Msun")
             ref_mass  = sum(computeMass(d, type); init=0.0u"Msun")
@@ -2739,10 +2811,14 @@ const MAGNITUDES = Dict(
         request        = c -> (
             if c == :Z_stellar
                 Dict(:stellar => ["GZ2 "])
+            elseif c == :dust_stellar
+                Dict(:stellar => ["GDZ2"])
             elseif c ∈ (:gas, :hydrogen, :helium)
                 Dict(:gas => ["MASS"])
             elseif c == :Z_gas
                 Dict(:gas => ["MASS", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["MASS", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["MASS", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -2753,8 +2829,8 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["MASS", "FRAC", "RHO "])
             elseif c == :generic
                 Dict(
-                    :gas     => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                    :stellar => ["GZ2 "],
+                    :gas     => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES"],
+                    :stellar => ["GZ2 ", "GDZ2"],
                 )
             elseif c ∈ (:stellar, :dark_matter, :black_hole)
                 nothing
@@ -2779,6 +2855,8 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["SFR ", "MASS", "RHO "])
             elseif c == :Z_gas
                 Dict(:gas => ["SFR ", "MASS", "RHO ", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["SFR ", "MASS", "RHO ", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["SFR ", "MASS", "RHO ", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -2789,10 +2867,10 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["SFR ", "MASS", "FRAC", "RHO "])
             elseif c == :generic
                 Dict(
-                    :gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
+                    :gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES"],
                     :stellar => ["RHOC", "GMAS", "GSFR"],
                 )
-            elseif c ∈ (:dark_matter, :black_hole, :Z_stellar)
+            elseif c ∈ (:dark_matter, :black_hole, :Z_stellar, :dust_stellar)
                 nothing
             else
                 throw(ArgumentError("MAGNITUDES: The given component :$(c) is not valid for the \
@@ -2813,6 +2891,8 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["MASS", "RHO "])
             elseif c == :Z_gas
                 Dict(:gas => ["MASS", "RHO ", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["MASS", "RHO ", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["MASS", "RHO ", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -2822,8 +2902,8 @@ const MAGNITUDES = Dict(
             elseif c ∈ (:ode_molecular, :ode_stellar, :ode_molecular_stellar)
                 Dict(:gas => ["MASS", "FRAC", "RHO "])
             elseif c == :generic
-                Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
-            elseif c ∈ (:stellar, :Z_stellar, :dark_matter, :black_hole)
+                Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES"])
+            elseif c ∈ (:stellar, :Z_stellar, :dust_stellar, :dark_matter, :black_hole)
                 nothing
             else
                 throw(ArgumentError("MAGNITUDES: The given component :$(c) is not valid for the \
@@ -2859,7 +2939,7 @@ const MAGNITUDES = Dict(
                 Dict(c => blocks)
             elseif c == :generic
                 Dict(type => blocks for type in types)
-            elseif c == :Z_stellar
+            elseif c ∈ (:Z_stellar, :dust_stellar)
                 Dict(:stellar => blocks)
             else
                 # Gas-based components
@@ -2885,7 +2965,7 @@ const MAGNITUDES = Dict(
                 Dict(c => blocks)
             elseif c == :generic
                 Dict(type => blocks for type in types)
-            elseif c == :Z_stellar
+            elseif c ∈ (:Z_stellar, :dust_stellar)
                 Dict(:stellar => blocks)
             else
                 # Gas-based components
@@ -2911,7 +2991,7 @@ const MAGNITUDES = Dict(
                 Dict(c => blocks)
             elseif c == :generic
                 Dict(type => blocks for type in types)
-            elseif c == :Z_stellar
+            elseif c ∈ (:Z_stellar, :dust_stellar)
                 Dict(:stellar => blocks)
             else
                 # Gas-based components
@@ -3025,10 +3105,14 @@ const MAGNITUDES = Dict(
                 Dict(c => ["VEL ", "MASS"])
             elseif c == :Z_stellar
                 Dict(:stellar => ["VEL ", "MASS", "GZ2 "])
+            elseif c == :dust_stellar
+                Dict(:stellar => ["VEL ", "MASS", "GDZ2"])
             elseif c ∈ (:hydrogen, :helium)
                 Dict(:gas => ["VEL ", "MASS"])
             elseif c == :Z_gas
                 Dict(:gas => ["VEL ", "MASS", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["VEL ", "MASS", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["VEL ", "MASS", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -3039,8 +3123,18 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["VEL ", "MASS", "FRAC", "RHO "])
             elseif c == :generic
                 Dict(
-                    :gas         => ["VEL ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                    :stellar     => ["VEL ", "MASS", "GZ2 "],
+                    :gas         => [
+                        "VEL ",
+                        "MASS",
+                        "NH  ",
+                        "NHP ",
+                        "FRAC",
+                        "RHO ",
+                        "GZ  ",
+                        "GDZ ",
+                        "PRES",
+                    ],
+                    :stellar     => ["VEL ", "MASS", "GZ2 ", "GDZ2"],
                     :dark_matter => ["VEL ", "MASS"],
                     :black_hole  => ["VEL ", "MASS"],
                 )
@@ -3063,10 +3157,14 @@ const MAGNITUDES = Dict(
                 Dict(c => ["POT ", "MASS"])
             elseif c == :Z_stellar
                 Dict(:stellar => ["POT ", "MASS", "GZ2 "])
+            elseif c == :dust_stellar
+                Dict(:stellar => ["POT ", "MASS", "GDZ2"])
             elseif c ∈ (:hydrogen, :helium)
                 Dict(:gas => ["POT ", "MASS"])
             elseif c == :Z_gas
                 Dict(:gas => ["POT ", "MASS", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["POT ", "MASS", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["POT ", "MASS", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -3077,8 +3175,18 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["POT ", "MASS", "FRAC", "RHO "])
             elseif c == :generic
                 Dict(
-                    :gas         => ["POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                    :stellar     => ["POT ", "MASS", "GZ2 "],
+                    :gas         => [
+                        "POT ",
+                        "MASS",
+                        "NH  ",
+                        "NHP ",
+                        "FRAC",
+                        "RHO ",
+                        "GZ  ",
+                        "GDZ ",
+                        "PRES",
+                    ],
+                    :stellar     => ["POT ", "MASS", "GZ2 ", "GDZ2"],
                     :dark_matter => ["POT ", "MASS"],
                     :black_hole  => ["POT ", "MASS"],
                 )
@@ -3101,10 +3209,14 @@ const MAGNITUDES = Dict(
                 Dict(c => ["VEL ", "POT ", "MASS"])
             elseif c == :Z_stellar
                 Dict(:stellar => ["VEL ", "POT ", "MASS", "GZ2 "])
+            elseif c == :dust_stellar
+                Dict(:stellar => ["VEL ", "POT ", "MASS", "GDZ2"])
             elseif c ∈ (:hydrogen, :helium)
                 Dict(:gas => ["VEL ", "POT ", "MASS"])
             elseif c == :Z_gas
                 Dict(:gas => ["VEL ", "POT ", "MASS", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["VEL ", "POT ", "MASS", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["VEL ", "POT ", "MASS", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -3115,8 +3227,19 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["VEL ", "POT ", "MASS", "FRAC", "RHO "])
             elseif c == :generic
                 Dict(
-                    :gas         => ["VEL ", "POT ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"],
-                    :stellar     => ["VEL ", "POT ", "MASS", "GZ2 "],
+                    :gas         => [
+                        "VEL ",
+                        "POT ",
+                        "MASS",
+                        "NH  ",
+                        "NHP ",
+                        "FRAC",
+                        "RHO ",
+                        "GZ  ",
+                        "GDZ ",
+                        "PRES",
+                    ],
+                    :stellar     => ["VEL ", "POT ", "MASS", "GZ2 ", "GDZ2"],
                     :dark_matter => ["VEL ", "POT ", "MASS"],
                     :black_hole  => ["VEL ", "POT ", "MASS"],
                 )
@@ -3159,6 +3282,8 @@ const MAGNITUDES = Dict(
                 Dict(:gas => ["SFR ", "MASS"])
             elseif c == :Z_gas
                 Dict(:gas => ["SFR ", "MASS", "GZ  "])
+            elseif c == :dust_gas
+                Dict(:gas => ["SFR ", "MASS", "GDZ "])
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP "])
             elseif c ∈ (:br_atomic, :br_molecular)
@@ -3168,8 +3293,8 @@ const MAGNITUDES = Dict(
             elseif c ∈ (:ode_molecular, :ode_stellar, :ode_molecular_stellar)
                 Dict(:gas => ["SFR ", "MASS", "FRAC", "RHO "])
             elseif c == :generic
-                Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "PRES"])
-            elseif c ∈ (:stellar, :Z_stellar, :dark_matter, :black_hole)
+                Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES"])
+            elseif c ∈ (:stellar, :Z_stellar, :dust_stellar, :dark_matter, :black_hole)
                 nothing
             else
                 throw(ArgumentError("MAGNITUDES: The given component :$(c) is not valid for the \
@@ -3194,7 +3319,7 @@ const MAGNITUDES = Dict(
                 Dict(c => blocks)
             elseif c == :generic
                 Dict(type => blocks for type in types)
-            elseif c == :Z_stellar
+            elseif c ∈ (:Z_stellar, :dust_stellar)
                 Dict(:stellar => blocks)
             else
                 # Gas-based components
@@ -3220,7 +3345,7 @@ const MAGNITUDES = Dict(
                 Dict(c => blocks)
             elseif c == :generic
                 Dict(type => blocks for type in types)
-            elseif c == :Z_stellar
+            elseif c ∈ (:Z_stellar, :dust_stellar)
                 Dict(:stellar => blocks)
             else
                 # Gas-based components

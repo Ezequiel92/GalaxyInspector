@@ -462,7 +462,7 @@ function computeXYDistance(data_dict::Dict, component::Symbol)::Vector{<:Unitful
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
         type = :stellar
     else
         type = :gas
@@ -509,7 +509,7 @@ function computeRadialDistance(data_dict::Dict, component::Symbol)::Vector{<:Uni
 
     if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
         type = component
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
         type = :stellar
     else
         type = :gas

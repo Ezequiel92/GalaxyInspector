@@ -137,10 +137,14 @@ Compute the kinetic energy.
           * `component` => ["VEL ", "MASS"]
       + If `component` == :Z_stellar
           * `:stellar` => ["VEL ", "MASS", "GZ2 "]
+      + If `component` == :dust_stellar
+          * `:stellar` => ["VEL ", "MASS", "GDZ2"]
       + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["VEL ", "MASS"]
       + If `component` == :Z_gas
           * `:gas` => ["VEL ", "MASS", "GZ  "]
+      + If `component` == :dust_gas
+          * `:gas` => ["VEL ", "MASS", "GDZ "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["VEL ", "MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -165,9 +169,9 @@ function computeKineticEnergy(
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
+    if component ∈ (:stellar, :dark_matter, :gas, :black_hole)
         type = component
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
         type = :stellar
     else
         type = :gas
@@ -194,10 +198,14 @@ Compute the gravitational potencial energy.
           * `component` => ["POT ", "MASS"]
       + If `component` == :Z_stellar
           * `:stellar` => ["POT ", "MASS", "GZ2 "]
+      + If `component` == :dust_stellar
+          * `:stellar` => ["POT ", "MASS", "GDZ2"]
       + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["POT ", "MASS"]
       + If `component` == :Z_gas
           * `:gas` => ["POT ", "MASS", "GZ  "]
+      + If `component` == :dust_gas
+          * `:gas` => ["POT ", "MASS", "GDZ "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["POT ", "MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]
@@ -219,9 +227,9 @@ function computePotentialEnergy(data_dict::Dict, component::Symbol)::Vector{<:Un
         of `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
     end
 
-    if component ∈ [:stellar, :dark_matter, :gas, :black_hole]
+    if component ∈ (:stellar, :dark_matter, :gas, :black_hole)
         type = component
-    elseif component == :Z_stellar
+    elseif component ∈ (:Z_stellar, :dust_stellar)
         type = :stellar
     else
         type = :gas
@@ -249,10 +257,14 @@ Compute the total energy (kinetic + potential).
           * `component` => ["VEL ", "POT ", "MASS"]
       + If `component` == :Z_stellar
           * `:stellar` => ["VEL ", "POT ", "MASS", "GZ2 "]
+      + If `component` == :dust_stellar
+          * `:stellar` => ["VEL ", "POT ", "MASS", "GDZ2"]
       + If `component` ∈ [:hydrogen, :helium]
           * `:gas` => ["VEL ", "POT ", "MASS"]
       + If `component` == :Z_gas
           * `:gas` => ["VEL ", "POT ", "MASS", "GZ  "]
+      + If `component` == :dust_gas
+          * `:gas` => ["VEL ", "POT ", "MASS", "GDZ "]
       + If `component` ∈ [:ionized, :neutral]
           * `:gas` => ["VEL ", "POT ", "MASS", "NH  ", "NHP "]
       + If `component` ∈ [:br_atomic, :br_molecular]
