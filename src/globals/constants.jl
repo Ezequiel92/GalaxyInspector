@@ -21,6 +21,16 @@ Path to the directory where memory-mapped arrays will be stored.
 """
 const MMAP_PATH = joinpath(@__DIR__, "../../mmap")
 
+"""
+Always returns `nothing`, for any type and number of arguments.
+"""
+getNothing(x...; y...)::Nothing = nothing
+
+"""
+Always returns an empty vector, for any type and number of arguments.
+"""
+getEmpty(x...; y...)::Vector = []
+
 ####################################################################################################
 # Reference values from the literature
 ####################################################################################################
@@ -2097,7 +2107,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         exp_factor     = 0,
         cp_type        = :gas,
         scatter_func   = dd -> dd[:gas]["TEMP"],
-        integrate_func = dd -> nothing,
+        integrate_func = getNothing,
     ),
 
     :pressure => BaseQuantity(;
@@ -2108,7 +2118,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         exp_factor     = 0,
         cp_type        = :gas,
         scatter_func   = dd -> dd[:gas]["PRES"],
-        integrate_func = dd -> nothing,
+        integrate_func = getNothing,
     ),
 
     #################
@@ -2188,8 +2198,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = u"Msun * yr^-1 * kpc^-2",
         exp_factor     = 0,
         cp_type        = :stellar,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     :sfr_density => BaseQuantity(;
@@ -2199,8 +2209,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = u"Msun * yr^-1 * kpc^-3",
         exp_factor     = 0,
         cp_type        = :stellar,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     :stellar_age => BaseQuantity(;
@@ -2211,7 +2221,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         exp_factor     = 0,
         cp_type        = :stellar,
         scatter_func   = dd -> computeStellarAge(dd),
-        integrate_func = dd -> nothing,
+        integrate_func = getNothing,
     ),
 
     :stellar_birth_time => BaseQuantity(;
@@ -2222,7 +2232,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         exp_factor     = 0,
         cp_type        = :stellar,
         scatter_func   = dd -> computeStellarBirthTime(dd),
-        integrate_func = dd -> nothing,
+        integrate_func = getNothing,
     ),
 
     :gas_sfr => BaseQuantity(;
@@ -2233,7 +2243,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         exp_factor     = 0,
         cp_type        = :gas,
         scatter_func   = dd -> dd[:gas]["SFR "],
-        integrate_func = dd -> nothing,
+        integrate_func = getNothing,
     ),
 
     :gas_sfr_area_density => BaseQuantity(;
@@ -2243,8 +2253,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = u"Msun * yr^-1 * kpc^-2",
         exp_factor     = 0,
         cp_type        = :gas,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     :mu_mol => BaseQuantity(;
@@ -2257,8 +2267,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     ##################
@@ -2272,7 +2282,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
+        scatter_func   = getNothing,
         integrate_func = dd -> dd[:sim_data].simulation_table[dd[:snap_data].global_index, :scale_factors],
     ),
 
@@ -2283,7 +2293,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
+        scatter_func   = getNothing,
         integrate_func = dd -> dd[:sim_data].simulation_table[dd[:snap_data].global_index, :redshifts],
     ),
 
@@ -2294,7 +2304,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = u"Gyr",
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
+        scatter_func   = getNothing,
         integrate_func = dd -> dd[:sim_data].simulation_table[dd[:snap_data].global_index, :physical_times],
     ),
 
@@ -2305,7 +2315,7 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = u"Gyr",
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
+        scatter_func   = getNothing,
         integrate_func = dd -> dd[:sim_data].simulation_table[dd[:snap_data].global_index, :lookback_times],
     ),
 
@@ -2316,8 +2326,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     :clock_time_s => BaseQuantity(;
@@ -2327,8 +2337,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = u"s",
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     :clock_time_percent => BaseQuantity(;
@@ -2338,8 +2348,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     :tot_clock_time_s => BaseQuantity(;
@@ -2349,8 +2359,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = u"s",
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     :tot_clock_time_percent => BaseQuantity(;
@@ -2360,8 +2370,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = nothing,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     # See computeVirialAccretion() and computeDiskAccretion() in ./src/analysis/compute_quantities/masses.jl
@@ -2380,8 +2390,8 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = u"Msun * yr^-1",
         exp_factor     = 0,
         cp_type        = :nothing,
-        scatter_func   = dd -> nothing,
-        integrate_func = dd -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
     ),
 
     #########################
@@ -2395,11 +2405,11 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = :gas,
-        scatter_func   = dd -> computeFraction(dd, :Z_gas) ./ SOLAR_METALLICITY[],
-        integrate_func = dd -> let
+        scatter_func   = (dd, ic_gen) -> computeFraction(dd, :Z_gas; ic_gen) ./ SOLAR_METALLICITY[],
+        integrate_func = (dd, ic_gen) -> let
 
-            Mz = sum(computeMass(dd, :Z_gas); init=0.0u"Msun")
-            Mg = sum(computeMass(dd, :gas); init=0.0u"Msun")
+            Mz = sum(computeMass(dd, :Z_gas; ic_gen); init=0.0u"Msun")
+            Mg = sum(computeMass(dd, :gas; ic_gen); init=0.0u"Msun")
 
             if iszero(Mg)
                 NaN
@@ -2417,11 +2427,11 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = :stellar,
-        scatter_func   = dd -> computeFraction(dd, :Z_stellar) ./ SOLAR_METALLICITY[],
-        integrate_func = dd -> let
+        scatter_func   = (dd, ic_gen) -> computeFraction(dd, :Z_stellar; ic_gen) ./ SOLAR_METALLICITY[],
+        integrate_func = (dd, ic_gen) -> let
 
-            Mz = sum(computeMass(dd, :Z_stellar); init=0.0u"Msun")
-            Ms = sum(computeMass(dd, :stellar); init=0.0u"Msun")
+            Mz = sum(computeMass(dd, :Z_stellar; ic_gen); init=0.0u"Msun")
+            Ms = sum(computeMass(dd, :stellar; ic_gen); init=0.0u"Msun")
 
             if iszero(Ms)
                 NaN
@@ -2439,11 +2449,11 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = :gas,
-        scatter_func   = dd -> computeFraction(dd, :ode_metals) ./ SOLAR_METALLICITY[],
-        integrate_func = dd -> let
+        scatter_func   = (dd, ic_gen) -> computeFraction(dd, :ode_metals; ic_gen) ./ SOLAR_METALLICITY[],
+        integrate_func = (dd, ic_gen) -> let
 
-            Mz = sum(computeMass(dd, :ode_metals); init=0.0u"Msun")
-            Mg = sum(computeMass(dd, :gas); init=0.0u"Msun")
+            Mz = sum(computeMass(dd, :ode_metals; ic_gen); init=0.0u"Msun")
+            Mg = sum(computeMass(dd, :gas; ic_gen); init=0.0u"Msun")
 
             if iszero(Mg)
                 NaN
@@ -2461,11 +2471,11 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = :gas,
-        scatter_func   = dd -> computeFraction(dd, :dust_gas),
-        integrate_func = dd -> let
+        scatter_func   = (dd, ic_gen) -> computeFraction(dd, :dust_gas; ic_gen),
+        integrate_func = (dd, ic_gen) -> let
 
-            Md = sum(computeMass(dd, :dust_gas); init=0.0u"Msun")
-            Mg = sum(computeMass(dd, :gas); init=0.0u"Msun")
+            Md = sum(computeMass(dd, :dust_gas; ic_gen); init=0.0u"Msun")
+            Mg = sum(computeMass(dd, :gas; ic_gen); init=0.0u"Msun")
 
             if iszero(Mg)
                 NaN
@@ -2483,11 +2493,11 @@ QTY_REGISTRY = Dict{Symbol,BaseQuantity}(
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
         cp_type        = :stellar,
-        scatter_func   = dd -> computeFraction(dd, :dust_stellar),
-        integrate_func = dd -> let
+        scatter_func   = (dd, ic_gen) -> computeFraction(dd, :dust_stellar; ic_gen),
+        integrate_func = (dd, ic_gen) -> let
 
-            Md = sum(computeMass(dd, :dust_stellar); init=0.0u"Msun")
-            Ms = sum(computeMass(dd, :stellar); init=0.0u"Msun")
+            Md = sum(computeMass(dd, :dust_stellar; ic_gen); init=0.0u"Msun")
+            Ms = sum(computeMass(dd, :stellar; ic_gen); init=0.0u"Msun")
 
             if iszero(Ms)
                 NaN
@@ -2587,8 +2597,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"M" : L"M_%$(l)",
         unit           = u"Msun",
         exp_factor     = 10,
-        scatter_func   = (d, c) -> computeMass(d, c),
-        integrate_func = (d, c) -> sum(computeMass(d, c); init=0.0u"Msun"),
+        scatter_func   = (d, c, ic_gen) -> computeMass(d, c; ic_gen),
+        integrate_func = (d, c, ic_gen) -> sum(computeMass(d, c; ic_gen); init=0.0u"Msun"),
         request        = c -> (
             if c ∈ (:stellar, :dark_matter, :black_hole, :gas)
                 Dict(c => ["MASS"])
@@ -2629,8 +2639,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"\rho" : L"\rho_%$(l)",
         unit           = u"Msun * kpc^-3",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeMassDensity(d, c),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, ic_gen) -> computeMassDensity(d, c; ic_gen),
+        integrate_func = getNothing,
         request        = c -> (
             if c ∈ (:gas, :hydrogen, :helium)
                 Dict(:gas => ["MASS", "RHO "])
@@ -2662,8 +2672,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"n" : L"n_{\,%$(l)}",
         unit           = u"cm^-3",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeNumberDensity(d, c),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, ic_gen) -> computeNumberDensity(d, c; ic_gen),
+        integrate_func = getNothing,
         request        = c -> (
             if c ∈ (:gas, :hydrogen, :helium)
                 Dict(:gas => ["MASS", "RHO "])
@@ -2695,8 +2705,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"\Sigma" : L"\Sigma_%$(l)",
         unit           = u"Msun * pc^-2",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> nothing,
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = getNothing,
+        integrate_func = getNothing,
         request        = c -> (
             # See quantity3DProjection() in ./src/analysis/compute_quantities/masses.jl
             if c ∈ (:stellar, :dark_matter, :black_hole, :gas)
@@ -2748,8 +2758,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"N" : L"N_%$(l)",
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeNumber(d, c),
-        integrate_func = (d, c) -> (
+        scatter_func   = (d, c, ic_gen) -> computeNumber(d, c; ic_gen),
+        integrate_func = (d, c, _) -> (
             if c ∈ (:stellar, :dark_matter, :black_hole, :gas)
                 lenght(d[c]["MASS"])
             elseif c ∈ (:Z_stellar, :dust_stellar)
@@ -2797,13 +2807,13 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"f" : L"f_{\,%$(l)}",
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeFraction(d, c),
-        integrate_func = (d, c) -> let
+        scatter_func   = (d, c, ic_gen) -> computeFraction(d, c; ic_gen),
+        integrate_func = (d, c, ic_gen) -> let
 
             type = (c ∈ (:Z_stellar, :dust_stellar)) ? :stellar : :gas
 
-            comp_mass = sum(computeMass(d, c); init=0.0u"Msun")
-            ref_mass  = sum(computeMass(d, type); init=0.0u"Msun")
+            comp_mass = sum(computeMass(d, c; ic_gen); init=0.0u"Msun")
+            ref_mass  = sum(computeMass(d, type; ic_gen); init=0.0u"Msun")
 
             iszero(ref_mass) ? NaN : comp_mass / ref_mass
 
@@ -2846,8 +2856,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"\epsilon_\text{ff}" : L"\epsilon_{\text{ff}, %$(l)}",
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeEfficiencyFF(d, c),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, ic_gen) -> computeEfficiencyFF(d, c; ic_gen),
+        integrate_func = getNothing,
         request        = c -> (
             if c == :stellar
                 Dict(:stellar => ["RHOC", "GMAS", "GSFR"])
@@ -2884,8 +2894,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"C_\rho" : L"C_{\rho, \,%$(l)}",
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
-        scatter_func   = (d, c) -> nothing,
-        integrate_func = (d, c) -> computeClumpingFactor(d, c),
+        scatter_func   = getNothing,
+        integrate_func = (d, c, ic_gen) -> computeClumpingFactor(d, c; ic_gen),
         request        = c -> (
             if c ∈ (:gas, :hydrogen, :helium)
                 Dict(:gas => ["MASS", "RHO "])
@@ -2921,11 +2931,20 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"j_z" : L"j_{z, \,%$(l)}",
         unit           = u"kpc^2 * s^-1",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeSpecificAngularMomentum(d, c),
-        integrate_func = (d, c) -> let
+        scatter_func   = (d, c, _) -> computeSpecificAngularMomentum(d, c),
+        integrate_func = (d, c, _) -> let
 
             Lz = sum(computeAngularMomentum(d, c); init=0.0u"Msun * pc^2 * yr^-1")
-            M  = sum(computeMass(d, c); init=0.0u"Msun")
+
+            if c ∈ [:stellar, :dark_matter, :gas, :black_hole]
+                type = c
+            elseif c ∈ (:Z_stellar, :dust_stellar)
+                type = :stellar
+            else
+                type = :gas
+            end
+
+            M  = sum(d[type]["MASS"]; init=0.0u"Msun")
 
             Lz / M
 
@@ -2954,8 +2973,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"l_z" : L"l_{z, \,%$(l)}",
         unit           = u"Msun * kpc^2 * s^-1",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeAngularMomentum(d, c),
-        integrate_func = (d, c) -> sum(computeAngularMomentum(d, c); init=0.0u"Msun * pc^2 * yr^-1"),
+        scatter_func   = (d, c, _) -> computeAngularMomentum(d, c),
+        integrate_func = (d, c, _) -> sum(computeAngularMomentum(d, c); init=0.0u"Msun * pc^2 * yr^-1"),
         request        = c -> let
 
             blocks = ["VEL ", "POS ", "MASS"]
@@ -2980,7 +2999,7 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"\lambda" : L"\lambda_%$(l)",
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
-        scatter_func   = (d, c) -> nothing,
+        scatter_func   = getNothing,
         integrate_func = (d, c) -> computeSpinParameter(d, c),
         request        = c -> let
 
@@ -3006,8 +3025,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"\epsilon" : L"\epsilon_{\,%$(l)}",
         unit           = Unitful.NoUnits,
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeCircularity(d, c),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, _) -> computeCircularity(d, c),
+        integrate_func = getNothing,
         request        = c -> Dict(t => ["VEL ", "POS ", "MASS"] for t in keys(PARTICLE_INDEX)),
     ),
 
@@ -3016,8 +3035,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"v_\text{circ}" : L"v_{\text{circ}, \,%$(l)}",
         unit           = u"km * s^-1",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeVcirc(d, c)[2],
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, _) -> computeVcirc(d, c)[2],
+        integrate_func = getNothing,
         request        = c -> Dict(t => ["MASS", "POS "] for t in keys(PARTICLE_INDEX)),
     ),
 
@@ -3026,8 +3045,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"v_r" : L"v_{r, \,%$(l)}",
         unit           = u"km * s^-1",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeVpolar(d, c, :radial),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, _) -> computeVpolar(d, c, :radial),
+        integrate_func = getNothing,
         request        = c -> let
 
             blocks = ["VEL ", "POS "]
@@ -3050,8 +3069,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"v_\theta" : L"v_{\theta, \,%$(l)}",
         unit           = u"km * s^-1",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeVpolar(d, c, :tangential),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, _) -> computeVpolar(d, c, :tangential),
+        integrate_func = getNothing,
         request        = c -> let
 
             blocks = ["VEL ", "POS "]
@@ -3074,8 +3093,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"v_z \, \mathrm{sign}(z)" : L"v_{z, \,%$(l)} \, \mathrm{sign}(z)",
         unit           = u"km * s^-1",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeVpolar(d, c, :zstar),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, _) -> computeVpolar(d, c, :zstar),
+        integrate_func = getNothing,
         request        = c -> let
 
             blocks = ["VEL ", "POS "]
@@ -3098,8 +3117,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"E_k" : L"E_{k, \,%$(l)}",
         unit           = u"erg",
         exp_factor     = 51,
-        scatter_func   = (d, c) -> computeKineticEnergy(d, c),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, ic_gen) -> computeKineticEnergy(d, c; ic_gen),
+        integrate_func = getNothing,
         request        = c -> (
             if c ∈ (:stellar, :dark_matter, :black_hole, :gas)
                 Dict(c => ["VEL ", "MASS"])
@@ -3150,8 +3169,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"E_p" : L"E_{p, \,%$(l)}",
         unit           = u"erg",
         exp_factor     = 51,
-        scatter_func   = (d, c) -> computePotentialEnergy(d, c),
-        integrate_func = (d, c) -> sum(computePotentialEnergy(d, c); init=0.0u"erg"),
+        scatter_func   = (d, c, ic_gen) -> computePotentialEnergy(d, c; ic_gen),
+        integrate_func = (d, c, ic_gen) -> sum(computePotentialEnergy(d, c; ic_gen); init=0.0u"erg"),
         request        = c -> (
             if c ∈ (:stellar, :dark_matter, :black_hole, :gas)
                 Dict(c => ["POT ", "MASS"])
@@ -3202,8 +3221,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"E" : L"E_{%$(l)}",
         unit           = u"erg",
         exp_factor     = 51,
-        scatter_func   = (d, c) -> computeTotalEnergy(d, c),
-        integrate_func = (d ,c) -> nothing,
+        scatter_func   = (d, c, ic_gen) -> computeTotalEnergy(d, c; ic_gen),
+        integrate_func = getNothing,
         request        = c -> (
             if c ∈ (:stellar, :dark_matter, :black_hole, :gas)
                 Dict(c => ["VEL ", "POT ", "MASS"])
@@ -3259,16 +3278,16 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"\tau_\text{dep}" : L"\tau_{\text{dep}, \,%$(l)}",
         unit           = u"Gyr",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeDepletionTime(d, c),
-        integrate_func = (d, c) -> let
+        scatter_func   = (d, c, ic_gen) -> computeDepletionTime(d, c; ic_gen),
+        integrate_func = (d, c, ic_gen) -> let
 
-            mass    = sum(computeMass(d, c); init=0.0u"Msun")
+            mass    = sum(computeMass(d, c; ic_gen); init=0.0u"Msun")
             cp_type = COMPONENTS[c].cp_type
 
             if cp_type == :stellar
-                sfr = sum(scatterQty(d, :sfr); init=0.0u"Msun * yr^-1")
+                sfr = sum(scatterQty(d, :sfr; ic_gen); init=0.0u"Msun * yr^-1")
             elseif cp_type == :gas
-                sfr = sum(scatterQty(d, :gas_sfr); init=0.0u"Msun * yr^-1")
+                sfr = sum(scatterQty(d, :gas_sfr; ic_gen); init=0.0u"Msun * yr^-1")
             else
                 throw(ArgumentError("integrateQty: I don't know how to compute the SFR for \
                 cp_type :$(cp_type)"))
@@ -3308,8 +3327,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"d_{xy}" : L"d_{xy, \,%$(l)}",
         unit           = u"kpc",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeXYDistance(d, c),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, _) -> computeXYDistance(d, c),
+        integrate_func = getNothing,
         request        = c -> let
 
             blocks = ["POS "]
@@ -3334,8 +3353,8 @@ const MAGNITUDES = Dict(
         label_fmt      = l -> isempty(l) ? L"R" : L"R_{\,%$(l)}",
         unit           = u"kpc",
         exp_factor     = 0,
-        scatter_func   = (d, c) -> computeRadialDistance(d, c),
-        integrate_func = (d, c) -> nothing,
+        scatter_func   = (d, c, _) -> computeRadialDistance(d, c),
+        integrate_func = getNothing,
         request        = c -> let
 
             blocks = ["POS "]
@@ -3515,7 +3534,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["ODIT"]),
         scatter_func   = (d, c) -> d[c]["ODIT"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3527,7 +3546,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["PARA"]),
         scatter_func   = (d, c) -> d[c]["PARA"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -3538,7 +3557,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["PARz"]),
         scatter_func   = (d, c) -> d[c]["PARz"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3550,7 +3569,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["PARU"]),
         scatter_func   = (d, c) -> d[c]["PARU"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3562,7 +3581,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["PARL"]),
         scatter_func   = (d, c) -> d[c]["PARL"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3574,7 +3593,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["TAUS"]),
         scatter_func   = (d, c) -> d[c]["TAUS"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3586,7 +3605,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["RHOC"]),
         scatter_func   = (d, c) -> d[c]["RHOC"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3629,7 +3648,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["PARH"]),
         scatter_func   = (d, c) -> d[c]["PARH"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3641,7 +3660,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["ETAD"]),
         scatter_func   = (d, c) -> d[c]["ETAD"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3653,7 +3672,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["ETAI"]),
         scatter_func   = (d, c) -> d[c]["ETAI"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -3664,7 +3683,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["PARR"]),
         scatter_func   = (d, c) -> d[c]["PARR"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3676,7 +3695,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["PAZN"]),
         scatter_func   = (d, c) -> d[c]["PAZN"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3688,7 +3707,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["SFFL"]),
         scatter_func   = (d, c) -> d[c]["SFFL"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas,),
 
     ),
@@ -3743,7 +3762,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["GSFR"]),
         scatter_func   = (d, c) -> d[c]["GSFR"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:stellar,),
 
     ),
@@ -3755,7 +3774,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["GPRE"]),
         scatter_func   = (d, c) -> d[c]["GPRE"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:stellar,),
 
     ),
@@ -3767,7 +3786,7 @@ const SFM_MAGNITUDES = Dict(
         exp_factor     = 0,
         request        = c -> Dict(c => ["PARS"]),
         scatter_func   = (d, c) -> d[c]["PARS"],
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
 
     ),
@@ -3786,7 +3805,7 @@ const SFM_MAGNITUDES = Dict(
             @. tff / AREPO_SFM.εff
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -3817,7 +3836,7 @@ const SFM_MAGNITUDES = Dict(
             end
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -3853,7 +3872,7 @@ const SFM_MAGNITUDES = Dict(
             end
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -3891,7 +3910,7 @@ const SFM_MAGNITUDES = Dict(
             end
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -3927,7 +3946,7 @@ const SFM_MAGNITUDES = Dict(
             end
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -3963,7 +3982,7 @@ const SFM_MAGNITUDES = Dict(
             end
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -3992,7 +4011,7 @@ const SFM_MAGNITUDES = Dict(
             end
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -4021,7 +4040,7 @@ const SFM_MAGNITUDES = Dict(
             end
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -4059,7 +4078,7 @@ const SFM_MAGNITUDES = Dict(
             end
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -4092,7 +4111,7 @@ const SFM_MAGNITUDES = Dict(
             end
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -4123,7 +4142,7 @@ const SFM_MAGNITUDES = Dict(
             @. 2.0 * cbrt(V / (4π / 3))
 
         end,
-        integrate_func = (d, c) -> nothing,
+        integrate_func = getNothing,
         valid_types    = (:gas, :stellar),
     ),
 
@@ -4161,7 +4180,7 @@ function haloQuantity(magnitude::Symbol, halo_idx::Int)::BaseQuantity
         unit           = info.unit,
         exp_factor     = info.exp_factor,
         cp_type        = :group,
-        scatter_func   = dd -> nothing,
+        scatter_func   = getNothing,
         integrate_func = dd -> let
 
             halo_qty = dd[:group][info.snap_key]
@@ -4206,8 +4225,8 @@ function fillRegistry!(; registry::Dict{Symbol, BaseQuantity}=QTY_REGISTRY)::Not
                 unit           = trait.unit,
                 exp_factor     = trait.exp_factor,
                 cp_type        = info.cp_type,
-                scatter_func   = dd -> trait.scatter_func(dd, component),
-                integrate_func = dd -> trait.integrate_func(dd, component),
+                scatter_func   = (dd, ic_gen) -> trait.scatter_func(dd, component, ic_gen),
+                integrate_func = (dd, ic_gen) -> trait.integrate_func(dd, component, ic_gen),
             )
 
         end

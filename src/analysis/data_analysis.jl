@@ -40,6 +40,7 @@ Compute two quantities for every cell/particle in the simulation using [`scatter
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -55,12 +56,13 @@ function daScatterGalaxy(
     x_log::Union{Unitful.Units,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::NTuple{2,Vector{<:Number}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    x_values = scatterQty(filtered_dd, x_quantity)
-    y_values = scatterQty(filtered_dd, y_quantity)
+    x_values = scatterQty(filtered_dd, x_quantity; ic_gen)
+    y_values = scatterQty(filtered_dd, y_quantity; ic_gen)
 
     (
         length(x_values) == length(y_values) ||
@@ -109,6 +111,7 @@ Compute two global quantities for the simulation.
   - `x_agg_func::Union{Function,Symbol}=:default`: If `x_quantity` is well defined for each cell/particle, you can pass an `x_agg_func` to accumulate the values calculated with [`scatterQty`](@ref). If `x_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `x_quantity`.
   - `y_agg_func::Union{Function,Symbol}=:default`: If `y_quantity` is well defined for each cell/particle, you can pass an `y_agg_func` to accumulate the values calculated with [`scatterQty`](@ref). If `y_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `y_quantity`.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -124,13 +127,14 @@ function daIntegrateGalaxy(
     x_agg_func::Union{Function,Symbol}=:default,
     y_agg_func::Union{Function,Symbol}=:default,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::NTuple{2,Vector{<:Number}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
     return (
-        [integrateQty(filtered_dd, x_quantity; agg_function=x_agg_func)],
-        [integrateQty(filtered_dd, y_quantity; agg_function=y_agg_func)],
+        [integrateQty(filtered_dd, x_quantity; agg_function=x_agg_func, ic_gen)],
+        [integrateQty(filtered_dd, y_quantity; agg_function=y_agg_func, ic_gen)],
     )
 
 end
@@ -156,6 +160,7 @@ Compute two quantities for every cell/particle using a 2D histogram.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `n_bins::Int=100`: Number of bins per side of the grid.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -175,6 +180,7 @@ function daScatterDensity(
     y_log::Union{Unitful.Units,Nothing}=nothing,
     n_bins::Int=100,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
     x_values, y_values = daScatterGalaxy(
@@ -184,6 +190,7 @@ function daScatterDensity(
         x_log,
         y_log,
         filter_function,
+        ic_gen,
     )
 
     if any(isempty, [x_values, y_values])
@@ -259,6 +266,7 @@ Compute two quantities for every cell/particle using a 2D histogram, weighted by
   - `total::Bool=true`: If the sum (default) or the mean of `z_quantity` will be used as the value of each bin.
   - `n_bins::Int=100`: Number of bins per side of the grid.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -280,13 +288,14 @@ function daScatterWeightedDensity(
     total::Bool=true,
     n_bins::Int=100,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Tuple{Vector{<:Number},Vector{<:Number},Matrix{Float64}}
 
     filtered_dd = filterData(data_dict; filter_function)
 
-    x_values = scatterQty(filtered_dd, x_quantity)
-    y_values = scatterQty(filtered_dd, y_quantity)
-    z_values = scatterQty(filtered_dd, z_quantity)
+    x_values = scatterQty(filtered_dd, x_quantity; ic_gen)
+    y_values = scatterQty(filtered_dd, y_quantity; ic_gen)
+    z_values = scatterQty(filtered_dd, z_quantity; ic_gen)
 
     (
         allequal(length, [x_values, y_values, z_values]) ||
@@ -382,6 +391,7 @@ Compute a profile.
   - `cumulative::Bool=false`: If the profile will be accumulated (after dividing by `norm`).
   - `density::Bool=false`: If the profile will be of the density of `quantity` (after dividing by `norm`).
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -404,6 +414,7 @@ function daProfile(
     cumulative::Bool=false,
     density::Bool=false,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Union{Tuple{Vector{<:Number},Vector{<:Number}},Nothing}
 
     filtered_dd = filterData(data_dict; filter_function)
@@ -424,8 +435,8 @@ function daProfile(
         positions = filtered_dd[cp_type]["POS "]
     end
 
-    values   = scatterQty(filtered_dd, quantity)
-    n_values = isnothing(norm) ? Number[] : scatterQty(filtered_dd, norm)
+    values   = scatterQty(filtered_dd, quantity; ic_gen)
+    n_values = isnothing(norm) ? Number[] : scatterQty(filtered_dd, norm; ic_gen)
 
     if any(isempty, [values, positions])
 
@@ -498,6 +509,7 @@ Compute a profile with uncertainty bands.
   - `ylog::Bool=false`: If true, returns the profile of ``\\log_{10}``(`quantity`).
   - `error_bar::Bool=false`: If the returned values will be compatible with `band!` (default) or with `errorbars!`.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -525,6 +537,7 @@ function daBandProfile(
     ylog::Bool=false,
     error_bar::Bool=false,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Union{
     Tuple{Vector{<:Unitful.Length},Vector{<:Number},Vector{<:Number},Vector{<:Number}},
     Tuple{Vector{<:Unitful.Length},Vector{<:Number},Vector{<:Number}},
@@ -540,7 +553,7 @@ function daBandProfile(
 
     # Read the positions and values
     positions = filtered_dd[type]["POS "]
-    values    = scatterQty(filtered_dd, quantity)
+    values    = scatterQty(filtered_dd, quantity; ic_gen)
 
     if any(isempty, [values, positions])
         (
@@ -745,6 +758,7 @@ Compute a 1D histogram of a given `quantity`.
   -  `log::Bool=false`: If the histogram bins will be logarithmic.
   - `norm::Int=0`: Number of counts that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -760,9 +774,10 @@ function daHistogram(
     log::Bool=false,
     norm::Int=0,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Union{Tuple{Vector{<:Number},Vector{Float64}},Nothing}
 
-    scatter_qty = scatterQty(data_dict, quantity)
+    scatter_qty = scatterQty(data_dict, quantity; ic_gen)
 
     if isempty(scatter_qty)
         (
@@ -861,6 +876,7 @@ Compute a 1D histogram of a given `quantity`.
   - `log::Bool=false`: If the histogram bins will be logarithmic.
   - `norm::Int=0`: Number of count that will be use to normalize the histogram. If left as 0, the histogram will be normalize with the maximum bin count.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -876,9 +892,10 @@ function daHistogram(
     log::Bool=false,
     norm::Int=0,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Union{Tuple{Vector{<:Number},Vector{Float64}},Nothing}
 
-    scatter_qty = scatterQty(data_dict, quantity)
+    scatter_qty = scatterQty(data_dict, quantity; ic_gen)
 
     if isempty(scatter_qty)
         (
@@ -1019,6 +1036,7 @@ Compute a bar plot, where the bins are for a given gas `quantity` and the height
   - `grid::LinearGrid`: Linear grid.
   - `components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_cold]`: List of gas components to be considered. The fractions will be normalized to this list of components. See [`COMPONENTS`](@ref) for options.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1033,6 +1051,7 @@ function daBarGasFractions(
     grid::LinearGrid;
     components::Vector{Symbol}=[:ode_ionized, :ode_atomic, :ode_cold],
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Union{NTuple{2,Vector{<:Number}},Nothing}
 
     qty_type = QTY_REGISTRY[quantity].cp_type
@@ -1052,7 +1071,7 @@ function daBarGasFractions(
     )
 
     filtered_dd = filterData(data_dict; filter_function)
-    gas_qty = scatterQty(filtered_dd, quantity)
+    gas_qty = scatterQty(filtered_dd, quantity; ic_gen)
 
     if isempty(gas_qty)
         (
@@ -1063,7 +1082,7 @@ function daBarGasFractions(
     end
 
     # Compute the mass of each gas component for every cell
-    masses = [computeMass(filtered_dd, component) for component in components]
+    masses = [computeMass(filtered_dd, component; ic_gen) for component in components]
 
     if any(isempty, masses)
 
@@ -1142,6 +1161,7 @@ Compute a profile for the Milky Way, compatible with the experimental data in Mo
       + `:mu_mol`                             -> Molecular gas fraction, as ``\\mu_\\mathrm{mol} = \\Sigma_\\mathrm{H2} / \\Sigma_\\star``.
   - `y_unit::Unitful.Units=Unitful.NoUnits`: Unit for `quantity`.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1164,6 +1184,7 @@ function daMolla2015(
     quantity::Symbol;
     y_unit::Unitful.Units=Unitful.NoUnits,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Union{
     Tuple{
         Vector{<:Unitful.Length},
@@ -1188,7 +1209,7 @@ function daMolla2015(
     elseif quantity == :mu_mol
 
         if isSnapSFM(filtered_dd[:snap_data].path)
-            masses = computeMass(filtered_dd, :ode_molecular_stellar)
+            masses = computeMass(filtered_dd, :ode_molecular_stellar; ic_gen)
         else
             masses = computeMass(filtered_dd, :br_molecular)
         end
@@ -1207,7 +1228,7 @@ function daMolla2015(
         if component == :sfr
             masses = scatterQty(filtered_dd, :observational_sfr)
         else
-            masses = computeMass(filtered_dd, component)
+            masses = computeMass(filtered_dd, component; ic_gen)
         end
 
         positions = filtered_dd[plot_params.cp_type]["POS "]
@@ -1263,6 +1284,7 @@ Project a 3D mass density field into a given plane.
   - `m_unit::Unitful.Units=u"Msun"`: Mass unit.
   - `l_unit::Unitful.Units=u"pc"`: Length unit.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1283,6 +1305,7 @@ function daDensity2DProjection(
     m_unit::Unitful.Units=u"Msun",
     l_unit::Unitful.Units=u"pc",
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
     quantity = Symbol(component, :_mass)
@@ -1295,6 +1318,7 @@ function daDensity2DProjection(
         empty_nan=false,
         log=false,
         filter_function,
+        ic_gen,
     )
 
     # Project `mass_grid` to the target plane
@@ -1568,6 +1592,12 @@ function daMetallicity2DProjection(
     filter_function::Function=filterNothing,
 )::Tuple{Vector{<:Unitful.Length},Vector{<:Unitful.Length},VecOrMat{Float64}}
 
+    (
+        component ∈ (:gas, :stellar) ||
+        throw(ArgumentError("daMetallicity2DProjection: The argument `component` can only be :gas \
+        or :stellar, but I got :$(component)"))
+    )
+
     if element == :all
 
         metal_qty = Symbol(:Z_, component, :_mass)
@@ -1831,6 +1861,7 @@ Compute a mockup image emulating an SDSS observation.
       + `:neutral` -> Neutral gass extinction.
       + `:dust`    -> Dust mass extinction.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -1843,6 +1874,7 @@ function daSDSSMockup(
     smooth::Bool=false,
     extinction::Union{Symbol,Nothing}=nothing,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Array
 
     filtered_dd = filterData(data_dict; filter_function)
@@ -1959,6 +1991,7 @@ function daSDSSMockup(
             :cells;
             empty_nan=false,
             log=false,
+            ic_gen,
         )
 
         for star_idx in eachindex(masses)
@@ -2052,6 +2085,7 @@ Compute the gas density and the SFR density, used in the volumetric star formati
   - `t_unit::Unitful.Units=u"yr"`: Target time unit.
   - `l_gas_unit::Unitful.Units=u"pc"`: Target length unit for the gas density.
   - `l_stellar_unit::Unitful.Units=u"kpc"`: Target length unit for the SFR density.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -2073,7 +2107,8 @@ function daVSFLaw(
     m_unit::Unitful.Units=u"Msun",
     t_unit::Unitful.Units=u"yr",
     l_gas_unit::Unitful.Units=u"pc",
-    l_stellar_unit::Unitful.Units=u"kpc"
+    l_stellar_unit::Unitful.Units=u"kpc",
+    ic_gen::Function=initialConditionFunction,
 )::Union{NTuple{2,Vector{<:Float64}},Nothing}
 
     if component ∉ keys(COMPONENTS)
@@ -2094,6 +2129,7 @@ function daVSFLaw(
         density=l_gas_unit,
         log=false,
         filter_function=gas_ff,
+        ic_gen,
     )
 
     m_gas_factor = ustrip(m_unit, 1.0 * QTY_REGISTRY[Symbol(component, :_mass)].unit)
@@ -2154,6 +2190,7 @@ C_\rho = \frac{\langle n^2 \rangle}{\langle n \rangle^2} \, ,
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) with cell/partcile type :gas.
   - `n_neighbors::Int=32`: Number of neighbors.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for the volume, if you want to apply ``\log_{10}`` to the volume. If set to `nothing`, the volume is left as is.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for the clumping factor, if you want to apply ``\log_{10}`` to the clumping factor`. If set to `nothing`, the clumping factor is left as is.
 
@@ -2169,6 +2206,7 @@ function daClumpingFactor(
     component::Symbol;
     n_neighbors::Int=32,
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
     x_log::Union{Unitful.Units,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
 )::Tuple{Vector{<:Number},Vector{Float64}}
@@ -2181,7 +2219,7 @@ function daClumpingFactor(
     filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the number density of the target component
-    number_densities = scatterQty(filtered_dd, Symbol(component, :_number_density))
+    number_densities = scatterQty(filtered_dd, Symbol(component, :_number_density); ic_gen)
 
     # Load the position of each cell/particle
     positions = ustrip.(u"kpc", filtered_dd[:gas]["POS "])
@@ -2260,6 +2298,7 @@ C_\rho = \frac{\langle n^2 \rangle}{\langle n \rangle^2} \, ,
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) with cell/partcile type :gas.
   - `grid::LinearGrid`: Linear grid.
   - `filter_function::Function=filterNothing`: Filter function to be applied to `data_dict` before any other computation. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -2273,6 +2312,7 @@ function daClumpingFactorProfile(
     component::Symbol,
     grid::LinearGrid;
     filter_function::Function=filterNothing,
+    ic_gen::Function=initialConditionFunction,
 )::Tuple{Vector{<:Unitful.Length},Vector{Float64}}
 
     if component ∉ keys(COMPONENTS)
@@ -2283,7 +2323,7 @@ function daClumpingFactorProfile(
     filtered_dd = filterData(data_dict; filter_function)
 
     # Compute the number density of the target component
-    number_densities = scatterQty(filtered_dd, Symbol(component, :_number_density))
+    number_densities = scatterQty(filtered_dd, Symbol(component, :_number_density); ic_gen)
 
     # Load the position of each cell/particle
     positions = filtered_dd[:gas]["POS "]
@@ -2350,6 +2390,7 @@ Compute the time series of two quantities, using [`integrateQty`](@ref) to compu
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `x_agg_func::Union{Function,Symbol}=:default`: If `x_quantity` is well defined for each cell/particle, you can pass an `x_agg_func` to accumulate the values calculated with [`scatterQty`](@ref). If `x_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `x_quantity`.
@@ -2373,6 +2414,7 @@ function daEvolution(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    ic_gen::Function=initialConditionFunction,
     x_log::Union{Unitful.Units,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
     x_agg_func::Union{Function,Symbol}=:default,
@@ -2390,6 +2432,7 @@ function daEvolution(
         filter_mode,
         extra_filter,
         ff_request,
+        ic_gen,
         x_log,
         y_log,
         x_agg_func,
@@ -2426,6 +2469,7 @@ Compute the time series of two quantities, using [`integrateQty`](@ref) to compu
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `x_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `x_quantity`, if you want to apply ``\\log_{10}`` to the `x_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `y_log::Union{Unitful.Units,Nothing}=nothing`: Target unit for `y_quantity`, if you want to apply ``\\log_{10}`` to the `y_quantity`. If set to `nothing`, the data from [`scatterQty`](@ref) is left as is.
   - `x_agg_func::Union{Function,Symbol}=:default`: If `x_quantity` is well defined for each cell/particle, you can pass an `x_agg_func` to accumulate the values calculated with [`scatterQty`](@ref). If `x_agg_func` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `x_quantity`.
@@ -2449,6 +2493,7 @@ function daEvolution(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    ic_gen::Function=initialConditionFunction,
     x_log::Union{Unitful.Units,Nothing}=nothing,
     y_log::Union{Unitful.Units,Nothing}=nothing,
     x_agg_func::Union{Function,Symbol}=:default,
@@ -2461,8 +2506,8 @@ function daEvolution(
     qty_request = mergeRequests(getQuantityRequest(x_quantity), getQuantityRequest(y_quantity))
 
     integration_functions = (
-        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func),
-        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func),
+        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func, ic_gen),
+        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func, ic_gen),
     )
 
     return daEvolution(

@@ -157,16 +157,6 @@ Get the most specific common type of the elements in an array.
 end
 
 """
-Always returns `nothing`, for any type and number of arguments.
-"""
-getNothing(x...; y...)::Nothing = nothing
-
-"""
-Always returns an empty vector, for any type and number of arguments.
-"""
-getEmpty(x...; y...)::Vector = []
-
-"""
     ring(vec::Vector, index::Integer)::Vector
 
 Make the indexing operation `vec[index]` work with modular arithmetic for the indices.

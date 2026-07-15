@@ -134,7 +134,11 @@ getQuantityName(q::BinaryQuantity)::Symbol = Symbol(
 )
 
 """
-    scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
+    scatterQty(
+        data_dict::Dict,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Vector{<:Number}
 
 Convenience entry point for [`scatterQty`](@ref).
 
@@ -142,12 +146,17 @@ Convenience entry point for [`scatterQty`](@ref).
 
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::Symbol`: Target quantity. See the keys of [`QTY_REGISTRY`](@ref) for options.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
   - The value of `quantity` for every cell/particle.
 """
-function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
+function scatterQty(
+    data_dict::Dict,
+    quantity::Symbol;
+    ic_gen::Function=initialConditionFunction,
+)::Vector{<:Number}
 
     (
         haskey(QTY_REGISTRY, quantity) ||
@@ -155,12 +164,16 @@ function scatterQty(data_dict::Dict, quantity::Symbol)::Vector{<:Number}
         It is not a key of QTY_REGISTRY"))
     )
 
-    return scatterQty(data_dict, QTY_REGISTRY[quantity])
+    return scatterQty(data_dict, QTY_REGISTRY[quantity]; ic_gen)
 
 end
 
 """
-    scatterQty(data_dict::Dict, quantity::BaseQuantity)::Vector{<:Number}
+    scatterQty(
+        data_dict::Dict,
+        quantity::BaseQuantity;
+        <keyword arguments>
+    )::Vector{<:Number}
 
 Compute `quantity` for each cell/particle in `data_dict`.
 
@@ -168,14 +181,23 @@ Compute `quantity` for each cell/particle in `data_dict`.
 
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::BaseQuantity`: Target base quantity. See the values of [`QTY_REGISTRY`](@ref) for options.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
   - The value of `quantity` for every cell/particle. If `quantity` is not well defined for each cell/particle, an empty vector is returned.
 """
-function scatterQty(data_dict::Dict, quantity::BaseQuantity)::Vector{<:Number}
+function scatterQty(
+    data_dict::Dict,
+    quantity::BaseQuantity;
+    ic_gen::Function=initialConditionFunction,
+)::Vector{<:Number}
 
-    scatter_qty = quantity.scatter_func(data_dict)
+    if applicable(quantity.scatter_func, data_dict, ic_gen)
+        scatter_qty = quantity.scatter_func(data_dict, ic_gen)
+    else
+        scatter_qty = quantity.scatter_func(data_dict)
+    end
 
     if isnothing(scatter_qty)
 
@@ -190,7 +212,11 @@ function scatterQty(data_dict::Dict, quantity::BaseQuantity)::Vector{<:Number}
 end
 
 """
-    scatterQty(data_dict::Dict, quantity::BinaryQuantity)::Vector{<:Number}
+    scatterQty(
+        data_dict::Dict,
+        quantity::BinaryQuantity;
+        <keyword arguments>
+    )::Vector{<:Number}
 
 Compute `quantity` for each cell/particle in `data_dict`.
 
@@ -198,15 +224,20 @@ Compute `quantity` for each cell/particle in `data_dict`.
 
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::BinaryQuantity`: Target binary quantity.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
   - The value of `quantity` for every cell/particle. If `quantity` is not well defined for each cell/particle, an empty vector is returned.
 """
-function scatterQty(data_dict::Dict, quantity::BinaryQuantity)::Vector{<:Number}
+function scatterQty(
+    data_dict::Dict,
+    quantity::BinaryQuantity;
+    ic_gen::Function=initialConditionFunction,
+)::Vector{<:Number}
 
-    scatter_left  = scatterQty(data_dict, quantity.left)
-    scatter_right = scatterQty(data_dict, quantity.right)
+    scatter_left  = scatterQty(data_dict, quantity.left; ic_gen)
+    scatter_right = scatterQty(data_dict, quantity.right; ic_gen)
 
     if length(scatter_left) != length(scatter_right)
         throw(ArgumentError("scatterQty: Binary quantity :$(quantity) has an unequal number of \
@@ -242,6 +273,7 @@ Convenience entry point for [`integrateQty`](@ref).
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::Symbol`: Target quantity. See the keys of [`QTY_REGISTRY`](@ref) for options.
   - `agg_function::Union{Function,Symbol}=:default`: If `quantity` is well defined for each cell/particle, you can pass an `agg_function` to accumulate the values calculated with [`scatterQty`](@ref). If `agg_function` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -251,6 +283,7 @@ function integrateQty(
     data_dict::Dict,
     quantity::Symbol;
     agg_function::Union{Function,Symbol}=:default,
+    ic_gen::Function=initialConditionFunction,
 )::Number
 
     (
@@ -259,7 +292,7 @@ function integrateQty(
         It is not a key of QTY_REGISTRY"))
     )
 
-    return integrateQty(data_dict, QTY_REGISTRY[quantity]; agg_function)
+    return integrateQty(data_dict, QTY_REGISTRY[quantity]; agg_function, ic_gen)
 
 end
 
@@ -277,6 +310,7 @@ Compute `quantity` for the whole system of cell/particles in `data_dict`.
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::BaseQuantity`: Target base quantity. See the values of [`QTY_REGISTRY`](@ref) for options.
   - `agg_function::Union{Function,Symbol}=:default`: If `quantity` is well defined for each cell/particle, you can pass an `agg_function` to accumulate the values calculated with [`scatterQty`](@ref). If `agg_function` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -286,11 +320,16 @@ function integrateQty(
     data_dict::Dict,
     quantity::BaseQuantity;
     agg_function::Union{Function,Symbol}=:default,
+    ic_gen::Function=initialConditionFunction,
 )::Number
 
     if agg_function == :default
 
-        integrated_qty = quantity.integrate_func(data_dict)
+        if applicable(quantity.integrate_func, data_dict, ic_gen)
+            integrated_qty = quantity.integrate_func(data_dict, ic_gen)
+        else
+            integrated_qty = quantity.integrate_func(data_dict)
+        end
 
         if isnothing(integrated_qty)
 
@@ -304,7 +343,7 @@ function integrateQty(
 
     else
 
-        return agg_function(scatterQty(data_dict, quantity))
+        return agg_function(scatterQty(data_dict, quantity; ic_gen))
 
     end
 
@@ -328,6 +367,7 @@ Compute `quantity` for the whole system of cell/particles in `data_dict`.
   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
   - `quantity::BinaryQuantity`: Target binary quantity.
   - `agg_function::Union{Function,Symbol}=:default`: If `quantity` is well defined for each cell/particle, you can pass an `agg_function` to accumulate the values calculated with [`scatterQty`](@ref). If `agg_function` is left as `:default` [`integrateQty`](@ref) will try to compute the most reasonable global value for `quantity`.
+  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 
 # Returns
 
@@ -337,10 +377,11 @@ function integrateQty(
     data_dict::Dict,
     quantity::BinaryQuantity;
     agg_function::Union{Function,Symbol}=:default,
+    ic_gen::Function=initialConditionFunction,
 )::Number
 
-    int_left  = integrateQty(data_dict, quantity.left; agg_function)
-    int_right = integrateQty(data_dict, quantity.right; agg_function)
+    int_left  = integrateQty(data_dict, quantity.left; agg_function, ic_gen)
+    int_right = integrateQty(data_dict, quantity.right; agg_function, ic_gen)
 
     unit_l = getQuantityUnit(quantity.left)
     unit_r = getQuantityUnit(quantity.right)
