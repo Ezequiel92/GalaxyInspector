@@ -485,7 +485,7 @@ function icLozano2025(data_dict::Dict, component::Symbol)::Union{Function,Nothin
 end
 
 """
-    icLozano2026(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+    initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
 
 Generate a function that gives the initial condition of `component` for the `i`-th cell, according to our star formation model.
 
@@ -510,7 +510,7 @@ Generate a function that gives the initial condition of `component` for the `i`-
 
   - A function with signature `ode_ic(i::Int)::Float64`, that gives the initial condition of `component` for the `i`-th cell, according to our star formation model.
 """
-function icLozano2026(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
 
     ################################################################################################
     # Ionized gas
@@ -813,11 +813,6 @@ function icLozano2027(data_dict::Dict, component::Symbol)::Union{Function,Nothin
     return ode_ic
 
 end
-
-####################################################################################################
-# Set the default initial condition function
-####################################################################################################
-const initialConditionFunction = icLozano2026
 
 """
     computeFraction(
