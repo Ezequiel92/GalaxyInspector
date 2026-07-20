@@ -65,7 +65,7 @@ Compute the rotation matrix that will turn the total angular momentum into the z
 
 # Returns
 
-  - The rotation matrix.
+  - The rotation matrix. `new_positions = rotation_matrix * old_positions`.
 """
 function computeAMRotationMatrix(
     positions::Matrix{<:Unitful.Length},
@@ -111,7 +111,7 @@ Compute the rotation matrix that will turn the principal axis into the new coord
 
 # Returns
 
-  - The rotation matrix.
+  - The rotation matrix. `new_positions = rotation_matrix * old_positions`.
 """
 function computePARotationMatrix(
     positions::Matrix{<:Unitful.Length},
@@ -131,9 +131,9 @@ function computePARotationMatrix(
 
     M_tot = sum(mass)
 
-    # ==========================================================================
+    ############################################################################
     # Compute the mass-weighted second-moment tensor
-    # ==========================================================================
+    ############################################################################
     # This tensor shares the same eigenvectors as the inertia tensor and
     # therefore defines the same principal axes.
     #
@@ -148,7 +148,8 @@ function computePARotationMatrix(
     #     elongation.
     #   - The minor axis (lowest eigenvalue): The direction of maximum
     #     compression. For disc galaxies, this is the symmetry axis.
-    # ==========================================================================
+    ############################################################################
+
     R = zeros(Float64, 3, 3)
 
     @inbounds for i in 1:N
@@ -159,15 +160,16 @@ function computePARotationMatrix(
 
     R ./= M_tot
 
-    # ==========================================================================
+    ############################################################################
     # Principal axes
-    # ==========================================================================
+    ############################################################################
     # Eigenvalues sorted in descending order:
     #
     #   λ₁ -> Major axis
     #   λ₂ -> Intermediate axis
     #   λ₃ -> Minor axis
-    # ==========================================================================
+    ############################################################################
+
     pa = eigen(R; sortby=λ -> -λ).vectors
 
     # The rotation matrix has the principal axis as rows
@@ -181,6 +183,199 @@ function computePARotationMatrix(
         # to get a right-handed Cartesian reference system (x × y = z) and generate the
         # correct rotation
         rotation_matrix[2, :] .*= -1.0
+    end
+
+    return rotation_matrix
+
+end
+
+"""
+    computeDiskRotationMatrix(
+        positions::Matrix{<:Unitful.Length},
+        velocities::Matrix{<:Unitful.Velocity},
+        masses::Vector{<:Unitful.Mass},
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
+
+Compute the rotation matrix that puts the disk face-on on the xy plane and, if a bar is detected, aligns it with the x axis.
+
+# Arguments
+
+  - `positions::Matrix{<:Unitful.Length}`: Positions of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `velocities::Matrix{<:Unitful.Velocity}`: Velocities of the cells/particles. Each column is a cell/particle and each row a dimension.
+  - `masses::Vector{<:Unitful.Mass}`: Mass of every cell/particle.
+
+# Returns
+
+  - The rotation matrix. `new_positions = rotation_matrix * old_positions`.
+"""
+function computeDiskRotationMatrix(
+    positions::Matrix{<:Unitful.Length},
+    velocities::Matrix{<:Unitful.Velocity},
+    masses::Vector{<:Unitful.Mass},
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    N = size(positions, 2)
+
+    # Check for missing data
+    if N < 2
+        LOGGING[] && @warn("computeDiskRotationMatrix: Less than two valid positions. Returning I.")
+        return I
+    end
+
+    ############################################################################
+    # Compute the disk normal from the total angular momentum
+    ############################################################################
+
+    # New z axis
+    z_hat = computeTotalAngularMomentum(positions, velocities, masses)
+
+    ############################################################################
+    # Build an orthonormal basis with z_hat as the third axis
+    ############################################################################
+    # A Gram-Schmidt step against a reference vector does this;
+    # the reference is chosen to never be near-parallel to
+    # z_hat, which would make the projection ill-conditioned.
+    ############################################################################
+
+    reference = abs(z_hat[3]) < 0.9 ? [0.0, 0.0, 1.0] : [1.0, 0.0, 0.0]
+    x_hat_raw = reference .- (reference ⋅ z_hat) .* z_hat
+
+    # New x axis
+    x_hat = normalize(x_hat_raw)
+    # New y axis
+    y_hat = z_hat × x_hat
+
+    # Rotation matrix has the new basis vectors as rows
+    R_lz = Matrix{Float64}(undef, 3, 3)
+    R_lz[1, :] .= x_hat
+    R_lz[2, :] .= y_hat
+    R_lz[3, :] .= z_hat
+
+    ############################################################################
+    # Compute the bar direction (if it exist)
+    ############################################################################
+    # A bar is a non-axisymmetric, m=2 azimuthal density feature
+    # confined to the inner disk. We therefore:
+    #
+    #  (a) restrict the cell/particles to an inner region (by cylindrical radius,
+    #      cut at the radius enclosing `INNER_FRACTION` of the in-plane stellar mass),
+    #      so the outer disk/spiral arms do not dilute or distort the signal;
+    #  (b) measure the m = 2 Fourier moment of the (mass-weighted) azimuthal
+    #      distribution there:
+    #
+    #         A2 = Σ mᵢ exp(2i θᵢ),   θᵢ = atan(yᵢ, xᵢ)
+    #
+    #       The phase of A2, halved, gives the bar's position angle; its
+    #       amplitude relative to the enclosed mass gives the bar strength.
+    #
+    # cos(2θ) and sin(2θ) are computed algebraically from x, y, r²::
+    #
+    #   cos(2θ) = (x² - y²) / r²,   sin(2θ) = 2xy / r²
+    ############################################################################
+
+    # The final result will be dimensionless, so the specific mass and length units do not matter
+    pos  = ustrip(positions)
+    mass = ustrip.(masses)
+
+    # Compute the positions in the new reference system
+    pos1 = R_lz * pos
+    x1   = @view pos1[1, :]
+    y1   = @view pos1[2, :]
+
+    # Distance squared to the new origin
+    r2 = x1 .^ 2 .+ y1 .^ 2
+
+    # Compute the list of particles/cells indices ordered by radial distance
+    idx_list = sortperm(r2)
+
+    # Compute the total mass
+    M_tot = sum(mass)
+
+    # Compute the target mass that defines the "inner region"
+    target = INNER_FRACTION[] * M_tot
+
+    # Compute the indices of the particles/cells within the "inner region"
+    cum_mass = 0.0
+    cut_idx  = N
+    @inbounds for (k, idx) in pairs(idx_list)
+        cum_mass += mass[idx]
+        if cum_mass >= target
+            cut_idx = k
+            break
+        end
+    end
+    inner_idxs = @view idx_list[1:cut_idx]
+
+    # Real part, Σ m (x²-y²)/r²
+    sumRe = 0.0
+    # Imaginary part, Σ m 2xy/r²
+    sumIm = 0.0
+    # Mass enclosed (≈ target, kept exact for the ratio below)
+    sumM  = 0.0
+
+    # Compute the bar strength from the mass-weighted second azimuthal harmonic
+    @inbounds for i in inner_idxs
+
+        r2i = r2[i]
+
+        # skip particles sitting exactly at r = 0
+        r2i <= 0.0 && continue
+
+        mi = mass[i]
+        xi = x1[i]
+        yi = y1[i]
+
+        sumRe += mi * (xi^2 - yi^2) / r2i
+        sumIm += mi * (2 * xi * yi) / r2i
+        sumM  += mi
+
+    end
+    # Value between 0 and 1
+    # 0 -> Axisymmetric mass distribution
+    # 1 -> All mass along a single axis
+    bar_strength = sqrt(sumRe^2 + sumIm^2) / sumM
+
+    ############################################################################
+    # Apply an in-plane rotation to align the bar with the x axis
+    ############################################################################
+    # A point at azimuth φ, rotated by angle θ = φ_bar, lands at azimuth
+    # φ - φ_bar. Setting θ = φ_bar therefore puts the bar (at φ_bar) on the
+    # +x axis. Only applied if the m=2 mode is strong enough to trust as a
+    # genuine bar signal rather than noise/spiral structure.
+    ############################################################################
+
+    if bar_strength >= BAR_THRESHOLD[]
+
+        ####################
+        # A bar is detected
+        ####################
+
+        # Compute the azimuthal angle of the bar
+        # φ_bar ∈ (-π/2, π/2]
+        φ_bar = atan(sumIm, sumRe) / 2
+
+        c, s = cos(φ_bar), sin(φ_bar)
+        # Active (alibi) counterclockwise rotation through an angle -φ_bar around the z axis
+        R_bar = [ c   s   0.0
+              -s   c   0.0
+              0.0 0.0  1.0]
+
+        rotation_matrix = R_bar * R_lz
+
+    else
+
+        #################################
+        # No significant bar is detected
+        #################################
+
+        (
+            LOGGING[] &&
+            @info("computeDiskRotationMatrix: No significant bar detected (m=2 strength = \
+            $(round(bar_strength, digits=3))). Skipping in-plane bar alignment.")
+        )
+
+        rotation_matrix = R
+
     end
 
     return rotation_matrix
@@ -986,7 +1181,7 @@ Compute the rotation matrix that will turn the angular momentum of `component` i
 
 # Returns
 
-  - The rotation matrix.
+  - The rotation matrix. `new_positions = rotation_matrix * old_positions`.
 """
 function computeAMRotationMatrix(
     data_dict::Dict,
@@ -1049,7 +1244,7 @@ end
     computePARotationMatrix(
         data_dict::Dict,
         component::Symbol,
-    )::Union{Matrix{Float64},UniformScaling{Bool},Nothing}
+    )::Union{Matrix{Float64},UniformScaling{Bool}}
 
 Compute the rotation matrix that will turn the principal axis of `component` into the new coordinate system, when view as an passive (alias) transformation.
 
@@ -1066,7 +1261,7 @@ Compute the rotation matrix that will turn the principal axis of `component` int
 
 # Returns
 
-  - The rotation matrix.
+  - The rotation matrix. `new_positions = rotation_matrix * old_positions`.
 """
 function computePARotationMatrix(
     data_dict::Dict,
@@ -1116,5 +1311,82 @@ function computePARotationMatrix(
     end
 
     return computePARotationMatrix(positions, masses)
+
+end
+
+"""
+    computeDiskRotationMatrix(
+        data_dict::Dict,
+        component::Symbol,
+    )::Union{Matrix{Float64},UniformScaling{Bool},Nothing}
+
+Compute the rotation matrix that puts the disk face-on on the xy plane and, if a bar is detected, aligns it with the x axis.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+    This function requires the following blocks to be present for every cell/particle that you want to be taken into account:
+
+      + `cell/particle type` => ["POS ", "MASS", "VEL "]
+  - `component::Symbol`: Target component. The options are:
+
+      + `:all`         -> Every component present in `data_dict`.
+      + `:{component}` -> Any of the keys of [`PARTICLE_INDEX`](@ref), if present in `data_dict`.
+
+# Returns
+
+  - The rotation matrix. `new_positions = rotation_matrix * old_positions`.
+"""
+function computeDiskRotationMatrix(
+    data_dict::Dict,
+    component::Symbol,
+)::Union{Matrix{Float64},UniformScaling{Bool}}
+
+    if component == :all
+
+        snap_types = snapshotTypes(data_dict)
+
+        # Remove components with no position, mass or velocity data
+        filter!(st -> !isempty(data_dict[st]["POS "]), snap_types)
+        filter!(st -> !isempty(data_dict[st]["MASS"]), snap_types)
+        filter!(st -> !isempty(data_dict[st]["VEL "]), snap_types)
+
+        # Concatenate the position, masses, and velocities of all the cells and particles in the system
+        positions  = mapreduce(st -> data_dict[st]["POS "], hcat, snap_types)
+        masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
+        velocities = mapreduce(st -> data_dict[st]["VEL "], vcat, snap_types)
+
+        if any(isempty, [positions, masses, velocities])
+            (
+                LOGGING[] &&
+                @info("computeDiskRotationMatrix: The positions, masses or velocities are empty. \
+                I will return the identity matrix")
+            )
+            return I
+        end
+
+    elseif component ∈ snapshotTypes(data_dict)
+
+        positions  = data_dict[component]["POS "]
+        masses     = data_dict[component]["MASS"]
+        velocities = data_dict[component]["VEL "]
+
+        if any(isempty, [positions, masses, velocities])
+            (
+                LOGGING[] &&
+                @info("computeDiskRotationMatrix: The positions, masses or velocities for component \
+                :$(component) are empty. I will return the identity matrix")
+            )
+            return I
+        end
+
+    else
+
+        throw(ArgumentError("computeDiskRotationMatrix: `component` can only be :all or one of the \
+        keys of `PARTICLE_INDEX` present within `data_dict`, but I got :$(component)"))
+
+    end
+
+    return computeDiskRotationMatrix(positions, velocities, masses)
 
 end

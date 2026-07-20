@@ -161,6 +161,7 @@ Compute the corresponding rotation matrix.
       + `:zero` -> No rotation is applied.
       + `:am`   -> The angular momentum will be used as the new z axis.
       + `:pa`   -> The principal axes will be used as the new coordinate system.
+      + `:dr`   -> The angular momentum will be the new z axis, and the bar (if detected) the nex x axis.
   - `component::Symbol`: Which component will be considered to compute the angular momentum or the principal axes. The options are:
 
       + `:all`         -> Every component present in `data_dict`.
@@ -190,14 +191,18 @@ function computeRotation(
 
         rotation_matrix = computeAMRotationMatrix(filtered_dd, component)
 
-    elseif z_axis ===:pa
+    elseif z_axis == :pa
 
         rotation_matrix = computePARotationMatrix(filtered_dd, component)
 
+    elseif z_axis == :dr
+
+        rotation_matrix = computeDiskRotationMatrix(filtered_dd, component)
+
     else
 
-        throw(ArgumentError("computeRotation: `z_axis` can only be :zero, :am or :pa, but I got \
-        :$(z_axis)"))
+        throw(ArgumentError("computeRotation: `z_axis` can only be :zero, :am, :pa or :dr, \
+        but I got :$(z_axis)"))
 
     end
 
@@ -223,6 +228,7 @@ Rotate the positions and velocities of the cells/particles in `data_dict`.
       + `:zero` -> No rotation is applied.
       + `:am`   -> The angular momentum will be used as the new z axis.
       + `:pa`   -> The principal axes will be used as the new coordinate system.
+      + `:dr`   -> The angular momentum will be the new z axis, and the bar (if detected) the nex x axis.
   - `component::Symbol`: Which component will be considered to compute the angular momentum or the principal axes. The options are:
 
       + `:all`         -> Every component present in `data_dict`.
@@ -316,8 +322,7 @@ function selectTransformation(
     elseif group == :halo
 
         translation     = (1, 0)
-        # To align the bar with the x axis, we only consider a small fraction of component
-        filter_function = dd->filterBySphere(dd, 0.0u"kpc", ROTATION_R[], :zero)
+        filter_function = dd->filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=0)
         new_request     = mergeRequests(
             base_request,
             pa_request,
@@ -330,8 +335,7 @@ function selectTransformation(
     elseif group == :subhalo
 
         translation     = (1, 1)
-        # To align the bar with the x axis, we only consider a small fraction of component
-        filter_function = dd->filterBySphere(dd, 0.0u"kpc", ROTATION_R[], :zero)
+        filter_function = dd->filterBySubhalo(dd; halo_idx=1, subhalo_rel_idx=1)
         new_request     = mergeRequests(
             base_request,
             pa_request,
@@ -343,7 +347,7 @@ function selectTransformation(
 
     end
 
-    return translation, (:pa, component, filter_function), new_request
+    return translation, (:dr, component, filter_function), new_request
 
 end
 

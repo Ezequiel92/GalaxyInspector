@@ -31,11 +31,6 @@ Characteristic plotting box size.
 const BOX_L = Ref(65.0u"kpc")
 
 """
-Characteristic radius for rotations.
-"""
-const ROTATION_R = Ref(5.0u"kpc")
-
-"""
 Characteristic bulge radius (for R25 calculation).
 """
 const BULGE_R = Ref(3.0u"kpc")
@@ -44,6 +39,16 @@ const BULGE_R = Ref(3.0u"kpc")
 Characteristic stellar age for the SFR and sSFR.
 """
 const AGE_RESOLUTION = Ref(200.0u"Myr")
+
+"""
+Fraction of the total mass that defines the "inner region" of the galaxy, for disk rotations.
+"""
+const INNER_FRACTION = Ref(0.3)
+
+"""
+Minimum m=2 Fourier amplitude (relative to the mass in the inner region) required to consider the galaxy barred. Below this, the in-plane orientation is left as an (arbitrary but well-defined) orthonormal frame from the disk-plane step, and only the face-on alignment is applied.
+"""
+const BAR_THRESHOLD = Ref(0.15)
 
 #############
 # Abundances
@@ -225,9 +230,10 @@ const CONFIG_SCHEMA = Dict{String,Tuple{Any,Function}}(
     "galaxy.disk_r"           => (DISK_R,               parseUnitful),
     "galaxy.disk_height"      => (DISK_HEIGHT,          parseUnitful),
     "galaxy.box_l"            => (BOX_L,                parseUnitful),
-    "galaxy.rotation_r"       => (ROTATION_R,           parseUnitful),
     "galaxy.bulge_r"          => (BULGE_R,              parseUnitful),
     "galaxy.age_resolution"   => (AGE_RESOLUTION,       parseUnitful),
+    "galaxy.inner_fraction"   => (INNER_FRACTION,       x -> Float64(x)),
+    "galaxy.bar_threshold"    => (BAR_THRESHOLD,        x -> Float64(x)),
     "abundances"              => (ABUNDANCE_SHIFT,      parseAbundanceShift),
     "arepo.snap_basename"     => (SNAP_BASENAME,        string),
     "arepo.gc_basename"       => (GC_BASENAME,          string),
