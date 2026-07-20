@@ -364,9 +364,134 @@ function computeFractionWithin(
 end
 
 """
-    initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+    icLozano2025(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
 
 Generate a function that gives the initial condition of `component` for the `i`-th cell, according to our star formation model.
+
+!!! note
+
+    This method implements the initial conditions of the model in Lozano et al. (2025).
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+    This function requires the following blocks to be present, depending on the value of `component`:
+
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]
+          * `:gas` => ["NH  ", "NHP ", "GZ  "]
+      + If `component` ∈ [:ode_cold]
+          * `:gas` => ["GZ  "]
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar, :Z_stellar, :gas, :hydrogen, :helium, :Z_gas, :ionized, :neutral, :br_atomic, :br_molecular, :dust_gas, :dust_stellar]
+          * No blocks are required.
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+
+# Returns
+
+  - A function with signature `ode_ic(i::Int)::Float64`, that gives the initial condition of `component` for the `i`-th cell, according to our star formation model.
+
+# References
+
+E. Lozano et al. (2025). *From atoms to stars: Modelling H2 formation and its impact on galactic evolution*. Astronomy and Astrophysics, **703**, A57. [doi:10.1051/0004-6361/202554860](https://doi.org/10.1051/0004-6361/202554860)
+"""
+function icLozano2025(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+
+    ################################################################################################
+    # Ionized gas
+    ################################################################################################
+
+    if component == :ode_ionized
+
+        NH  = data_dict[:gas]["NH  "]
+        NHP = data_dict[:gas]["NHP "]
+
+        ode_ic = function ionized_ic(i::Int)::Float64
+
+            nh  = NH[i]
+            nhp = NHP[i]
+
+            return nhp / (nhp + nh)
+
+        end
+
+    ################################################################################################
+    # Atomic gas or neutral gas (everything but the ionize, metals, and dust)
+    ################################################################################################
+
+    elseif component == :ode_atomic || component == :ode_neutral
+
+        NH  = data_dict[:gas]["NH  "]
+        NHP = data_dict[:gas]["NHP "]
+
+        ode_ic = function atomic_ic(i::Int)::Float64
+
+            nh  = NH[i]
+            nhp = NHP[i]
+
+            return nh / (nhp + nh)
+
+        end
+
+    ################################################################################################
+    # Molecular gas or stars
+    ################################################################################################
+
+    elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar, :ode_dust, :ode_cold]
+
+        ode_ic = function molecular_ic(i::Int)::Float64
+
+            return 0.0
+
+        end
+
+    ################################################################################################
+    # Metals
+    ################################################################################################
+
+    elseif component == :ode_metals
+
+        GZ  = data_dict[:gas]["GZ  "]
+
+        ode_ic = function metals_ic(i::Int)::Float64
+
+            return setPositive(GZ[i])
+
+        end
+
+    elseif component ∈ [
+        :Z_stellar,
+        :gas,
+        :hydrogen,
+        :helium,
+        :Z_gas,
+        :ionized,
+        :neutral,
+        :br_atomic,
+        :br_molecular,
+        :dust_gas,
+        :dust_stellar,
+    ]
+
+        ode_ic = nothing
+
+    else
+
+        throw(ArgumentError("computeFraction: `component` can only be one of the elements of \
+        `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
+
+    end
+
+    return ode_ic
+
+end
+
+"""
+    icLozano2026(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+
+Generate a function that gives the initial condition of `component` for the `i`-th cell, according to our star formation model.
+
+!!! note
+
+    This method implements the initial conditions of the model in Lozano et al. (2026).
 
 # Arguments
 
@@ -385,7 +510,7 @@ Generate a function that gives the initial condition of `component` for the `i`-
 
   - A function with signature `ode_ic(i::Int)::Float64`, that gives the initial condition of `component` for the `i`-th cell, according to our star formation model.
 """
-function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+function icLozano2026(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
 
     ################################################################################################
     # Ionized gas
@@ -527,6 +652,171 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
 end
 
 """
+    icLozano2027(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+
+Generate a function that gives the initial condition of `component` for the `i`-th cell, according to our star formation model.
+
+!!! note
+
+    This method implements the initial conditions of the model in Lozano et al. (2027).
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+    This function requires the following blocks to be present, depending on the value of `component`:
+
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral]
+          * `:gas` => ["NH  ", "NHP ", "GZ  ", "GDZ  "]
+      + If `component` ∈ [:ode_cold]
+          * `:gas` => ["GZ  ", "GDZ  "]
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar, :Z_stellar, :gas, :hydrogen, :helium, :Z_gas, :ionized, :neutral, :br_atomic, :br_molecular, :dust_gas, :dust_stellar]
+          * No blocks are required.
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+
+# Returns
+
+  - A function with signature `ode_ic(i::Int)::Float64`, that gives the initial condition of `component` for the `i`-th cell, according to our star formation model.
+"""
+function icLozano2027(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+
+    ################################################################################################
+    # Ionized gas
+    ################################################################################################
+
+    if component == :ode_ionized
+
+        NH  = data_dict[:gas]["NH  "]
+        NHP = data_dict[:gas]["NHP "]
+        GDZ = data_dict[:gas]["GDZ "]
+        GZ  = data_dict[:gas]["GZ  "]
+
+        ode_ic = function ionized_ic(i::Int)::Float64
+
+            nh  = NH[i]
+            nhp = NHP[i]
+            DZ  = GDZ[i]
+            Z   = GZ[i]
+
+            # Compute the gas fraction for the `i`-cell
+            fg = 1.0 - setPositive(Z) - setPositive(DZ)
+
+            return fg * nhp / (nhp + nh)
+
+        end
+
+    ################################################################################################
+    # Atomic gas or neutral gas (everything but the ionize, metals, and dust)
+    ################################################################################################
+
+    elseif component == :ode_atomic || component == :ode_neutral
+
+        NH  = data_dict[:gas]["NH  "]
+        NHP = data_dict[:gas]["NHP "]
+        GDZ = data_dict[:gas]["GDZ "]
+        GZ  = data_dict[:gas]["GZ  "]
+
+        ode_ic = function atomic_ic(i::Int)::Float64
+
+            nh  = NH[i]
+            nhp = NHP[i]
+            DZ  = GDZ[i]
+            Z   = GZ[i]
+
+            # Compute the gas fraction for the `i`-cell
+            fg = 1.0 - setPositive(Z) - setPositive(DZ)
+
+            return fg * nh / (nhp + nh)
+
+        end
+
+    ################################################################################################
+    # Molecular gas or stars
+    ################################################################################################
+
+    elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
+
+        ode_ic = function molecular_ic(i::Int)::Float64
+
+            return 0.0
+
+        end
+
+    ################################################################################################
+    # Metals
+    ################################################################################################
+
+    elseif component == :ode_metals
+
+        GZ = data_dict[:gas]["GZ  "]
+
+        ode_ic = function metals_ic(i::Int)::Float64
+
+            return setPositive(GZ[i])
+
+        end
+
+    ################################################################################################
+    # Dust
+    ################################################################################################
+
+    elseif component == :ode_dust
+
+        GDZ = data_dict[:gas]["GDZ "]
+
+        ode_ic = function dust_ic(i::Int)::Float64
+
+            return setPositive(GDZ[i])
+
+        end
+
+    ################################################################################################
+    # Cold gas (everything but atomic and ionized gas)
+    ################################################################################################
+
+    elseif component == :ode_cold
+
+        GDZ = data_dict[:gas]["GDZ "]
+        GZ  = data_dict[:gas]["GZ  "]
+
+        ode_ic = function cold_ic(i::Int)::Float64
+
+            DZ = GDZ[i]
+            Z  = GZ[i]
+
+            return setPositive(Z) + setPositive(DZ)
+
+        end
+
+    elseif component ∈ [
+        :Z_stellar,
+        :gas,
+        :hydrogen,
+        :helium,
+        :Z_gas,
+        :ionized,
+        :neutral,
+        :br_atomic,
+        :br_molecular,
+        :dust_gas,
+        :dust_stellar,
+    ]
+
+        ode_ic = nothing
+
+    else
+
+        throw(ArgumentError("computeFraction: `component` can only be one of the elements of \
+        `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
+
+    end
+
+    return ode_ic
+
+end
+
+const initialConditionFunction = icLozano2026
+
+"""
     computeFraction(
         data_dict::Dict,
         component::Symbol;
@@ -555,7 +845,7 @@ Compute the fraction of a given `component` in each cell/particle.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) (except :stellar, :dark_matter, and :black_hole).
@@ -920,7 +1210,7 @@ Compute the fraction of a given :ode `component` in each cell/particle.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the :ode elements of [`COMPONENTS`](@ref).
@@ -1132,7 +1422,7 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
@@ -1205,7 +1495,7 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
+          * `:gas` => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["SFR ", "MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
@@ -1282,7 +1572,7 @@ Compute the mass in each cell/particle of a given `component`.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
@@ -1370,7 +1660,7 @@ Compute the mass density of a given gas `component` for each cell.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
@@ -1459,7 +1749,7 @@ Compute the number density of a given gas `component` for each cell.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
@@ -1549,7 +1839,7 @@ Compute the number of a given `component`.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ  "]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
@@ -2374,7 +2664,7 @@ Compute the sSFR of main-sequence galaxies as a function of stellar mass and red
 
 # References
 
-C. Schreiber et al. (2015). *The Herschel view of the dominant mode of galaxy growth from z = 4 to the present day*. Astronomy & Astrophysics, **575**, A74. [doi:10.1051/0004-6361/201425017](https://doi.org/10.1051/0004-6361/201425017)
+C. Schreiber et al. (2015). *The Herschel view of the dominant mode of galaxy growth from z = 4 to the present day*. Astronomy and Astrophysics, **575**, A74. [doi:10.1051/0004-6361/201425017](https://doi.org/10.1051/0004-6361/201425017)
 """
 function schreiber2015MS(Mstar::Unitful.Mass, z::Float64)::Measurements.Measurement{Float64}
 
