@@ -814,6 +814,9 @@ function icLozano2027(data_dict::Dict, component::Symbol)::Union{Function,Nothin
 
 end
 
+####################################################################################################
+# Set the default initial condition function
+####################################################################################################
 const initialConditionFunction = icLozano2026
 
 """
