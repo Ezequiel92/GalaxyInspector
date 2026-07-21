@@ -8406,6 +8406,7 @@ function snapshotReport(
                     "NH  ",
                     "PRES",
                     "GZ  ",
+                    "GDZ ",
                     "RHO ",
                     "ID  ",
                     "ODIT",

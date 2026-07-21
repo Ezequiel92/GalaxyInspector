@@ -374,7 +374,7 @@ function computeDiskRotationMatrix(
             $(round(bar_strength, digits=3))). Skipping in-plane bar alignment.")
         )
 
-        rotation_matrix = R
+        rotation_matrix = R_lz
 
     end
 
