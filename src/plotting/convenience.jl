@@ -7818,7 +7818,14 @@ function compareGiannetti2017(
         x_unit=u"kpc",
         yaxis_label=L"\log_{10} \, \gamma",
         xaxis_qty_label=L"R",
-        theme=merge(theme, Theme(size=(1200, 880), Axis=(aspect=nothing, xticks=0:5:25))),
+        theme=merge(
+            theme,
+            Theme(
+                size=(1200, 880),
+                Axis=(aspect=nothing, xticks=0:5:25),
+                Legend=(halign=:left, valign=:top, nbanks=1, margin=(5, 0, 0, 2)),
+            ),
+        ),
         sim_labels,
         title,
     )
@@ -7829,8 +7836,7 @@ end
 
 """
     compareCasey2026(
-        simulation_paths::Vector{String},
-        slice::IndexType;
+        simulation_paths::Vector{String};
         <keyword arguments>
     )::Nothing
 
@@ -7843,7 +7849,7 @@ Plot the gas-to-stellar ration evolution, comparing with the measurements from C
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. Each simulation will be plotted in a different figure.
-  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -7859,8 +7865,8 @@ Plot the gas-to-stellar ration evolution, comparing with the measurements from C
 C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:10.48550/arXiv.2606.17270](https://doi.org/10.48550/arXiv.2606.17270)
 """
 function compareCasey2026(
-    simulation_paths::Vector{String},
-    slice::IndexType;
+    simulation_paths::Vector{String};
+    slice::IndexType=(:),
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,

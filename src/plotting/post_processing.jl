@@ -2838,7 +2838,7 @@ Draw a line plot with the fit for the gas-to-dust ratio (``\\gamma``) profile fr
   - `y_log::Bool=true`: If the y axis is ``\\log_{10}(\\gamma)`` (`y_log` = true) or just ``\\gamma`` (`y_log` = false).
   - `color::ColorType=WONG_RED`: Color for the line.
   - `linestyles::Vector{<:LineStyleType}=[:solid, :dash]`: Styles for the lines. The first style will indicate the range for which there are experimental data, and the second one will be for the extrapolation.
-  - `linewidth::Int=3`: Line width.
+  - `linewidth::Int=5`: Line width.
 
 # Returns
 
@@ -2857,7 +2857,7 @@ function ppGiannetti2017!(
     y_log::Bool=true,
     color::ColorType=WONG_RED,
     linestyles::Vector{<:LineStyleType}=[:solid, :dash],
-    linewidth::Int=3,
+    linewidth::Int=5,
 )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
     # Read the data points in the plot
