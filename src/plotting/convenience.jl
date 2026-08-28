@@ -7725,7 +7725,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot the gas-to-dust ratio (``\\gamma``) profile, comparing with the measurements from Giannetti et al. (2017).
+Plot the molecular gas-to-dust ratio (``\\gamma``) profile, comparing with the fiducial fit from Giannetti et al. (2017) (Section 3, Equation 2).
 
 !!! note
 
@@ -7785,7 +7785,7 @@ function compareGiannetti2017(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    grid = LinearGrid(0.0u"kpc", 25.0u"kpc", 100)
+    grid = LinearGrid(0.0u"kpc", 25.0u"kpc", 50)
 
     if isone(length(simulation_paths))
         base_filename = "$(basename(simulation_paths[1]))_Giannetti2017_radial_profile"
@@ -8914,6 +8914,14 @@ function snapshotReport(
             disc_idxs = filterBySphere(data_dict, 0.0u"kpc", DISK_R[], :zero)
 
             println(file, "Characteristic radii (filtered box):\n")
+
+            ############
+            # Print R25
+            ############
+
+            R25 = ustrip(u"kpc", computeR25(data_dict))
+
+            println(file, "\tR25 = $(round(R25, sigdigits=3)) kpc\n")
 
             for (component, label) in zip(components, labels)
 

@@ -265,7 +265,7 @@ function computeR25(
     # Use y = b * exp(a * x) for the fitting
     # sol.u[1] = a = -1.0 / Rd
     # sol.u[2] = b = Σ0
-    sol = solve(prob, ExpCurveFitAlgorithm())
+    sol = CurveFit.solve(prob, ExpCurveFitAlgorithm())
 
     # Stellar disc scale length
     # Section 5.4 of Galaxies and galactic structure - ISBN: 9780137792320 by Elmegreen (1998)
