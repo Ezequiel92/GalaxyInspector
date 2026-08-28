@@ -428,15 +428,20 @@ function daProfile(
         It is not valid to make a profile"))
     )
 
-    if r25
-        R25 = computeR25(data_dict)
-        positions = ustrip.(Unitful.NoUnits, filtered_dd[cp_type]["POS "] ./ R25)
-    else
-        positions = filtered_dd[cp_type]["POS "]
-    end
+    positions = filtered_dd[cp_type]["POS "]
+    values    = scatterQty(filtered_dd, quantity; ic_gen)
 
-    values   = scatterQty(filtered_dd, quantity; ic_gen)
-    n_values = isnothing(norm) ? Number[] : scatterQty(filtered_dd, norm; ic_gen)
+    if isnothing(norm)
+
+        norm_positions = Matrix{Unitful.Length}(undef, 0, 0)
+        n_values = Number[]
+
+    else
+
+        norm_positions = filtered_dd[QTY_REGISTRY[norm].cp_type]["POS "]
+        n_values = scatterQty(filtered_dd, norm; ic_gen)
+
+    end
 
     if any(isempty, [values, positions])
 
@@ -451,13 +456,19 @@ function daProfile(
         values,
         grid;
         norm=n_values,
+        norm_positions,
         flat,
         total,
         cumulative,
         density,
     )
 
-    x_axis = copy(grid.x_axis)
+    if r25
+        R25 = computeR25(data_dict)
+        x_axis = ustrip.(Unitful.NoUnits, copy(grid.x_axis) ./ R25)
+    else
+        x_axis = copy(grid.x_axis)
+    end
 
     if !isnothing(y_log)
 
