@@ -2829,7 +2829,7 @@ end
         <keyword arguments>
     )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
-Draw a line plot with the fit for the gas-to-dust ratio (``\\gamma``) profile from Giannetti et al. (2017).
+Draw a line plot with the fiducial fit for the molecular gas-to-dust ratio (``\\gamma``) profile from Giannetti et al. (2017) (Section 3, Equation 2).
 
 # Arguments
 
@@ -2898,10 +2898,10 @@ function ppGiannetti2017!(
         # Compute the values for the x axis
         x_axis = collect(range(x_zone[1], x_zone[2], 5))
 
-        slope = ustrip(x_unit^-1, A_GIANNETTI2017)
+        slope = ustrip(x_unit^-1, A_GIANNETTI2017_EQ2)
 
         # Compute the values for the y axis
-        y_points = slope .* x_axis .+ B_GIANNETTI2017
+        y_points = slope .* x_axis .+ B_GIANNETTI2017_EQ2
 
         if y_log
             y_axis = y_points
