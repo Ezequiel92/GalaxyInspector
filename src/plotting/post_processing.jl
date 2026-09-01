@@ -67,7 +67,12 @@ function ppVerticalFlags!(
             color     = ring(colors, i)
             linestyle = ring(line_styles, i)
 
-            vl = vlines!(figure.current_axis.x, position; color, linestyle)
+            if isnothing(labels)
+                vl = vlines!(figure.current_axis.x, position; color, linestyle)
+            else
+                label = ring(labels, i)
+                vl    = vlines!(figure.current_axis.x, position; color, linestyle, label)
+            end
 
             translate!(Accum, vl, 0, 0, -10)
 
@@ -137,7 +142,12 @@ function ppHorizontalFlags!(
             color     = ring(colors, i)
             linestyle = ring(line_styles, i)
 
-            hl = hlines!(figure.current_axis.x, position; color, linestyle)
+            if isnothing(labels)
+                hl = hlines!(figure.current_axis.x, position; color, linestyle)
+            else
+                label = ring(labels, i)
+                hl    = hlines!(figure.current_axis.x, position; color, linestyle, label)
+            end
 
             translate!(Accum, hl, 0, 0, -10)
 
@@ -208,7 +218,11 @@ function ppCross!(
     # Draw the horizontal line
     if y_limits[1] < cross_point[2] < y_limits[2]
 
-        hl = hlines!(figure.current_axis.x, cross_point[2]; color, linestyle)
+        if isnothing(label)
+            hl = hlines!(figure.current_axis.x, cross_point[2]; color, linestyle)
+        else
+            hl = hlines!(figure.current_axis.x, cross_point[2]; color, linestyle, label)
+        end
 
         translate!(Accum, hl, 0, 0, -10)
 
@@ -230,7 +244,7 @@ end
         slopes::Vector{<:Real}
         intercepts::Vector{<:Real};
         <keyword arguments>
-    )::Nothing
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
 Draw lines defined by f(x) = slope * x + intercept.
 
@@ -241,6 +255,14 @@ Draw lines defined by f(x) = slope * x + intercept.
   - `intercepts::Vector{<:Real}`: List of intercepts.
   - `colors::Vector{<:ColorType}=[:red]`: Colors of the lines.
   - `line_styles::Vector{<:LineStyleType}=[:solid]`: Styles of the lines.
+  - `labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the lines. If set to `nothing` no label is printed.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + `LineElement`s to be used as the marker.
+      + The labels.
 """
 function ppABFlags!(
     figure::Makie.Figure,
@@ -248,7 +270,8 @@ function ppABFlags!(
     intercepts::Vector{<:Real};
     colors::Vector{<:ColorType}=[:red],
     line_styles::Vector{<:LineStyleType}=[:solid],
-)::Nothing
+    labels::Union{Vector{<:AbstractString},Nothing}=nothing,
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
     x_limits = xlimits!(figure)
     y_limits = ylimits!(figure)
@@ -270,13 +293,26 @@ function ppABFlags!(
         color     = ring(colors, i)
         linestyle = ring(line_styles, i)
 
-        abl = ablines!(figure.current_axis.x, intercept, slope; color, linestyle)
+        if isnothing(labels)
+            abl = ablines!(figure.current_axis.x, intercept, slope; color, linestyle)
+        else
+            label = ring(labels, i)
+            abl   = ablines!(figure.current_axis.x, intercept, slope; color, linestyle, label)
+        end
 
         translate!(Accum, abl, 0, 0, -10)
 
     end
 
-    return nothing
+    isnothing(labels) && return nothing
+
+    return (
+        [
+            LineElement(; color=ring(colors, i), linestyle=ring(line_styles, i)) for
+            i in eachindex(labels)
+        ],
+        labels,
+    )
 
 end
 
@@ -329,7 +365,11 @@ function ppFillBelowLine!(
 
     ys_low = fill(lower_limit, length(xs))
 
-    bp = band!(figure.current_axis.x, xs, ys_low, ys; color, alpha)
+    if isnothing(label)
+        bp = band!(figure.current_axis.x, xs, ys_low, ys; color, alpha)
+    else
+        bp = band!(figure.current_axis.x, xs, ys_low, ys; color, alpha, label)
+    end
 
     translate!(Accum, bp, 0, 0, -10)
 
@@ -573,6 +613,7 @@ function ppFitLine!(
         Makie.inverse_transform(y_scaling).(low),
         Makie.inverse_transform(y_scaling).(upper);
         color,
+        label=L"95\% \,\, \text{confidence band}",
     )
 
     translate!(Accum, lp, 0, 0, -9)
@@ -777,7 +818,15 @@ function ppKennicutt1998!(
             color,
         )
 
-        lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+        lp = lines!(
+            figure.current_axis.x,
+            x_axis,
+            values;
+            color,
+            linestyle,
+            linewidth,
+            label="Kennicutt (1998)",
+        )
 
         # Put the post processing elements at the back of the plot
         translate!(Accum, lp, 0, 0, -9)
@@ -791,8 +840,7 @@ end
 
 """
     ppBigiel2008!(
-        figure::Makie.Figure,
-        molecular::Bool;
+        figure::Makie.Figure;
         <keyword arguments>
     )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
 
@@ -805,7 +853,7 @@ Draw a line plot with the fit for the Kennicutt-Schmidt relation from Bigiel et 
 # Arguments
 
   - `figure::Makie.Figure`: Makie figure.
-  - `molecular::Bool`: If the x axis will be the area mass density of molecular hydrogen, or, if set to `false`, the area mass density of neutral hydrogen.
+  - `molecular::Bool=true`: If the x axis will be the area mass density of molecular hydrogen, or, if set to `false`, the area mass density of neutral hydrogen.
   - `x_unit::Unitful.Units=u"Msun * pc^-2"`: Unit for the area density of gas used in `figure`.
   - `y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2"`: Unit for the area density of star formation rate used in `figure`.
   - `x_log::Bool=true`: If the x axis is ``\\log_{10}(\\Sigma_\\mathrm{H})`` (`x_log` = true) or just ``\\Sigma_\\mathrm{H}`` (`x_log` = false).
@@ -827,8 +875,8 @@ Draw a line plot with the fit for the Kennicutt-Schmidt relation from Bigiel et 
 F. Bigiel et al. (2008). *THE STAR FORMATION LAW IN NEARBY GALAXIES ON SUB-KPC SCALES*. The Astrophysical Journal, **136(6)**, 2846. [doi:10.1088/0004-6256/136/6/2846](https://doi.org/10.1088/0004-6256/136/6/2846)
 """
 function ppBigiel2008!(
-    figure::Makie.Figure,
-    molecular::Bool;
+    figure::Makie.Figure;
+    molecular::Bool=true,
     x_unit::Unitful.Units=u"Msun * pc^-2",
     y_unit::Unitful.Units=u"Msun * yr^-1 * kpc^-2",
     x_log::Bool=true,
@@ -939,7 +987,15 @@ function ppBigiel2008!(
             color,
         )
 
-        lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+        lp = lines!(
+            figure.current_axis.x,
+            x_axis,
+            values;
+            color,
+            linestyle,
+            linewidth,
+            label="Bigiel et al. (2008)",
+        )
 
         # Put the post processing elements at the back of the plot
         translate!(Accum, lp, 0, 0, -9)
@@ -1098,7 +1154,15 @@ function ppCologni2026!(
             color,
         )
 
-        lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+        lp = lines!(
+            figure.current_axis.x,
+            x_axis,
+            values;
+            color,
+            linestyle,
+            linewidth,
+            label="Cologni et al. (2026)",
+        )
 
         # Put the post processing elements at the back of the plot
         translate!(Accum, lp, 0, 0, -9)
@@ -1257,7 +1321,15 @@ function ppLin2019!(
             color,
         )
 
-        lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+        lp = lines!(
+            figure.current_axis.x,
+            x_axis,
+            values;
+            color,
+            linestyle,
+            linewidth,
+            label="Lin et al. (2019)",
+        )
 
         # Put the post processing elements at the back of the plot
         translate!(Accum, lp, 0, 0, -9)
@@ -1416,7 +1488,15 @@ function ppQuerejeta2021!(
             color,
         )
 
-        lp = lines!(figure.current_axis.x, x_axis, values; color, linestyle, linewidth)
+        lp = lines!(
+            figure.current_axis.x,
+            x_axis,
+            values;
+            color,
+            linestyle,
+            linewidth,
+            label="Querejeta et al. (2021)",
+        )
 
         # Put the post processing elements at the back of the plot
         translate!(Accum, lp, 0, 0, -9)
@@ -1660,15 +1740,23 @@ function ppBigiel2010!(
     # Plot the galactic data
     ################################################################################################
 
-    sp = scatter!(figure.current_axis.x, Σg, Σsfr; color=(color, 0.5), marker=:star4, markersize=10)
-
-    translate!(Accum, sp, 0, 0, -10)
-
     if galaxy == :all
         label = "Bigiel et al. 2010"
     else
         label = "$(galaxy) - Bigiel et al. 2010"
     end
+
+    sp = scatter!(
+        figure.current_axis.x,
+        Σg,
+        Σsfr;
+        color=(color, 0.5),
+        marker=:star4,
+        markersize=10,
+        label,
+    )
+
+    translate!(Accum, sp, 0, 0, -10)
 
     return ([MarkerElement(; color, marker=:star4)], [label])
 
@@ -1812,6 +1900,12 @@ function ppSun2023!(
     # Plot the galactic data
     ################################################################################################
 
+    if isa(galaxy, String)
+        label = "$(galaxy) - Sun et al. (2023)"
+    else
+        label = "Sun et al. (2023)"
+    end
+
     sp = scatter!(
         figure.current_axis.x,
         x_data,
@@ -1819,16 +1913,11 @@ function ppSun2023!(
         color=(color, 0.5),
         marker=:star4,
         markersize=10,
+        label,
     )
 
     # Put the post processing elements at the back of the plot
     translate!(Accum, sp, 0, 0, -10)
-
-    if isa(galaxy, String)
-        label = "$(galaxy) - Sun et al. (2023)"
-    else
-        label = "Sun et al. (2023)"
-    end
 
     return ([MarkerElement(; color, marker=:star4)], [label])
 
@@ -2121,7 +2210,15 @@ function ppdelosReyes2019!(
     # Plot the galactic data
     ################################################################################################
 
-    sp = scatter!(figure.current_axis.x, Σg, Σsf; color=(color, 0.5), marker=:star4, markersize=10)
+    sp = scatter!(
+        figure.current_axis.x,
+        Σg,
+        Σsf;
+        color=(color, 0.5),
+        marker=:star4,
+        markersize=10,
+        label="de los Reyes et al. 2019",
+    )
 
     translate!(Accum, sp, 0, 0, -10)
 
@@ -2281,6 +2378,7 @@ function ppMolla2015!(
         color,
         linestyle,
         marker,
+        label="Mollá et al. (2015)",
     )
 
     translate!(Accum, slp, 0, 0, -9)
@@ -2412,7 +2510,13 @@ function ppAgertz2021!(
 
         if galaxy == :all
 
-            sp = scatter!(figure.current_axis.x, x_data, y_data; color=(color, 0.4))
+            sp = scatter!(
+                figure.current_axis.x,
+                x_data,
+                y_data;
+                color=(color, 0.4),
+                label="Agertz et al. (2021)",
+            )
 
             # Put the post processing elements at the back of the plot
             translate!(Accum, sp, 0, 0, -9)
@@ -2432,7 +2536,15 @@ function ppAgertz2021!(
                 )
             end
 
-            lp = lines!(figure.current_axis.x, x_data, y_data; color, linestyle, linewidth)
+            lp = lines!(
+                figure.current_axis.x,
+                x_data,
+                y_data;
+                color,
+                linestyle,
+                linewidth,
+                label="$(galaxy) - Agertz et al. (2021)",
+            )
 
             # Put the post processing elements at the back of the plot
             translate!(Accum, lp, 0, 0, -9)
@@ -2606,6 +2718,7 @@ function ppFeldmann2020!(
             marker=:star4,
             markersize=12,
             strokewidth=0,
+            label="Feldmann (2020)",
         )
 
         translate!(Accum, sp, 0, 0, -10)
@@ -2716,13 +2829,27 @@ function ppFeldmann2020!(
     ylower_1σ = y_axis_value .- y_axis_uncertainty
 
     # Plot the 1σ band
-    bp1 = band!(figure.current_axis.x, x_axis, ylower_1σ, yupper_1σ; color=WONG_RED)
+    bp1 = band!(
+        figure.current_axis.x,
+        x_axis,
+        ylower_1σ,
+        yupper_1σ;
+        color=WONG_RED,
+        label=L"\mathrm{Feldmann \,\, (2020)} \,\, 1\sigma",
+    )
 
     # Construct the 2σ upper band
     yupper_2σ = y_axis_value .+ 2 * y_axis_uncertainty
 
     # Plot the 2σ upper band
-    bp2u = band!(figure.current_axis.x, x_axis, yupper_1σ, yupper_2σ; color=WONG_ORANGE)
+    bp2u = band!(
+        figure.current_axis.x,
+        x_axis,
+        yupper_1σ,
+        yupper_2σ;
+        color=WONG_ORANGE,
+        label=L"\mathrm{Feldmann \,\, (2020)} \,\, 2\sigma",
+    )
 
     # Construct the 2σ lower band
     ylower_2σ = y_axis_value .- 2 * y_axis_uncertainty
@@ -2735,7 +2862,7 @@ function ppFeldmann2020!(
     translate!(Accum, bp1, 0, 0, -10)
     translate!(Accum, bp2u, 0, 0, -10)
     translate!(Accum, bp2l, 0, 0, -10)
-    0
+
     return (
         [PolyElement(; color=(WONG_RED, 0.5)), PolyElement(; color=(WONG_ORANGE, 0.5))],
         [
@@ -2801,7 +2928,13 @@ function ppLee2016!(
         but I got :$(eff_axis)"))
     end
 
-    lp = line_func(figure.current_axis.x, p50; color=WONG_BLUE, linewidth=2)
+    lp = line_func(
+        figure.current_axis.x,
+        p50;
+        color=WONG_BLUE,
+        linewidth=2,
+        label="Lee et al. (2016)",
+    )
 
     # Standar deviation of ϵff
     σ = Measurements.uncertainty(lee_2016)

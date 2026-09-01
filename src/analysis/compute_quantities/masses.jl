@@ -570,20 +570,22 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
 
     elseif component == :ode_metals
 
-        NH  = data_dict[:gas]["NH  "]
-        NHP = data_dict[:gas]["NHP "]
+        # NH  = data_dict[:gas]["NH  "]
+        # NHP = data_dict[:gas]["NHP "]
         GZ  = data_dict[:gas]["GZ  "]
 
         ode_ic = function metals_ic(i::Int)::Float64
 
-            nh  = NH[i]
-            nhp = NHP[i]
-            Z   = GZ[i]
+            # nh  = NH[i]
+            # nhp = NHP[i]
+            # Z   = GZ[i]
 
-            metallicity = setPositive(Z)
-            fn = (1 - metallicity) * nh / (nhp + nh)
+            # metallicity = setPositive(Z)
+            # fn = (1 - metallicity) * nh / (nhp + nh)
 
-            return metallicity * (1.0 - AREPO_SFM.Cxd * fn)
+            # return metallicity * (1.0 - AREPO_SFM.Cxd * fn)
+
+            return setPositive(GZ[i])
 
         end
 
@@ -593,20 +595,22 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
 
     elseif component == :ode_dust
 
-        NH  = data_dict[:gas]["NH  "]
-        NHP = data_dict[:gas]["NHP "]
+        # NH  = data_dict[:gas]["NH  "]
+        # NHP = data_dict[:gas]["NHP "]
         GZ  = data_dict[:gas]["GZ  "]
 
         ode_ic = function dust_ic(i::Int)::Float64
 
-            nh  = NH[i]
-            nhp = NHP[i]
-            Z   = GZ[i]
+            # nh  = NH[i]
+            # nhp = NHP[i]
+            # Z   = GZ[i]
 
-            metallicity = setPositive(Z)
-            fn = (1.0 - metallicity) * nh / (nhp + nh)
+            # metallicity = setPositive(Z)
+            # fn = (1.0 - metallicity) * nh / (nhp + nh)
 
-            return metallicity * AREPO_SFM.Cxd * fn
+            # return metallicity * AREPO_SFM.Cxd * fn
+
+            return 0.0
 
         end
 
