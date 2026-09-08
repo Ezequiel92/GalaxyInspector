@@ -8921,7 +8921,7 @@ function snapshotReport(
 
             R25 = ustrip(u"kpc", computeR25(data_dict))
 
-            println(file, "\tR25 = $(round(R25, sigdigits=3)) kpc\n")
+            println(file, "\tR25 = $(round(R25, sigdigits=4)) kpc\n")
 
             for (component, label) in zip(components, labels)
 
