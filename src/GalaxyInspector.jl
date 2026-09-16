@@ -139,6 +139,7 @@ export SDSSMockup
 export snapshotReport
 export compareGiannetti2017
 export compareCasey2026
+export compareSun2022
 export simulationReport
 export quantityReport
 

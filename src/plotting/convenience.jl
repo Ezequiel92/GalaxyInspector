@@ -7862,7 +7862,7 @@ Plot the gas-to-stellar ration evolution, comparing with the measurements from C
 
 # References
 
-C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:10.48550/arXiv.2606.17270](https://doi.org/10.48550/arXiv.2606.17270)
+C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. The Open Journal of Astrophysics, **9**. [doi:10.33232/001c.167549](https://doi.org/10.33232/001c.167549)
 """
 function compareCasey2026(
     simulation_paths::Vector{String};
@@ -7989,6 +7989,173 @@ function compareCasey2026(
     return nothing
 
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"""
+    compareSun2022(
+        simulation_paths::Vector{String},
+        quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
+
+Plot a surface density profile, comparing with the measurements from Sun et al. (2022).
+
+!!! note
+
+    This method plots one quantity for several simulations in one figure.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
+  - `quantity::Symbol`: Target quantity. The options are:
+
+      + `:HI`  -> Atomic mass.
+      + `:H2`  -> Molecular mass.
+      + `:St`  -> Stellar mass.
+      + `:SFR` -> Star formation rate.
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `ic_gens::Vector{Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :H2).
+  - `r25s::Vector{<:Unitful.Length}=[25.0u"kpc"]`: R25 radius for each simulation.
+  - `sun_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK]`: Color for the Sun et al. (2022) data. The first if for the median lines, and the second and third are for the shaded regions (``1 \\sigma`` and ``2 \\sigma`` respectively).
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+J. Sun et al. (2022). *Molecular Cloud Populations in the Context of Their Host Galaxy Environments: A Multiwavelength Perspective*. The Astronomical Journal, **164(2)**, 43. [doi:10.3847/1538-3881/ac74bd](https://doi.org/10.3847/1538-3881/ac74bd)
+"""
+function compareSun2022(
+    simulation_paths::Vector{String},
+    quantity::Symbol;
+    slice::IndexType=(:),
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    ic_gens::Vector{Function}=[initialConditionFunction],
+    r25s::Vector{<:Unitful.Length}=[25.0u"kpc"],
+    sun_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK],
+    sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    qty_map = Dict(
+        :HI  => :ode_atomic_mass,
+        :H2  => :ode_molecular_stellar_mass,
+        :St  => :stellar_mass,
+        :SFR => :observational_sfr,
+    )
+
+    labels = Dict(
+	    :HI   => L"\log_{10} \, \Sigma_\mathrm{HI} \, / \, \mathrm{M_\odot \, pc^{-2}}",
+	    :H2   => L"\log_{10} \, \Sigma_\mathrm{H2} \, / \, \mathrm{M_\odot \, pc^{-2}}",
+	    :St   => L"\log_{10} \, \Sigma_\star \, / \, \mathrm{M_\odot \, pc^{-2}}",
+	    :SFR  => L"\log_{10} \, \Sigma_\mathrm{SFR} \, / \, \mathrm{M_\odot \, yr^{-1} kpc^{-2}}",
+	)
+
+    plot_params = GalaxyInspector.getLabelArgs(qty_map[quantity])
+
+    base_request = mergeRequests(QTY_REGISTRY[qty_map[quantity]].request, ff_request)
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    grids = [GalaxyInspector.LinearGrid(0.005 * r25, 1.005 * r25, 100) for r25 in r25s]
+
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [lines!];
+        output_path,
+        base_filename="$(quantity)_sun_2022",
+        slice,
+        transform_box=true,
+        translation,
+        rotation,
+        filter_function,
+        da_functions=[daProfile],
+        da_args=[(qty_map[quantity], ring(grids, i)) for i in eachindex(simulation_paths)],
+        da_kwargs=[
+            (;
+                y_log=quantity == :SFR ? plot_params.unit / u"kpc"^2 : plot_params.unit / u"pc"^2,
+                r25=true,
+                flat=true,
+                total=true,
+                cumulative=false,
+                density=true,
+                filter_function=extra_filter,
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
+        ],
+        post_processing=ppSun2022!,
+        pp_args=(quantity,),
+        pp_kwargs=(; colors=sun_colors),
+        yaxis_label=labels[quantity],
+        xaxis_label=L"R \, / \, R_{25}",
+        theme,
+        sim_labels,
+    )
+
+    return nothing
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 """
     simulationReport(simulation_paths::Vector{String}; <keyword arguments>)::Nothing

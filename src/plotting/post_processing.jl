@@ -3086,7 +3086,7 @@ Draw a line plot and a scatter plot with the gas-to-stellar (DTS) ratio evolutio
 
 # References
 
-C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. arXiv. [doi:10.48550/arXiv.2606.17270](https://doi.org/10.48550/arXiv.2606.17270)
+C. M. Casey et al. (2026). *Dust in the Average Galaxy: Attenuation, Emission, and Opacity from 0<z<7*. The Open Journal of Astrophysics, **9**. [doi:10.33232/001c.167549](https://doi.org/10.33232/001c.167549)
 """
 function ppCasey2026!(
     figure::Makie.Figure,
@@ -3157,5 +3157,94 @@ function ppCasey2026!(
     translate!(Accum, sp, 0, 0, -9)
 
     return nothing
+
+end
+
+"""
+    ppSun2022!(
+        figure::Makie.Figure,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
+
+Draw a line plot with the median profile for a given quantity, from the 80 galaxies in Sun et al. (2022).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `quantity::Symbol`: Target quantity. The options are:
+
+      + `:HI`  -> Atomic mass.
+      + `:H2`  -> Molecular mass.
+      + `:St`  -> Stellar mass.
+      + `:SFR` -> Star formation rate.
+  - `bands::Bool=true`: If the ``1\\sigma`` and ``2\\sigma`` bands will be plotted.
+  - `colors::Vector{<:ColorType}=[WONG_RED, WONG_BLUE, WONG_GREEN]`: Colors for the line and bands.
+  - `linestyle::LineStyleType=:solid`: Style for the line.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `MarkerElement` to be used as the marker.
+      + The label.
+
+# References
+
+J. Sun et al. (2022). *Molecular Cloud Populations in the Context of Their Host Galaxy Environments: A Multiwavelength Perspective*. The Astronomical Journal, **164(2)**, 43. [doi:10.3847/1538-3881/ac74bd](https://doi.org/10.3847/1538-3881/ac74bd)
+"""
+function ppSun2022!(
+    figure::Makie.Figure,
+    quantity::Symbol;
+    bands::Bool=true,
+    colors::Vector{<:ColorType}=[WONG_RED, WONG_BLUE, WONG_GREEN],
+    linestyle::LineStyleType=:solid,
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
+
+    # Plot axis
+    ax = figure.current_axis.x
+
+    stats_profiles = load(SUN2022_DATA_PATH, "stats_profiles")
+    R25 = load(SUN2022_DATA_PATH, "R25")
+
+    stats = stats_profiles[quantity]
+
+    Σ_median = stats[!, :median]
+    Σ_low1   = stats[!, :low1]
+    Σ_up1    = stats[!, :up1]
+    Σ_low2   = stats[!, :low2]
+    Σ_up2    = stats[!, :up2]
+
+    if bands
+        band_1s = band!(ax, R25, Σ_low1, Σ_up1; color=colors[2], label=L"1 \sigma")
+        band_2s = band!(ax, R25, Σ_low2, Σ_up2; color=colors[3], label=L"2 \sigma")
+
+        translate!(Accum, band_2s, 0, 0, -11)
+        translate!(Accum, band_1s, 0, 0, -10)
+    end
+
+    median_pl = lines!(
+        ax,
+        R25,
+        Σ_median;
+        color=colors[1],
+        label="Median - Sun et al. (2022)",
+        linestyle,
+    )
+
+    translate!(Accum, median_pl, 0, 0, -9)
+
+    return (
+        [
+            LineElement(; color=colors[1], linestyle),
+            PolyElement(; color=(colors[2], 0.5)),
+            PolyElement(; color=(colors[3], 0.5)),
+        ],
+        [
+            "Median - Sun et al. (2022)",
+            L"1 \sigma",
+            L"2 \sigma",
+        ],
+    )
 
 end
