@@ -2,7 +2,7 @@
 
 julia_version = "1.12.7"
 manifest_format = "2.0"
-project_hash = "bf49884b8bc087f51d7ed6afcd0b56ad6b03ea7d"
+project_hash = "20f1c8d89636265bb2d70b81f329d32eb9c96655"
 
 [[deps.ADTypes]]
 deps = ["PrecompileTools"]
@@ -236,20 +236,10 @@ uuid = "4e9b3aee-d8a1-5a3d-ad8b-7d824db253f0"
 version = "1.0.1+0"
 
 [[deps.CSV]]
-deps = ["CodecZlib", "DataStrings", "Dates", "Downloads", "Durations", "Mmap", "Parsers", "PooledArrays", "PrecompileTools", "Printf", "Tables", "Unicode"]
-git-tree-sha1 = "b5c1d7ec1595d9cca3f8b7b8879d3a372e6972be"
+deps = ["CodecZlib", "Dates", "FilePathsBase", "InlineStrings", "Mmap", "Parsers", "PooledArrays", "PrecompileTools", "SentinelArrays", "Tables", "Unicode", "WeakRefStrings", "WorkerUtilities"]
+git-tree-sha1 = "abed1e735dd4152f48c90cf0767e1790e25f332f"
 uuid = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-version = "1.0.0"
-
-    [deps.CSV.extensions]
-    CSVDataDecimalsExt = "DataDecimals"
-    CSVFilePathsBaseExt = "FilePathsBase"
-    CSVInlineStringsExt = "InlineStrings"
-
-    [deps.CSV.weakdeps]
-    DataDecimals = "3e2245cb-6932-498d-a7cf-39d39de8bde3"
-    FilePathsBase = "48062228-2e41-5def-b9a4-89aafe57970f"
-    InlineStrings = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
+version = "0.10.17"
 
 [[deps.Cairo]]
 deps = ["Cairo_jll", "Colors", "Glib_jll", "Graphics", "Libdl", "Pango_jll"]
@@ -496,11 +486,6 @@ git-tree-sha1 = "5fab31e2e01e70ad66e3e24c968c264d1cf166d6"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 version = "1.8.2"
 
-[[deps.DataStrings]]
-git-tree-sha1 = "b8032263d364177a0b192ea15f277df4e6ab07e2"
-uuid = "48204bd6-5611-42ea-b167-fc1d713f9be2"
-version = "1.1.0"
-
 [[deps.DataStructures]]
 deps = ["OrderedCollections"]
 git-tree-sha1 = "b0bc6d2cad1fed8b7fd59a1551a991cb3d2809e6"
@@ -673,18 +658,6 @@ version = "0.9.5"
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
 uuid = "f43a241f-c20a-4ad4-852c-f6b1247861c6"
 version = "1.7.0"
-
-[[deps.Durations]]
-deps = ["Dates"]
-git-tree-sha1 = "a2f9c974a78a23661f0e41d0b80b687f844c018e"
-uuid = "41ac09f5-0a95-4810-aa18-c88bf48ee130"
-version = "1.2.0"
-
-    [deps.Durations.extensions]
-    DurationsArrowExt = "Arrow"
-
-    [deps.Durations.weakdeps]
-    Arrow = "69666777-d1a9-59fb-9406-91d4454c9d45"
 
 [[deps.EarCut_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -2014,10 +1987,10 @@ uuid = "d96e819e-fc66-5662-9728-84c9c7592b0a"
 version = "0.12.3"
 
 [[deps.Parsers]]
-deps = ["Dates", "PrecompileTools"]
-git-tree-sha1 = "663e8b48b789916221e0765393b289ca6c88f24e"
+deps = ["Dates", "PrecompileTools", "UUIDs"]
+git-tree-sha1 = "ba0dc8a8a67cacac4842631f960c046e4e563675"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
-version = "3.0.0"
+version = "2.8.8"
 
 [[deps.Pixman_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LLVMOpenMP_jll", "Libdl"]
@@ -2861,6 +2834,12 @@ git-tree-sha1 = "947bfa11fcd65dac9e9b2e963504fba6b4971d31"
 uuid = "550c8279-ae0e-5d1b-948f-937f2608a23e"
 version = "7.7.0+0"
 
+[[deps.WeakRefStrings]]
+deps = ["DataAPI", "InlineStrings", "Parsers"]
+git-tree-sha1 = "0716e01c3b40413de5dedbc9c5c69f27cddfddfc"
+uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
+version = "1.4.3"
+
 [[deps.WebP]]
 deps = ["CEnum", "ColorTypes", "FileIO", "FixedPointNumbers", "ImageCore", "libwebp_jll"]
 git-tree-sha1 = "aa1ca3c47f119fbdae8770c29820e5e6119b83f2"
@@ -2872,6 +2851,11 @@ deps = ["LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "248a7031b3da79a127f14e5dc5f417e26f9f6db7"
 uuid = "efce3f68-66dc-5838-9240-27a6d6f5f9b6"
 version = "1.1.0"
+
+[[deps.WorkerUtilities]]
+git-tree-sha1 = "cd1659ba0d57b71a464a29e64dbc67cfe83d54e7"
+uuid = "76eceee3-57b5-4d4a-8e66-0e911cebbf60"
+version = "1.6.1"
 
 [[deps.WriteVTK]]
 deps = ["Base64", "CodecZlib", "FillArrays", "LightXML", "TranscodingStreams", "VTKBase"]
