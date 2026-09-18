@@ -8018,7 +8018,7 @@ Plot a surface density profile, comparing with the measurements from Sun et al. 
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gens::Vector{Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :H2).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :H2).
   - `r25s::Vector{<:Unitful.Length}=[25.0u"kpc"]`: R25 radius for each simulation.
   - `band_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK]`: Color for the Sun et al. (2022) data. The first if for the median lines, and the second and third are for the shaded regions (``1 \\sigma`` and ``2 \\sigma`` respectively).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
@@ -8037,7 +8037,7 @@ function compareSun2022(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gens::Vector{Function}=[initialConditionFunction],
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     r25s::Vector{<:Unitful.Length}=[25.0u"kpc"],
     band_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
@@ -8131,7 +8131,7 @@ Plot a surface density profile, comparing with the measurements from Muñoz-Mate
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gens::Vector{Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :H2).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :H2).
   - `r25s::Vector{<:Unitful.Length}=[25.0u"kpc"]`: R25 radius for each simulation.
   - `band_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK]`: Color for the Sun et al. (2022) data. The first if for the median lines, and the second and third are for the shaded regions (``1 \\sigma`` and ``2 \\sigma`` respectively).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
@@ -8150,7 +8150,7 @@ function compareMunozMateos2009(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gens::Vector{Function}=[initialConditionFunction],
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     r25s::Vector{<:Unitful.Length}=[25.0u"kpc"],
     band_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
@@ -8266,7 +8266,7 @@ Write a text file with the relative change in the ODE fractions.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gens::Vector{Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
   - `components_list::Vector{Vector{Symbol}}=[[:ode_ionized, :ode_atomic, :ode_metals, :ode_dust]]`: List of ODE components to analyze.
 """
 function fractionChange(
@@ -8277,7 +8277,7 @@ function fractionChange(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gens::Vector{Function}=[initialConditionFunction],
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     components_list::Vector{Vector{Symbol}}=[[:ode_ionized, :ode_atomic, :ode_metals, :ode_dust]],
 )::Nothing
 
