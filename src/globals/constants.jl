@@ -499,6 +499,16 @@ J. Sun et al. (2022). *Molecular Cloud Populations in the Context of Their Host 
 """
 const SUN2022_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/sun_2022_vac.jld2")
 
+
+"""
+Path to the file with the profiles from Muñoz-Mateos et al. (2009).
+
+# References
+
+J. Muñoz-Mateos et al. (2009). *RADIAL DISTRIBUTION OF STARS, GAS, AND DUST IN SINGS GALAXIES. II. DERIVED DUST PROPERTIES*. The Astrophysical Journal, **701(2)**, 1965. [doi:10.1088/0004-637X/701/2/1965](https://doi.org/10.1088/0004-637X/701/2/1965)
+"""
+const MUNOZMATEOS2009_DATA_PATH = joinpath(@__DIR__, "../../experimental_data/muñoz-mateos_2009_vac.jld2")
+
 ####################################################################################################
 
 @doc raw"""

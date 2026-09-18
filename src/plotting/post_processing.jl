@@ -3248,3 +3248,97 @@ function ppSun2022!(
     )
 
 end
+
+"""
+    ppMunozMateos2009!(
+        figure::Makie.Figure,
+        quantity::Symbol;
+        <keyword arguments>
+    )::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
+
+Draw a line plot with the median profile for a given quantity, from the 56 galaxies in Muñoz-Mateos et al. (2009).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `quantity::Symbol`: Target quantity. The options are:
+
+      + `:Mdust`  -> Dust mass.
+      + `:Dtot`  -> Dust-to-gas ratio. Where the gas is defined as ``M_\\text{gas} = 1.36 \\, M_\\text{HI} + M_\\text{H2}``.
+  - `bands::Bool=true`: If the ``1\\sigma`` and ``2\\sigma`` bands will be plotted.
+  - `colors::Vector{<:ColorType}=[WONG_RED, WONG_BLUE, WONG_GREEN]`: Colors for the line and bands.
+  - `linestyle::LineStyleType=:solid`: Style for the line.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `MarkerElement` to be used as the marker.
+      + The label.
+
+# References
+
+J. Muñoz-Mateos et al. (2009). *RADIAL DISTRIBUTION OF STARS, GAS, AND DUST IN SINGS GALAXIES. II. DERIVED DUST PROPERTIES*. The Astrophysical Journal, **701(2)**, 1965. [doi:10.1088/0004-637X/701/2/1965](https://doi.org/10.1088/0004-637X/701/2/1965)
+"""
+function ppMunozMateos2009!(
+    figure::Makie.Figure,
+    quantity::Symbol;
+    bands::Bool=true,
+    colors::Vector{<:ColorType}=[WONG_RED, WONG_BLUE, WONG_GREEN],
+    linestyle::LineStyleType=:solid,
+)::Tuple{Vector{<:LegendElement},Vector{<:AbstractString}}
+
+    # Plot axis
+    ax = figure.current_axis.x
+
+    stats_profiles = load(MUNOZMATEOS2009_DATA_PATH, "stats_profiles")
+    R25 = load(MUNOZMATEOS2009_DATA_PATH, "R25")
+
+    if quantity == :Mdust
+        stats = stats_profiles[:logMdust]
+    elseif quantity == :Dtot
+        stats = stats_profiles[:logDtot]
+    else
+        throw(ArgumentError("ppMunozMateos2009!: `quantity` can only be :Mdust or :Dtot, \
+        but I got :$(quantity)"))
+    end
+
+    Σ_median = stats[!, :median]
+    Σ_low1   = stats[!, :low1]
+    Σ_up1    = stats[!, :up1]
+    Σ_low2   = stats[!, :low2]
+    Σ_up2    = stats[!, :up2]
+
+    if bands
+        band_1s = band!(ax, R25, Σ_low1, Σ_up1; color=colors[2], label=L"1 \sigma")
+        band_2s = band!(ax, R25, Σ_low2, Σ_up2; color=colors[3], label=L"2 \sigma")
+
+        translate!(Accum, band_2s, 0, 0, -11)
+        translate!(Accum, band_1s, 0, 0, -10)
+    end
+
+    median_pl = lines!(
+        ax,
+        R25,
+        Σ_median;
+        color=colors[1],
+        label="Median - Muñoz-Mateos et al. (2009)",
+        linestyle,
+    )
+
+    translate!(Accum, median_pl, 0, 0, -9)
+
+    return (
+        [
+            LineElement(; color=colors[1], linestyle),
+            PolyElement(; color=(colors[2], 0.5)),
+            PolyElement(; color=(colors[3], 0.5)),
+        ],
+        [
+            "Median - Muñoz-Mateos et al. (2009)",
+            L"1 \sigma",
+            L"2 \sigma",
+        ],
+    )
+
+end

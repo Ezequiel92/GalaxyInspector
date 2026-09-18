@@ -7990,27 +7990,6 @@ function compareCasey2026(
 
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 """
     compareSun2022(
         simulation_paths::Vector{String},
@@ -8041,7 +8020,7 @@ Plot a surface density profile, comparing with the measurements from Sun et al. 
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
   - `ic_gens::Vector{Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :H2).
   - `r25s::Vector{<:Unitful.Length}=[25.0u"kpc"]`: R25 radius for each simulation.
-  - `sun_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK]`: Color for the Sun et al. (2022) data. The first if for the median lines, and the second and third are for the shaded regions (``1 \\sigma`` and ``2 \\sigma`` respectively).
+  - `band_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK]`: Color for the Sun et al. (2022) data. The first if for the median lines, and the second and third are for the shaded regions (``1 \\sigma`` and ``2 \\sigma`` respectively).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
@@ -8060,7 +8039,7 @@ function compareSun2022(
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
     ic_gens::Vector{Function}=[initialConditionFunction],
     r25s::Vector{<:Unitful.Length}=[25.0u"kpc"],
-    sun_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK],
+    band_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
@@ -8115,7 +8094,7 @@ function compareSun2022(
         ],
         post_processing=ppSun2022!,
         pp_args=(quantity,),
-        pp_kwargs=(; colors=sun_colors),
+        pp_kwargs=(; colors=band_colors),
         yaxis_label=labels[quantity],
         xaxis_label=L"R \, / \, R_{25}",
         theme,
@@ -8126,7 +8105,152 @@ function compareSun2022(
 
 end
 
+"""
+    compareMunozMateos2009(
+        simulation_paths::Vector{String},
+        quantity::Symbol;
+        <keyword arguments>
+    )::Nothing
 
+Plot a surface density profile, comparing with the measurements from Muñoz-Mateos et al. (2009).
+
+!!! note
+
+    This method plots one quantity for several simulations in one figure.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
+  - `quantity::Symbol`: Target quantity. The options are:
+
+      + `:Mdust`  -> Dust mass.
+      + `:Dtot`  -> Dust-to-gas ratio. Where the gas is defined as ``M_\\text{gas} = 1.36 \\, M_\\text{HI} + M_\\text{H2}``.
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `ic_gens::Vector{Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :H2).
+  - `r25s::Vector{<:Unitful.Length}=[25.0u"kpc"]`: R25 radius for each simulation.
+  - `band_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK]`: Color for the Sun et al. (2022) data. The first if for the median lines, and the second and third are for the shaded regions (``1 \\sigma`` and ``2 \\sigma`` respectively).
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+J. Muñoz-Mateos et al. (2009). *RADIAL DISTRIBUTION OF STARS, GAS, AND DUST IN SINGS GALAXIES. II. DERIVED DUST PROPERTIES*. The Astrophysical Journal, **701(2)**, 1965. [doi:10.1088/0004-637X/701/2/1965](https://doi.org/10.1088/0004-637X/701/2/1965)
+"""
+function compareMunozMateos2009(
+    simulation_paths::Vector{String},
+    quantity::Symbol;
+    slice::IndexType=(:),
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    ic_gens::Vector{Function}=[initialConditionFunction],
+    r25s::Vector{<:Unitful.Length}=[25.0u"kpc"],
+    band_colors::Vector{<:ColorType}=[WONG_BLUE, WONG_GREEN, WONG_PINK],
+    sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    theme::Attributes=Theme(),
+)::Nothing
+
+    base_request = mergeRequests(
+        QTY_REGISTRY[:ode_dust_mass].request,
+        QTY_REGISTRY[:ode_neutral_mass].request,
+        ff_request,
+    )
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    grids = [GalaxyInspector.LinearGrid(-0.0361 * r25, 1.346 * r25, 15) for r25 in r25s]
+
+    if quantity == :Mdust
+
+        plotSnapshot(
+            simulation_paths,
+            request,
+            [lines!];
+            output_path,
+            base_filename="$(quantity)_munoz_mateos_2009",
+            slice,
+            transform_box=true,
+            translation,
+            rotation,
+            filter_function,
+            da_functions=[daProfile],
+            da_args=[(:ode_dust_mass, ring(grids, i)) for i in eachindex(simulation_paths)],
+            da_kwargs=[
+                (;
+                    y_log=u"Msun * kpc^-2",
+                    r25=true,
+                    flat=true,
+                    total=true,
+                    cumulative=false,
+                    density=true,
+                    filter_function=extra_filter,
+                    ic_gen=ring(ic_gens, i),
+                ) for i in eachindex(simulation_paths)
+            ],
+            post_processing=ppMunozMateos2009!,
+            pp_args=(quantity,),
+            pp_kwargs=(; colors=band_colors),
+            yaxis_label=L"\log_{10} \, \Sigma_\mathrm{dust} \, / \, \mathrm{M_\odot \, kpc^{-2}}",
+            xaxis_label=L"R \, / \, R_{25}",
+            theme,
+            sim_labels,
+        )
+
+    elseif quantity == :Dtot
+
+        plotSnapshot(
+            simulation_paths,
+            request,
+            [lines!];
+            output_path,
+            base_filename="$(quantity)_munoz_mateos_2009",
+            slice,
+            transform_box=true,
+            translation,
+            rotation,
+            filter_function,
+            da_functions=[daProfile],
+            da_args=[(:ode_dust_mass, ring(grids, i)) for i in eachindex(simulation_paths)],
+            da_kwargs=[
+                (;
+                    norm=:ode_neutral_mass,
+                    y_log=Unitful.NoUnits,
+                    r25=true,
+                    flat=true,
+                    total=true,
+                    cumulative=false,
+                    density=false,
+                    filter_function=extra_filter,
+                    ic_gen=ring(ic_gens, i),
+                ) for i in eachindex(simulation_paths)
+            ],
+            post_processing=ppMunozMateos2009!,
+            pp_args=(quantity,),
+            pp_kwargs=(; colors=band_colors),
+            yaxis_label=L"\log_{10} \, D_\mathrm{tot}",
+            xaxis_label=L"R \, / \, R_{25}",
+            theme,
+            sim_labels,
+        )
+
+    else
+
+        throw(ArgumentError("compareMunozMateos2009: `quantity` can only be :Mdust or :Dtot, \
+        but I got :$(quantity)"))
+
+    end
+
+    return nothing
+
+end
 
 
 
