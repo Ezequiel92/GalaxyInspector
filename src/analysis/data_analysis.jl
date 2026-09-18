@@ -465,7 +465,7 @@ function daProfile(
 
     if r25
         R25 = computeR25(data_dict)
-        x_axis = ustrip.(Unitful.NoUnits, copy(grid.x_axis) ./ R25)
+        x_axis = uconvert.(Unitful.NoUnits, copy(grid.x_axis) ./ R25)
     else
         x_axis = copy(grid.x_axis)
     end

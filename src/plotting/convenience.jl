@@ -8252,34 +8252,103 @@ function compareMunozMateos2009(
 
 end
 
+"""
+    fractionChange(simulation_paths::Vector{String}; <keyword arguments>)::Nothing
 
+Write a text file with the relative change in the ODE fractions.
 
+# Arguments
 
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
+  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `ic_gens::Vector{Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example.
+  - `components_list::Vector{Vector{Symbol}}=[[:ode_ionized, :ode_atomic, :ode_metals, :ode_dust]]`: List of ODE components to analyze.
+"""
+function fractionChange(
+    simulation_paths::Vector{String};
+    slice::IndexType=(:),
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    ic_gens::Vector{Function}=[initialConditionFunction],
+    components_list::Vector{Vector{Symbol}}=[[:ode_ionized, :ode_atomic, :ode_metals, :ode_dust]],
+)::Nothing
 
+    base_request = mergeRequests(QTY_REGISTRY[:generic_fraction].request, ff_request)
 
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
 
+    for (i, simulation_path) in pairs(simulation_paths)
 
+        # Create the output file
+        file = open(joinpath(output_path, "fraction_change_for_$(basename(simulation_path)).txt"), "w")
 
+        # Create the data dictionary
+        data_dict = makeDataDict(simulation_path, slice, request)
 
+        translateData!(data_dict, translation...)
+        rotateData!(data_dict, rotation...)
+        filterData!(data_dict; filter_function)
+        filterData!(data_dict; filter_function=extra_filter)
 
+        ic_gen = ring(ic_gens, i)
+        components = ring(components_list, i)
 
+        for component in components
 
+            ode_ic = ic_gen(data_dict, component)
 
+            isnothing(ode_ic) && continue
 
+            change, Δm = computeFractionChange(data_dict, component, ode_ic)
+            M = computeMass(data_dict, component; ic_gen)
 
+            filter!(!isnan, change)
+            filter!(!isnan, Δm)
 
+            (isempty(change) || isempty(Δm) || isempty(M)) && continue
 
+            println(file, "$(component):\n")
 
+            m_ch = round(median(change) * 100.0; sigdigits=3)
+            p16_ch = round(quantile(change, 0.16) * 100.0; sigdigits=3)
+            p84_ch = round(quantile(change, 0.84) * 100.0; sigdigits=3)
+            mx_ch = round(maximum(change) * 100.0; sigdigits=3)
+            mn_ch = round(minimum(change) * 100.0; sigdigits=3)
 
+            println(file, "\tMedian change:   $(m_ch) %")
+            println(file, "\t16th percentile: $(p16_ch) %")
+            println(file, "\t84th percentile: $(p84_ch) %")
+            println(file, "\tMaximum change:  $(mx_ch) %")
+            println(file, "\tMinimum change:  $(mn_ch) %\n")
 
+            Mch  = sum(Δm)
+            Mtot = sum(M)
+            fMch = uconvert(Unitful.NoUnits, Mch / Mtot)
 
+            net_mass_change = round(ustrip(u"Msun", Mch); sigdigits=3)
+            frac_mass_change = round(fMch * 100.0; sigdigits=3)
 
+            println(file, "\tNet mass change:        $(net_mass_change) M⊙")
+            println(file, "\tFractional mass change: $(frac_mass_change) %\n")
 
+        end
 
+        close(file)
 
+    end
 
+    return nothing
 
-
+end
 
 """
     simulationReport(simulation_paths::Vector{String}; <keyword arguments>)::Nothing

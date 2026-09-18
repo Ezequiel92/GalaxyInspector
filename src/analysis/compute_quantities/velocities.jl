@@ -523,7 +523,7 @@ function computeCircularity(
         if iszero(r) || iszero(vcirc)
             ϵ[i] = 0.0
         else
-            ϵ[i] = ustrip(Unitful.NoUnits, jz / (r * vcirc))
+            ϵ[i] = uconvert(Unitful.NoUnits, jz / (r * vcirc))
         end
 
     end

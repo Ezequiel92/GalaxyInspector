@@ -1672,7 +1672,7 @@ function validatePlotData(
         axis_data = VecOrMat{<:Number}[
             ustrip.(x_unit, plot_data[1]),
             ustrip.(y_unit, plot_data[2]),
-            ustrip.(Unitful.NoUnits, plot_data[3]),
+            uconvert.(Unitful.NoUnits, plot_data[3]),
         ]
 
     elseif plot_function isa typeof(band!)
@@ -1688,8 +1688,8 @@ function validatePlotData(
         axis_data = VecOrMat{<:Number}[
             ustrip.(x_unit, plot_data[1]),
             ustrip.(y_unit, plot_data[2]),
-            ustrip.(Unitful.NoUnits, plot_data[3]),
-            ustrip.(Unitful.NoUnits, plot_data[4]),
+            uconvert.(Unitful.NoUnits, plot_data[3]),
+            uconvert.(Unitful.NoUnits, plot_data[4]),
         ]
 
     elseif plot_function isa typeof(errorbars!)
