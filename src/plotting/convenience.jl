@@ -2788,7 +2788,11 @@ function gasFractionsEvolution(
 
             end
 
-            axislegend(ax_2, position=:rb, framevisible=false, nbanks=2)
+            axislegend(
+                ax_2;
+                position=(current_theme.Legend.halign[], current_theme.Legend.valign[]),
+                nbanks=current_theme.Legend.nbanks[],
+            )
 
             linkxaxes!(ax_1, ax_2)
 
@@ -6325,6 +6329,7 @@ function circularityHistogram(
                     axislegend(
                         ax;
                         position=(current_theme.Legend.halign[], current_theme.Legend.valign[]),
+                        nbanks=current_theme.Legend.nbanks[],
                     )
 
                     filename = "$(basename(simulation_path))_circularity_histogram_$(snap).png"
@@ -7068,6 +7073,7 @@ function molecularFractionEvolution(
                 axislegend(
                     ax;
                     position=(current_theme.Legend.halign[], current_theme.Legend.valign[]),
+                    nbanks=current_theme.Legend.nbanks[],
                 )
 
                 filename = "$(basename(simulation))_gas_mass_fraction_evolution.png"
@@ -7976,7 +7982,11 @@ function compareCasey2026(
 
             end
 
-            axislegend(ax, position=:lt, framevisible=false, nbanks=1)
+            axislegend(
+                ax;
+                position=(current_theme.Legend.halign[], current_theme.Legend.valign[]),
+                nbanks=current_theme.Legend.nbanks[],
+            )
 
             save(joinpath(output_path, "$(basename(simulation_path))_Casey2026.png"), f)
 
@@ -8206,11 +8216,13 @@ function compareMunozMateos2009(
 
     elseif quantity == :Dtot
 
+        temp_folder = joinpath(output_path, "_jld2")
+
         plotSnapshot(
             simulation_paths,
             request,
             [lines!];
-            output_path,
+            output_path=temp_folder,
             base_filename="$(quantity)_munoz_mateos_2009",
             slice,
             transform_box=true,
@@ -8232,14 +8244,53 @@ function compareMunozMateos2009(
                     ic_gen=ring(ic_gens, i),
                 ) for i in eachindex(simulation_paths)
             ],
-            post_processing=ppMunozMateos2009!,
-            pp_args=(quantity,),
-            pp_kwargs=(; colors=band_colors),
-            yaxis_label=L"\log_{10} \, D_\mathrm{tot}",
-            xaxis_label=L"R \, / \, R_{25}",
-            theme,
-            sim_labels,
+            save_figures=false,
+            backup_results=true,
         )
+
+        jld2_file = jldopen(joinpath(temp_folder, "Dtot_munoz_mateos_2009.jld2"), "r")
+
+        snapshots = keys(jld2_file)
+
+        current_theme = merge(theme, DEFAULT_THEME, theme_latexfonts())
+
+        for snap in snapshots
+
+            with_theme(current_theme) do
+
+                f = Figure()
+
+                ax = CairoMakie.Axis(
+                    f[1, 1];
+                    xlabel=L"R \, / \, R_{25}",
+                    ylabel=L"\log_{10} \, D_\mathrm{tot}",
+                )
+
+                    for (simulation_path, label) in zip(simulation_paths, sim_labels)
+
+                        x, y = jld2_file[snap][basename(simulation_path)]
+                        # Muñoz-Mateos et al. (2009) define gas as Mgas = 1.36 * (MHI + MH2)
+                        lines!(ax, x, y .- log10(1.36); label)
+
+                        ppMunozMateos2009!(f, quantity; colors=band_colors)
+
+                    end
+
+                axislegend(
+                    ax;
+                    position=(current_theme.Legend.halign[], current_theme.Legend.valign[]),
+                    nbanks=current_theme.Legend.nbanks[],
+                )
+
+                save(joinpath(output_path, "Dtot_munoz_mateos_2009.png"), f)
+
+            end
+
+        end
+
+        close(jld2_file)
+
+        rm(temp_folder; recursive=true)
 
     else
 
