@@ -7846,7 +7846,7 @@ end
         <keyword arguments>
     )::Nothing
 
-Plot the gas-to-stellar ration evolution, comparing with the measurements from Casey et al. (2026).
+Plot the gas-to-stellar ratio evolution, comparing with the measurements from Casey et al. (2026).
 
 !!! note
 
@@ -8394,6 +8394,7 @@ function compareEibensteiner2024(
                 total=true,
                 cumulative=false,
                 density=false,
+                filter_function=extra_filter,
                 ic_gen=ring(ic_gens, i),
             ) for i in eachindex(simulation_paths)
         ],
