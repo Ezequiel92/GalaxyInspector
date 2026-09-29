@@ -8304,6 +8304,119 @@ function compareMunozMateos2009(
 end
 
 """
+    compareEibensteiner2024(
+        simulation_paths::Vector{String},
+        slice::IndexType;
+        <keyword arguments>
+    )::Nothing
+
+Plot the molecular-to-atomic ratio (``R_\\mathrm{mol}``) profile, comparing with the fiducial fit from Eibensteiner et al. (2024) (Section 5.2, Equation 16).
+
+!!! note
+
+    This method plots one quantity for several simulations in one figure.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
+  - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :H2).
+  - `r25s::Vector{<:Unitful.Length}=[25.0u"kpc"]`: R25 radius for each simulation.
+  - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
+  - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
+
+      + `:physical_time` -> Physical time since the Big Bang.
+      + `:lookback_time` -> Physical time left to reach the last snapshot.
+      + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
+      + `:redshift`      -> Redshift (only relevant for cosmological simulations).
+  - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
+
+# References
+
+C. Eibensteiner et al. (2024). *PHANGS-MeerKAT and MHONGOOSE HI observations of nearby spiral galaxies: Physical drivers of the molecular gas fraction, Rmol*. Astronomy and Astrophysics, *691**, A163. [doi:10.1051/0004-6361/202449944](https://doi.org/10.1051/0004-6361/202449944)
+"""
+function compareEibensteiner2024(
+    simulation_paths::Vector{String},
+    slice::IndexType;
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
+    r25s::Vector{<:Unitful.Length}=[25.0u"kpc"],
+    sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
+    title::Union{Symbol,<:AbstractString}="",
+    theme::Attributes=Theme(),
+)::Nothing
+
+    base_request = mergeRequests(
+        QTY_REGISTRY[:ode_molecular_stellar_mass].request,
+        QTY_REGISTRY[:ode_atomic_mass].request,
+        ff_request,
+    )
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    grids = [GalaxyInspector.LinearGrid(0.0u"kpc", 1.0 * r25, 15) for r25 in r25s]
+
+    if isone(length(simulation_paths))
+        base_filename = "$(basename(simulation_paths[1]))_Eibensteiner2024_Rmol_profile"
+    else
+        base_filename = "Eibensteiner2024_Rmol_profile"
+    end
+
+    plotSnapshot(
+        simulation_paths,
+        request,
+        [lines!];
+        output_path,
+        base_filename,
+        slice,
+        transform_box=true,
+        translation,
+        rotation,
+        filter_function,
+        da_functions=[daProfile],
+        da_args=[(:ode_molecular_stellar_mass, ring(grids, i)) for i in eachindex(simulation_paths)],
+        da_kwargs=[
+            (;
+                norm=:ode_atomic_mass,
+                y_log=Unitful.NoUnits,
+                r25=true,
+                flat=true,
+                total=true,
+                cumulative=false,
+                density=false,
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
+        ],
+        post_processing=ppEibensteiner2024!,
+        yaxis_label=L"\log_{10} \, R_\mathrm{mol}",
+        xaxis_qty_label=L"R \, / \, R_{25}",
+        theme=merge(
+            theme,
+            Theme(
+                size=(1200, 880),
+                Axis=(aspect=nothing, xticks=0:0.2:1),
+                Legend=(halign=:left, valign=:top, nbanks=1, margin=(5, 0, 0, 2)),
+            ),
+        ),
+        sim_labels,
+        title,
+    )
+
+    return nothing
+
+end
+
+"""
     fractionChange(simulation_paths::Vector{String}; <keyword arguments>)::Nothing
 
 Write a text file with the relative change in the ODE fractions.

@@ -325,7 +325,7 @@ const SFR_RANGE_QUEREJETA2021 = exp10.([-4.0, 0.0]) .* u"Msun * yr^-1 * kpc^-2"
 Fiducial fit for the molecular gas-to-dust ratio vs. galactocentric distance, from Giannetti et al. (2017) (Section 3, Equation 2).
 
 ```math
-\log_{10} \, \gamma = A \, R_\text{GC} + B \, ,
+\log_{10} \, \gamma = A \, R_\text{GC} + N \, ,
 ```
 
 # References
@@ -333,13 +333,22 @@ Fiducial fit for the molecular gas-to-dust ratio vs. galactocentric distance, fr
 A. Giannetti et al. (2017). *Galactocentric variation of the gas-to-dust ratio and its relation with metallicity*. Astronomy and Astrophysics, **606**, L12. [doi:10.1051/0004-6361/201731728](https://doi.org/10.1051/0004-6361/201731728)
 """
 const A_GIANNETTI2017_EQ2 = 0.087u"kpc^-1"
-const B_GIANNETTI2017_EQ2 = 1.44
+const N_GIANNETTI2017_EQ2 = 1.44
+
+"""
+Intrinsic scatter for the molecular gas-to-dust ratio vs. galactocentric distance, from Giannetti et al. (2017) (Figure 4).
+
+# References
+
+A. Giannetti et al. (2017). *Galactocentric variation of the gas-to-dust ratio and its relation with metallicity*. Astronomy and Astrophysics, **606**, L12. [doi:10.1051/0004-6361/201731728](https://doi.org/10.1051/0004-6361/201731728)
+"""
+const SCATTER_GIANNETTI2017_EQ2 = 0.2
 
 @doc raw"""
 Fiducial fit for the metallicity profile, from Giannetti et al. (2017) (Section 3, Equation 3).
 
 ```math
-\log_{10} \, Z / Z_\odot = A \, R_\text{GC} + B \, ,
+\log_{10} \, Z / Z_\odot = A \, R_\text{GC} + N \, ,
 ```
 
 # References
@@ -347,13 +356,13 @@ Fiducial fit for the metallicity profile, from Giannetti et al. (2017) (Section 
 A. Giannetti et al. (2017). *Galactocentric variation of the gas-to-dust ratio and its relation with metallicity*. Astronomy and Astrophysics, **606**, L12. [doi:10.1051/0004-6361/201731728](https://doi.org/10.1051/0004-6361/201731728)
 """
 const A_GIANNETTI2017_EQ3 = -0.056u"kpc^-1"
-const B_GIANNETTI2017_EQ3 = -1.176
+const N_GIANNETTI2017_EQ3 = -1.176
 
 @doc raw"""
 Fiducial fit for the dust-to-metal profile, from Giannetti et al. (2017) (Section 3, Equation 4).
 
 ```math
-\log_{10} \, Z_d / Z^* = A \, R_\text{GC} + B \, ,
+\log_{10} \, Z_d / Z^* = A \, R_\text{GC} + N \, ,
 ```
 where ``Z_d = \gamma^{-1}`` and ``Z^* = Z / Z_\odot``.
 # References
@@ -361,7 +370,7 @@ where ``Z_d = \gamma^{-1}`` and ``Z^* = Z / Z_\odot``.
 A. Giannetti et al. (2017). *Galactocentric variation of the gas-to-dust ratio and its relation with metallicity*. Astronomy and Astrophysics, **606**, L12. [doi:10.1051/0004-6361/201731728](https://doi.org/10.1051/0004-6361/201731728)
 """
 const A_GIANNETTI2017_EQ4 = -0.031u"kpc^-1"
-const B_GIANNETTI2017_EQ4 = -0.26
+const N_GIANNETTI2017_EQ4 = -0.26
 
 @doc raw"""
 Range of values for the galactocentric distances in Figure 4 and Table A.1 of Giannetti et al. (2017).
@@ -670,6 +679,37 @@ Median star formation efficiency per free-fall time, from Lee et al. (2016) (Tab
 E. J. Lee et al. (2016). *OBSERVATIONAL EVIDENCE OF DYNAMIC STAR FORMATION RATE IN MILKY WAY GIANT MOLECULAR CLOUDS*. The Astrophysical Journal, **833(2)**, 229. [doi:10.3847/1538-4357/833/2/229](https://doi.org/10.3847/1538-4357/833/2/229)
 """
 const LEE2016_ϵff = 0.018 ± 0.039
+
+@doc raw"""
+Fitted parameters for the molecular-to-atomic rate profile, from Eibensteiner et al. (2024) (Table 4).
+
+```math
+\log_{10} \, R_\mathrm{mol} = A \, (R / R_{25}) + N \, ,
+```
+where ``R_\mathrm{mol} = \Sigma_\mathrm{H2} / \Sigma_\mathrm{HI}``.
+
+C. Eibensteiner et al. (2024). *PHANGS-MeerKAT and MHONGOOSE HI observations of nearby spiral galaxies: Physical drivers of the molecular gas fraction, Rmol*. Astronomy and Astrophysics, *691**, A163. [doi:10.1051/0004-6361/202449944](https://doi.org/10.1051/0004-6361/202449944)
+"""
+const A_EIBENSTEINER2024 = −1.00
+const N_EIBENSTEINER2024 = 0.34
+
+@doc raw"""
+Range of values for the R25 in Figure 8 of Eibensteiner et al. (2024).
+
+# References
+
+C. Eibensteiner et al. (2024). *PHANGS-MeerKAT and MHONGOOSE HI observations of nearby spiral galaxies: Physical drivers of the molecular gas fraction, Rmol*. Astronomy and Astrophysics, *691**, A163. [doi:10.1051/0004-6361/202449944](https://doi.org/10.1051/0004-6361/202449944)
+"""
+const R25_RANGE_EIBENSTEINER2024 = [0.0, 1.0]
+
+"""
+Intrinsic scatter for the molecular-to-atomic rate profile, from Eibensteiner et al. (2024) (Table 4).
+
+# References
+
+C. Eibensteiner et al. (2024). *PHANGS-MeerKAT and MHONGOOSE HI observations of nearby spiral galaxies: Physical drivers of the molecular gas fraction, Rmol*. Astronomy and Astrophysics, *691**, A163. [doi:10.1051/0004-6361/202449944](https://doi.org/10.1051/0004-6361/202449944)
+"""
+const SCATTER_EIBENSTEINER2024 = 0.18
 
 ####################################################################################################
 # Type aliases and structs

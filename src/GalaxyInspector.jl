@@ -141,6 +141,7 @@ export compareGiannetti2017
 export compareCasey2026
 export compareSun2022
 export compareMunozMateos2009
+export compareEibensteiner2024
 export fractionChange
 export simulationReport
 export quantityReport

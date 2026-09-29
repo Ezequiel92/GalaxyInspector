@@ -3034,16 +3034,16 @@ function ppGiannetti2017!(
         slope = ustrip(x_unit^-1, A_GIANNETTI2017_EQ2)
 
         # Compute the values for the y axis
-        y_points = slope .* x_axis .+ B_GIANNETTI2017_EQ2
+        y_points = slope .* x_axis .+ N_GIANNETTI2017_EQ2
 
         if y_log
             y_axis = y_points
-            y_low  = y_axis .- 0.2
-            y_high = y_axis .+ 0.2
+            y_low  = y_axis .- SCATTER_GIANNETTI2017_EQ2
+            y_high = y_axis .+ SCATTER_GIANNETTI2017_EQ2
         else
             y_axis = exp10.(y_points)
-            y_low  = exp10.(y_axis .- 0.2)
-            y_high = exp10.(y_axis .+ 0.2)
+            y_low  = exp10.(y_axis .- SCATTER_GIANNETTI2017_EQ2)
+            y_high = exp10.(y_axis .+ SCATTER_GIANNETTI2017_EQ2)
         end
 
         bp = band!(
@@ -3340,5 +3340,111 @@ function ppMunozMateos2009!(
             L"2 \sigma",
         ],
     )
+
+end
+
+"""
+    ppEibensteiner2024!(
+        figure::Makie.Figure;
+        <keyword arguments>
+    )::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+Draw a line plot with the fiducial fit for the molecular-to-atomic ratio (``R_\\mathrm{mol}``) profile from Eibensteiner et al. (2024) (Section 5.2, Equation 16).
+
+# Arguments
+
+  - `figure::Makie.Figure`: Makie figure.
+  - `y_log::Bool=true`: If the y axis is ``\\log_{10}(R_\\mathrm{mol})`` (`y_log` = true) or just ``R_\\mathrm{mol}`` (`y_log` = false).
+  - `color::ColorType=WONG_RED`: Color for the line.
+  - `linestyles::Vector{<:LineStyleType}=[:solid, :dash]`: Styles for the lines. The first style will indicate the range for which there are experimental data, and the second one will be for the extrapolation.
+  - `linewidth::Int=5`: Line width.
+
+# Returns
+
+  - A tuple with the elements for the legend:
+
+      + A `LineElement` to be used as the marker.
+      + The label.
+
+# References
+
+C. Eibensteiner et al. (2024). *PHANGS-MeerKAT and MHONGOOSE HI observations of nearby spiral galaxies: Physical drivers of the molecular gas fraction, Rmol*. Astronomy and Astrophysics, *691**, A163. [doi:10.1051/0004-6361/202449944](https://doi.org/10.1051/0004-6361/202449944)
+"""
+function ppEibensteiner2024!(
+    figure::Makie.Figure;
+    y_log::Bool=true,
+    color::ColorType=WONG_RED,
+    linestyles::Vector{<:LineStyleType}=[:solid, :dash],
+    linewidth::Int=5,
+)::Union{Tuple{Vector{<:LegendElement},Vector{<:AbstractString}},Nothing}
+
+    # Read the data points in the plot
+    points = pointData(figure)
+
+    if isempty(points)
+        LOGGING[] && @warn("ppEibensteiner2024!: There are no points in the figure")
+        return nothing
+    end
+
+    # Get the extrema of the x coordinates
+    x_limits = [extrema(Float64[point[1] for point in points])...]
+
+    ################################################################################################
+    # Range of RGC in Eibensteiner et al. (2024)
+    ################################################################################################
+
+    # Set the main x range to be plotted
+    x_ranges = [R25_RANGE_EIBENSTEINER2024]
+
+    # If there is extrapolation add new ranges
+    if x_limits[2] > R25_RANGE_EIBENSTEINER2024[2]
+        push!(x_ranges, [R25_RANGE_EIBENSTEINER2024[2], x_limits[2]])
+    end
+    if x_limits[1] < R25_RANGE_EIBENSTEINER2024[1]
+        push!(x_ranges, [x_limits[1], R25_RANGE_EIBENSTEINER2024[1]])
+    end
+
+    ################################################################################################
+    # Plot the fit from Giannetti et al. (2017)
+    ################################################################################################
+
+    for (x_zone, linestyle) in zip(x_ranges, [linestyles..., linestyles[2]])
+
+        # Compute the values for the x axis
+        x_axis = collect(range(x_zone[1], x_zone[2], 5))
+
+        # Compute the values for the y axis
+        y_points = A_EIBENSTEINER2024 .* x_axis .+ N_EIBENSTEINER2024
+
+        if y_log
+            y_axis = y_points
+            y_low  = y_axis .- SCATTER_EIBENSTEINER2024
+            y_high = y_axis .+ SCATTER_EIBENSTEINER2024
+        else
+            y_axis = exp10.(y_points)
+            y_low  = exp10.(y_axis .- SCATTER_EIBENSTEINER2024)
+            y_high = exp10.(y_axis .+ SCATTER_EIBENSTEINER2024)
+        end
+
+        bp = band!(
+            figure.current_axis.x,
+            x_axis,
+            y_low,
+            y_high;
+            color,
+        )
+
+        lp = lines!(figure.current_axis.x, x_axis, y_axis; color, linestyle, linewidth)
+
+        # Put the post processing elements at the back of the plot
+        translate!(Accum, lp, 0, 0, -9)
+        translate!(Accum, bp, 0, 0, -10)
+
+    end
+
+    return [
+        LineElement(; color, linestyle=linestyles[1], linewidth)],
+        ["Eibensteiner et al. (2024)",
+    ]
 
 end
