@@ -143,6 +143,7 @@ export compareSun2022
 export compareMunozMateos2009
 export compareEibensteiner2024
 export fractionChange
+export cellState
 export simulationReport
 export quantityReport
 

@@ -8417,14 +8417,14 @@ function compareEibensteiner2024(
 end
 
 """
-    fractionChange(simulation_paths::Vector{String}; <keyword arguments>)::Nothing
+    fractionChange(simulation_paths::Vector{String}, snapshot_n::Int; <keyword arguments>)::Nothing
 
 Write a text file with the relative change in the ODE fractions.
 
 # Arguments
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
-  - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
+  - `snapshot_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `snapshot_n` = (number in filename) + 1.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -8434,8 +8434,8 @@ Write a text file with the relative change in the ODE fractions.
   - `components_list::Vector{Vector{Symbol}}=[[:ode_ionized, :ode_atomic, :ode_metals, :ode_dust]]`: List of ODE components to analyze.
 """
 function fractionChange(
-    simulation_paths::Vector{String};
-    slice::IndexType=(:),
+    simulation_paths::Vector{String},
+    snapshot_n::Int;
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -8456,7 +8456,7 @@ function fractionChange(
         file = open(joinpath(output_path, "fraction_change_for_$(basename(simulation_path)).txt"), "w")
 
         # Create the data dictionary
-        data_dict = makeDataDict(simulation_path, slice, request)
+        data_dict = makeDataDict(simulation_path, snapshot_n, request)
 
         translateData!(data_dict, translation...)
         rotateData!(data_dict, rotation...)
@@ -8505,6 +8505,101 @@ function fractionChange(
             println(file, "\tFractional mass change: $(frac_mass_change) %\n")
 
         end
+
+        close(file)
+
+    end
+
+    return nothing
+
+end
+
+"""
+    cellState(simulation_paths::Vector{String}, snapshot_n::Int; <keyword arguments>)::Nothing
+
+Write a text file with the fraction of cell in different states of star formation.
+
+# Arguments
+
+  - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
+  - `snapshot_n::Int`: Selects the target snapshot. Starts at 1 and is independent of the number in the file name. If every snapshot is present, the relation is `snapshot_n` = (number in filename) + 1.
+  - `output_path::String="."`: Path to the output folder.
+  - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
+  - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
+  - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
+  - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
+"""
+function cellState(
+    simulation_paths::Vector{String},
+    snapshot_n::Int;
+    output_path::String=".",
+    trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
+    filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
+    extra_filter::Function=filterNothing,
+    ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
+)::Nothing
+
+    base_request = mergeRequests(Dict(:gas =>["MASS", "FRAC", "RHO "]), ff_request)
+
+    translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
+    filter_function, request = selectFilter(filter_mode, trans_request)
+
+    for (i, simulation_path) in pairs(simulation_paths)
+
+        # Create the output file
+        file = open(joinpath(output_path, "cell_state_for_$(basename(simulation_path)).txt"), "w")
+
+        println(file, "$(basename(simulation_path)):\n")
+
+        # Create the data dictionary
+        data_dict = makeDataDict(simulation_path, snapshot_n, request)
+
+        translateData!(data_dict, translation...)
+        rotateData!(data_dict, rotation...)
+        filterData!(data_dict; filter_function)
+        filterData!(data_dict; filter_function=extra_filter)
+
+        masses    = data_dict[:gas]["MASS"]
+        fractions = data_dict[:gas]["FRAC"]
+        densities = data_dict[:gas]["RHO "]
+
+        n_cells   = length(masses)
+        n_ρ_high  = count(>=(THRESHOLD_DENSITY), densities)
+        n_non_nan = count(!isnan, fractions[1, :])
+
+        n_non_nan_f = round((n_non_nan / n_cells) * 100.0; sigdigits=3)
+        n_ρ_high_f  = round((n_ρ_high / n_cells) * 100.0; sigdigits=3)
+
+        n_star_forming = 0
+        n_old_data     = 0
+        n_inconsistent = 0
+        for i in eachindex(densities)
+
+            if (densities[i] >= THRESHOLD_DENSITY) && !isnan(fractions[1, i])
+                n_star_forming += 1
+            end
+
+            if (densities[i] < THRESHOLD_DENSITY) && !isnan(fractions[1, i])
+                n_old_data += 1
+            end
+
+            if (densities[i] >= THRESHOLD_DENSITY) && isnan(fractions[1, i])
+                n_inconsistent += 1
+            end
+
+        end
+
+        n_star_forming_f = round((n_star_forming / n_cells) * 100.0; sigdigits=3)
+        n_old_data_f     = round((n_old_data / n_cells) * 100.0; sigdigits=3)
+        n_inconsistent_f = round((n_inconsistent / n_cells) * 100.0; sigdigits=3)
+
+        println(file, "\tNumber of cells:                        $(n_cells)")
+        println(file, "\tNumber of cells with ODE data:          $(n_non_nan) ($(n_non_nan_f) %)")
+        println(file, "\tNumber of dense cells (ρ >= 0.19cm^-3): $(n_ρ_high) ($(n_ρ_high_f) %)")
+        println(file, "\tNumber of star forming cells:           $(n_star_forming) ($(n_star_forming_f) %)\n")
+
+        println(file, "\tNumber of non star forming cells (due to low density):  $(n_old_data) ($(n_old_data_f) %)")
+        println(file, "\tNumber of non star forming cells (due to nan):  $(n_inconsistent) ($(n_inconsistent_f) %)\n")
 
         close(file)
 
