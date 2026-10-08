@@ -6463,6 +6463,7 @@ Plot the stellar density maps for the xy and xz projections, in two panels.
   - `slice::IndexType`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
   - `box_size::Unitful.Length=BOX_L[]`: Size of the plotting box (x and y coordinates).
   - `box_height::Unitful.Length=12.0u"kpc"`: Size of the plotting box (z coordinate).
+  - `velocity_field::Bool=true`: If true, the velocity field will be plotted on top of the density maps.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
@@ -6475,6 +6476,7 @@ function stellarDensityMaps(
     slice::IndexType;
     box_size::Unitful.Length=BOX_L[],
     box_height::Unitful.Length=12.0u"kpc",
+    velocity_field::Bool=true,
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
@@ -6486,9 +6488,13 @@ function stellarDensityMaps(
     projection_planes = [:xy, :xz]
     m_unit = u"Msun"
     l_unit = u"kpc"
+    v_unit = u"km * s^-1"
 
     grid     = CubicGrid(box_size, 400)
     half_box = ustrip(l_unit, box_size) / 2.0
+
+    # Set up the grid for the velocity field
+    grid_vf = SquareGrid(box_size, 20)
 
     # Maximun tick for the axes
     tick = floor(half_box; sigdigits=1)
@@ -6531,9 +6537,9 @@ function stellarDensityMaps(
         for projection_plane in projection_planes
 
             plotSnapshot(
-                [simulation_path],
+                [simulation_path, simulation_path],
                 request,
-                [heatmap!];
+                [heatmap!, arrows2d!];
                 output_path=temp_folder,
                 base_filename="stellar_mass_$(projection_plane)",
                 slice,
@@ -6541,8 +6547,8 @@ function stellarDensityMaps(
                 translation,
                 rotation,
                 filter_function,
-                da_functions=[daDensity2DProjection],
-                da_args=[(grid, :stellar, :particles)],
+                da_functions=[daDensity2DProjection, daVelocityField],
+                da_args=[(grid, :stellar, :particles), (grid_vf, :stellar)],
                 da_kwargs=[
                     (;
                         projection_plane,
@@ -6550,30 +6556,44 @@ function stellarDensityMaps(
                         l_unit,
                         filter_function=extra_filter,
                     ),
+                    (; projection_plane, v_unit, filter_function=extra_filter)
                 ],
                 x_unit=l_unit,
                 y_unit=l_unit,
                 save_figures=false,
                 backup_results=true,
+                sim_labels=["density", "velocity"],
             )
 
         end
 
         jld2_paths = [joinpath(temp_folder, "stellar_mass_$(pp).jld2") for pp in projection_planes]
 
+        # Load the density and velocity data in separate dictionaries, one per projection plane
         jld2_data = load.(jld2_paths)
 
-        for ((snap, xy_data), (_, xz_data)) in zip(jld2_data...)
+        density = [
+            Dict(String(first(split(k, '/'))) => v for (k, v) in data if endswith(k, "/density"))
+            for data in jld2_data
+        ]
+        velocity = [
+            Dict(String(first(split(k, '/'))) => v for (k, v) in data if endswith(k, "/velocity"))
+            for data in jld2_data
+        ]
 
-            with_theme(current_theme) do
+        iterator = zip(density[1], density[2], velocity[1], velocity[2])
 
-                f = Figure()
+        with_theme(current_theme) do
+
+            f = Figure()
+
+            for ((snap, xy_ρ_data), (_, xz_ρ_data), (_, xy_v_data), (_, xz_v_data)) in iterator
 
                 min_color = Inf
                 max_color = -Inf
 
                 # Compute a good color range
-                for (_, _, z) in [xy_data, xz_data]
+                for (_, _, z) in [xy_ρ_data, xz_ρ_data]
 
                     if !all(isnan, z)
 
@@ -6593,7 +6613,12 @@ function stellarDensityMaps(
 
                 end
 
-                for (row, (x, y, z)) in pairs([xy_data, xz_data])
+                for (row, ((x, y, z), (xv, yv, uv, vv), arrows_kwarg)) in pairs(
+                    [
+                        [xy_ρ_data, xy_v_data, (; lengthscale=0.015, tipwidth=6)],
+                        [xz_ρ_data, xz_v_data, (; lengthscale=0.13, tipwidth=6)],
+                    ]
+                )
 
                     xaxis_v = row == 2
 
@@ -6616,11 +6641,15 @@ function stellarDensityMaps(
                         Colorbar(f[row, 1], pf; label=colorbar_label)
                     end
 
+                    if velocity_field
+                        arrows2d!(ax, xv, yv, uv, vv; arrows_kwarg...)
+                    end
+
                 end
 
                 rowsize!(f.layout, 3, Relative(0.3f0))
 
-                filename = "$(basename(snap))_stellar_density_maps_$(dirname(snap)).png"
+                filename = "$(basename(simulation_path))_stellar_density_maps_$(snap).png"
 
                 save(joinpath(output_path, filename), f)
 
@@ -6628,7 +6657,7 @@ function stellarDensityMaps(
 
         end
 
-        rm(temp_folder; recursive=true)
+        # rm(temp_folder; recursive=true)
 
     end
 
