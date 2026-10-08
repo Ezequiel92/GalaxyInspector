@@ -6657,7 +6657,7 @@ function stellarDensityMaps(
 
         end
 
-        # rm(temp_folder; recursive=true)
+        rm(temp_folder; recursive=true)
 
     end
 
