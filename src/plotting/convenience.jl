@@ -6523,7 +6523,7 @@ function stellarDensityMaps(
         Theme(
             size=(880, 1300),
             figure_padding=(5, 25, 0, 0),
-            Axis=(xticklabelsize=35, yticklabelsize=35, aspect=DataAspect()),
+            Axis=(aspect=DataAspect()),
             Colorbar=(ticklabelsize=28, vertical=false, ticks=WilkinsonTicks(5)),
         ),
         DEFAULT_THEME,
@@ -7451,7 +7451,7 @@ function evolutionVideo(
             Theme(
                 size=(2400, 1300),
                 figure_padding=(5, 25, 0, 0),
-                Axis=(xticklabelsize=35, yticklabelsize=35, aspect=DataAspect()),
+                Axis=(aspect=DataAspect()),
                 Colorbar=(ticklabelsize=28, ticks=WilkinsonTicks(5), vertical=false),
                 Text=(color=:white, fontsize=40),
             ),
@@ -7692,7 +7692,7 @@ function SDSSMockup(
             size=(880, 870),
             figure_padding=(5, 10, 0, 0),
             Axis=(aspect=DataAspect(), limits=(-limit, limit, -limit, limit)),
-            Text=(color=:white, fontsize=35),
+            Text=(color=:white, fontsize=FONT_SIZE),
         ),
         DEFAULT_THEME,
         theme_latexfonts(),

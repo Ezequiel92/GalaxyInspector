@@ -1582,6 +1582,11 @@ Default cycler.
 const CYCLE = Cycle([:color, :linestyle, :marker], covary=true)
 
 """
+Default global font size.
+"""
+const FONT_SIZE = 35
+
+"""
 Default plot theme.
 
 Regarding the graphic units used, we know that ``1 \\, \\mathrm{mm} = 2.83466 \\, \\mathrm{pt}`` and ``1 \\, \\mathrm{in} = 25.4 \\, \\mathrm{mm}``. Then, if we want ``1 \\, \\mathrm{[code\\,\\,]unit} = 0.1 \\, \\mathrm{mm}`` in vector graphics, we have to use `pt_per_unit` = 0.283466.
@@ -1598,7 +1603,7 @@ const DEFAULT_THEME = Theme(
     ######################################
     # 35 unit * 0.283466 pt/unit ~ 9.9 pt
     ######################################
-    fontsize=35,
+    fontsize=FONT_SIZE,
     #############################
     # (left, right, bottom, top)
     #############################
@@ -1637,7 +1642,7 @@ const DEFAULT_THEME = Theme(
         valign=:bottom,
         nbanks=3,
         titlegap=-5,
-        labelsize=30,
+        labelsize=FONT_SIZE,
         linewidth=5,
         markersize=28,
         patchsize=(40, 40),

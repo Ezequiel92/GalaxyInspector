@@ -425,14 +425,14 @@ Add an annotation to the plot.
   - `text::AbstractString`: Text to be written.
   - `position::Tuple{<:Real,<:Real}=(0.04, 0.98)`: Relative position of the top left corner of the text box.
   - `color=:black`: Text color.
-  - `fontsize::Int=35`: Font size.
+  - `fontsize::Int=FONT_SIZE`: Font size.
 """
 function ppAnnotation!(
     figure::Makie.Figure,
     text::AbstractString;
     position::Tuple{<:Real,<:Real}=(0.04, 0.98),
     color=:black,
-    fontsize::Int=35,
+    fontsize::Int=FONT_SIZE,
 )::Nothing
 
     text!(
