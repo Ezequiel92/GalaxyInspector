@@ -26,7 +26,7 @@ Plot two quantities as a scatter plot, one marker for every cell/particle.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daScatterGalaxy`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -47,7 +47,7 @@ function scatterPlot(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
@@ -60,7 +60,7 @@ function scatterPlot(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         plotSnapshot(
             [simulation_path],
@@ -81,7 +81,7 @@ function scatterPlot(
                     x_log=x_plot_params.log_unit,
                     y_log=y_plot_params.log_unit,
                     filter_function=extra_filter,
-                    ic_gen,
+                    ic_gen=ring(ic_gens, i),
                 ),
             ],
             x_unit=x_plot_params.unit,
@@ -129,7 +129,7 @@ Plot two quantities as a density scatter plot (2D histogram).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daScatterDensity`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -154,7 +154,7 @@ function scatterDensityMap(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     colorbar::Bool=false,
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -171,7 +171,7 @@ function scatterDensityMap(
     xname = getQuantityName(x_quantity)
     yname = getQuantityName(y_quantity)
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         plotSnapshot(
             [simulation_path],
@@ -194,7 +194,7 @@ function scatterDensityMap(
                     y_log=y_plot_params.log_unit,
                     n_bins,
                     filter_function=extra_filter,
-                    ic_gen,
+                    ic_gen=ring(ic_gens, i),
                 ),
             ],
             x_unit=x_plot_params.unit,
@@ -246,7 +246,7 @@ Plot two quantities as a density scatter plot (2D histogram), weighted by `z_qua
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daScatterWeightedDensity`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `colorbar::Bool=false`: If a colorbar will be added.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -273,7 +273,7 @@ function scatterDensityMap(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     colorbar::Bool=false,
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -296,7 +296,7 @@ function scatterDensityMap(
     xname = getQuantityName(x_quantity)
     yname = getQuantityName(y_quantity)
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         plotSnapshot(
             [simulation_path],
@@ -320,7 +320,7 @@ function scatterDensityMap(
                     total,
                     n_bins,
                     filter_function=extra_filter,
-                    ic_gen,
+                    ic_gen=ring(ic_gens, i),
                 ),
             ],
             x_unit=x_plot_params.unit,
@@ -367,7 +367,7 @@ Write files in the VTK format with the ``\\log_{10}`` of a given `quantity` at e
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`quantity3DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 """
 function vtkFiles(
     simulation_paths::Vector{String},
@@ -383,7 +383,7 @@ function vtkFiles(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
 )::Nothing
 
     plot_params = QTY_REGISTRY[quantity]
@@ -421,7 +421,13 @@ function vtkFiles(
         filter_function,
         da_functions=[quantity3DProjection],
         da_args=[(grid, quantity, field_type)],
-        da_kwargs=[(; density=density ? l_unit : nothing, filter_function=extra_filter, ic_gen)],
+        da_kwargs=[
+            (;
+                density=density ? l_unit : nothing,
+                filter_function=extra_filter,
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
+        ],
         save_figures=false,
         backup_raw_results=true,
     )
@@ -491,7 +497,7 @@ Plot a radial profile.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -520,7 +526,7 @@ function radialProfile(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -602,8 +608,8 @@ function radialProfile(
                 cumulative,
                 density,
                 filter_function=extra_filter,
-                ic_gen,
-            ),
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
         ],
         x_unit=r25 ? Unitful.NoUnits : u"kpc",
         y_unit=ylog ? Unitful.NoUnits : yunit,
@@ -661,7 +667,7 @@ Plot a density profile.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -690,7 +696,7 @@ function radialProfile(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
@@ -740,7 +746,7 @@ function radialProfile(
 
     grid = LinearGrid(zero(radius), radius, n_bins)
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         plotSnapshot(
             fill(simulation_path, length(quantities)),
@@ -765,7 +771,7 @@ function radialProfile(
                     cumulative,
                     density,
                     filter_function=extra_filter,
-                    ic_gen,
+                    ic_gen=ring(ic_gens, i),
                 ),
             ],
             x_unit=r25 ? Unitful.NoUnits : u"kpc",
@@ -915,7 +921,7 @@ Plot a histogram of `quantity`.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daHistogram`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.ç
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -939,7 +945,7 @@ function histogram(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -984,7 +990,14 @@ function histogram(
         filter_function,
         da_functions=[daHistogram],
         da_args,
-        da_kwargs=[(; log=xlog, norm, filter_function=extra_filter, ic_gen)],
+        da_kwargs=[
+            (;
+                log=xlog,
+                norm,
+                filter_function=extra_filter,
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
+        ],
         x_unit=plot_params.unit,
         x_exp_factor=plot_params.exp_factor,
         xaxis_qty_label=plot_params.qty_label,
@@ -1110,7 +1123,7 @@ Plot a bar plot of the gas fractions, where the bins are a given gas `quantity`.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daBarGasFractions`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1131,7 +1144,7 @@ function gasBarPlot(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
 )::Nothing
@@ -1185,7 +1198,7 @@ function gasBarPlot(
     # Set the color list
     colors = safeSlice(current_theme[:palette][:color][], dodge)
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         plotSnapshot(
             [simulation_path],
@@ -1201,7 +1214,7 @@ function gasBarPlot(
             filter_function,
             da_functions=[daBarGasFractions],
             da_args=[(quantity, LinearGrid(edges; log=ylog))],
-            da_kwargs=[(; components, filter_function=extra_filter, ic_gen)],
+            da_kwargs=[(; components, filter_function=extra_filter, ic_gen=ring(ic_gens, i))],
             post_processing=ppBarPlotLabels,
             pp_args=(reverse(components),),
             pp_kwargs=(; colors=reverse(colors)),
@@ -1253,7 +1266,7 @@ Plot a profile with the corresponding experimental values of the Milky Way from 
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daMolla2015`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
@@ -1272,7 +1285,7 @@ function compareMolla2015(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
@@ -1339,7 +1352,7 @@ function compareMolla2015(
     current_theme = merge(
         theme,
         Theme(
-            size=(1400, 880),
+            size=(1200, 880),
             figure_padding=(10, 15, 5, 15),
             palette=(linestyle=[:solid],),
             Axis=(aspect=nothing,),
@@ -1367,7 +1380,13 @@ function compareMolla2015(
         filter_function,
         da_functions=[daMolla2015],
         da_args=[(grid, quantity)],
-        da_kwargs=[(; y_unit, filter_function=extra_filter, ic_gen)],
+        da_kwargs=[
+            (;
+                y_unit,
+                filter_function=extra_filter,
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
+        ],
         post_processing=ppMolla2015!,
         pp_args=(quantity,),
         pp_kwargs=(; y_unit, color, linestyle, marker),
@@ -1511,7 +1530,7 @@ Plot a 2D projection of the `component` mass density.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1539,7 +1558,7 @@ function densityMap(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     title::Union{Symbol,<:AbstractString}="",
     annotation::AbstractString="",
     colorbar::Bool=false,
@@ -1580,7 +1599,7 @@ function densityMap(
             L"\log_{10} \," * getLabel(colorbar_pp.qty_label, 0, m_unit * l_unit^-2)
         )
 
-        for simulation_path in simulation_paths
+        for (j, simulation_path) in pairs(simulation_paths)
 
             # Get the simulation name as a string
             sim_name = basename(simulation_path)
@@ -1611,7 +1630,7 @@ function densityMap(
                             m_unit,
                             l_unit,
                             filter_function=extra_filter,
-                            ic_gen,
+                            ic_gen=ring(ic_gens, j),
                         ),
                     ],
                     post_processing=isempty(annotation) ? getNothing : ppAnnotation!,
@@ -1671,7 +1690,7 @@ Plot a 2D projection of the mass density of `component`, with the velocity field
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) and [`daVelocityField`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
       + `:physical_time` -> Physical time since the Big Bang.
@@ -1700,7 +1719,7 @@ function densityMapVelField(
   filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
   extra_filter::Function=filterNothing,
   ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-  ic_gen::Function=initialConditionFunction,
+  ic_gens::Vector{<:Function}=[initialConditionFunction],
   title::Union{Symbol,<:AbstractString}="",
   annotation::AbstractString="",
   colorbar::Bool=false,
@@ -1744,7 +1763,7 @@ function densityMapVelField(
             L"\log_{10} \," * getLabel(colorbar_pp.qty_label, 0, m_unit * l_unit^-2)
         )
 
-        for simulation_path in simulation_paths
+        for (j, simulation_path) in pairs(simulation_paths)
 
             # Get the simulation name as a string
             sim_name = basename(simulation_path)
@@ -1775,7 +1794,7 @@ function densityMapVelField(
                             m_unit,
                             l_unit,
                             filter_function=extra_filter,
-                            ic_gen,
+                            ic_gen=ring(ic_gens, j),
                         ),
                         (; projection_plane, v_unit, filter_function=extra_filter)
                     ],
@@ -2147,7 +2166,7 @@ Plot a time series.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -2168,17 +2187,19 @@ function timeSeries(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     smooth::Int=0,
     backup_results::Bool=false,
     theme::Attributes=Theme(),
     sim_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing,
 )::Nothing
 
-    integration_functions = (
-        dd->integrateQty(dd, x_quantity; agg_function=x_agg_func, ic_gen),
-        dd->integrateQty(dd, y_quantity; agg_function=y_agg_func, ic_gen),
-    )
+    integration_functions = [
+        (
+            dd->integrateQty(dd, x_quantity; agg_function=x_agg_func, ic_gen=ring(ic_gens, i)),
+            dd->integrateQty(dd, y_quantity; agg_function=y_agg_func, ic_gen=ring(ic_gens, i)),
+        ) for i in eachindex(simulation_paths)
+    ]
 
     timeSeries(
         simulation_paths,
@@ -2219,7 +2240,7 @@ Plot a time series.
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. All the simulations will be plotted together.
   - `x_plot_params::NamedTuple`: Plot parameters for the x axis, from [`getLabelArgs`](@ref).
   - `y_plot_params::NamedTuple`: Plot parameters for the y axis, from [`getLabelArgs`](@ref).
-  - `integration_functions::NTuple{2,Function}`: Functions to compute the integral value of the x and y quantities at a given time. The functions must have the signature:
+  - `integration_functions::Vector{<:NTuple{2,Function}}`: Functions (one pair per simulation) to compute the integral value of the x and y quantities at a given time. The functions must have the signature:
 
     `integration_functions(data_dict::Dict)::Number`
 
@@ -2243,7 +2264,7 @@ function timeSeries(
     simulation_paths::Vector{String},
     x_plot_params::NamedTuple,
     y_plot_params::NamedTuple,
-    integration_functions::NTuple{2,Function};
+    integration_functions::Vector{<:NTuple{2,Function}};
     slice::IndexType=(:),
     cumulative::Bool=false,
     file_name::String="time_series",
@@ -2273,7 +2294,9 @@ function timeSeries(
         filename,
         slice,
         da_functions=[daEvolution],
-        da_args=[(qty_request, integration_functions)],
+        da_args=[
+            (qty_request, integration_function) for integration_function in integration_functions
+        ],
         da_kwargs=[
             (;
                 trans_mode,
@@ -2333,7 +2356,7 @@ Plot a time series of the statistics of `y_quantity` (25th, 50th, 75th percentai
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -2351,7 +2374,7 @@ function statisticsEvolution(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     smooth::Int=0,
     backup_results::Bool=false,
     theme::Attributes=Theme(),
@@ -2369,7 +2392,10 @@ function statisticsEvolution(
         simulation_paths,
         x_quantity,
         y_plot_params,
-        dd -> scatterQty(dd, y_quantity; ic_gen);
+        [
+            dd -> scatterQty(dd, y_quantity; ic_gen=ring(ic_gens, i))
+            for i in eachindex(simulation_paths)
+        ];
         slice,
         xlog,
         cumulative,
@@ -2393,11 +2419,11 @@ end
         simulation_paths::Vector{String},
         x_quantity::Symbol,
         y_plot_params::NamedTuple,
-        scatter_function::Function;
+        scatter_functions::Vector{<:Function};
         <keyword arguments>
     )::Nothing
 
-Plot a time series of the statistics of the results of `scatter_function` (25th, 50th, 75th percentails, and maximum and minimum).
+Plot a time series of the statistics of the results of `scatter_functions` (25th, 50th, 75th percentails, and maximum and minimum).
 
 # Arguments
 
@@ -2409,7 +2435,7 @@ Plot a time series of the statistics of the results of `scatter_function` (25th,
       + `:scale_factor`  -> Scale factor (only relevant for cosmological simulations).
       + `:redshift`      -> Redshift (only relevant for cosmological simulations).
   - `y_plot_params::NamedTuple`: Plot parameters for the y axis, from [`getLabelArgs`](@ref).
-  - `scatter_function::Function`: Function to compute the scattered values of the y quantity at a given time. The function must have the signature:
+  - `scatter_functions::Vector{<:Function}`: Functions to compute the scattered values of the y quantity at a given time (one per simulation). The functions must have the signature:
 
     `scatter_function(data_dict::Dict)::Vector{Number}`
 
@@ -2433,7 +2459,7 @@ function statisticsEvolution(
     simulation_paths::Vector{String},
     x_quantity::Symbol,
     y_plot_params::NamedTuple,
-    scatter_function::Function;
+    scatter_functions::Vector{<:Function};
     slice::IndexType=(:),
     xlog::Bool=false,
     cumulative::Bool=false,
@@ -2462,7 +2488,7 @@ function statisticsEvolution(
     colors      = [WONG_BLUE, WONG_GREEN, WONG_RED, :black, :black]
     request     = mergeRequests(x_plot_params.request, y_plot_params.request)
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         plotTimeSeries(
             fill(simulation_path, 5),
@@ -2476,7 +2502,12 @@ function statisticsEvolution(
                     request,
                     (
                         dd->integrateQty(dd, x_quantity),
-                        dd->applyIntegrator(dd, scatter_function, aggregator, y_plot_params.log_unit),
+                        dd->applyIntegrator(
+                            dd,
+                            scatter_function=scatter_functions[i],
+                            aggregator,
+                            y_plot_params.log_unit,
+                        ),
                     ),
                 )
                 for aggregator in aggregators
@@ -2505,7 +2536,7 @@ function statisticsEvolution(
             theme=merge(
                 theme,
                 Theme(
-                    size=(1400, 880),
+                    size=(1200, 880),
                     figure_padding=(10, 15, 5, 15),
                     palette=(linestyle=linestyles, color=colors),
                     Axis=(aspect=nothing,),
@@ -2545,7 +2576,7 @@ Plot a time series of the gas components. Either their masses or their fractions
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `backup_results::Bool=false`: If the values to be plotted will be saved in a [JLD2](https://github.com/JuliaIO/JLD2.jl) file.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -2560,7 +2591,7 @@ function gasEvolution(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     smooth::Int=0,
     backup_results::Bool=false,
     theme::Attributes=Theme(),
@@ -2579,7 +2610,7 @@ function gasEvolution(
 
     sim_labels = ["Ionized ", "Atomic ", "Molecular + stars ", "Metal ", "Dust "] .* string(quantity)
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         if fractions
             filename = "gas_fractions_vs_physical_time_$(basename(simulation_path))"
@@ -2601,7 +2632,7 @@ function gasEvolution(
                     filter_mode,
                     extra_filter,
                     ff_request,
-                    ic_gen,
+                    ic_gen=ring(ic_gens, i),
                     y_log=y_plot_params.log_unit,
                     smooth,
                 ),
@@ -2619,7 +2650,7 @@ function gasEvolution(
             theme=merge(
                 theme,
                 Theme(
-                    size=(1400, 880),
+                    size=(1200, 880),
                     figure_padding=(10, 15, 5, 15),
                     palette=(linestyle=[:solid],),
                     Axis=(aspect=nothing, xticks=0:14),
@@ -2653,7 +2684,7 @@ Plot time evolution of the masses and fractions of the gas components, in two pa
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function gasFractionsEvolution(
@@ -2666,11 +2697,11 @@ function gasFractionsEvolution(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     theme::Attributes=Theme(),
 )::Nothing
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         if isSimSFM(simulation_path)
             quantities = [:ode_ionized, :ode_atomic, :ode_molecular_stellar, :ode_metals, :ode_dust]
@@ -2695,7 +2726,9 @@ function gasFractionsEvolution(
             filename="fraction_evolution",
             da_functions=[daEvolution],
             da_args=[(:physical_time, Symbol(quantity, :_fraction)) for quantity in quantities],
-            da_kwargs=[(; trans_mode, filter_mode, extra_filter, ff_request, ic_gen)],
+            da_kwargs=[
+                (; trans_mode, filter_mode, extra_filter, ff_request, ic_gen=ring(ic_gens, i)),
+            ],
             x_unit=x_plot_params.unit,
             y_unit=y_plot_params.unit,
             x_exp_factor=x_plot_params.exp_factor,
@@ -2717,7 +2750,9 @@ function gasFractionsEvolution(
             filename="mass_evolution",
             da_functions=[daEvolution],
             da_args=[(:physical_time, Symbol(quantity, :_mass)) for quantity in quantities],
-            da_kwargs=[(; trans_mode, filter_mode, extra_filter, ff_request, ic_gen)],
+            da_kwargs=[
+                (; trans_mode, filter_mode, extra_filter, ff_request, ic_gen=ring(ic_gens, i)),
+            ],
             x_unit=x_plot_params.unit,
             y_unit=y_plot_params.unit,
             x_exp_factor=x_plot_params.exp_factor,
@@ -2872,7 +2907,7 @@ function sfrTXT(
         theme=merge(
             theme,
             Theme(
-                size=(1400, 880),
+                size=(1200, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing, xticks=0:14),
@@ -2969,7 +3004,7 @@ function cpuTXT(
         theme=merge(
             theme,
             Theme(
-                size=(1400, 880),
+                size=(1200, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing,),
@@ -3043,7 +3078,7 @@ Plot the Kennicutt-Schmidt law.
   - `output_file::String="./kennicutt_schmidt_law.png"`: Path to the output file.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
@@ -3079,7 +3114,7 @@ function kennicuttSchmidtLaw(
     output_file::String="./kennicutt_schmidt_law.png",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
@@ -3457,8 +3492,8 @@ function kennicuttSchmidtLaw(
                 m_unit=Σs_m_unit,
                 l_unit=Σs_l_unit,
                 filter_function=dd->filterByStellarAge(dd),
-                ic_gen,
-            ),
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
         ],
         x_unit=u"kpc",
         y_unit=u"kpc",
@@ -3530,7 +3565,15 @@ function kennicuttSchmidtLaw(
         filter_function,
         da_functions=[daDensity2DProjection],
         da_args,
-        da_kwargs=[(; reduce_grid, reduce_factor, m_unit=Σg_m_unit, l_unit=Σg_l_unit, ic_gen)],
+        da_kwargs=[
+            (;
+                reduce_grid,
+                reduce_factor,
+                m_unit=Σg_m_unit,
+                l_unit=Σg_l_unit,
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
+        ],
         x_unit=u"kpc",
         y_unit=u"kpc",
         save_figures=false,
@@ -3550,7 +3593,15 @@ function kennicuttSchmidtLaw(
             m_unit      = Σg_m_unit
             l_unit      = Σg_l_unit
             c_unit      = Σg_unit
-            da_kwargs   = [(; reduce_grid, reduce_factor, m_unit, l_unit, ic_gen)]
+            da_kwargs   = [
+                (;
+                    reduce_grid,
+                    reduce_factor,
+                    m_unit,
+                    l_unit,
+                    ic_gen=ring(ic_gens, i),
+                ) for i in eachindex(simulation_paths)
+            ]
 
         elseif gas_weights == :gas_sfr
 
@@ -4148,7 +4199,7 @@ Plot the atomic to molecular gas transition for a set of metallicity ranges.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
 # References
@@ -4166,11 +4217,11 @@ function atomicMolecularTransition(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     theme::Attributes=Theme(),
 )::Nothing
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         # Set some plotting parameters
         # See Fig. 2 and 3 of Christensen et al. (2012)
@@ -4228,7 +4279,7 @@ function atomicMolecularTransition(
                                 range[1],
                                 range[2],
                             ),
-                            ic_gen,
+                            ic_gen=ring(ic_gens, i),
                         )
                     ],
                     xaxis_qty_label=x_plot_params.qty_label,
@@ -4267,7 +4318,7 @@ function atomicMolecularTransition(
                             range[1],
                             range[2],
                         ),
-                        ic_gen,
+                        ic_gen=ring(ic_gens, i),
                     ) for range in ranges
                 ],
                 xaxis_qty_label=x_plot_params.qty_label,
@@ -4327,7 +4378,7 @@ Plot a mass profile.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `component_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing`: Labels for the different mass components. If set to `nothing`, automatic labels are used.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -4352,7 +4403,7 @@ function massProfile(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     component_labels::Union{Vector{<:Union{AbstractString,Nothing}},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -4398,7 +4449,7 @@ function massProfile(
         sim_labels = component_labels
     end
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         sim_name = basename(simulation_path)
 
@@ -4436,7 +4487,7 @@ function massProfile(
                     cumulative,
                     density,
                     filter_function=extra_filter,
-                    ic_gen,
+                    ic_gen=ring(ic_gens, i),
                 ),
             ],
             x_unit=r25 ? Unitful.NoUnits : u"kpc",
@@ -4448,7 +4499,7 @@ function massProfile(
             theme=merge(
                 theme,
                 Theme(
-                    size=(1400, 880),
+                    size=(1200, 880),
                     figure_padding=(10, 15, 5, 15),
                     palette=(linestyle=[:solid],),
                     Axis=(aspect=nothing,),
@@ -4554,7 +4605,7 @@ function velocityProfile(
         theme=merge(
             theme,
             Theme(
-                size=(1400, 880),
+                size=(1200, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing,),
@@ -4607,7 +4658,7 @@ Plot a time series plus the corresponding experimental results from Feldmann (20
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daEvolution`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 
@@ -4628,7 +4679,7 @@ function compareFeldmann2020(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
 )::Nothing
@@ -4753,10 +4804,10 @@ function compareFeldmann2020(
                 filter_mode,
                 extra_filter,
                 ff_request,
-                ic_gen,
+                ic_gen=ring(ic_gens, i),
                 x_log=x_plot_params.log_unit,
                 y_log=y_plot_params.log_unit,
-            ),
+            ) for i in eachindex(simulation_paths)
         ],
         post_processing=ppFeldmann2020!,
         pp_args=(x_component, y_component),
@@ -4768,7 +4819,7 @@ function compareFeldmann2020(
         theme=merge(
             theme,
             Theme(
-                size=(1400, 880),
+                size=(1200, 880),
                 figure_padding=(10, 15, 5, 15),
                 Axis=(aspect=nothing,),
                 Legend=(halign=:left, valign=:top, nbanks=1, margin=(10, 0, 0, 10)),
@@ -5059,7 +5110,7 @@ By default (`trans_mode` = :all_box and `filter_mode` = :all) we use the followi
   - `output_file::String="./gas_velocity_cube.hdf5"`: Path to the output file.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `show_progress::Bool=true`: If a progress bar will be shown.
 """
 function gasVelocityCubes(
@@ -5075,7 +5126,7 @@ function gasVelocityCubes(
     output_file::String="./gas_velocity_cube.hdf5",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     show_progress::Bool=true,
 )::Nothing
 
@@ -5102,7 +5153,7 @@ function gasVelocityCubes(
     # For gas cells, reshape the grid to conform to the way `knn` expect the matrix to be structured
     physical_grid = gridToJuliaMatrix(grid, l_unit)
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         simulation_name = basename(simulation_path)
 
@@ -5144,6 +5195,8 @@ function gasVelocityCubes(
 
             # Compute the mass of cold, atomic, and ionized gas in each cell
             if isSimSFM(simulation_path)
+
+                ic_gen = ring(ic_gens, i)
 
                 ion_masses  = scatterQty(data_dict, :ode_ionized_mass; ic_gen)
                 ato_masses  = scatterQty(data_dict, :ode_atomic_mass; ic_gen)
@@ -5801,7 +5854,7 @@ function virialAccretionEvolution(
         theme=merge(
             theme,
             Theme(
-                size=(1400, 880),
+                size=(1200, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing, xticks=0:14),
@@ -5965,7 +6018,7 @@ function diskAccretionEvolution(
         theme=merge(
             theme,
             Theme(
-                size=(1400, 880),
+                size=(1200, 880),
                 figure_padding=(10, 15, 5, 15),
                 palette=(linestyle=[:solid],),
                 Axis=(aspect=nothing, xticks=0:14),
@@ -6008,7 +6061,7 @@ Plot the resolved volumetric star formation (VSF) law with an optional linear fi
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function fitVSFLaw(
@@ -6022,7 +6075,7 @@ function fitVSFLaw(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -6053,7 +6106,7 @@ function fitVSFLaw(
         L"\log_{10} \, " * getLabel(y_plot_params.qty_label, 0, ρ_sfr_unit)
     )
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         plotSnapshot(
             [simulation_path],
@@ -6077,7 +6130,7 @@ function fitVSFLaw(
                     t_unit,
                     l_gas_unit,
                     l_stellar_unit,
-                    ic_gen,
+                    ic_gen=ring(ic_gens, i),
                 ),
             ],
             post_processing=fit ? ppFitLine! : getNothing,
@@ -6119,7 +6172,7 @@ Plot the clumping factor of `component` for different volume scales.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daClumpingFactor`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -6143,7 +6196,7 @@ function clumpingFactor(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=nothing,
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -6188,7 +6241,13 @@ function clumpingFactor(
         da_functions=[daClumpingFactor],
         da_args=[(component,)],
         da_kwargs=[
-            (; n_neighbors, filter_function=extra_filter, ic_gen, x_log, y_log=plot_params.log_unit),
+            (;
+                n_neighbors,
+                filter_function=extra_filter,
+                ic_gen=ring(ic_gens, i),
+                x_log,
+                y_log=plot_params.log_unit,
+            ) for i in eachindex(simulation_paths)
         ],
         smooth,
         x_unit,
@@ -6371,7 +6430,7 @@ Plot two histogram of the efficiency per free-fall time, for each simulation. On
   - `stellar_ff::Function=filterNothing`: Filter function to be applied to the stellar histogram after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `gas_ff::Function=filterNothing`: Filter function to be applied to the gas histogram after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `stellar_ff` and `gas_ff`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `labels::Vector{<:AbstractString}=["Stars", "Gas"]`: Legend for the stellar and gas histograms, respectively.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -6392,7 +6451,7 @@ function efficiencyHistogram(
     stellar_ff::Function=filterNothing,
     gas_ff::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     labels::Vector{<:AbstractString}=["Stars", "Gas"],
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -6411,7 +6470,7 @@ function efficiencyHistogram(
     l_margin = isempty(title) ? 10 : 25
     t_margin = isempty(title) ? 5 : 10
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         plotSnapshot(
             [simulation_path, simulation_path],
@@ -6428,7 +6487,7 @@ function efficiencyHistogram(
             da_args=[(:stellar_eff, grid), (Symbol(component, :_eff), grid)],
             da_kwargs=[
                 (; log=true, filter_function=stellar_ff),
-                (; log=true, filter_function=gas_ff, ic_gen),
+                (; log=true, filter_function=gas_ff, ic_gen=ring(ic_gens, i)),
             ],
             post_processing=ppLee2016!,
             xaxis_label=plot_params.label,
@@ -6523,7 +6582,7 @@ function stellarDensityMaps(
         Theme(
             size=(880, 1300),
             figure_padding=(5, 25, 0, 0),
-            Axis=(aspect=DataAspect()),
+            Axis=(aspect=DataAspect(),),
             Colorbar=(ticklabelsize=28, vertical=false, ticks=WilkinsonTicks(5)),
         ),
         DEFAULT_THEME,
@@ -6685,7 +6744,7 @@ Plot the density map of five gas components for the xy and xz projections, in se
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
 """
 function gasDensityMaps(
@@ -6698,7 +6757,7 @@ function gasDensityMaps(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     theme::Attributes=Theme(),
 )::Nothing
 
@@ -6716,7 +6775,7 @@ function gasDensityMaps(
     y_label = getLabel("y", 0, l_unit)
     z_label = getLabel("z", 0, l_unit)
 
-    for simulation_path in simulation_paths
+    for (k, simulation_path) in pairs(simulation_paths)
 
         temp_folder = joinpath(output_path, "_gas_density_maps")
 
@@ -6779,7 +6838,7 @@ function gasDensityMaps(
                             m_unit,
                             l_unit,
                             filter_function=extra_filter,
-                            ic_gen,
+                            ic_gen=ring(ic_gens, k),
                         ),
                     ],
                     x_unit=l_unit,
@@ -6932,7 +6991,7 @@ f_\mathrm{H_2} = \frac{M_\mathrm{H_2}}{M_\mathrm{H_2} + M_\star} \, ,
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generate initial condition functions for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `smooth::Int=0`: The result of [`integrateQty`](@ref) will be smoothed out using `smooth` bins. Set it to 0 if you want no smoothing.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `extra_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Extra request dictionary.
@@ -6952,7 +7011,7 @@ function molecularFractionEvolution(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     smooth::Int=0,
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -6971,7 +7030,7 @@ function molecularFractionEvolution(
     current_theme = merge(
         theme,
         Theme(
-            size=(1400, 880),
+            size=(1200, 880),
             figure_padding=(10, 15, 5, 15),
             palette=(linestyle=[:solid],),
             Axis=(aspect=nothing,),
@@ -7023,7 +7082,7 @@ function molecularFractionEvolution(
                         filter_mode,
                         extra_filter,
                         ff_request,
-                        ic_gen,
+                        ic_gen=ring(ic_gens, i),
                         y_log=y_plot_params.log_unit,
                         smooth,
                     ),
@@ -7147,7 +7206,7 @@ function molecularFractionEvolution(
                     filter_mode,
                     extra_filter,
                     ff_request,
-                    ic_gen,
+                    ic_gen=ring(ic_gens, i),
                     y_log=Unitful.NoUnits,
                     smooth,
                 ) for i in 1:n_sims
@@ -7188,7 +7247,7 @@ Make a video of how the projected density (xy and xz planes) evolves through tim
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `show_progress::Bool=true`: If a progress bar will be shown.
   - `save_data::Bool=false`: If the density maps data will be saved in JLD2 files.
@@ -7206,7 +7265,7 @@ function evolutionVideo(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     theme::Attributes=Theme(),
     show_progress::Bool=true,
     save_data::Bool=false,
@@ -7251,7 +7310,7 @@ function evolutionVideo(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         ############################################################################################
         # Compute the last coordinate trasformation
@@ -7323,7 +7382,7 @@ function evolutionVideo(
                             m_unit,
                             l_unit,
                             filter_function=extra_filter,
-                            ic_gen,
+                            ic_gen=ring(ic_gens, i),
                         ),
                     ],
                     x_unit=l_unit,
@@ -7451,7 +7510,7 @@ function evolutionVideo(
             Theme(
                 size=(2400, 1300),
                 figure_padding=(5, 25, 0, 0),
-                Axis=(aspect=DataAspect()),
+                Axis=(aspect=DataAspect(),),
                 Colorbar=(ticklabelsize=28, ticks=WilkinsonTicks(5), vertical=false),
                 Text=(color=:white, fontsize=40),
             ),
@@ -7590,7 +7649,7 @@ Make a mockup image emulating an SDSS observation.
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daDensity2DProjection`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
   - `show_progress::Bool=true`: If a progress bar will be shown.
 
@@ -7611,7 +7670,7 @@ function SDSSMockup(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     theme::Attributes=Theme(),
     show_progress::Bool=true,
 )::Nothing
@@ -7669,7 +7728,15 @@ function SDSSMockup(
         filter_function,
         da_functions=[daSDSSMockup],
         da_args=[(grid,)],
-        da_kwargs=[(; projection_plane, smooth, extinction, filter_function=extra_filter, ic_gen)],
+        da_kwargs=[
+            (;
+                projection_plane,
+                smooth,
+                extinction,
+                filter_function=extra_filter,
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
+        ],
         save_figures=false,
         backup_results=false,
         backup_raw_results=true,
@@ -7728,10 +7795,10 @@ function SDSSMockup(
 
                     text!(
                         ax,
-                        0.73,
+                        0.5,
                         0.98;
                         text=L"t = %$(rpad(time_stamp, 4, '0')) \, \text{Gyr}",
-                        align=(:left, :top),
+                        align=(:center, :top),
                         space=:relative,
                     )
 
@@ -7775,7 +7842,7 @@ Plot the molecular gas-to-dust ratio (``\\gamma``) profile, comparing with the f
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `title::Union{Symbol,<:AbstractString}=""`: Title for the figure. If left empty, no title is printed. It can also be set to one of the following options:
 
@@ -7797,7 +7864,7 @@ function compareGiannetti2017(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     title::Union{Symbol,<:AbstractString}="",
     theme::Attributes=Theme(),
@@ -7846,8 +7913,8 @@ function compareGiannetti2017(
                 norm=:ode_dust_mass,
                 y_log=plot_params.unit / u_norm,
                 filter_function=extra_filter,
-                ic_gen,
-            ),
+                ic_gen=ring(ic_gens, i),
+            ) for i in eachindex(simulation_paths)
         ],
         post_processing=ppGiannetti2017!,
         x_unit=u"kpc",
@@ -7890,7 +7957,7 @@ Plot the gas-to-stellar ratio evolution, comparing with the measurements from Ca
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
   - `extra_filter::Function=filterNothing`: Filter function to be applied within [`daProfile`](@ref) after `trans_mode` and `filter_mode` are applied. See the required signature and examples in `./src/analysis/filters.jl`.
   - `ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}()`: Request dictionary for `extra_filter`.
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
   - `colors::Vector{<:ColorType}=[WONG_RED, WONG_BLUE]`: Colors for the plot lines. The first color is used for the simulation and the second for the Casey et al. (2026) data.
   - `sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths)`: Labels for the plot legend, one per simulation. Set it to `nothing` if you don't want a legend.
   - `theme::Attributes=Theme()`: Plot theme that will take precedence over [`DEFAULT_THEME`](@ref).
@@ -7907,7 +7974,7 @@ function compareCasey2026(
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
     extra_filter::Function=filterNothing,
     ff_request::Dict{Symbol,Vector{String}}=Dict{Symbol,Vector{String}}(),
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
     colors::Vector{<:ColorType}=[WONG_RED, WONG_BLUE],
     sim_labels::Union{Vector{<:AbstractString},Nothing}=basename.(simulation_paths),
     theme::Attributes=Theme(),
@@ -7922,7 +7989,7 @@ function compareCasey2026(
     translation, rotation, trans_request = selectTransformation(trans_mode, base_request)
     filter_function, request = selectFilter(filter_mode, trans_request)
 
-    for (simulation_path, label) in zip(simulation_paths, sim_labels)
+    for (i, (simulation_path, label)) in pairs(collect(zip(simulation_paths, sim_labels)))
 
         temp_folder = joinpath(output_path, "_casey2026")
 
@@ -7961,7 +8028,7 @@ function compareCasey2026(
                     filter_mode,
                     extra_filter,
                     ff_request,
-                    ic_gen,
+                    ic_gen=ring(ic_gens, i),
                 )
             ],
             y_unit=u"Msun",
@@ -8281,7 +8348,16 @@ function compareMunozMateos2009(
 
         snapshots = keys(jld2_file)
 
-        current_theme = merge(theme, DEFAULT_THEME, theme_latexfonts())
+        current_theme = merge(
+            theme,
+            Theme(
+                size=(1200, 880),
+                Axis=(aspect=nothing,),
+                Legend=(nbanks=1, halign=:left, valign=:bottom),
+            ),
+            DEFAULT_THEME,
+            theme_latexfonts(),
+        )
 
         for snap in snapshots
 
@@ -8435,7 +8511,7 @@ function compareEibensteiner2024(
             Theme(
                 size=(1200, 880),
                 Axis=(aspect=nothing, xticks=0:0.2:1),
-                Legend=(halign=:left, valign=:top, nbanks=1, margin=(5, 0, 0, 2)),
+                Legend=(halign=:left, valign=:bottom, nbanks=1),
             ),
         ),
         sim_labels,
@@ -8958,7 +9034,7 @@ Write a text file with information about a given snapshot.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be considered in the "filtered" section of the report. For options see [`selectFilter`](@ref).
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 """
 function snapshotReport(
     simulation_paths::Vector{String},
@@ -8966,7 +9042,7 @@ function snapshotReport(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
 )::Nothing
 
     for (i, simulation_path) in pairs(simulation_paths)
@@ -9221,7 +9297,11 @@ function snapshotReport(
 
                 for (gas_component, gas_label) in zip(gas_components, gas_labels)
 
-                    mass     = integrateQty(dd, Symbol(gas_component, :_mass); ic_gen)
+                    mass = integrateQty(
+                        dd,
+                        Symbol(gas_component, :_mass);
+                        ic_gen=ring(ic_gens, i),
+                    )
                     percent  = round((mass / gas_mass) * 100, sigdigits=4)
                     str_mass = round(mass, sigdigits=3)
                     title    = rpad("$(gas_label) mass:", r_pad)
@@ -9574,7 +9654,7 @@ function snapshotReport(
 
             for (component, label) in zip(components, labels)
 
-                masses = scatterQty(data_dict, Symbol(component, :_mass); ic_gen)
+                masses = scatterQty(data_dict, Symbol(component, :_mass); ic_gen=ring(ic_gens, i))
 
                 if !isempty(masses)
 
@@ -9627,7 +9707,7 @@ Write a text file with information about a given `quantity`.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
   - `filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all`: Which cells/particles will be selected. For options see [`selectFilter`](@ref).
-  - `ic_gen::Function=initialConditionFunction`: Function that generates a initial condition function for each of the ode components. It must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
+  - `ic_gens::Vector{<:Function}=[initialConditionFunction]`: Functions that generates a initial condition function for each of the ode components. Each must have the signature `ic_gen(data_dict::Dict, component::Symbol)::Union{Function,Nothing}`. See [`initialConditionFunction`](@ref) for an example. This keyword argument is only relevant if the target quantity is derived from one of the ode components (e.g. :ode_atomic_fraction).
 """
 function quantityReport(
     simulation_paths::Vector{String},
@@ -9636,17 +9716,20 @@ function quantityReport(
     output_path::String=".",
     trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box,
     filter_mode::Union{Symbol,Tuple{Function,Dict{Symbol,Vector{String}}}}=:all,
-    ic_gen::Function=initialConditionFunction,
+    ic_gens::Vector{<:Function}=[initialConditionFunction],
 )::Nothing
 
     plot_params = QTY_REGISTRY[quantity]
 
-    da_function = dd -> uconvert.(plot_params.unit, scatterQty(dd, quantity; ic_gen))
+    da_functions = [
+        dd -> uconvert.(plot_params.unit, scatterQty(dd, quantity; ic_gen=ring(ic_gens, i)))
+        for i in eachindex(simulation_paths)
+    ]
 
     return quantityReport(
         simulation_paths,
         plot_params.request;
-        da_function,
+        da_functions,
         slice,
         output_path,
         label=string(quantity),
@@ -9669,7 +9752,7 @@ Write a text file with information about a the results of applying `da_function`
 
   - `simulation_paths::Vector{String}`: Paths to the simulation directories, set in the code variable `OutputDir`. One text file will be written for each simulation.
   - `base_request::Dict{Symbol,Vector{String}}`: Dictionary with the shape `cell/particle type` -> [`block`, `block`, ...], where the possible types are the keys of [`PARTICLE_INDEX`](@ref), and the possible quantities are the keys of [`QUANTITIES`](@ref). Which data blocks are needed depends on `da_function`.
-  - `da_function::Function=getNothing`: Data analysis function. It must have the same signature as the examples in `./src/analysis/data_analysis.jl`, but it should only return an Array.
+  - `da_functions::Vector{<:Function}=[getNothing]`: Data analysis functions (one per simulation). Each must have the same signature as the examples in `./src/analysis/data_analysis.jl`, but they should only return an Array.
   - `da_arg::Tuple=()`: Psitional arguments for the data analysis function.
   - `da_kwarg::NamedTuple=(;)`: Keyword arguments for the data analysis function.
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be analyzed. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). Starts at 1 and out of bounds indices are ignored.
@@ -9682,7 +9765,7 @@ Write a text file with information about a the results of applying `da_function`
 function quantityReport(
     simulation_paths::Vector{String},
     base_request::Dict{Symbol,Vector{String}};
-    da_function::Function=getNothing,
+    da_functions::Vector{<:Function}=[getNothing],
     da_arg::Tuple=(),
     da_kwarg::NamedTuple=(;),
     slice::IndexType=(:),
@@ -9693,10 +9776,11 @@ function quantityReport(
     show_progress::Bool=true,
 )::Nothing
 
-    for simulation_path in simulation_paths
+    for (i, simulation_path) in pairs(simulation_paths)
 
         simulation_name = basename(simulation_path)
         cosmological    = isSimCosmological(simulation_path)
+        da_function     = ring(da_functions, i)
 
         ############################################################################################
         # Load the relevant values and check for missing files
@@ -9839,7 +9923,7 @@ function quantityReport(
 
             (
                 isa(quantity_values, AbstractArray) ||
-                throw(ArgumentError("quantityReport: `da_function` must return an array, but I got \
+                throw(ArgumentError("quantityReport: `da_functions` must return an array, but I got \
                 $(typeof(quantity_values)) instead."))
             )
 
