@@ -1157,8 +1157,6 @@ function groupCatTypes(path::String)::Vector{Symbol}
     end
 
     groupcat_types = h5open(file_path, "r") do gc_file
-        @show keys(gc_file)
-        @show typeof(keys(gc_file))
         ["Group", "Subhalo"] ∩ keys(gc_file)
     end
 
