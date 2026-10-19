@@ -1037,62 +1037,7 @@ Find which cell/particle types are part of the keys of `data_dict`.
 
   - A vector with the cell/particle types.
 """
-snapshotTypes(data_dict::Dict)::Vector{Symbol} = Symbol.(collect(keys(PARTICLE_INDEX) ∩ keys(data_dict)))
-
-"""
-    snapshotTypes(path::String)::Vector{Symbol}
-
-Find which cell/particle types are part of the snapshot in `path`.
-
-!!! note
-
-    If each snapshot is made of multiple files, the function will only check the first file.
-
-# Arguments
-
-  - `path::String`: Path to the snapshot file or folder.
-
-# Returns
-
-  - A vector with the cell/particle types.
-"""
-function snapshotTypes(path::String)::Vector{Symbol}
-
-    if isfile(path)
-
-        (
-            HDF5.ishdf5(path) ||
-            throw(ArgumentError("snapshotTypes: The file $(path) is not in the HDF5 format, \
-            I don't know how to read it"))
-        )
-
-        file_path = path
-
-    elseif isdir(path)
-
-        sub_files = findFiles(path, "$(SNAP_BASENAME[])_*.*.hdf5")
-
-        (
-            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
-            throw(ArgumentError("snapshotTypes: The directory $(path) does not contain \
-            snapshot sub-files in the HDF5 format"))
-        )
-
-        file_path = first(sub_files)
-
-    else
-
-        throw(ArgumentError("snapshotTypes: $(path) does not exists as a file or folder"))
-
-    end
-
-    snapshot_types = h5open(file_path, "r") do snapshot
-        collect(keys(PARTICLE_TYPE) ∩ keys(snapshot))
-    end
-
-    return Symbol.(snapshot_types)
-
-end
+snapshotTypes(data_dict::Dict)::Vector{Symbol} = collect(keys(PARTICLE_INDEX) ∩ keys(data_dict))
 
 """
     groupCatTypes(data_dict::Dict)::Vector{Symbol}
@@ -1107,62 +1052,7 @@ Find which group catalog data types are part of the keys of `data_dict`.
 
   - A vector with the group catalog data types.
 """
-groupCatTypes(data_dict::Dict)::Vector{Symbol} = Symbol.(["Group", "Subhalo"] ∩ keys(data_dict))
-
-"""
-    groupCatTypes(path::String)::Vector{Symbol}
-
-Find which group catalog data types are part of the group catalog files in `path`.
-
-!!! note
-
-    If each group catalog is made of multiple files, the function will only check the first file.
-
-# Arguments
-
-  - `path::String`: Path to the group catalog file or folder.
-
-# Returns
-
-  - A vector with the group catalog data types.
-"""
-function groupCatTypes(path::String)::Vector{Symbol}
-
-    if isfile(path)
-
-        (
-            HDF5.ishdf5(path) ||
-            throw(ArgumentError("groupCatTypes: The file $(path) is not in the HDF5 format, \
-            I don't know how to read it"))
-        )
-
-        file_path = path
-
-    elseif isdir(path)
-
-        sub_files = findFiles(path, "$(GC_BASENAME[])_*.*.hdf5")
-
-        (
-            !isempty(sub_files) && all(HDF5.ishdf5, sub_files) ||
-            throw(ArgumentError("groupCatTypes: The directory $(path) does not contain \
-            group catalog sub-files in the HDF5 format"))
-        )
-
-        file_path = first(sub_files)
-
-    else
-
-        throw(ArgumentError("groupCatTypes: $(path) does not exists as a file or folder"))
-
-    end
-
-    groupcat_types = h5open(file_path, "r") do gc_file
-        ["Group", "Subhalo"] ∩ keys(gc_file)
-    end
-
-    return Symbol.(groupcat_types)
-
-end
+groupCatTypes(data_dict::Dict)::Vector{Symbol} = [:group, :subhalo] ∩ keys(data_dict)
 
 """
     readGroupCatHeader(path::Union{String,Missing})::GroupCatHeader
