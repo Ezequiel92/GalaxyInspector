@@ -1037,7 +1037,7 @@ Find which cell/particle types are part of the keys of `data_dict`.
 
   - A vector with the cell/particle types.
 """
-snapshotTypes(data_dict::Dict)::Vector{Symbol} = collect(keys(PARTICLE_INDEX) ∩ keys(data_dict))
+snapshotTypes(data_dict::Dict)::Vector{Symbol} = Symbol.(collect(keys(PARTICLE_INDEX) ∩ keys(data_dict)))
 
 """
     snapshotTypes(path::String)::Vector{Symbol}
@@ -1090,7 +1090,7 @@ function snapshotTypes(path::String)::Vector{Symbol}
         collect(keys(PARTICLE_TYPE) ∩ keys(snapshot))
     end
 
-    return snapshot_types
+    return Symbol.(snapshot_types)
 
 end
 
@@ -1107,7 +1107,7 @@ Find which group catalog data types are part of the keys of `data_dict`.
 
   - A vector with the group catalog data types.
 """
-groupCatTypes(data_dict::Dict)::Vector{Symbol} = [:group, :subhalo] ∩ keys(data_dict)
+groupCatTypes(data_dict::Dict)::Vector{Symbol} = Symbol.(["Group", "Subhalo"] ∩ keys(data_dict))
 
 """
     groupCatTypes(path::String)::Vector{Symbol}
@@ -1157,10 +1157,12 @@ function groupCatTypes(path::String)::Vector{Symbol}
     end
 
     groupcat_types = h5open(file_path, "r") do gc_file
-        [:group, :subhalo] ∩ keys(gc_file)
+        @show keys(gc_file)
+        @show typeof(keys(gc_file))
+        ["Group", "Subhalo"] ∩ keys(gc_file)
     end
 
-    return groupcat_types
+    return Symbol.(groupcat_types)
 
 end
 
