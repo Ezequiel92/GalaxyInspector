@@ -2055,8 +2055,8 @@ function readGroupCatBlocks(
 
                 (
                     LOGGING[] &&
-                    @warn("readGroupCatBlocks: The group catalog type :$(component) in $(file_path) \
-                    is missing")
+                    @warn("readGroupCatBlocks: The group catalog type :$(component) in \
+                    $(first_file) is missing")
                 )
 
                 for block in blocks
