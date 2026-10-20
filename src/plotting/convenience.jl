@@ -8384,9 +8384,9 @@ function compareMunozMateos2009(
                         # Muñoz-Mateos et al. (2009) define gas as Mgas = 1.36 * (MHI + MH2)
                         lines!(ax, x, y .- log10(1.36); label)
 
-                        ppMunozMateos2009!(f, quantity; colors=band_colors)
-
                     end
+
+                ppMunozMateos2009!(f, quantity; colors=band_colors)
 
                 axislegend(
                     ax;
