@@ -8203,7 +8203,7 @@ function compareSun2022(
         pp_kwargs=(; colors=band_colors),
         yaxis_label=labels[quantity],
         xaxis_label=L"R \, / \, R_{25}",
-        theme,
+        theme=merge(theme, Theme(size=(1200, 880), Axis=(aspect=nothing,))),
         sim_labels,
     )
 
@@ -8306,7 +8306,14 @@ function compareMunozMateos2009(
             pp_kwargs=(; colors=band_colors),
             yaxis_label=L"\log_{10} \, \Sigma_\mathrm{dust} \, / \, \mathrm{M_\odot \, kpc^{-2}}",
             xaxis_label=L"R \, / \, R_{25}",
-            theme,
+            theme = merge(
+                theme,
+                Theme(
+                    size=(1200, 880),
+                    Axis=(aspect=nothing,),
+                    Legend=(nbanks=1, halign=:left, valign=:bottom),
+                ),
+            ),
             sim_labels,
         )
 
