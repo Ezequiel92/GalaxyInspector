@@ -53,7 +53,7 @@ Some of the features are:
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Out of bounds indices are ignored.
   - `transform_box::Bool=false`: If a translation and rotation (in that order) will be applied to the simulation box, affecting the positions and velocities of all the cells and particles. If active, it is applied BEFORE the `filter_function`.
   - `translation::TranslationType=:zero`: Type of translation (only relevant if `transform_box` = true). See the arguments after `data_dict` in [`translateData!`](@ref) for options. Several arguments can be passed as a Tuple.
-  - `rotation::RotationType=:zero`: Type of rotation (only relevant if `transform_box` = true). See the arguments after `data_dict` in [`rotateData!`](@ref) for options. Several arguments can be passed as a Tuple.
+  - `rotation::RotationType=(I,)`: Type of rotation (only relevant if `transform_box` = true). See the arguments after `data_dict` in [`rotateData!`](@ref) for options. Several arguments can be passed as a Tuple.
   - `filter_function::Function=filterNothing`: Filter function. See the required signature and examples in `./src/analysis/filters.jl`. This is applied AFTER the translation and rotation.
   - `da_functions::Vector{<:Function}=[getNothing]`: Vector of data analysis functions. See the required signature and examples in `./src/analysis/data_analysis.jl`.
   - `da_args::Vector{<:Tuple}=[()]`: Vector of positional arguments for the data analysis functions.
@@ -115,7 +115,7 @@ function plotSnapshot(
     slice::IndexType=(:),
     transform_box::Bool=false,
     translation::TranslationType=:zero,
-    rotation::RotationType=:zero,
+    rotation::RotationType=(I,),
     filter_function::Function=filterNothing,
     da_functions::Vector{<:Function}=[getNothing],
     da_args::Vector{<:Tuple}=[()],

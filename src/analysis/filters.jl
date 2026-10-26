@@ -503,108 +503,109 @@ function filterBySubhalo(
 
 end
 
-"""
-    filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
+# Has a bug, shouldn't be used
+# """
+#     filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
 
-Select the cells/particles that belong to a given subhalo.
+# Select the cells/particles that belong to a given subhalo.
 
-# Arguments
+# # Arguments
 
-  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
-  - `subhalo_abs_idx::Int`: Index of the target subhalo (subfind). Starts at 1.
+#   - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+#   - `subhalo_abs_idx::Int`: Index of the target subhalo (subfind). Starts at 1.
 
-# Returns
+# # Returns
 
-  - A filter dictionary.
-"""
-function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
+#   - A filter dictionary.
+# """
+# function filterBySubhalo(data_dict::Dict, subhalo_abs_idx::Int)::Dict{Symbol,IndexType}
 
-    # If there are no subfind data, filter out every cell/particle
-    if !isSubfindActive(data_dict[:gc_data].path)
-        (
-            LOGGING[] &&
-            @warn("filterBySubhalo: There is no subfind data in $(data_dict[:gc_data].path), \
-            so every particle will be filtered out")
-        )
-        return PASS_NONE
-    end
+#     # If there are no subfind data, filter out every cell/particle
+#     if !isSubfindActive(data_dict[:gc_data].path)
+#         (
+#             LOGGING[] &&
+#             @warn("filterBySubhalo: There is no subfind data in $(data_dict[:gc_data].path), \
+#             so every particle will be filtered out")
+#         )
+#         return PASS_NONE
+#     end
 
-    # Load the necessary data
-    s_len_type = data_dict[:subhalo]["S_LenType"]
+#     # Load the necessary data
+#     s_len_type = data_dict[:subhalo]["S_LenType"]
 
-    # If any of the data is missing return an empty filter dictionary
-    n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
+#     # If any of the data is missing return an empty filter dictionary
+#     n_subgroups_total = data_dict[:gc_data].header.n_subgroups_total
 
-    if iszero(n_subgroups_total) || isempty(s_len_type)
-        (
-            LOGGING[] &&
-            @warn("filterBySubhalo: There is missing subfind data in $(data_dict[:gc_data].path), \
-            so every particle will be filtered out")
-        )
-        return PASS_NONE
-    end
+#     if iszero(n_subgroups_total) || isempty(s_len_type)
+#         (
+#             LOGGING[] &&
+#             @warn("filterBySubhalo: There is missing subfind data in $(data_dict[:gc_data].path), \
+#             so every particle will be filtered out")
+#         )
+#         return PASS_NONE
+#     end
 
-    # Check that the requested subhalo index is within bounds
-    (
-        0 < subhalo_abs_idx <= n_subgroups_total ||
-        throw(ArgumentError("filterBySubhalo: There is only $(n_subgroups_total) subhalos in \
-        $(data_dict[:gc_data].path), so subhalo_abs_idx = $(subhalo_abs_idx) is out of bounds"))
-    )
+#     # Check that the requested subhalo index is within bounds
+#     (
+#         0 < subhalo_abs_idx <= n_subgroups_total ||
+#         throw(ArgumentError("filterBySubhalo: There is only $(n_subgroups_total) subhalos in \
+#         $(data_dict[:gc_data].path), so subhalo_abs_idx = $(subhalo_abs_idx) is out of bounds"))
+#     )
 
-    # Compute the number of particles upto the last subhalo before `subhalo_abs_idx`
-    if isone(subhalo_abs_idx)
-        len_type_floor = zeros(Int, size(s_len_type, 1))
-    else
-        len_type_floor = sum(s_len_type[:, 1:(subhalo_abs_idx - 1)], dims=2; init=0)
-    end
+#     # Compute the number of particles upto the last subhalo before `subhalo_abs_idx`
+#     if isone(subhalo_abs_idx)
+#         len_type_floor = zeros(Int, size(s_len_type, 1))
+#     else
+#         len_type_floor = sum(s_len_type[:, 1:(subhalo_abs_idx - 1)], dims=2; init=0)
+#     end
 
-    # Compute the first and last index of the selected cells/particles (for each cell/particle type)
-    first_idxs = len_type_floor .+ 1
-    last_idxs  = len_type_floor .+ s_len_type[:, subhalo_abs_idx]
+#     # Compute the first and last index of the selected cells/particles (for each cell/particle type)
+#     first_idxs = len_type_floor .+ 1
+#     last_idxs  = len_type_floor .+ s_len_type[:, subhalo_abs_idx]
 
-    filter_dict = Dict{Symbol,IndexType}()
+#     filter_dict = Dict{Symbol,IndexType}()
 
-    # Find which cell/particle types are part of the keys of `data_dict`
-    components_in_dd = snapshotTypes(data_dict)
+#     # Find which cell/particle types are part of the keys of `data_dict`
+#     components_in_dd = snapshotTypes(data_dict)
 
-    # Fill the filter dictionary
-    for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
+#     # Fill the filter dictionary
+#     for (i, (first_idx, last_idx)) in enumerate(zip(first_idxs, last_idxs))
 
-        component = INDEX_PARTICLE[i - 1]
+#         component = INDEX_PARTICLE[i - 1]
 
-        # Only compute the indices for components in `data_dict`
-        if component ∈ components_in_dd
+#         # Only compute the indices for components in `data_dict`
+#         if component ∈ components_in_dd
 
-            if first_idx == last_idx || iszero(last_idx)
-                filter_dict[component] = Int[]
-            end
+#             if first_idx == last_idx || iszero(last_idx)
+#                 filter_dict[component] = Int[]
+#             end
 
-            if component == :stellar
+#             if component == :stellar
 
-                # Find the indices of the stars, excluding wind particles
-                real_stars_idxs = findRealStars(data_dict[:snap_data].path)
+#                 # Find the indices of the stars, excluding wind particles
+#                 real_stars_idxs = findRealStars(data_dict[:snap_data].path)
 
-                n_wind_before = count(!, real_stars_idxs[1:(first_idx - 1)])
-                n_wind_between = count(!, real_stars_idxs[first_idx:last_idx])
+#                 n_wind_before = count(!, real_stars_idxs[1:(first_idx - 1)])
+#                 n_wind_between = count(!, real_stars_idxs[first_idx:last_idx])
 
-                stars_first_idx = first_idx - n_wind_before
-                stars_last_idx = last_idx - n_wind_before - n_wind_between
+#                 stars_first_idx = first_idx - n_wind_before
+#                 stars_last_idx = last_idx - n_wind_before - n_wind_between
 
-                filter_dict[component] = stars_first_idx:stars_last_idx
+#                 filter_dict[component] = stars_first_idx:stars_last_idx
 
-            else
+#             else
 
-                filter_dict[component] = first_idx:last_idx
+#                 filter_dict[component] = first_idx:last_idx
 
-            end
+#             end
 
-        end
+#         end
 
-    end
+#     end
 
-    return filter_dict
+#     return filter_dict
 
-end
+# end
 
 """
     filterByQuantity(
