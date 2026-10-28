@@ -2067,6 +2067,10 @@ const QUANTITIES = Dict(
     "PARZ" => SnapshotBlock("ODE_ParameterMetallicity", Unitful.NoDims, Unitful.NoUnits),
     # Column height, for gas cells and stellar particles
     "PARH" => SnapshotBlock("ODE_ParameterColumnHeight", Unitful.𝐋, u"cm"),
+    # Ionized fraction of the gas, for gas cells and stellar particles
+    "FIG " => SnapshotBlock("ODE_ParameterFig", Unitful.NoDims, Unitful.NoUnits),
+    # Neutral fraction of the gas, for gas cells and stellar particles
+    "FNG " => SnapshotBlock("ODE_ParameterFng", Unitful.NoDims, Unitful.NoUnits),
     # Photodissociation parameter, for gas cells and stellar particles
     "ETAD" => SnapshotBlock("ODE_ParameterEtaD", Unitful.NoDims, Unitful.NoUnits),
     # Photoionization parameter, for gas cells and stellar particles
