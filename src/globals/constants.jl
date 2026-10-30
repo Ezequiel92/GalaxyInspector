@@ -2071,6 +2071,10 @@ const QUANTITIES = Dict(
     "FIG " => SnapshotBlock("ODE_ParameterFig", Unitful.NoDims, Unitful.NoUnits),
     # Neutral fraction of the gas, for gas cells and stellar particles
     "FNG " => SnapshotBlock("ODE_ParameterFng", Unitful.NoDims, Unitful.NoUnits),
+    # Maximum dust mass fraction, for gas cells and stellar particles
+    "FDM " => SnapshotBlock("ODE_ParameterFdm", Unitful.NoDims, Unitful.NoUnits),
+    # Dust growth constant, for gas cells and stellar particles
+    "CDG " => SnapshotBlock("ODE_ParameterCdg", Unitful.𝐓^-1 * Unitful.𝐌^-1 * Unitful.𝐋^3, u"Myr^-1 * mp^-1 * cm^3"),
     # Photodissociation parameter, for gas cells and stellar particles
     "ETAD" => SnapshotBlock("ODE_ParameterEtaD", Unitful.NoDims, Unitful.NoUnits),
     # Photoionization parameter, for gas cells and stellar particles
