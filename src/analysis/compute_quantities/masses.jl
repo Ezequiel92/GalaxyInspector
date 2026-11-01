@@ -986,6 +986,232 @@ function initialConditionFunction(data_dict::Dict, component::Symbol)::Union{Fun
 end
 
 """
+    dustInitialConditionFunction(data_dict::Dict)::Function
+
+Generate a function that gives the dust fraction that the `i`-th cell would have if it entered the
+star formation routine.
+
+  - If the cell never entered the routine (the stored fZ + fd is NaN or not positive), the initial
+    condition of Hirashita (2012) (eq. 18), for silicate and graphite, capped at Z:
+
+        fd = min(Cxsi * X_Si + Cxc * X_C, Z)
+
+  - If the cell entered the routine before, the dust-to-metal ratio of its last integration,
+    applied to the current metallicity, capped at the maximum dust fraction:
+
+        fd = min(fd_prev / (fZ_prev + fd_prev) * Z, fd_max), with fd_max = min(Cmxsi * X_Si + Cmxc * X_C, Z)
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+    This function requires the following blocks to be present:
+
+      + `:gas` => ["GZ  ", "GMET", "FRAC"]
+
+    If "FRAC" is empty, every cell is treated as if it never entered the routine.
+
+# Returns
+
+  - A function with signature `dust_ic(i::Int)::Float64`, that gives the dust fraction of the
+    `i`-th cell.
+"""
+function dustInitialConditionFunction(data_dict::Dict)::Function
+
+    GZ   = data_dict[:gas]["GZ  "]
+    GMET = data_dict[:gas]["GMET"]
+    FRAC = data_dict[:gas]["FRAC"]
+
+    # Rows of Si and C in "GMET"
+    i_Si = ELEMENT_INDEX[:Si]
+    i_C  = ELEMENT_INDEX[:C]
+
+    # Rows of the metal and dust fractions in "FRAC"
+    i_fZ = SFM_IDX[:ode_metals]
+    i_fd = SFM_IDX[:ode_dust]
+
+    dust_ic = function dust_fraction(i::Int)::Float64
+
+        Z, X_Si, X_C = cleanAbundances(GZ[i], GMET[i_Si, i], GMET[i_C, i])
+
+        fZ_prev = FRAC[i_fZ, i]
+        fd_prev = FRAC[i_fd, i]
+
+        # The cell entered the routine before
+        if fZ_prev + fd_prev > 0.0
+
+            # Maximum dust fraction (capped at Z)
+            fd_max = min(AREPO_SFM.Cmxsi * X_Si + AREPO_SFM.Cmxc * X_C, Z)
+
+            # Dust-to-metal ratio of the last integration
+            return min(fd_prev / (fZ_prev + fd_prev) * Z, fd_max)
+
+        end
+
+        # First entry: Hirashita (2012), eq. 18, silicate + graphite, capped at Z
+        return min(AREPO_SFM.Cxsi * X_Si + AREPO_SFM.Cxc * X_C, Z)
+
+    end
+
+    return dust_ic
+
+end
+
+"""
+    icPaper2(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+
+Generate a function that gives the value of `component` for the `i`-th cell, for cells without valid results of our star formation model (cells that never entered the routine, or that are no longer star forming, so their stored fractions are stale).
+
+The value is what the model would assign to the cell if it entered the routine:
+
+  - The gas phases and the stars are reset from the current state of the cell (as on every entry), with the ionized and neutral fractions of hydrogen from AREPO. The helium mass is distributed among the gas phases, as in the model.
+  - The dust is carried as the dust-to-metal ratio of the last integration (see [`dustInitialConditionFunction`](@ref)), which is the only quantity of the model that persists between entries.
+
+!!! note
+
+    This method implements the initial conditions of the model in our Paper 2.
+
+# Arguments
+
+  - `data_dict::Dict`: Data dictionary. See [`makeDataDict`](@ref) for a canonical description.
+    This function requires the following blocks to be present, depending on the value of `component`:
+
+      + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_neutral]
+          * `:gas` => ["NH  ", "NHP ", "GZ  "]
+      + If `component` ∈ [:ode_metals, :ode_dust]
+          * `:gas` => ["GZ  ", "GMET", "FRAC"]
+      + If `component` ∈ [:ode_cold]
+          * `:gas` => ["GZ  "]
+      + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar, :Z_stellar, :gas, :hydrogen, :helium, :Z_gas, :ionized, :neutral, :br_atomic, :br_molecular, :dust_gas, :dust_stellar]
+          * No blocks are required.
+  - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
+
+# Returns
+
+  - A function with signature `ode_ic(i::Int)::Float64`, that gives the value of `component` for the `i`-th cell, according to our star formation model.
+"""
+function icPaper2(data_dict::Dict, component::Symbol)::Union{Function,Nothing}
+
+    ################################################################################################
+    # Ionized gas
+    ################################################################################################
+
+    if component == :ode_ionized
+
+        NH  = data_dict[:gas]["NH  "]
+        NHP = data_dict[:gas]["NHP "]
+        GZ  = data_dict[:gas]["GZ  "]
+
+        ode_ic = function ionized_ic(i::Int)::Float64
+
+            nh  = NH[i]
+            nhp = NHP[i]
+            Z   = cleanMetallicity(GZ[i])
+
+            return (1.0 - Z) * nhp / (nhp + nh)
+
+        end
+
+    ################################################################################################
+    # Atomic gas or neutral gas (everything but the ionized gas, stars, metals, and dust)
+    ################################################################################################
+
+    elseif component == :ode_atomic || component == :ode_neutral
+
+        NH  = data_dict[:gas]["NH  "]
+        NHP = data_dict[:gas]["NHP "]
+        GZ  = data_dict[:gas]["GZ  "]
+
+        ode_ic = function atomic_ic(i::Int)::Float64
+
+            nh  = NH[i]
+            nhp = NHP[i]
+            Z   = cleanMetallicity(GZ[i])
+
+            # All the neutral gas starts as atomic
+            return (1.0 - Z) * nh / (nhp + nh)
+
+        end
+
+    ################################################################################################
+    # Molecular gas or stars
+    ################################################################################################
+
+    elseif component ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
+
+        ode_ic = function molecular_ic(i::Int)::Float64
+
+            return 0.0
+
+        end
+
+    ################################################################################################
+    # Metals (gas phase)
+    ################################################################################################
+
+    elseif component == :ode_metals
+
+        GZ = data_dict[:gas]["GZ  "]
+
+        dust_ic = dustInitialConditionFunction(data_dict)
+
+        ode_ic = function metals_ic(i::Int)::Float64
+
+            # The metals that are not in dust (fd <= Z, so fZ >= 0)
+            return cleanMetallicity(GZ[i]) - dust_ic(i)
+
+        end
+
+    ################################################################################################
+    # Dust
+    ################################################################################################
+
+    elseif component == :ode_dust
+
+        ode_ic = dustInitialConditionFunction(data_dict)
+
+    ################################################################################################
+    # Cold gas (everything but atomic and ionized gas)
+    ################################################################################################
+
+    elseif component == :ode_cold
+
+        GZ = data_dict[:gas]["GZ  "]
+
+        ode_ic = function cold_ic(i::Int)::Float64
+
+            # fm + fs + fZ + fd = 0 + 0 + (Z - fd) + fd = Z
+            return cleanMetallicity(GZ[i])
+
+        end
+
+    elseif component ∈ [
+        :Z_stellar,
+        :gas,
+        :hydrogen,
+        :helium,
+        :Z_gas,
+        :ionized,
+        :neutral,
+        :br_atomic,
+        :br_molecular,
+        :dust_gas,
+        :dust_stellar,
+    ]
+
+        ode_ic = nothing
+
+    else
+
+        throw(ArgumentError("icPaper2: `component` can only be one of the elements of \
+        `COMPONENTS` (see `./src/globals/globals.jl`), but I got :$(component)"))
+
+    end
+
+    return ode_ic
+
+end
+
+"""
     computeFraction(
         data_dict::Dict,
         component::Symbol;

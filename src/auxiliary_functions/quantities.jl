@@ -444,3 +444,65 @@ function applyIntegrator(
     return agg_function(vals)
 
 end
+
+"""
+    cleanMetallicity(Z::Real)::Float64
+
+Clean the metallicity of a gas cell from numerical noise.
+
+# Arguments
+
+  - `Z::Real`: Metallicity (gas + dust).
+
+# Returns
+
+  - The metallicity, set to 0 if it is negative or below `AREPO_SFM.Zfloor` (pristine gas).
+"""
+function cleanMetallicity(Z::Real)::Float64
+
+    z = setPositive(Z)
+
+    return z < AREPO_SFM.Zfloor ? 0.0 : Float64(z)
+
+end
+
+"""
+    cleanAbundances(Z::Real, X_Si::Real, X_C::Real)::NTuple{3,Float64}
+
+Clean the metallicity and the mass fractions of Si and C of a gas cell from numerical noise.
+
+# Arguments
+
+  - `Z::Real`: Metallicity (gas + dust).
+  - `X_Si::Real`: Mass fraction of Si (gas + dust).
+  - `X_C::Real`: Mass fraction of C (gas + dust).
+
+# Returns
+
+  - A tuple with the clean values of (Z, X_Si, X_C):
+
+      + Negative values are set to 0.
+      + If Z < `AREPO_SFM.Zfloor` (pristine gas) all three are set to 0.
+      + If X_Si + X_C > Z, X_Si and X_C are rescaled so that X_Si + X_C = Z.
+"""
+function cleanAbundances(Z::Real, X_Si::Real, X_C::Real)::NTuple{3,Float64}
+
+    z = cleanMetallicity(Z)
+
+    if iszero(z)
+        return 0.0, 0.0, 0.0
+    end
+
+    x_si = Float64(setPositive(X_Si))
+    x_c  = Float64(setPositive(X_C))
+
+    # Si and C cannot be more than all the metals
+    if x_si + x_c > z
+        x_scale = z / (x_si + x_c)
+        x_si   *= x_scale
+        x_c    *= x_scale
+    end
+
+    return z, x_si, x_c
+
+end

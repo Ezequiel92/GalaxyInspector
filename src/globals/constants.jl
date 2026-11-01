@@ -1965,17 +1965,22 @@ const SFM_IDX = Dict(
 Star formation model parameters
 """
 const AREPO_SFM = (
-    Cxd   = 0.2836,                         # Constant for the initial condition of dust and metals.
-    εff   = 1.0,                            # Star formation efficiency per free-fall time
-    αH    = 2.6e-13u"cm^3 * s^-1",          # Case B recombination coefficient at T = 10^4 K
-    Rd    = 3.5e-17u"cm^3 * s^-1",          # H2 formation rate on dust grains at T = 100 K
-    Cdg   = 2.4634u"mp^-1 * Myr^-1 * cm^3", # Dust growth coefficient
-    σion  = 6.3e-18u"cm^2",                 # Hydrogen ionization cross section at the Lyman limit
-    σdiss = 2.1e-19u"cm^2",                 # H2 dissociation cross section in the Lyman-Werner band
-    σd    = 4.0e-21u"cm^2",                 # Effective dust cross-section per hydrogen atom
-    ωH2   = 0.2,                            # Constant for the H2 self-shielding factor
-    xnf   = 5.0e14u"cm^-2",                 # H2 self-shielding column density factor
-    Cswm  = 2.233e3u"Msun",                 # Mass swept-up by a SNe shock times the efficiency of dust destruction
+    Cxd    = 0.2836,                         # Constant for the initial condition of dust and metals.
+    εff    = 1.0,                            # Star formation efficiency per free-fall time
+    αH     = 2.6e-13u"cm^3 * s^-1",          # Case B recombination coefficient at T = 10^4 K
+    Rd     = 3.5e-17u"cm^3 * s^-1",          # H2 formation rate on dust grains at T = 100 K
+    Cdg    = 2.4634u"mp^-1 * Myr^-1 * cm^3", # Dust growth coefficient
+    σion   = 6.3e-18u"cm^2",                 # Hydrogen ionization cross section at the Lyman limit
+    σdiss  = 2.1e-19u"cm^2",                 # H2 dissociation cross section in the Lyman-Werner band
+    σd     = 4.0e-21u"cm^2",                 # Effective dust cross-section per hydrogen atom
+    ωH2    = 0.2,                            # Constant for the H2 self-shielding factor
+    xnf    = 5.0e14u"cm^-2",                 # H2 self-shielding column density factor
+    Cswm   = 2.233e3u"Msun",                 # Mass swept-up by a SNe shock times the efficiency of dust destruction
+    Cxsi   = (1.0 - 0.25) / 0.166, # Silicate constant of the dust initial condition, (1 - ξ_Si) / f_Si
+    Cxc    = (1.0 - 0.15) / 1.0,   # Graphite constant of the dust initial condition, (1 - ξ_C) / f_C
+    Cmxsi  = 1.0 / 0.166,          # Silicate constant of the maximum dust fraction, 1 / f_Si
+    Cmxc   = 1.0 / 1.0,            # Graphite constant of the maximum dust fraction, 1 / f_C
+    Zfloor = 1.0e-10,              # Metallicity below which a cell is considered pristine (numerical noise)
 )
 
 ####################################################################################################
