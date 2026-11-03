@@ -2827,9 +2827,9 @@ const MAGNITUDES = Dict(
             elseif c ∈ (:ionized, :neutral)
                 Dict(:gas => ["MASS", "NH  ", "NHP ", "POS ", "RHO "])
             elseif c ∈ (:br_atomic, :br_molecular)
-                Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES", "POS ", "RHO "])
+                Dict(:gas => ["MASS", "NH  ", "NHP ", "PRES", "POS ", "RHO ", "GMET"])
             elseif c ∈ (:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold)
-                Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "POS ", "GDZ "])
+                Dict(:gas => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "POS ", "GDZ ", "GMET"])
             elseif c ∈ (:ode_molecular, :ode_stellar, :ode_molecular_stellar)
                 Dict(:gas => ["MASS", "FRAC", "RHO ", "POS "])
             elseif c == :generic
@@ -2975,12 +2975,12 @@ const MAGNITUDES = Dict(
             elseif c ∈ (:br_atomic, :br_molecular)
                 Dict(:gas => ["SFR ", "MASS", "RHO ", "NH  ", "NHP ", "PRES"])
             elseif c ∈ (:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold)
-                Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ "])
+                Dict(:gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "GMET"])
             elseif c ∈ (:ode_molecular, :ode_stellar, :ode_molecular_stellar)
                 Dict(:gas => ["SFR ", "MASS", "FRAC", "RHO "])
             elseif c == :generic
                 Dict(
-                    :gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES"],
+                    :gas => ["SFR ", "MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "PRES", "GMET"],
                     :stellar => ["RHOC", "GMAS", "GSFR"],
                 )
             elseif c ∈ (:dark_matter, :black_hole, :Z_stellar, :dust_stellar)
