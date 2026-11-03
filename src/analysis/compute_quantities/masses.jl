@@ -1240,7 +1240,7 @@ Compute the fraction of a given `component` in each cell/particle.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ , "GMET"]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref) (except :stellar, :dark_matter, and :black_hole).
@@ -1605,7 +1605,7 @@ Compute the fraction of a given :ode `component` in each cell/particle.
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "GMET"]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the :ode elements of [`COMPONENTS`](@ref).
@@ -1799,7 +1799,7 @@ Compute the relative change in the fraction of a given :ode `component` in each 
     This function requires the following blocks to be present, depending on the value of `component`:
 
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "GMET"]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the :ode elements of [`COMPONENTS`](@ref).
@@ -2005,7 +2005,7 @@ C_\rho = \frac{\langle \rho^2 \rangle}{\langle \rho \rangle^2} \, .
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "GMET"]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
@@ -2155,7 +2155,7 @@ Compute the mass in each cell/particle of a given `component`.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "GMET"]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).
@@ -2243,7 +2243,7 @@ Compute the mass density of a given gas `component` for each cell.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "GMET"]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar:
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
@@ -2332,7 +2332,7 @@ Compute the number density of a given gas `component` for each cell.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES", "RHO "]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "GMET"]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the gas elements of [`COMPONENTS`](@ref).
@@ -2422,7 +2422,7 @@ Compute the number of a given `component`.
       + If `component` ∈ [:br_atomic, :br_molecular]
           * `:gas` => ["MASS", "NH  ", "NHP ", "PRES"]
       + If `component` ∈ [:ode_ionized, :ode_atomic, :ode_metals, :ode_dust, :ode_neutral, :ode_cold]
-          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ "]
+          * `:gas` => ["MASS", "NH  ", "NHP ", "FRAC", "RHO ", "GZ  ", "GDZ ", "GMET"]
       + If `component` ∈ [:ode_molecular, :ode_stellar, :ode_molecular_stellar]
           * `:gas` => ["MASS", "FRAC", "RHO "]
   - `component::Symbol`: Target component. It can only be one of the elements of [`COMPONENTS`](@ref).

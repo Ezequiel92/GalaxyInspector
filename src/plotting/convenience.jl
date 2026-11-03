@@ -9145,6 +9145,7 @@ function snapshotReport(
                     "PRES",
                     "GZ  ",
                     "GDZ ",
+                    "GMET",
                     "RHO ",
                     "ID  ",
                     "ODIT",
