@@ -8230,7 +8230,7 @@ Plot a surface density profile, comparing with the measurements from Muñoz-Mate
   - `quantity::Symbol`: Target quantity. The options are:
 
       + `:Mdust`  -> Dust mass.
-      + `:Dtot`  -> Dust-to-gas ratio. Where the gas is defined as ``M_\\text{gas} = 1.36 \\, M_\\text{HI} + M_\\text{H2}``.
+      + `:Dtot`  -> Dust-to-gas ratio. Where the gas is defined as ``M_\\text{gas} = 1.36 \\, M_\\text{HI} + M_\\text{H2}`` by Muñoz-Mateos et al. (2009).
   - `slice::IndexType=(:)`: Slice of the simulation, i.e. which snapshots will be plotted. It can be an integer (a single snapshot), a vector of integers (several snapshots), an `UnitRange` (e.g. 5:13), an `StepRange` (e.g. 5:2:13) or (:) (all snapshots). It works over the longest simulation. Starts at 1 and out of bounds indices are ignored.
   - `output_path::String="."`: Path to the output folder.
   - `trans_mode::Union{Symbol,Tuple{TranslationType,RotationType,Dict{Symbol,Vector{String}}}}=:all_box`: How to translate and rotate the cells/particles, before filtering with `filter_mode`. For options see [`selectTransformation`](@ref).
@@ -8382,7 +8382,8 @@ function compareMunozMateos2009(
 
                         x, y = jld2_file[snap][basename(simulation_path)]
                         # Muñoz-Mateos et al. (2009) define gas as Mgas = 1.36 * (MHI + MH2)
-                        lines!(ax, x, y .- log10(1.36); label)
+                        # but we already include He, so no need to multiply by 1.36 again
+                        lines!(ax, x, y; label)
 
                     end
 
