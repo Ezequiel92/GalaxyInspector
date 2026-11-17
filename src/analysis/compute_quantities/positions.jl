@@ -1354,7 +1354,7 @@ function computeDiskRotationMatrix(
         # Concatenate the position, masses, and velocities of all the cells and particles in the system
         positions  = mapreduce(st -> data_dict[st]["POS "], hcat, snap_types)
         masses     = mapreduce(st -> data_dict[st]["MASS"], vcat, snap_types)
-        velocities = mapreduce(st -> data_dict[st]["VEL "], vcat, snap_types)
+        velocities = mapreduce(st -> data_dict[st]["VEL "], hcat, snap_types)
 
         if any(isempty, [positions, masses, velocities])
             (
