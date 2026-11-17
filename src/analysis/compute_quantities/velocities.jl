@@ -331,7 +331,9 @@ function computeTotalAngularMomentum(
             @warn("computeTotalAngularMomentum: The angular momentum of an empty dataset is \
             not defined, so I will return the z axis, [0.0, 0.0, 1.0]")
         )
-        return [0.0, 0.0, 1.0]
+        normal && return [0.0, 0.0, 1.0]
+        u = unit(eltype(masses)) * unit(eltype(positions)) * unit(eltype(velocities))
+        return zeros(3) .* u
     end
 
     unit_L = unit(runtimeType(masses)) * unit(runtimeType(positions)) * unit(runtimeType(velocities))
