@@ -80,6 +80,10 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
 # References
 
 M. R. Krumholz et al. (2012). *A UNIVERSAL, LOCAL STAR FORMATION LAW IN GALACTIC CLOUDS, NEARBY GALAXIES, HIGH-REDSHIFT DISKS, AND STARBURSTS*. The Astrophysical Journal, **745(1)**, 69. [doi:10.1088/0004-637X/745/1/69](https://doi.org/10.1088/0004-637X/745/1/69)
+
+O. Agertz et al. (2013). *TOWARD A COMPLETE ACCOUNTING OF ENERGY AND MOMENTUM FROM STELLAR FEEDBACK IN GALAXY FORMATION SIMULATIONS*. The Astrophysical Journal, **770(1)**, 25. [doi:10.1088/0004-637x/770/1/25](https://doi.org/10.1088/0004-637x/770/1/25)
+
+V. A. Semenov et al. (2016). *NONUNIVERSAL STAR FORMATION EFFICIENCY IN TURBULENT ISM*. The Astrophysical Journal, **826(2)**, 200. [doi:10.3847/0004-637x/826/2/200](https://doi.org/10.3847/0004-637x/826/2/200)
 """
 function computeEfficiencyFF(
     densities::Vector{<:Unitful.Density},
@@ -2091,6 +2095,10 @@ is the depletion time. $M$ and $\rho$ are the mass and density of the target gas
 # References
 
 M. R. Krumholz et al. (2012). *A UNIVERSAL, LOCAL STAR FORMATION LAW IN GALACTIC CLOUDS, NEARBY GALAXIES, HIGH-REDSHIFT DISKS, AND STARBURSTS*. The Astrophysical Journal, **745(1)**, 69. [doi:10.1088/0004-637X/745/1/69](https://doi.org/10.1088/0004-637X/745/1/69)
+
+O. Agertz et al. (2013). *TOWARD A COMPLETE ACCOUNTING OF ENERGY AND MOMENTUM FROM STELLAR FEEDBACK IN GALAXY FORMATION SIMULATIONS*. The Astrophysical Journal, **770(1)**, 25. [doi:10.1088/0004-637x/770/1/25](https://doi.org/10.1088/0004-637x/770/1/25)
+
+V. A. Semenov et al. (2016). *NONUNIVERSAL STAR FORMATION EFFICIENCY IN TURBULENT ISM*. The Astrophysical Journal, **826(2)**, 200. [doi:10.3847/0004-637x/826/2/200](https://doi.org/10.3847/0004-637x/826/2/200)
 """
 function computeEfficiencyFF(
     data_dict::Dict,
