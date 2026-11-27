@@ -3327,12 +3327,10 @@ function ppMunozMateos2009!(
         [
             LineElement(; color=colors[1], linestyle),
             PolyElement(; color=(colors[2], 0.5)),
-            PolyElement(; color=(colors[3], 0.5)),
         ],
         [
             "Median - Muñoz-Mateos et al. (2009)",
             L"1 \sigma",
-            L"2 \sigma",
         ],
     )
 
