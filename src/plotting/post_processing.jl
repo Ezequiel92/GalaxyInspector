@@ -3306,14 +3306,9 @@ function ppMunozMateos2009!(
     Σ_median = stats[!, :median]
     Σ_low1   = stats[!, :low1]
     Σ_up1    = stats[!, :up1]
-    Σ_low2   = stats[!, :low2]
-    Σ_up2    = stats[!, :up2]
 
     if bands
         band_1s = band!(ax, R25, Σ_low1, Σ_up1; color=colors[2], label=L"1 \sigma")
-        band_2s = band!(ax, R25, Σ_low2, Σ_up2; color=colors[3], label=L"2 \sigma")
-
-        translate!(Accum, band_2s, 0, 0, -11)
         translate!(Accum, band_1s, 0, 0, -10)
     end
 

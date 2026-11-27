@@ -168,6 +168,12 @@ function computeBandProfile(
         return fill(NaN, grid.n_bins)
     end
 
+    (
+        grid.x_axis[1] < zero(grid.x_axis[1]) &&
+        throw(ArgumentError("computeBandProfile: The linear grid cannot have negative bins, \\
+        at least the first bin center is negative"))
+    )
+
     # Compute the distances of the cells/particles to the origin of the grid
     if flat
         distances = colwise(Euclidean(), positions[1:2, :], grid.origin[1:2])
@@ -178,7 +184,19 @@ function computeBandProfile(
     # Compute the histogram of `quantity`
     histogram = listHistogram1D(distances, quantity, grid)
 
-    region = flat ? grid.bin_size_2D : grid.bin_size_3D
+    # Compute the correct physical areas and volumes
+    # for grids with their first bin partially negative
+    if grid.x_edges[1] < zero(grid.x_edges[1])
+        edges = [zero(grid.x_edges[1]), grid.x_edges[2:end]...]
+    else
+        edges = grid.x_edges
+    end
+
+    if flat
+        region = [area(edges[i + 1]) - area(edges[i]) for i in 1:grid.n_bins]
+    else
+        region = [volume(edges[i + 1]) - volume(edges[i]) for i in 1:grid.n_bins]
+    end
 
     if density
         center = center_func.(histogram) ./ region
